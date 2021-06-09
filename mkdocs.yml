@@ -1,0 +1,10 @@
+site_name: napari-1d
+site_description: Plugion providing support for 1d plotting in napari.
+site_author: Lukasz Migas
+
+theme: readthedocs
+
+repo_url: https://github.com/lukasz-migas/napari-1d
+
+pages:
+- Home: index.md
