@@ -1,5 +1,4 @@
 """Viewer model"""
-# Third-party imports
 import warnings
 from typing import Optional, Tuple
 
@@ -12,23 +11,19 @@ from napari.utils._register import create_func as create_add_method
 from napari.utils.events import Event, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.mouse_bindings import MousemapProvider
-from pydantic import Field, Extra
+from pydantic import Extra, Field
 
-# Local imports
-# from .viewer_model import ViewerModelBase
 from .. import layers
+from ..utils.utilities import find_nearest_index, get_min_max
 from ._viewer_mouse_bindings import x_span
 from .axis import Axis
 from .camera import Camera
-from .span import Span
-from ..utils.utilities import find_nearest_index, get_min_max
 from .gridlines import GridLines
 from .layerlist import LayerList
+from .span import Span
 
 
-def get_x_region_extent(
-    x_min: float, x_max: float, layer: Layer
-) -> Tuple[Optional[float], ...]:
+def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> Tuple[Optional[float], ...]:
     """Get extent for specified range"""
     if not layer.visible:
         return None, None
@@ -57,9 +52,7 @@ def get_x_region_extent(
     return None, None
 
 
-def get_layers_x_region_extent(
-    x_min: float, x_max: float, layerlist
-) -> Tuple[Optional[float], ...]:
+def get_layers_x_region_extent(x_min: float, x_max: float, layerlist) -> Tuple[Optional[float], ...]:
     """Get layer extents"""
     extents = []
     for layer in layerlist:
@@ -73,9 +66,7 @@ def get_layers_x_region_extent(
     return None, None
 
 
-def get_range_extent(
-    full_min, full_max, range_min, range_max, min_val: float = None
-) -> Tuple[float, float]:
+def get_range_extent(full_min, full_max, range_min, range_max, min_val: float = None) -> Tuple[float, float]:
     """Get tuple of specified range"""
     if range_min is None:
         range_min = full_min
@@ -203,10 +194,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         _, _, real_ymin, real_ymax = self._get_rect_extent()
         if auto_scale:
             ymin, ymax = get_range_extent(
-                real_ymin,
-                real_ymax,
-                *get_layers_x_region_extent(xmin, xmax, self.layers),
-                ymin
+                real_ymin, real_ymax, *get_layers_x_region_extent(xmin, xmax, self.layers), ymin
             )
         else:
             ymin, ymax = real_ymin, real_ymax
@@ -227,9 +215,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         auto_scale: bool = True,
     ):
         """Set view on specified x-axis"""
-        ymin, ymax = self._get_y_range_extent_for_x(
-            xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale
-        )
+        ymin, ymax = self._get_y_range_extent_for_x(xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale)
         self.camera.rect = (xmin, xmax, ymin, ymax)
 
     def reset_x_view(self, event=None):

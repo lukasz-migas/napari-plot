@@ -26,9 +26,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self.layer.events.edge_color.connect(self._on_data_change)
         self.layer.events.face_color.connect(self._on_data_change)
         self.layer.events.scaling.connect(self._on_data_change)
-        self.layer.text._connect_update_events(
-            self._on_text_change, self._on_blending_change
-        )
+        self.layer.text._connect_update_events(self._on_text_change, self._on_blending_change)
 
         self._reset_base()
         self._on_data_change()

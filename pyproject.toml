@@ -1,0 +1,46 @@
+# Tools
+[tool.black]
+line-length = 120
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+(
+  /(
+      \.eggs
+    | \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | examples
+    | windows
+    | macOS
+    | linux
+    | dist
+    | build
+    | _qt_resources_*.py
+  )/
+  | scripts/minreq.py
+)
+'''
+
+[tool.check-manifest]
+ignore = [
+  "bundle.py",
+  ".pre-commit-config.yaml",
+  "asv.conf.json",
+  "codecov.yml",
+  "Makefile",
+  "scripts/minreq.py",
+  "tox.ini",
+  "src/imimsui/assets/_qt_resources_*.py"
+]
+
+[tool.isort]
+line_length = 120
+profile = "black"
+skip_glob = ["*examples/*"]

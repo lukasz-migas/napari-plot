@@ -1,15 +1,14 @@
 """Toolbar"""
 # Third-party imports
-from napari.utils.events.event import EmitterGroup, Event
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QWidget
-
 from imimsui._napari.line.layers.region._region_constants import Mode as RegionMode
 from imimsui._qt.qt_mini_toolbar import QtMiniToolbar  # noqa
 from imimsui.gui_elements.dialog_preferences import show_line_config
 
 # Local imports
 from imimsui.gui_elements.helpers import make_radio_btn_group, qt_signals_blocked
+from napari.utils.events.event import EmitterGroup, Event
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import QWidget
 
 
 class QtViewToolbar(QWidget):
@@ -43,20 +42,17 @@ class QtViewToolbar(QWidget):
         self.events.selection_off.connect(self._on_close_extract_layer)
 
         # create instance
-        toolbar_left, toolbar_right = QtMiniToolbar(
-            qt_viewer, Qt.Vertical
-        ), QtMiniToolbar(qt_viewer, Qt.Vertical)
+        toolbar_left, toolbar_right = (
+            QtMiniToolbar(qt_viewer, Qt.Vertical),
+            QtMiniToolbar(qt_viewer, Qt.Vertical),
+        )
         self.toolbar_left = toolbar_left
         self.toolbar_right = toolbar_right
 
         # right-hand toolbar
         # view reset/clear
-        self.tools_erase_btn = toolbar_right.insert_svg_tool(
-            "erase", tooltip="Clear image", func=viewer.clear_canvas
-        )
-        self.tools_zoomout_btn = toolbar_right.insert_svg_tool(
-            "zoom_out", tooltip="Zoom-out", func=viewer.reset_view
-        )
+        self.tools_erase_btn = toolbar_right.insert_svg_tool("erase", tooltip="Clear image", func=viewer.clear_canvas)
+        self.tools_zoomout_btn = toolbar_right.insert_svg_tool("zoom_out", tooltip="Zoom-out", func=viewer.reset_view)
         # view modifiers
         toolbar_right.insert_separator()
         self.tools_clip_btn = toolbar_right.insert_svg_tool(
@@ -131,17 +127,13 @@ class QtViewToolbar(QWidget):
         self.tools_grid_btn.setChecked(self.qt_viewer.viewer.grid_lines.visible)
         self.tools_grid_btn.clicked.connect(self._toggle_grid_lines_visible)
         self.qt_viewer.viewer.grid_lines.events.visible.connect(
-            lambda x: self.tools_grid_btn.setChecked(
-                self.qt_viewer.viewer.grid_lines.visible
-            )
+            lambda x: self.tools_grid_btn.setChecked(self.qt_viewer.viewer.grid_lines.visible)
         )
 
         self.tools_text_btn.setChecked(self.qt_viewer.viewer.text_overlay.visible)
         self.tools_text_btn.clicked.connect(self._toggle_text_visible)
         self.qt_viewer.viewer.text_overlay.events.visible.connect(
-            lambda x: self.tools_text_btn.setChecked(
-                self.qt_viewer.viewer.text_overlay.visible
-            )
+            lambda x: self.tools_text_btn.setChecked(self.qt_viewer.viewer.text_overlay.visible)
         )
 
     def _toggle_grid_lines_visible(self, state):
@@ -159,9 +151,7 @@ class QtViewToolbar(QWidget):
 
     def on_open_text_config(self):
         """Open text config"""
-        from imimsui._napari.common.layer_controls.qt_text_overlay_controls import (
-            QtTextOverlayControls,
-        )
+        from imimsui._napari.common.layer_controls.qt_text_overlay_controls import QtTextOverlayControls
 
         dlg = QtTextOverlayControls(self.viewer, self.qt_viewer)
         dlg.show_left_of_mouse()
@@ -184,9 +174,7 @@ class QtViewToolbar(QWidget):
         except (AttributeError, RuntimeError):
             self._dlg_region = LineRegionROIExtractPopup(self, self.view, layer)
             self._dlg_region.show_right_of_widget(self.tools_grid_btn)
-        layer.mode = (
-            RegionMode.SELECT
-        )  # auto-select the paint layer so the user can simply draw on the canvas
+        layer.mode = RegionMode.SELECT  # auto-select the paint layer so the user can simply draw on the canvas
         self.events.region_open(layer=layer)
 
     def _on_close_extract_region_layer(self, _evt=None):

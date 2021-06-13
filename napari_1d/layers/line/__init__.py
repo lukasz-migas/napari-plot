@@ -1,2 +1,2 @@
 """Line"""
-from .line import Line
+from .line import Line  # noqa: F401

@@ -2,7 +2,9 @@
 from typing import TYPE_CHECKING
 
 from napari._vispy.vispy_base_layer import VispyBaseLayer
-from vispy.scene.visuals import Compound, Line as LineVisual, Markers
+from vispy.scene.visuals import Compound
+from vispy.scene.visuals import Line as LineVisual
+from vispy.scene.visuals import Markers
 
 if TYPE_CHECKING:
     from ..layers import Line
@@ -28,9 +30,7 @@ class VispyLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node._subvisuals[0].set_data(
-            color=self.layer.color, width=self.layer.width
-        )
+        self.node._subvisuals[0].set_data(color=self.layer.color, width=self.layer.width)
 
     def _on_data_change(self, _event=None):
         """Set data"""

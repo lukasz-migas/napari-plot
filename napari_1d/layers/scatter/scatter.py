@@ -95,9 +95,7 @@ class Scatter(Layer):
             self._property_choices = {k: np.unique(v) for k, v in properties.items()}
         elif len(data) == 0:
             self._property_choices = {k: np.asarray(v) for k, v in properties.items()}
-            empty_properties = {
-                k: np.empty(0, dtype=v.dtype) for k, v in self._property_choices.items()
-            }
+            empty_properties = {k: np.empty(0, dtype=v.dtype) for k, v in self._property_choices.items()}
             self._properties = empty_properties
 
         # make the text
@@ -140,19 +138,13 @@ class Scatter(Layer):
         if len(view_data) > 0:
             de = self._extent_data
             min_vals = [de[0, i] for i in self._dims_displayed]
-            shape = np.ceil(
-                [de[1, i] - de[0, i] + 1 for i in self._dims_displayed]
-            ).astype(int)
+            shape = np.ceil([de[1, i] - de[0, i] + 1 for i in self._dims_displayed]).astype(int)
             zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
             if len(view_data) > self._max_points_thumbnail:
-                points = view_data[
-                    np.random.randint(0, len(view_data), self._max_points_thumbnail)
-                ]
+                points = view_data[np.random.randint(0, len(view_data), self._max_points_thumbnail)]
             else:
                 points = view_data
-            coords = np.floor(
-                (points[:, -2:] - min_vals[-2:] + 0.5) * zoom_factor
-            ).astype(int)
+            coords = np.floor((points[:, -2:] - min_vals[-2:] + 0.5) * zoom_factor).astype(int)
             coords = np.clip(coords, 0, np.subtract(self._thumbnail_shape[:2], 1))
             colormapped[coords[:, 0], coords[:, 1]] = (1, 1, 1, 1)
 
@@ -269,15 +261,11 @@ class Scatter(Layer):
             self.refresh_text()
         self.events.properties()
 
-    def _validate_properties(
-        self, properties: Dict[str, np.ndarray]
-    ) -> Dict[str, np.ndarray]:
+    def _validate_properties(self, properties: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
         """Validates the type and size of the properties"""
         for k, v in properties.items():
             if len(v) != len(self.data):
-                raise ValueError(
-                    "the number of properties must equal the number of points"
-                )
+                raise ValueError("the number of properties must equal the number of points")
             # ensure the property values are a numpy array
             if type(v) != np.ndarray:
                 properties[k] = np.asarray(v)

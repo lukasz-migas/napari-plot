@@ -7,7 +7,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
 # Local imports
-from ._region_constants import Mode
+from ._region_constants import Mode, Orientation
 from ._region_mouse_bindings import move, select
 
 
@@ -56,12 +56,10 @@ class Region(Layer):
         self._data: np.ndarray = data
         self._color: np.ndarray = transform_color(color)[0]
         self._label = label
-        self._orientation = orientation
+        self._orientation = Orientation(orientation)
         self._mode = Mode.PAN_ZOOM
 
-        self.events.add(
-            color=Event, label=Event, mode=Event, shifted=Event, accept=Event
-        )
+        self.events.add(color=Event, label=Event, mode=Event, shifted=Event, accept=Event)
         self.visible = visible
 
     def accept(self):
@@ -151,10 +149,10 @@ class Region(Layer):
         colormapped = np.zeros(self._thumbnail_shape)
         colormapped[..., 3] = 1
         # TODO: add magic here
-        if self.orientation == "vertical":
+        if self.orientation == Orientation.VERTICAL:
             y = colormapped.shape[0]
             colormapped[y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
-        if self.orientation == "horizontal":
+        if self.orientation == Orientation.HORIZONTAL:
             y = colormapped.shape[1]
             colormapped[:, y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
         colormapped[..., 3] *= self.opacity

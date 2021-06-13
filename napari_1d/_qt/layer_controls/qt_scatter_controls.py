@@ -3,20 +3,20 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
-from napari.utils.events import disconnect_events
-from napari._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari.layers.points._points_constants import SYMBOL_TRANSLATION
-from qtpy.QtCore import Qt, Slot
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
+from napari.layers.points._points_constants import SYMBOL_TRANSLATION
+from napari.utils.events import disconnect_events
+from qtpy.QtCore import Qt, Slot
 
 from ..helpers import (
+    make_checkbox,
     make_combobox,
+    make_label,
     make_slider,
     set_combobox_data,
-    make_checkbox,
-    make_label,
     set_current_combobox_index,
 )
+from .qt_layer_controls_base import QtLayerControls
 
 if TYPE_CHECKING:
     from ...layers import Scatter
@@ -69,17 +69,13 @@ class QtScatterControls(QtLayerControls):
             initial_color=self.layer.face_color,
             tooltip="Click to set face color",
         )
-        self.face_color_swatch.evt_color_changed.connect(
-            self.on_change_face_color
-        )  # noqa
+        self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
 
         self.edge_color_swatch = QColorSwatch(
             initial_color=self.layer.edge_color,
             tooltip="Click to set edge color",
         )
-        self.edge_color_swatch.evt_color_changed.connect(
-            self.on_change_edge_color
-        )  # noqa
+        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
         self.edge_width_slider = make_slider(self, 1, tooltip="Scatter edge width")
         self.edge_width_slider.setFocusPolicy(Qt.NoFocus)
@@ -90,15 +86,11 @@ class QtScatterControls(QtLayerControls):
         set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
         self.symbol_combobox.activated[str].connect(self.on_change_symbol)
 
-        self.scaling_checkbox = make_checkbox(
-            self, tooltip="Scale scatter points with zoom"
-        )
+        self.scaling_checkbox = make_checkbox(self, tooltip="Scale scatter points with zoom")
         self.scaling_checkbox.setChecked(self.layer.scaling)
         self.scaling_checkbox.stateChanged.connect(self.on_change_scaling)
 
-        self.text_display_checkbox = make_checkbox(
-            self, tooltip="Toggle text visibility"
-        )
+        self.text_display_checkbox = make_checkbox(self, tooltip="Toggle text visibility")
         self.text_display_checkbox.setChecked(self.layer.text.visible)
         self.text_display_checkbox.stateChanged.connect(self.on_change_text_visibility)
 

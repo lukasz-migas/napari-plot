@@ -20,15 +20,11 @@ class QtMiniToolbar(QFrame):
         self.orientation = orientation
 
         self.layout = QHBoxLayout() if orientation == Qt.Horizontal else QVBoxLayout()
-        self.layout.addSpacerItem(
-            make_h_spacer() if orientation == Qt.Horizontal else make_v_spacer()
-        )
+        self.layout.addSpacerItem(make_h_spacer() if orientation == Qt.Horizontal else make_v_spacer())
         self.layout.setSpacing(0)
         self.layout.setMargin(0)
         self.setLayout(self.layout)
-        self.setMaximumHeight(
-            max_size
-        ) if orientation == Qt.Horizontal else self.setMaximumWidth(max_size)
+        self.setMaximumHeight(max_size) if orientation == Qt.Horizontal else self.setMaximumWidth(max_size)
 
     @property
     def n_items(self) -> int:

@@ -1,15 +1,15 @@
 """Scatter layer controls"""
 # Third-party imports
 import numpy as np
-from napari._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 
-from ..helpers import make_label
 from ...layers.infline._infline_constants import Mode
+from ..helpers import make_label
+from .qt_layer_controls_base import QtLayerControls
 
 
 class QtInfLineControls(QtLayerControls):
@@ -38,11 +38,9 @@ class QtInfLineControls(QtLayerControls):
             initial_color=self.layer.color,
             tooltip="Click to set face color",
         )
-        self.color_swatch.evt_color_changed.connect(self.on_change_color)  # noqa
+        self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
 
-        self.move_button = QtModeRadioButton(
-            layer, "move_region", Mode.MOVE, tooltip="Move region (M)"
-        )
+        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",

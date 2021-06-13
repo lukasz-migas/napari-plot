@@ -84,9 +84,7 @@ class QtDialog(QDialog):
         if show:
             self.show()
 
-    def show_right_of_widget(
-        self, widget: QWidget, show: bool = True, x_offset: int = 14
-    ):
+    def show_right_of_widget(self, widget: QWidget, show: bool = True, x_offset: int = 14):
         """Show popup dialog above the widget"""
         rect = widget.rect()
         pos = widget.mapToGlobal(QPoint(rect.left() + rect.width() / 2, rect.top()))
@@ -105,9 +103,7 @@ class QtDialog(QDialog):
         if show:
             self.show()
 
-    def show_left_of_widget(
-        self, widget: QWidget, show: bool = True, x_offset: int = 14
-    ):
+    def show_left_of_widget(self, widget: QWidget, show: bool = True, x_offset: int = 14):
         """Show popup dialog above the widget"""
         rect = widget.rect()
         pos = widget.mapToGlobal(QPoint(rect.left(), rect.top()))
@@ -184,19 +180,6 @@ class QtFramelessPopup(QtDialog):
         """mouse release event"""
         super().mouseReleaseEvent(event)
         self._old_window_pos = None
-
-
-class QtFramelessTool(QtFramelessPopup):
-    """Frameless dialog that stays on top"""
-
-    def __init__(
-        self,
-        parent,
-        title: str = "",
-        position=None,
-        flags=Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool,
-    ):
-        super().__init__(parent, title, position, flags)
 
 
 class QtFramelessTool(QtFramelessPopup):

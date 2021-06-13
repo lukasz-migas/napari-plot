@@ -1,17 +1,15 @@
 """Utils"""
-from napari._vispy.vispy_base_layer import VispyBaseLayer
-from napari._vispy.vispy_shapes_layer import VispyShapesLayer
-from napari._vispy.vispy_points_layer import VispyPointsLayer
-
 import numpy as np
+from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.vispy_points_layer import VispyPointsLayer
+from napari._vispy.vispy_shapes_layer import VispyShapesLayer
 
-from .vispy_infline_layer import VispyInfLineLayer
+from ..layers import Centroids, InfLine, Line, Points, Region, Scatter, Shapes
 from .vispy_centroids_layer import VispyCentroidsLayer
+from .vispy_infline_layer import VispyInfLineLayer
 from .vispy_line_layer import VispyLineLayer
 from .vispy_region_layer import VispyRegionLayer
 from .vispy_scatter_layer import VispyScatterLayer
-
-from ..layers import Centroids, InfLine, Line, Points, Region, Scatter, Shapes
 
 layer_to_visual = {
     Line: VispyLineLayer,

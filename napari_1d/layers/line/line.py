@@ -61,9 +61,7 @@ class Line(Layer):
         self._method = Method(method)
         self._label = label
 
-        self.events.add(
-            color=Event, width=Event, method=Event, label=Event, highlight=Event
-        )
+        self.events.add(color=Event, width=Event, method=Event, label=Event, highlight=Event)
         self.visible = visible
 
     def _get_ndim(self):

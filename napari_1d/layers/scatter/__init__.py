@@ -1,2 +1,2 @@
 """Scatter"""
-from .scatter import Scatter
+from .scatter import Scatter  # noqa: F401

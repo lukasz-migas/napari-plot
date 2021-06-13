@@ -3,14 +3,8 @@
 from typing import Tuple
 
 import numpy as np
-
 from napari._qt.containers import QtLayerList
-from napari._qt.utils import (
-    QImg2array,
-    add_flash_animation,
-    circle_pixmap,
-    square_pixmap,
-)
+from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
 from napari.utils.interactions import (
     ReadOnlyWrapper,
     mouse_move_callbacks,
@@ -21,11 +15,8 @@ from napari.utils.interactions import (
 from napari.utils.key_bindings import KeymapHandler
 from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
-from qtpy.QtWidgets import QWidget, QHBoxLayout, QVBoxLayout
+from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
 
-from .qt_layer_controls_container import QtLayerControlsContainer
-from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
-from .qt_toolbar import QtViewToolbar
 from .._vispy.utils import create_vispy_visual
 from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
 from .._vispy.vispy_camera import VispyCamera
@@ -33,6 +24,9 @@ from .._vispy.vispy_canvas import VispyCanvas
 from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
 from .._vispy.vispy_span_visual import VispySpanVisual
 from .._vispy.vispy_text_visual import VispyTextVisual
+from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
+from .qt_layer_controls_container import QtLayerControlsContainer
+from .qt_toolbar import QtViewToolbar
 
 
 class QtViewer(QWidget):
@@ -55,13 +49,14 @@ class QtViewer(QWidget):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
+    _pos_offset = (0, 0)
+    _pos_offset_set = False
+
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAcceptDrops(False)
-        QCoreApplication.setAttribute(
-            Qt.AA_UseStyleSheetPropagationInWidgetStyles, True
-        )
+        QCoreApplication.setAttribute(Qt.AA_UseStyleSheetPropagationInWidgetStyles, True)
 
         # handle to the viewer instance
         self.viewer = viewer
@@ -100,15 +95,15 @@ class QtViewer(QWidget):
         # setup events
         self._set_events()
 
+        # add layers
+        for layer in self.viewer.layers:
+            self._add_layer(layer)
+
         # setup view
         self._set_view()
 
         # setup camera
         self._set_camera()
-
-        # add layers
-        for layer in self.viewer.layers:
-            self._add_layer(layer)
 
         # Add axes, scalebar, grid and colorbar visuals
         self._add_visuals()
@@ -121,8 +116,22 @@ class QtViewer(QWidget):
 
     @property
     def pos_offset(self) -> Tuple[int, int]:
-        """Window offset"""
-        return 0, 0
+        """Pixel offset"""
+        # because we've added y-axis to the canvas, the central view is slightly offset from the (0, 0) position,
+        # in which case when we try to do any fancy drawing, it draws points slightly away from the place its meant
+        # to. Subtracting the y-axis width is sufficient to correct for the error.
+        return self._pos_offset
+
+    def on_resize(self, event):
+        """Update cached x-axis offset"""
+        # the first time its being set, it happens too quickly for the canvas to be fully rendered, so instead its set
+        # from the model attribute rather than the rect width
+        if not self._pos_offset_set:
+            self._pos_offset = int(self.viewer.axis.y_max_size), 0
+            self._pos_offset_set = False
+        else:
+            self._pos_offset = int(self.y_axis.node.rect.width), 0
+        self.viewer._canvas_size = tuple(self.canvas.size[::-1])
 
     def _create_canvas(self) -> None:
         """Create the canvas and hook up events."""
@@ -133,6 +142,8 @@ class QtViewer(QWidget):
             size=self.viewer._canvas_size[::-1],
         )
         self.canvas.events.reset_view.connect(self.viewer.reset_view)
+        self.canvas.events.reset_x.connect(self.viewer.reset_x_view)
+        self.canvas.events.reset_y.connect(self.viewer.reset_y_view)
         self.canvas.connect(self.on_mouse_move)
         self.canvas.connect(self.on_mouse_press)
         self.canvas.connect(self.on_mouse_release)
@@ -188,9 +199,7 @@ class QtViewer(QWidget):
 
     def _set_camera(self):
         """Setup vispy camera,"""
-        self.camera = VispyCamera(
-            self.view, self.viewer.camera, self.viewer.dims, self.viewer
-        )
+        self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer.dims, self.viewer)
         self.canvas.connect(self.camera.on_draw)
 
         self.camera.camera.events.box_press.connect(self._on_boxzoom)
@@ -230,9 +239,7 @@ class QtViewer(QWidget):
         self.y_axis.interactive = True
 
         # add label
-        self.text_overlay = VispyTextVisual(
-            self, self.viewer, parent=self.view, order=1e6 + 2
-        )
+        self.text_overlay = VispyTextVisual(self, self.viewer, parent=self.view, order=1e6 + 2)
 
         with self.canvas.modify_context() as canvas:
             canvas.x_axis = self.x_axis
@@ -248,7 +255,6 @@ class QtViewer(QWidget):
 
     def _post_init(self):
         """Complete initialization with post-init events"""
-        # self.viewerToolbar.connect_toolbar()
 
     def _constrain_width(self, _event):
         """Allow the layer controls to be wider, only if floated.
@@ -423,18 +429,14 @@ class QtViewer(QWidget):
         if self._layers_controls_dialog is None:
             self.on_open_controls_dialog()
         else:
-            self._layers_controls_dialog.setVisible(
-                not self._layers_controls_dialog.isVisible()
-            )
+            self._layers_controls_dialog.setVisible(not self._layers_controls_dialog.isVisible())
 
     def on_open_key_bindings_dialog(self, _event=None):
         """Show key bindings dialog"""
         from napari._qt.dialogs.qt_about_key_bindings import QtAboutKeyBindings
 
         if self._key_bindings_dialog is None:
-            self._key_bindings_dialog = QtAboutKeyBindings(
-                self.viewer, self._key_map_handler, parent=self
-            )
+            self._key_bindings_dialog = QtAboutKeyBindings(self.viewer, self._key_map_handler, parent=self)
         # make sure the dialog is shown
         self._key_bindings_dialog.show()
         # make sure the the dialog gets focus
@@ -454,14 +456,6 @@ class QtViewer(QWidget):
         top_left = self._map_canvas2world([0, 0])
         bottom_right = self._map_canvas2world(self.canvas.size)
         return np.array([top_left, bottom_right])
-
-    def on_resize(self, event):
-        """Called whenever canvas is resized.
-
-        event : vispy.util.event.Event
-            The vispy event that triggered this method.
-        """
-        self.viewer._canvas_size = tuple(self.canvas.size[::-1])
 
     def _process_mouse_event(self, mouse_callbacks, event):
         """Called whenever mouse pressed in canvas.

@@ -1,10 +1,10 @@
 """Line-specific vispy canvas"""
 from contextlib import contextmanager
 
-from qtpy.QtCore import QSize
-from vispy.util.event import Event
-from vispy.scene import SceneCanvas
 from napari._vispy.utils_gl import get_max_texture_sizes
+from qtpy.QtCore import QSize
+from vispy.scene import SceneCanvas
+from vispy.util.event import Event
 
 
 class VispyCanvas(SceneCanvas):

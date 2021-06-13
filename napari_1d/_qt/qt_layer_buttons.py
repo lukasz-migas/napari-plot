@@ -85,13 +85,9 @@ class QtViewerButtons(QFrame):
             lambda: self.viewer.reset_view(),
         )
 
-        self.hidePanelButton = QtViewerPushButton(
-            self.viewer, "minimise", "Hide control panel (Ctrl-H)"
-        )
+        self.hidePanelButton = QtViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
         if parent is not None:
-            self.hidePanelButton.clicked.connect(
-                lambda: parent.on_toggle_controls_dialog()
-            )  # noqa
+            self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)

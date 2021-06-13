@@ -1,11 +1,11 @@
 """X/Y-axis controls"""
+from typing import TYPE_CHECKING
+
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout
-
-from typing import TYPE_CHECKING
 
 from ..helpers import make_checkbox, make_label, make_line_edit, make_slider
 from ..qt_dialog import QtFramelessPopup
@@ -49,53 +49,35 @@ class QtAxisControls(QtFramelessPopup):
         self.visible_checkbox.setChecked(self.viewer.axis.visible)
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)  # noqa
 
-        self.x_axis_edit = make_line_edit(
-            self, self.viewer.axis.x_label, placeholder="X-axis label..."
-        )
+        self.x_axis_edit = make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
         self.x_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.x_label_margin_spin = make_slider(
-            self, min_val=10, max_val=120, step_size=5
-        )
+        self.x_label_margin_spin = make_slider(self, min_val=10, max_val=120, step_size=5)
         self.x_label_margin_spin.setValue(self.viewer.axis.x_label_margin)
-        self.x_label_margin_spin.valueChanged.connect(
-            self.on_change_label_margin
-        )  # noqa
+        self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
-        self.y_axis_edit = make_line_edit(
-            self, self.viewer.axis.y_label, placeholder="Y-axis label..."
-        )
+        self.y_axis_edit = make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.y_label_margin_spin = make_slider(
-            self, min_val=10, max_val=120, step_size=5
-        )
+        self.y_label_margin_spin = make_slider(self, min_val=10, max_val=120, step_size=5)
         self.y_label_margin_spin.setValue(self.viewer.axis.y_label_margin)
-        self.y_label_margin_spin.valueChanged.connect(
-            self.on_change_label_margin
-        )  # noqa
+        self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
         self.label_color_swatch = QColorSwatch(
             initial_color=self.viewer.axis.label_color,
             tooltip="Click to set label color",
         )
-        self.label_color_swatch.evt_color_changed.connect(
-            self.on_change_label_color
-        )  # noqa
+        self.label_color_swatch.evt_color_changed.connect(self.on_change_label_color)  # noqa
 
         self.label_font_size = make_slider(self, min_val=4, max_val=16, step_size=1)
         self.label_font_size.setValue(self.viewer.axis.label_size)
-        self.label_font_size.valueChanged.connect(
-            self.on_change_label_font_size
-        )  # noqa
+        self.label_font_size.valueChanged.connect(self.on_change_label_font_size)  # noqa
 
         self.tick_color_swatch = QColorSwatch(
             initial_color=self.viewer.axis.tick_color,
             tooltip="Click to set tick color",
         )
-        self.tick_color_swatch.evt_color_changed.connect(
-            self.on_change_tick_color
-        )  # noqa
+        self.tick_color_swatch.evt_color_changed.connect(self.on_change_tick_color)  # noqa
 
         self.x_max_size_spin = make_slider(
             self,

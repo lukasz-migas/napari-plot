@@ -1,5 +1,6 @@
 """Region layer"""
 from typing import TYPE_CHECKING
+
 from napari._vispy.vispy_base_layer import VispyBaseLayer
 from vispy.scene.visuals import LinearRegion
 

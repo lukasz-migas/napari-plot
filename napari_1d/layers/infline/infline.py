@@ -7,7 +7,7 @@ from napari.layers import Layer
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
-from ._infline_constants import Mode
+from ._infline_constants import Mode, Orientation
 from ._infline_mouse_bindings import move
 
 
@@ -60,7 +60,7 @@ class InfLine(Layer):
         self._data = data
         self._color = transform_color(color)[0]
         self._label = label
-        self._orientation = orientation
+        self._orientation = Orientation(orientation)
         self._mode = Mode.PAN_ZOOM
 
         self.events.add(color=Event, label=Event, mode=Event, shifted=Event)
@@ -120,7 +120,7 @@ class InfLine(Layer):
     @property
     def is_vertical(self) -> bool:
         """Flag to indicate whether this is a vertical region"""
-        return self.orientation == "vertical"
+        return self.orientation == Orientation.VERTICAL
 
     @staticmethod
     def _get_ndim() -> int:
@@ -138,10 +138,10 @@ class InfLine(Layer):
         colormapped = np.zeros(self._thumbnail_shape)
         colormapped[..., 3] = 1
         # TODO: add magic here
-        if self.orientation == "vertical":
+        if self.orientation == Orientation.VERTICAL:
             y = colormapped.shape[0]
             colormapped[y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
-        if self.orientation == "horizontal":
+        if self.orientation == Orientation.HORIZONTAL:
             y = colormapped.shape[1]
             colormapped[:, y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
         colormapped[..., 3] *= self.opacity

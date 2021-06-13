@@ -1,11 +1,10 @@
 """Various utilities"""
-import numpy as np
 from typing import Iterable, Union
 
+import numpy as np
 
-def find_nearest_index(
-    data: np.ndarray, value: Union[int, float, np.ndarray, Iterable]
-):
+
+def find_nearest_index(data: np.ndarray, value: Union[int, float, np.ndarray, Iterable]):
     """Find nearest index of asked value
 
     Parameters

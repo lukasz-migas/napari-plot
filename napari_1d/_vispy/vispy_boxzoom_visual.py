@@ -5,8 +5,8 @@ import numpy as np
 from vispy.scene.visuals import Mesh
 
 if TYPE_CHECKING:
-    from .camera import LimitedPanZoomCamera
     from ..components.viewer_model import ViewerModel
+    from .camera import LimitedPanZoomCamera
 
 
 class VispyBoxZoomVisual:
@@ -58,9 +58,7 @@ class VispyBoxZoomVisual:
         size_v[0] = abs(y1 - y0) / 4
         size_h = np.zeros(2)
         size_h[1] = abs(x1 - x0) / 4
-        data = np.array(
-            [corner, corner + size_v, corner + size_h + size_v, corner + size_h]
-        )
+        data = np.array([corner, corner + size_v, corner + size_h + size_v, corner + size_h])
         # print(data)
         # data = np.array(
         #     [

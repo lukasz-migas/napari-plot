@@ -45,9 +45,7 @@ class VispyTextVisual(_VispyTextVisual):
             transform = [canvas_size[0] // 2, canvas_size[1] - y_offset, 0, 0]
             anchors = ("center", "top")
         else:
-            raise ValueError(
-                trans._("Position {position} is not recognized.", position=position)
-            )
+            raise ValueError(trans._("Position {position} is not recognized.", position=position))
 
         self.node.transform.translate = transform
         if self.node.anchors != anchors:

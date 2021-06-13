@@ -33,9 +33,7 @@ class DialogLineControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self.qt_viewer.canvas._backend._keyEvent(
-            self.qt_viewer.canvas.events.key_press, event
-        )
+        self.qt_viewer.canvas._backend._keyEvent(self.qt_viewer.canvas.events.key_press, event)
         event.accept()
 
     def keyReleaseEvent(self, event):
@@ -46,7 +44,5 @@ class DialogLineControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self.qt_viewer.canvas._backend._keyEvent(
-            self.qt_viewer.canvas.events.key_release, event
-        )
+        self.qt_viewer.canvas._backend._keyEvent(self.qt_viewer.canvas.events.key_release, event)
         event.accept()

@@ -1,5 +1,5 @@
+from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QPushButton
-from qtpy.QtCore import Signal, Qt
 
 
 class QtImagePushButton(QPushButton):

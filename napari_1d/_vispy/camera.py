@@ -65,9 +65,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
             # By default, the left-mouse pans the plot but it actually should be a box-zoom
             if 1 in event.buttons:  # and not modifiers:
-                x0, y0, _, _ = self._transform.imap(
-                    np.asarray(event.press_event.pos[:2])
-                )
+                x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 self.events.box_move(rect=(x0, x1, y0, y1))

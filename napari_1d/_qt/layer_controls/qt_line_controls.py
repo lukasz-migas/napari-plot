@@ -1,10 +1,11 @@
 """Line controls"""
-from napari._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari._qt.utils import disable_with_opacity
+from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from qtpy.QtCore import Qt
 
 from napari_1d._qt.helpers import make_label, make_slider
+
+from .qt_layer_controls_base import QtLayerControls
 
 
 class QtLineControls(QtLayerControls):
@@ -26,10 +27,7 @@ class QtLineControls(QtLayerControls):
             initial_color=self.layer.color,
             tooltip="Click to set new line color",
         )
-        self.color_swatch.evt_color_changed.connect(self.on_change_color)
-
-        # self.method_combobox = make_combobox(self, METHOD_TRANSLATIONS)
-        # self.method_combobox.activated[str].connect(self.on_change_method)
+        self.color_swatch.color_changed.connect(self.on_change_color)
 
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)

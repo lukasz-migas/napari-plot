@@ -1,5 +1,5 @@
 """Region constants"""
-from enum import auto
+from enum import Enum, auto
 
 from napari.utils.misc import StringEnum
 
@@ -18,3 +18,10 @@ class Mode(StringEnum):
     SELECT = auto()
     MOVE = auto()
     PAN_ZOOM = auto()
+
+
+class Orientation(str, Enum):
+    """Orientation"""
+
+    HORIZONTAL = "horizontal"
+    VERTICAL = "vertical"

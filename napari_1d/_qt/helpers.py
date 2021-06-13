@@ -1,21 +1,12 @@
 from typing import Dict, List, Optional, OrderedDict, Union
 
-from qtpy.QtGui import QFont
-from qtpy.QtWidgets import (
-    QComboBox,
-    QWidget,
-    QLabel,
-    QCheckBox,
-    QSlider,
-    QLineEdit,
-    QSizePolicy,
-    QSpacerItem,
-)
 from qtpy.QtCore import Qt
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QSizePolicy, QSlider, QSpacerItem, QWidget
 
+from ..utils.system import IS_WIN
 from .widgets.qt_icon_label import QtIconLabel
 from .widgets.qt_image_button import QtImagePushButton
-from ..utils.system import IS_WIN
 
 
 def make_v_spacer() -> QSpacerItem:
@@ -80,9 +71,7 @@ def make_slider(
     return widget
 
 
-def make_checkbox(
-    parent, text: str = "", tooltip: str = None, is_disabled: bool = False
-) -> QCheckBox:
+def make_checkbox(parent, text: str = "", tooltip: str = None, is_disabled: bool = False) -> QCheckBox:
     """Make checkbox"""
     widget = QCheckBox(parent)
     widget.setText(text)
@@ -138,9 +127,7 @@ def set_tooltip(widget: QWidget, text: str):
     widget.setToolTip(text)
 
 
-def set_font(
-    widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: bool = False
-):
+def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: bool = False):
     """Set font on a widget"""
     font = QFont()
     font.setPointSize(font_size if IS_WIN else font_size + 2)
@@ -149,9 +136,7 @@ def set_font(
     widget.setFont(font)
 
 
-def make_combobox(
-    parent, items: List[str] = None, tooltip: str = None, is_disabled: bool = False
-) -> QComboBox:
+def make_combobox(parent, items: List[str] = None, tooltip: str = None, is_disabled: bool = False) -> QComboBox:
     """Make QComboBox"""
     widget = QComboBox(parent)
     widget.setDisabled(is_disabled)
@@ -162,9 +147,7 @@ def make_combobox(
     return widget
 
 
-def set_combobox_data(
-    widget: QComboBox, data: Union[Dict, OrderedDict], current_item: Optional = None
-):
+def set_combobox_data(widget: QComboBox, data: Union[Dict, OrderedDict], current_item: Optional = None):
     """Set data/value on combobox"""
     for index, (data, text) in enumerate(data.items()):
         if not isinstance(data, str):
