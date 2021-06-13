@@ -10,6 +10,8 @@ from napari_plugin_engine import napari_hook_implementation
 from qtpy.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from magicgui import magic_factory
 
+from ._qt.qt_viewer import QtViewer
+
 
 class ExampleQWidget(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
