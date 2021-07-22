@@ -1,5 +1,6 @@
 """Qt widget that embeds the canvas"""
 # Third-party imports
+from contextlib import suppress
 from typing import Tuple
 
 import numpy as np
@@ -13,9 +14,12 @@ from napari.utils.interactions import (
     mouse_wheel_callbacks,
 )
 from napari.utils.key_bindings import KeymapHandler
+from napari.utils.theme import get_theme
 from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+
+from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 
 from .._vispy.utils import create_vispy_visual
 from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
@@ -25,7 +29,6 @@ from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
 from .._vispy.vispy_span_visual import VispySpanVisual
 from .._vispy.vispy_text_visual import VispyTextVisual
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
-from .qt_layer_controls_container import QtLayerControlsContainer
 from .qt_toolbar import QtViewToolbar
 
 
@@ -144,6 +147,7 @@ class QtViewer(QWidget):
         self.canvas.events.reset_view.connect(self.viewer.reset_view)
         self.canvas.events.reset_x.connect(self.viewer.reset_x_view)
         self.canvas.events.reset_y.connect(self.viewer.reset_y_view)
+
         self.canvas.connect(self.on_mouse_move)
         self.canvas.connect(self.on_mouse_press)
         self.canvas.connect(self.on_mouse_release)
@@ -152,6 +156,19 @@ class QtViewer(QWidget):
         self.canvas.connect(self.on_mouse_wheel)
         self.canvas.connect(self.on_draw)
         self.canvas.connect(self.on_resize)
+        self.canvas.bgcolor = get_theme(self.viewer.theme, False).canvas.as_rgb_tuple()
+        theme = self.viewer.events.theme
+
+        on_theme_change = self.canvas._on_theme_change
+        theme.connect(on_theme_change)
+
+        def disconnect():
+            # strange EventEmitter has no attribute _callbacks errors sometimes
+            # maybe some sort of cleanup race condition?
+            with suppress(AttributeError):
+                theme.disconnect(on_theme_change)
+
+        self.canvas.destroyed.connect(disconnect)
 
     def _create_widgets(self, **kwargs):
         """Create ui widgets"""
@@ -409,13 +426,13 @@ class QtViewer(QWidget):
 
     def on_open_controls_dialog(self, event=None):
         """Open dialog responsible for layer settings"""
-        from .layer_controls.qt_layers_dialog import DialogLineControls
+        from .layer_controls.qt_layers_dialog import Napari1dControls
 
         if self._disable_controls:
             return
 
         if self._layers_controls_dialog is None:
-            self._layers_controls_dialog = DialogLineControls(self)
+            self._layers_controls_dialog = Napari1dControls(self)
         # make sure the dialog is shown
         self._layers_controls_dialog.show()
         # make sure the the dialog gets focus
@@ -430,18 +447,6 @@ class QtViewer(QWidget):
             self.on_open_controls_dialog()
         else:
             self._layers_controls_dialog.setVisible(not self._layers_controls_dialog.isVisible())
-
-    def on_open_key_bindings_dialog(self, _event=None):
-        """Show key bindings dialog"""
-        from napari._qt.dialogs.qt_about_key_bindings import QtAboutKeyBindings
-
-        if self._key_bindings_dialog is None:
-            self._key_bindings_dialog = QtAboutKeyBindings(self.viewer, self._key_map_handler, parent=self)
-        # make sure the dialog is shown
-        self._key_bindings_dialog.show()
-        # make sure the the dialog gets focus
-        self._key_bindings_dialog.raise_()  # for macOS
-        self._key_bindings_dialog.activateWindow()  # for Windows
 
     @property
     def _canvas_corners_in_world(self):
@@ -602,4 +607,12 @@ class QtViewer(QWidget):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        raise NotImplementedError("Must implement method")
+        self.layers.close()
+
+        # if the viewer.QtDims object is playing an axis, we need to terminate
+        # the AnimationThread before close, otherwise it will cauyse a segFault
+        # or Abort trap. (calling stop() when no animation is occurring is also
+        # not a problem)
+        self.dims.stop()
+        self.canvas.native.deleteLater()
+        event.accept()

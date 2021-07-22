@@ -2,11 +2,11 @@
 import napari._qt.layer_controls.qt_layer_controls_container
 from napari._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer  # noqa
 
-from napari_1d._qt.layer_controls.qt_infline_controls import QtInfLineControls
-from napari_1d._qt.layer_controls.qt_line_controls import QtLineControls
-from napari_1d._qt.layer_controls.qt_region_controls import QtRegionControls
-from napari_1d._qt.layer_controls.qt_scatter_controls import QtScatterControls
-from napari_1d.layers import Centroids, InfLine, Line, Region, Scatter
+from ...layers import Centroids, InfLine, Line, Region, Scatter
+from .qt_infline_controls import QtInfLineControls
+from .qt_line_controls import QtLineControls
+from .qt_region_controls import QtRegionControls
+from .qt_scatter_controls import QtScatterControls
 
 layer_to_controls = {
     Line: QtLineControls,

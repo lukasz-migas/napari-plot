@@ -36,6 +36,10 @@ class VispyCanvas(SceneCanvas):
         self.events.add(reset_view=Event, reset_x=Event, reset_y=Event)
 
     @property
+    def destroyed(self):
+        return self._backend.destroyed
+
+    @property
     def background_color_override(self):
         """Get background color"""
         return self._background_color_override

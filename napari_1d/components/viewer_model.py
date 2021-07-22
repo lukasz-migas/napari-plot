@@ -99,12 +99,12 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     # have an event emitter associated with them
     dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
-    grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
     layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
     axis: Axis = Field(default_factory=Axis, allow_mutation=False)
     text_overlay: TextOverlay = Field(default_factory=TextOverlay, allow_mutation=False)
     span: Span = Field(default_factory=Span, allow_mutation=False)
+    grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
 
     help: str = ""
     status: str = "Ready"

@@ -9,12 +9,16 @@ from napari.layers import Layer
 # Third-party imports
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
 from napari.layers.utils.layer_utils import dataframe_to_properties
-from napari.layers.utils.text import TextManager
+from napari.layers.utils.text_manager import TextManager
 from napari.utils.events import Event
 
 
 class Scatter(Layer):
-    """Line layer"""
+    """Scatter layer
+
+    data : array
+        An array containing x and y-axis values.
+    """
 
     # The max number of points that will ever be used to render the thumbnail
     # If more points are present then they are randomly subsampled
@@ -49,10 +53,9 @@ class Scatter(Layer):
             data = np.empty((0, 2))
         else:
             data = np.asarray(data)
-        ndim = 2
         super().__init__(
             data,
-            ndim,
+            ndim=2,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -111,7 +114,8 @@ class Scatter(Layer):
 
         self.visible = visible
 
-    def _get_ndim(self):
+    def _get_ndim(self) -> int:
+        """Determine number of dimensions of the layer. It's always going to be 2."""
         return 2
 
     def _get_state(self):
@@ -175,7 +179,6 @@ class Scatter(Layer):
     @data.setter
     def data(self, value: np.ndarray):
         self._data = value
-
         self._update_dims()
         self.events.data(value=self.data)
         self._set_editable()

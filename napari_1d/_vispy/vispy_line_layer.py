@@ -36,7 +36,7 @@ class VispyLineLayer(VispyBaseLayer):
         """Set data"""
         self.node._subvisuals[0].set_data(
             self.layer.data,
-            color=self.ladyer.color,
+            color=self.layer.color,
             width=self.layer.width,
         )
 

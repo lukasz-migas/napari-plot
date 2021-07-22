@@ -4,7 +4,7 @@ from qtpy.QtWidgets import QVBoxLayout
 from ..qt_dialog import QtFramelessTool
 
 
-class DialogLineControls(QtFramelessTool):
+class Napari1dControls(QtFramelessTool):
     """Controls display"""
 
     def __init__(self, qt_viewer):
@@ -15,14 +15,12 @@ class DialogLineControls(QtFramelessTool):
 
     def make_panel(self) -> QVBoxLayout:
         """Make panel"""
-
         va = QVBoxLayout()
         va.addLayout(self._make_move_handle())  # noqa
         va.addWidget(self.qt_viewer.controls)
         va.addWidget(self.qt_viewer.layerButtons)
         va.addWidget(self.qt_viewer.layers, stretch=True)
         va.addWidget(self.qt_viewer.viewerButtons)
-
         return va
 
     def keyPressEvent(self, event):
