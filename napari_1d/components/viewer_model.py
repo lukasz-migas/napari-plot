@@ -1,9 +1,8 @@
 """Viewer model"""
+import typing as ty
 import warnings
-from typing import Optional, Tuple
 
 import numpy as np
-from napari.components import Dims
 from napari.components.cursor import Cursor
 from napari.components.text_overlay import TextOverlay
 from napari.layers import Layer
@@ -14,67 +13,14 @@ from napari.utils.mouse_bindings import MousemapProvider
 from pydantic import Extra, Field
 
 from .. import layers
-from ..utils.utilities import find_nearest_index, get_min_max
+from ..utils.utilities import get_min_max
 from ._viewer_mouse_bindings import x_span
 from .axis import Axis
 from .camera import Camera
 from .gridlines import GridLines
 from .layerlist import LayerList
 from .span import Span
-
-
-def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> Tuple[Optional[float], ...]:
-    """Get extent for specified range"""
-    if not layer.visible:
-        return None, None
-    if layer.ndim != 2:
-        return None, None
-    if isinstance(layer, (layers.Line, layers.Centroids)):
-        idx_min, idx_max = find_nearest_index(layer.data[:, 0], [x_min, x_max])
-        if idx_min == idx_max:
-            idx_max += 1
-            if idx_max > len(layer.data):
-                return None, None
-        try:
-            return get_min_max(layer.data[idx_min:idx_max, 1])
-        except ValueError:
-            return None, None
-    if isinstance(layer, layers.Scatter):
-        idx_min, idx_max = find_nearest_index(layer.data[:, 1], [x_min, x_max])
-        if idx_min == idx_max:
-            idx_max += 1
-            if idx_max > len(layer.data):
-                return None, None
-        try:
-            return get_min_max(layer.data[idx_min:idx_max, 0])
-        except ValueError:
-            return None, None
-    return None, None
-
-
-def get_layers_x_region_extent(x_min: float, x_max: float, layerlist) -> Tuple[Optional[float], ...]:
-    """Get layer extents"""
-    extents = []
-    for layer in layerlist:
-        y_min, y_max = get_x_region_extent(x_min, x_max, layer)
-        if y_min is None:
-            continue
-        extents.extend([y_min, y_max])
-    if extents:
-        extents = np.asarray(extents)
-        return get_min_max(extents)
-    return None, None
-
-
-def get_range_extent(full_min, full_max, range_min, range_max, min_val: float = None) -> Tuple[float, float]:
-    """Get tuple of specified range"""
-    if range_min is None:
-        range_min = full_min
-    if range_max is None:
-        range_max = full_max
-    if min_val is None:
-        min_val = range_min
-    return get_min_max([range_min, range_max, min_val])
+from .utilities import get_layers_x_region_extent, get_range_extent
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -85,7 +31,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     ----------
     title : string
         The title of the viewer window.
-    ndisplay : {2, 3}
+    ndisplay : {2}
         Number of displayed dimensions.
     order : tuple of int
         Order in which dimensions are displayed where the last two or last
@@ -97,7 +43,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     # Using allow_mutation=False means these attributes aren't settable and don't
     # have an event emitter associated with them
-    dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
     layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
@@ -108,11 +53,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     help: str = ""
     status: str = "Ready"
-    title: str = "napari_1d"
+    title: str = "napari-1d"
     theme: str = "dark"
 
     # 2-tuple indicating height and width
-    _canvas_size: Tuple[int, int] = (400, 400)
+    _canvas_size: ty.Tuple[int, int] = (400, 400)
 
     def __init__(self, title="napari_1d", ndisplay=2, order=(), axis_labels=()):
         # allow extra attributes during model initialization, useful for mixins
@@ -130,11 +75,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.add(layers_change=Event, reset_view=Event, span=Event)
 
         # Connect events
-        self.dims.events.ndisplay.connect(self._update_layers)
-        self.dims.events.ndisplay.connect(self.reset_view)
-        self.dims.events.order.connect(self._update_layers)
-        self.dims.events.order.connect(self.reset_view)
-        self.dims.events.current_step.connect(self._update_layers)
         self.cursor.events.position.connect(self._on_cursor_position_change)
         self.layers.events.inserted.connect(self._on_add_layer)
         self.layers.events.removed.connect(self._on_remove_layer)
@@ -147,7 +87,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # Add mouse callback
         self.mouse_drag_callbacks.append(x_span)
 
-    def _get_rect_extent(self) -> Tuple[float, ...]:
+    def _get_rect_extent(self) -> ty.Tuple[float, ...]:
         """Get data extent"""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
@@ -174,13 +114,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         -------
         sliced_extent_world : array, shape (2, D)
         """
-        if len(self.layers) == 0 and self.dims.ndim != 2:
-            # If no data is present and dims model has not been reset to 0
-            # than someone has passed more than two axis labels which are
-            # being saved and so default values are used.
-            return np.vstack([np.zeros(self.dims.ndim), np.repeat(512, self.dims.ndim)])
-        else:
-            return self.layers.extent.world[:, self.dims.displayed]
+        return self.layers.extent.world[:, (0, 1)]
 
     def _get_y_range_extent_for_x(
         self,
@@ -204,7 +138,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Reset the camera view."""
         xmin, xmax, ymin, ymax = self._get_rect_extent()
         self.camera.rect = (xmin, xmax, ymin, ymax)
-        self.camera.angles = (0, 0, 90)
 
     def set_x_view(
         self,
@@ -223,7 +156,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin, xmax, _, _ = self._get_rect_extent()
         _, _, ymin, ymax = self.camera.rect
         self.camera.rect = (xmin, xmax, ymin, ymax)
-        self.camera.angles = (0, 0, 90)
 
     def set_y_view(self, ymin: float, ymax: float):
         """Set view on specified y-axis"""
@@ -235,7 +167,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         _, _, ymin, ymax = self._get_rect_extent()
         xmin, xmax, _, _ = self.camera.rect
         self.camera.rect = (xmin, xmax, ymin, ymax)
-        self.camera.angles = (0, 0, 90)
 
     def _update_layers(self, event=None, layers=None):
         """Updates the contained layers.
@@ -245,9 +176,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layers : list of napari.layers.Layer, optional
             List of layers to update. If none provided updates all.
         """
-        layers = layers or self.layers
-        for layer in layers:
-            layer._slice_dims(self.dims.point, self.dims.ndisplay, self.dims.order)
+        # layers = layers or self.layers
+        # for layer in layers:
+        #     layer._slice_dims(self.dims.point, self.dims.ndisplay, self.dims.order)
 
     def _on_add_layer(self, event):
         """Connect new layer events.
@@ -280,18 +211,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             self.reset_view()
 
     def _on_layers_change(self, event):
-        if len(self.layers) == 0:
-            self.dims.ndim = 2
-            self.dims.reset()
-        else:
-            extent = self.layers.extent
-            world = extent.world
-            ss = extent.step
-            ndim = world.shape[1]
-            self.dims.ndim = ndim
-            for i in range(ndim):
-                self.dims.set_range(i, (world[0, i], world[1, i], ss[i]))
-        self.cursor.position = (0,) * self.dims.ndim
+        self.cursor.position = (0,) * 2
         self.events.layers_change()
 
     def _on_remove_layer(self, event):

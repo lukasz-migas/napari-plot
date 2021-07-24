@@ -1,4 +1,6 @@
 """Scatter layer controls"""
+import typing as ty
+
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
@@ -10,24 +12,27 @@ from ...layers.region._region_constants import Mode
 from ..helpers import make_label
 from .qt_layer_controls_base import QtLayerControls
 
+if ty.TYPE_CHECKING:
+    from napari_1d.layers import Region
+
 
 class QtRegionControls(QtLayerControls):
     """Qt view and controls for the napari Points layer.
 
     Parameters
     ----------
-    layer : imimsui.visuals.line.layers.Scatter
-        An instance of a imimsui Scatter layer.
+    layer : napari_1d.layers.Region
+        An instance of a Region layer.
 
     Attributes
     ----------
-    layer : napari.layers.Points
-        An instance of a napari Points layer.
+    layer : napari_1d.layers.Region
+        An instance of a napari-1d Region layer.
     color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
     """
 
-    def __init__(self, layer):
+    def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.color.connect(self._on_color_change)

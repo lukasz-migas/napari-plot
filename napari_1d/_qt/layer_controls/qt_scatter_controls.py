@@ -28,12 +28,12 @@ class QtScatterControls(QtLayerControls):
     Parameters
     ----------
     layer : napari_1d.layers.Scatter
-        An instance of a imimsui Scatter layer.
+        An instance of a Scatter layer.
 
     Attributes
     ----------
-    layer : napari.layers.Points
-        An instance of a napari Points layer.
+    layer : napari_1d.layers.Scatter
+        An instance of a napari-1 Scatter layer.
     edge_color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing shapes edge display color.
     face_color_swatch : qtpy.QtWidgets.QFrame

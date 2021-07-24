@@ -4,13 +4,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QFrame
 
-from napari_1d._qt.helpers import (
-    make_checkbox,
-    make_combobox,
-    make_slider,
-    set_combobox_data,
-    set_current_combobox_index,
-)
+from ..._qt.helpers import make_checkbox, make_combobox, make_slider, set_combobox_data, set_current_combobox_index
 
 
 class QtLayerControls(QFrame):
@@ -20,15 +14,17 @@ class QtLayerControls(QFrame):
 
     Parameters
     ----------
-    layer : imimsui.layers.Layer
-        An instance of a imimsui layer.
+    layer : napari_1d.layers.Layer
+        An instance of a napari-1d layer.
 
     Attributes
     ----------
-    layer : imimsui.layers.Layer
-        An instance of a imimsui layer.
+    layer : napari_1d.layers.Layer
+        An instance of a napari-1d layer.
     layout : qtpy.QtWidgets.QGridLayout
         Layout of Qt widget controls for the layer.
+    editable_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -63,7 +59,6 @@ class QtLayerControls(QFrame):
 
         self.layout = QFormLayout(self)
         self.layout.setSpacing(2)
-        self.setLayout(self.layout)
 
     def on_change_editable(self, state):
         """Change editability value on the layer model.
@@ -80,8 +75,8 @@ class QtLayerControls(QFrame):
 
         Parameters
         ----------
-        _event : imimsui.utils.event.Event, optional
-            The imimsui event that triggered this method, by default None.
+        _event : napari.utils.event.Event, optional
+            The napari event that triggered this method, by default None.
         """
         with self.layer.events.editable.blocker():
             self.editable_checkbox.setChecked(self.layer.editable)
@@ -103,8 +98,8 @@ class QtLayerControls(QFrame):
 
         Parameters
         ----------
-        _event : imimsui.utils.event.Event, optional
-            The imimsui event that triggered this method, by default None.
+        _event : napari.utils.event.Event, optional
+            The napari event that triggered this method, by default None.
         """
         with self.layer.events.opacity.blocker():
             self.opacity_slider.setValue(int(self.layer.opacity * 100))
@@ -124,8 +119,8 @@ class QtLayerControls(QFrame):
 
         Parameters
         ----------
-        _event : imimsui.utils.event.Event, optional
-            The imimsui event that triggered this method, by default None.
+        _event : napari.utils.event.Event, optional
+            The napari event that triggered this method, by default None.
         """
         with self.layer.events.blending.blocker():
             set_current_combobox_index(self.blending_combobox, self.layer.blending)

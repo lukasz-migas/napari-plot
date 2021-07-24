@@ -1,5 +1,6 @@
 from typing import Dict, List, Optional, OrderedDict, Union
 
+from PySide2.QtWidgets import QButtonGroup
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QSizePolicy, QSlider, QSpacerItem, QWidget
@@ -181,4 +182,12 @@ def make_line_edit(
     if tooltip:
         set_tooltip(widget, tooltip)
     widget.setPlaceholderText(placeholder)
+    return widget
+
+
+def make_radio_btn_group(parent, radio_buttons) -> QButtonGroup:
+    """Make radio button group"""
+    widget = QButtonGroup(parent)
+    for btn_id, radio_btn in enumerate(radio_buttons):
+        widget.addButton(radio_btn, btn_id)
     return widget

@@ -1,4 +1,6 @@
 """Line controls"""
+import typing as ty
+
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from qtpy.QtCore import Qt
@@ -7,11 +9,14 @@ from napari_1d._qt.helpers import make_label, make_slider
 
 from .qt_layer_controls_base import QtLayerControls
 
+if ty.TYPE_CHECKING:
+    from napari_1d.layers import Line
+
 
 class QtLineControls(QtLayerControls):
     """Line controls"""
 
-    def __init__(self, layer):
+    def __init__(self, layer: "Line"):
         super().__init__(layer)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)

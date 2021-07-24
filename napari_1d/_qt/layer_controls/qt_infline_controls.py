@@ -1,5 +1,6 @@
 """Scatter layer controls"""
-# Third-party imports
+import typing as ty
+
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
@@ -11,24 +12,27 @@ from ...layers.infline._infline_constants import Mode
 from ..helpers import make_label
 from .qt_layer_controls_base import QtLayerControls
 
+if ty.TYPE_CHECKING:
+    from napari_1d.layers import Scatter
+
 
 class QtInfLineControls(QtLayerControls):
-    """Qt view and controls for the napari Points layer.
+    """Qt view and controls for the napari-1d Scatter layer.
 
     Parameters
     ----------
-    layer : imimsui.visuals.line.layers.Scatter
-        An instance of a imimsui Scatter layer.
+    layer : napari_1d.layers.Scatter
+        An instance of a Scatter layer.
 
     Attributes
     ----------
-    layer : napari.layers.Points
+    layer : napari_1d.layers.Scatter
         An instance of a napari Points layer.
     color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
     """
 
-    def __init__(self, layer):
+    def __init__(self, layer: "Scatter"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.color.connect(self._on_color_change)
@@ -72,7 +76,7 @@ class QtInfLineControls(QtLayerControls):
     def _on_mode_change(self, event):
         """Update ticks in checkbox widgets when points layer mode is changed.
 
-        Available modes for points layer are:
+        Available modes for scatter layer are:
         * MOVE
         * PAN_ZOOM
 

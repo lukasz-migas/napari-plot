@@ -156,7 +156,7 @@ class QtViewer(QWidget):
         self.canvas.connect(self.on_mouse_wheel)
         self.canvas.connect(self.on_draw)
         self.canvas.connect(self.on_resize)
-        self.canvas.bgcolor = get_theme(self.viewer.theme, False).canvas.as_rgb_tuple()
+        self.canvas.bgcolor = get_theme(self.viewer.theme)["canvas"]  # .canvas.as_rgb_tuple()
         theme = self.viewer.events.theme
 
         on_theme_change = self.canvas._on_theme_change
@@ -216,7 +216,7 @@ class QtViewer(QWidget):
 
     def _set_camera(self):
         """Setup vispy camera,"""
-        self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer.dims, self.viewer)
+        self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer)
         self.canvas.connect(self.camera.on_draw)
 
         self.camera.camera.events.box_press.connect(self._on_boxzoom)
@@ -505,13 +505,12 @@ class QtViewer(QWidget):
         position = list(position)
         position[0] -= self.pos_offset[0]
         position[1] -= self.pos_offset[1]
-        nd = self.viewer.dims.ndisplay
         transform = self.view.camera.transform.inverse
-        mapped_position = transform.map(position)[:nd]
+        mapped_position = transform.map(position)[:2]
         position_world_slice = mapped_position[::-1]
 
-        position_world = list(self.viewer.dims.point)
-        for i, d in enumerate(self.viewer.dims.displayed):
+        position_world = [0, 0]
+        for i, d in enumerate((0, 1)):
             position_world[d] = position_world_slice[i]
         return tuple(position_world)
 
@@ -522,7 +521,7 @@ class QtViewer(QWidget):
         the camera is moved and is connected in the `QtViewer`.
         """
         for layer in self.viewer.layers:
-            if layer.ndim <= self.viewer.dims.ndim:
+            if layer.ndim <= 2:
                 layer._update_draw(
                     scale_factor=1 / self.viewer.camera.zoom,
                     corner_pixels=self._canvas_corners_in_world[:, -layer.ndim :],
@@ -608,11 +607,5 @@ class QtViewer(QWidget):
             Event from the Qt context.
         """
         self.layers.close()
-
-        # if the viewer.QtDims object is playing an axis, we need to terminate
-        # the AnimationThread before close, otherwise it will cauyse a segFault
-        # or Abort trap. (calling stop() when no animation is occurring is also
-        # not a problem)
-        self.dims.stop()
         self.canvas.native.deleteLater()
         event.accept()

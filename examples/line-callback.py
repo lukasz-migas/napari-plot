@@ -16,12 +16,12 @@ chelsea = data.chelsea().mean(-1)
 viewer.add_image(chelsea)
 shapes_layer = viewer.add_shapes(
     [np.array([[11, 13], [250, 313]]), np.array([[100, 10], [10, 345]])],
-    shape_type='line',
+    shape_type="line",
     edge_width=5,
-    edge_color='coral',
-    face_color='royalblue',
+    edge_color="coral",
+    face_color="royalblue",
 )
-shapes_layer.mode = 'select'
+shapes_layer.mode = "select"
 
 viewer1d = napari_1d.ViewerModel1D()
 widget = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
@@ -45,7 +45,7 @@ def _profile_lines(image, shape_layer):
 def _profile_lines_drag(layer, event):
     _profile_lines(chelsea, layer)
     yield
-    while event.type == 'mouse_move':
+    while event.type == "mouse_move":
         _profile_lines(chelsea, layer)
         yield
 

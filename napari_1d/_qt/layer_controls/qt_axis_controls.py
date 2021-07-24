@@ -140,100 +140,99 @@ class QtAxisControls(QtFramelessPopup):
         layout.addRow(make_h_line(self))  # noqa
         layout.addRow(make_label(self, "Max height"), self.x_max_size_spin)
         layout.addRow(make_label(self, "Max width"), self.y_max_size_spin)
-
         layout.setSpacing(2)
         return layout
 
     def on_change_visible(self):
-        """Update visibility checkbox"""
+        """Change visibility of the axes."""
         self.viewer.axis.visible = self.visible_checkbox.isChecked()
 
     def _on_visible_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update visibility checkbox."""
         with self.viewer.axis.events.visible.blocker():
             self.visible_checkbox.setChecked(self.viewer.axis.visible)
 
     def on_change_label(self):
-        """Update visibility checkbox"""
+        """Change visibility of the x/y-axis."""
         self.viewer.axis.x_label = self.x_axis_edit.text()
         self.viewer.axis.y_label = self.y_axis_edit.text()
 
     def _on_label_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update x/y-axis checkbox."""
         with self.viewer.axis.events.x_label.blocker():
             self.x_axis_edit.setText(self.viewer.axis.x_label)
         with self.viewer.axis.events.y_label.blocker():
             self.y_axis_edit.setText(self.viewer.axis.y_label)
 
     def on_change_label_margin(self):
-        """Update visibility checkbox"""
+        """Update margin of the x/y-axis label."""
         self.viewer.axis.x_label_margin = self.x_label_margin_spin.value()
         self.viewer.axis.y_label_margin = self.y_label_margin_spin.value()
 
     def _on_label_margin_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update x/y-axis margin spinboxes."""
         with self.viewer.axis.events.x_label_margin.blocker():
             self.x_label_margin_spin.setValue(self.viewer.axis.x_label_margin)
         with self.viewer.axis.events.y_label_margin.blocker():
             self.y_label_margin_spin.setValue(self.viewer.axis.y_label_margin)
 
     def on_change_tick_margin(self):
-        """Update visibility checkbox"""
+        """Update tick margin."""
         self.viewer.axis.x_tick_margin = self.x_tick_margin_spin.value()
         self.viewer.axis.y_tick_margin = self.y_tick_margin_spin.value()
 
     def _on_tick_margin_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update tick margin spinboxes."""
         with self.viewer.axis.events.x_tick_margin.blocker():
             self.x_tick_margin_spin.setValue(self.viewer.axis.x_tick_margin)
         with self.viewer.axis.events.y_tick_margin.blocker():
             self.y_tick_margin_spin.setValue(self.viewer.axis.y_tick_margin)
 
     def on_change_max_size(self):
-        """Update visibility checkbox"""
+        """Change maximum width/height of the axes."""
         self.viewer.axis.x_max_size = self.x_max_size_spin.value()
         self.viewer.axis.y_max_size = self.y_max_size_spin.value()
 
     def _on_max_size_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update width/height spinboxes."""
         with self.viewer.axis.events.x_max_size.blocker():
             self.x_max_size_spin.setValue(self.viewer.axis.x_max_size)
         with self.viewer.axis.events.y_max_size.blocker():
             self.y_max_size_spin.setValue(self.viewer.axis.y_max_size)
 
     def on_change_tick_font_size(self):
-        """Update visibility checkbox"""
+        """Change font size of the tick."""
         self.viewer.axis.tick_size = self.tick_font_size.value()
 
     def _on_tick_font_size_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update font size spinbox."""
         with self.viewer.axis.events.tick_size.blocker():
             self.tick_font_size.setValue(self.viewer.axis.tick_size)
 
     def on_change_tick_color(self, color: str):
-        """Update edge color of layer model from color picker user input."""
+        """Update tick color from color picker user input."""
         self.viewer.axis.tick_color = color
 
     def _on_tick_color_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update color swatch of the tick color."""
         with qt_signals_blocked(self.tick_color_swatch):
             self.tick_color_swatch.setColor(self.viewer.axis.tick_color)
 
     def on_change_label_font_size(self):
-        """Update visibility checkbox"""
+        """Change font size of the label."""
         self.viewer.axis.label_size = self.label_font_size.value()
 
     def _on_tick_label_size_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update label font size spinbox."""
         with self.viewer.axis.events.label_size.blocker():
             self.label_font_size.setValue(self.viewer.axis.label_size)
 
     def on_change_label_color(self, color: str):
-        """Update edge color of layer model from color picker user input."""
+        """Update label color swatch of the tick color."""
         self.viewer.axis.label_color = color
 
     def _on_label_color_change(self, _event=None):
-        """Update visibility checkbox"""
+        """Update color swatch of the label color."""
         with qt_signals_blocked(self.label_color_swatch):
             self.label_color_swatch.setColor(self.viewer.axis.label_color)
 
