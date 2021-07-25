@@ -3,8 +3,8 @@ import typing as ty
 
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
-from napari._qt.widgets.qt_color_swatch import QColorSwatch
-from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
+from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
+from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
@@ -42,6 +42,10 @@ class QtInfLineControls(QtLayerControls):
         Button to move infinite line.
     select_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
         Button to select infinite line.
+    add_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
+        Add new infinite line.
+    delete_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
+        Button to delete selected infinite line(s).
     """
 
     def __init__(self, layer: "Scatter"):
@@ -50,13 +54,17 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.color_swatch = QColorSwatch(
+        self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.color,
             tooltip="Click to set face color",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
 
-        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
+        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
+        self.select_button = QtModeRadioButton(
+            layer, "select_points", Mode.SELECT, tooltip="Select infinite line(s) (S)"
+        )
+        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move infinite line (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",
@@ -64,15 +72,21 @@ class QtInfLineControls(QtLayerControls):
             tooltip="Pan/zoom (Z)",
             checked=True,
         )
+        self.delete_button = QtModePushButton(layer, "delete_shape", tooltip="Delete selected infinite lines")
 
         self.button_group = QButtonGroup(self)
+        self.button_group.addButton(self.add_button)
         self.button_group.addButton(self.move_button)
+        self.button_group.addButton(self.select_button)
         self.button_group.addButton(self.panzoom_button)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
+        button_row.addWidget(self.add_button)
         button_row.addWidget(self.move_button)
+        button_row.addWidget(self.select_button)
         button_row.addWidget(self.panzoom_button)
+        button_row.addWidget(self.delete_button)
         button_row.setContentsMargins(0, 0, 0, 5)
         button_row.setSpacing(4)
 
@@ -102,8 +116,12 @@ class QtInfLineControls(QtLayerControls):
             Raise error if event.mode is not ADD, PAN_ZOOM, or SELECT.
         """
         mode = event.mode
-        if mode == Mode.MOVE:
+        if mode == Mode.ADD:
+            self.add_button.setChecked(True)
+        elif mode == Mode.MOVE:
             self.move_button.setChecked(True)
+        elif mode == Mode.SELECT:
+            self.select_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
         else:
@@ -133,8 +151,10 @@ class QtInfLineControls(QtLayerControls):
                 "opacity_slider",
                 "blending_combobox",
                 "color_swatch",
+                "add_button",
                 "move_button",
                 "panzoom_button",
+                "delete_button",
             ],
             not self.layer.editable,
         )

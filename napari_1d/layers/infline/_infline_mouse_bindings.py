@@ -22,3 +22,32 @@ def move(layer, event):
     while event.type != "mouse_release":
         yield
     _update(True)
+
+
+def add(layer, event):
+    """Add a new infinite line at the clicked position."""
+    if event.type == "mouse_press":
+        start_pos = event.pos
+        position = event.position
+
+    while event.type != "mouse_release":
+        yield
+
+    x_dist, y_dist = start_pos - event.pos
+    coordinates = layer.world_to_data(position)
+    if abs(x_dist) > abs(y_dist):
+        orientation = "horizontal"
+        pos = coordinates[0]
+    else:
+        orientation = "vertical"
+        pos = coordinates[1]
+    layer.add([pos], [orientation])
+
+
+def select(layer, event):
+    """Add layer."""
+
+
+def highlight(layer, event):
+    """Add layer."""
+    layer._set_highlight()

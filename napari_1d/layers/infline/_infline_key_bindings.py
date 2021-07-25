@@ -24,6 +24,24 @@ def activate_move_mode(layer):
     layer.mode = Mode.MOVE
 
 
+@InfLine.bind_key("A")
+def activate_add_mode(layer):
+    """Activate move tool."""
+    layer.mode = Mode.ADD
+
+
+@InfLine.bind_key("S")
+def activate_select_mode(layer):
+    """Activate move tool."""
+    layer.mode = Mode.SELECT
+
+
+@InfLine.bind_key("Backspace")
+def activate_remove_mode(layer):
+    """Activate move tool."""
+    layer.remove_selected()
+
+
 @InfLine.bind_key("Z")
 @InfLine.bind_key("Escape")
 def activate_pan_zoom_mode(layer):

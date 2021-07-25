@@ -1,8 +1,6 @@
 """Line constants"""
-# Standard library imports
 from enum import auto
 
-# Third-party imports
 from napari.utils.misc import StringEnum
 
 

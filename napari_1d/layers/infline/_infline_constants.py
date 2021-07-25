@@ -15,7 +15,9 @@ class Mode(StringEnum):
     MOVE allows moving of the current window
     """
 
+    ADD = auto()
     MOVE = auto()
+    SELECT = auto()
     PAN_ZOOM = auto()
 
 

@@ -15,12 +15,12 @@ from pydantic import Extra, Field
 from .. import layers
 from ..utils.utilities import get_min_max
 from ._viewer_mouse_bindings import x_span
+from ._viewer_utils import get_layers_x_region_extent, get_range_extent
 from .axis import Axis
 from .camera import Camera
 from .gridlines import GridLines
 from .layerlist import LayerList
 from .span import Span
-from .utilities import get_layers_x_region_extent, get_range_extent
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
