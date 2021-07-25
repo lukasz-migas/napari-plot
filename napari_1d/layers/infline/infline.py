@@ -1,5 +1,4 @@
 """Infinite region"""
-# Third-party imports
 from typing import Tuple
 
 import numpy as np
@@ -42,10 +41,10 @@ class InfLine(Layer):
             raise ValueError("Cannot instantiate layer without data")
         else:
             data = np.asarray(data)
-        ndim = 2
+
         super().__init__(
             data,
-            ndim,
+            ndim=2,
             name=name,
             metadata=metadata,
             scale=scale,

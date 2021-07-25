@@ -12,7 +12,10 @@ class VispyTextVisual(_VispyTextVisual):
         super().__init__(viewer, parent, order)
 
     def _on_position_change(self, event):
-        """Change position of text visual."""
+        """Change position of text visual.
+
+        This is necessary to account for the offsets caused by the x/y-axis offsets.
+        """
         position = self._viewer.text_overlay.position
         x_offset, y_offset = 10, 5
         canvas_size = list(self.node.canvas.size)

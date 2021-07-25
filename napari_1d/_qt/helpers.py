@@ -1,3 +1,4 @@
+"""Helper functions to easily create UI elements."""
 from typing import Dict, List, Optional, OrderedDict, Union
 
 from PySide2.QtWidgets import QButtonGroup
@@ -55,27 +56,34 @@ def make_slider(
     parent,
     min_val: float = 0,
     max_val: float = 100,
-    step_size: int = 1,
+    step_size: float = 1,
+    val: float = 1,
     orientation="horizontal",
     tooltip: str = None,
     is_disabled: bool = False,
+    focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider"""
     orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
-    widget = QSlider(parent)
+    widget = QSlider(parent)  # noqa
     widget.setRange(min_val, max_val)
+    widget.setValue(val)
     widget.setOrientation(orientation)
     widget.setPageStep(step_size)
     widget.setDisabled(is_disabled)
+    widget.setFocusPolicy(focus_policy)
     if tooltip:
         set_tooltip(widget, tooltip)
     return widget
 
 
-def make_checkbox(parent, text: str = "", tooltip: str = None, is_disabled: bool = False) -> QCheckBox:
+def make_checkbox(
+    parent, text: str = "", val: bool = False, tooltip: str = None, is_disabled: bool = False
+) -> QCheckBox:
     """Make checkbox"""
     widget = QCheckBox(parent)
     widget.setText(text)
+    widget.setChecked(val)
     widget.setDisabled(is_disabled)
     if tooltip:
         set_tooltip(widget, tooltip)
@@ -176,7 +184,7 @@ def make_line_edit(
     is_disabled: bool = False,
 ) -> QLineEdit:
     """Make QLineEdit"""
-    widget = QLineEdit(parent)
+    widget = QLineEdit(parent)  # noqa
     widget.setText(text)
     widget.setDisabled(is_disabled)
     if tooltip:

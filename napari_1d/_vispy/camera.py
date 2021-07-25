@@ -103,7 +103,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             event.handled = False
 
     def set_mode(self, mode: Mode):
-        """Mode"""
+        """Set limit mode."""
         self._mode = mode
 
     def set_extents(self, xmin, xmax, ymin, ymax):

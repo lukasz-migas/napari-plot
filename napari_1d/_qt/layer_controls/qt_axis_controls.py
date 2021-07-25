@@ -45,22 +45,23 @@ class QtAxisControls(QtFramelessPopup):
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Make panel"""
-        self.visible_checkbox = make_checkbox(self, "", "Show/hide x/y-axes")
-        self.visible_checkbox.setChecked(self.viewer.axis.visible)
+        self.visible_checkbox = make_checkbox(self, "", val=self.viewer.axis.visible, tooltip="Show/hide x/y-axes")
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)  # noqa
 
         self.x_axis_edit = make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
         self.x_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.x_label_margin_spin = make_slider(self, min_val=10, max_val=120, step_size=5)
-        self.x_label_margin_spin.setValue(self.viewer.axis.x_label_margin)
+        self.x_label_margin_spin = make_slider(
+            self, min_val=10, max_val=120, step_size=5, val=self.viewer.axis.x_label_margin
+        )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
         self.y_axis_edit = make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.y_label_margin_spin = make_slider(self, min_val=10, max_val=120, step_size=5)
-        self.y_label_margin_spin.setValue(self.viewer.axis.y_label_margin)
+        self.y_label_margin_spin = make_slider(
+            self, min_val=10, max_val=120, step_size=5, val=self.viewer.axis.y_label_margin
+        )
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
         self.label_color_swatch = QColorSwatch(
@@ -69,8 +70,7 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.label_color_swatch.evt_color_changed.connect(self.on_change_label_color)  # noqa
 
-        self.label_font_size = make_slider(self, min_val=4, max_val=16, step_size=1)
-        self.label_font_size.setValue(self.viewer.axis.label_size)
+        self.label_font_size = make_slider(self, min_val=4, max_val=16, step_size=1, val=self.viewer.axis.label_size)
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)  # noqa
 
         self.tick_color_swatch = QColorSwatch(
@@ -84,9 +84,9 @@ class QtAxisControls(QtFramelessPopup):
             min_val=50,
             max_val=150,
             step_size=5,
+            val=self.viewer.axis.x_max_size,
             tooltip="Maximum height (x-axis) of the axes visual.",
         )
-        self.x_max_size_spin.setValue(self.viewer.axis.x_max_size)
         self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
         self.y_max_size_spin = make_slider(
@@ -94,13 +94,12 @@ class QtAxisControls(QtFramelessPopup):
             min_val=50,
             max_val=150,
             step_size=5,
+            val=self.viewer.axis.y_max_size,
             tooltip="Maximum height width (y-axis) of the axes visual.",
         )
-        self.y_max_size_spin.setValue(self.viewer.axis.y_max_size)
         self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
-        self.tick_font_size = make_slider(self, min_val=4, max_val=16, step_size=1)
-        self.tick_font_size.setValue(self.viewer.axis.tick_size)
+        self.tick_font_size = make_slider(self, min_val=4, max_val=16, step_size=1, val=self.viewer.axis.tick_size)
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)  # noqa
 
         self.x_tick_margin_spin = make_slider(
@@ -108,9 +107,9 @@ class QtAxisControls(QtFramelessPopup):
             min_val=5,
             max_val=100,
             step_size=5,
+            val=self.viewer.axis.x_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
-        self.x_tick_margin_spin.setValue(self.viewer.axis.x_tick_margin)
         self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
 
         self.y_tick_margin_spin = make_slider(
@@ -118,9 +117,9 @@ class QtAxisControls(QtFramelessPopup):
             min_val=5,
             max_val=100,
             step_size=5,
+            val=self.viewer.axis.y_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
-        self.y_tick_margin_spin.setValue(self.viewer.axis.y_tick_margin)
         self.y_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
 
         layout = QFormLayout(self)

@@ -1,5 +1,4 @@
 """Line layer"""
-# Third-party imports
 import numpy as np
 from napari.layers import Layer
 from napari.utils.colormaps.standardize_color import transform_color
@@ -40,10 +39,10 @@ class Line(Layer):
             data = np.empty((0, 2))
         else:
             data = np.asarray(data)
-        ndim = 2
+
         super().__init__(
             data,
-            ndim,
+            ndim=2,
             name=name,
             metadata=metadata,
             scale=scale,

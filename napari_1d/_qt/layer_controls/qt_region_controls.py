@@ -28,8 +28,23 @@ class QtRegionControls(QtLayerControls):
     ----------
     layer : napari_1d.layers.Region
         An instance of a napari-1d Region layer.
+    layout : qtpy.QtWidgets.QFormLayout
+        Layout of Qt widget controls for the layer.
+    editable_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox widget to control editability of the layer.
+    blending_combobox : qtpy.QtWidgets.QComboBox
+        Dropdown widget to select blending mode of layer.
+    opacity_slider : qtpy.QtWidgets.QSlider
+        Slider controlling opacity of the layer.
     color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
+    select_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
+        Button to select region of interest.
+    move_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
+        Button to move region of interest.
+    panzoom_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
+        Button to zoom in and disable other actions.
+
     """
 
     def __init__(self, layer: "Region"):
@@ -61,14 +76,13 @@ class QtRegionControls(QtLayerControls):
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
-
         button_row.addWidget(self.select_button)
         button_row.addWidget(self.move_button)
         button_row.addWidget(self.panzoom_button)
         button_row.setContentsMargins(0, 0, 0, 5)
         button_row.setSpacing(4)
 
-        # grid_layout created in QtLayerControls
+        # add widgets to the layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
         self.layout.addRow(make_label(self, "Color"), self.color_swatch)

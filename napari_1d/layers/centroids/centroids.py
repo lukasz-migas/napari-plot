@@ -1,10 +1,8 @@
 """Line layer"""
-# Third-party imports
 import numpy as np
 from napari.layers import Layer
 from napari.utils.events import Event
 
-# Local imports
 from ._centroids_constants import Method
 
 
@@ -39,10 +37,9 @@ class Centroids(Layer):
             data = np.empty((0, 2))
         else:
             data = np.asarray(data)
-        ndim = 2
         super().__init__(
             data,
-            ndim,
+            ndim=2,
             name=name,
             metadata=metadata,
             scale=scale,

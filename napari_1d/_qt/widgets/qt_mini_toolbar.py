@@ -1,13 +1,10 @@
 """Mini toolbar"""
-# Standard library imports
 from typing import Callable, Optional
 
 from qtpy.QtCore import Qt
-
-# Third-party imports
 from qtpy.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
-from napari_1d._qt.helpers import make_h_spacer, make_svg_btn, make_v_spacer
+from ..helpers import make_h_spacer, make_svg_btn, make_v_spacer
 
 
 class QtMiniToolbar(QFrame):

@@ -6,7 +6,6 @@ from napari.layers import Layer
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
-# Local imports
 from ._region_constants import Mode, Orientation
 from ._region_mouse_bindings import move, select
 
@@ -38,10 +37,9 @@ class Region(Layer):
             raise ValueError("Cannot instantiate layer without data")
         else:
             data = np.asarray(data)
-        ndim = 2
         super().__init__(
             data,
-            ndim,
+            ndim=2,
             name=name,
             metadata=metadata,
             scale=scale,

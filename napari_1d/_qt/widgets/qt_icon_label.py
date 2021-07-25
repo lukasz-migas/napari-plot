@@ -1,4 +1,4 @@
-"""QtIcon"""
+"""QtIconLabel"""
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QLabel
 

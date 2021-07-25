@@ -34,12 +34,20 @@ class QtScatterControls(QtLayerControls):
     ----------
     layer : napari_1d.layers.Scatter
         An instance of a napari-1 Scatter layer.
+    layout : qtpy.QtWidgets.QFormLayout
+        Layout of Qt widget controls for the layer.
+    editable_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox widget to control editability of the layer.
+    blending_combobox : qtpy.QtWidgets.QComboBox
+        Dropdown widget to select blending mode of layer.
+    opacity_slider : qtpy.QtWidgets.QSlider
+        Slider controlling opacity of the layer.
     edge_color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing shapes edge display color.
-    face_color_swatch : qtpy.QtWidgets.QFrame
-        Color swatch showing shapes face display color.
     size_slider : qtpy.QtWidgets.QSlider
         Slider controlling size of points.
+    face_color_swatch : qtpy.QtWidgets.QFrame
+        Color swatch showing shapes face display color.
     symbol_combobox : qtpy.QtWidgets.QComboBox
         Drop down list of symbol options for points markers.
     scaling_checkbox : qtpy.QtWidgets.QCheckBox
@@ -50,7 +58,6 @@ class QtScatterControls(QtLayerControls):
 
     def __init__(self, layer: "Scatter"):
         super().__init__(layer)
-
         self.layer.events.symbol.connect(self._on_symbol_change)
         self.layer.events.size.connect(self._on_size_change)
         self.layer.events.edge_width.connect(self._on_edge_width_change)
@@ -60,9 +67,9 @@ class QtScatterControls(QtLayerControls):
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.size_slider = make_slider(self, 1, tooltip="Scatter point size")
-        self.size_slider.setFocusPolicy(Qt.NoFocus)
-        self.size_slider.setValue(int(self.layer.size))
+        self.size_slider = make_slider(
+            self, 1, val=int(self.layer.size), tooltip="Scatter point size", focus_policy=Qt.NoFocus
+        )
         self.size_slider.valueChanged.connect(self.on_change_size)
 
         self.face_color_swatch = QColorSwatch(
@@ -77,24 +84,22 @@ class QtScatterControls(QtLayerControls):
         )
         self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
-        self.edge_width_slider = make_slider(self, 1, tooltip="Scatter edge width")
-        self.edge_width_slider.setFocusPolicy(Qt.NoFocus)
-        self.edge_width_slider.setValue(int(self.layer.edge_width))
+        self.edge_width_slider = make_slider(
+            self, 1, val=int(self.layer.edge_width), tooltip="Scatter edge width", focus_policy=Qt.NoFocus
+        )
         self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
 
         self.symbol_combobox = make_combobox(self, tooltip="Marker symbol")
         set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
         self.symbol_combobox.activated[str].connect(self.on_change_symbol)
 
-        self.scaling_checkbox = make_checkbox(self, tooltip="Scale scatter points with zoom")
-        self.scaling_checkbox.setChecked(self.layer.scaling)
+        self.scaling_checkbox = make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")
         self.scaling_checkbox.stateChanged.connect(self.on_change_scaling)
 
-        self.text_display_checkbox = make_checkbox(self, tooltip="Toggle text visibility")
-        self.text_display_checkbox.setChecked(self.layer.text.visible)
+        self.text_display_checkbox = make_checkbox(self, val=self.layer.text.visible, tooltip="Toggle text visibility")
         self.text_display_checkbox.stateChanged.connect(self.on_change_text_visibility)
 
-        # grid_layout created in QtLayerControls
+        # add widgets to the layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Points size"), self.size_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)

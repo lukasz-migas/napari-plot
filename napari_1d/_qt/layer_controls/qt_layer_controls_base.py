@@ -33,30 +33,27 @@ class QtLayerControls(QFrame):
 
     def __init__(self, layer):
         super().__init__()
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setObjectName("layer")
+        self.setMouseTracking(True)
+
         self.layer = layer
         self.layer.events.blending.connect(self._on_blending_change)
         self.layer.events.opacity.connect(self._on_opacity_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setObjectName("layer")
-        self.setMouseTracking(True)
-
-        opacity_slider = make_slider(self, tooltip="Opacity")
-        opacity_slider.setFocusPolicy(Qt.NoFocus)
-        opacity_slider.valueChanged.connect(self.on_change_opacity)
-        self.opacity_slider = opacity_slider
+        self.opacity_slider = make_slider(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
+        self.opacity_slider.valueChanged.connect(self.on_change_opacity)
         self._on_opacity_change()
 
-        blending_combobox = make_combobox(self)
-        set_combobox_data(blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
-        blending_combobox.activated[str].connect(self.on_change_blending)
-        self.blending_combobox = blending_combobox
+        self.blending_combobox = make_combobox(self)
+        set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
+        self.blending_combobox.activated[str].connect(self.on_change_blending)
 
-        editable_checkbox = make_checkbox(self, "")
-        editable_checkbox.stateChanged.connect(self.on_change_editable)
-        self.editable_checkbox = editable_checkbox
+        self.editable_checkbox = make_checkbox(self, "")
+        self.editable_checkbox.stateChanged.connect(self.on_change_editable)
 
+        # layout where all widgets will go
         self.layout = QFormLayout(self)
         self.layout.setSpacing(2)
 

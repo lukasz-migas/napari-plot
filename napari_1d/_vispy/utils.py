@@ -63,3 +63,11 @@ def tick_formatter(value: float) -> str:
         return f"{value / 1e9:.1f}B"
     elif exp_value < 16:
         return f"{value / 1e12:.1f}T"
+
+
+def make_centroids(data: np.ndarray) -> np.ndarray:
+    """Make centroids data in the format [[x, 0], [x, y]]"""
+    array = np.zeros((len(data) * 2, 2), dtype=data.dtype)
+    array[:, 0] = np.repeat(data[:, 0], 2)
+    array[1::2, 1] = data[:, 1]
+    return array

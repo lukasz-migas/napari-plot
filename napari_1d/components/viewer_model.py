@@ -31,14 +31,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     ----------
     title : string
         The title of the viewer window.
-    ndisplay : {2}
-        Number of displayed dimensions.
-    order : tuple of int
-        Order in which dimensions are displayed where the last two or last
-        three dimensions correspond to row x column or plane x row x column if
-        ndisplay is 2.
-    axis_labels : list of str
-        Dimension names.
     """
 
     # Using allow_mutation=False means these attributes aren't settable and don't
@@ -59,17 +51,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     # 2-tuple indicating height and width
     _canvas_size: ty.Tuple[int, int] = (400, 400)
 
-    def __init__(self, title="napari_1d", ndisplay=2, order=(), axis_labels=()):
+    def __init__(self, title="napari_1d"):
         # allow extra attributes during model initialization, useful for mixins
         self.__config__.extra = Extra.allow
-        super().__init__(
-            title=title,
-            dims={
-                "axis_labels": axis_labels,
-                "ndisplay": ndisplay,
-                "order": order,
-            },
-        )
+        super().__init__(title=title)
         self.__config__.extra = Extra.ignore
 
         self.events.add(layers_change=Event, reset_view=Event, span=Event)
@@ -134,7 +119,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             ymin, ymax = real_ymin, real_ymax
         return ymin, ymax * y_multiplier
 
-    def reset_view(self, event=None):
+    def reset_view(self, _event=None):
         """Reset the camera view."""
         xmin, xmax, ymin, ymax = self._get_rect_extent()
         self.camera.rect = (xmin, xmax, ymin, ymax)
@@ -151,7 +136,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         ymin, ymax = self._get_y_range_extent_for_x(xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale)
         self.camera.rect = (xmin, xmax, ymin, ymax)
 
-    def reset_x_view(self, event=None):
+    def reset_x_view(self, _event=None):
         """Reset the camera view, but only in the y-axis dimension"""
         xmin, xmax, _, _ = self._get_rect_extent()
         _, _, ymin, ymax = self.camera.rect
@@ -162,7 +147,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin, xmax, _, _ = self._get_rect_extent()
         self.camera.rect = (xmin, xmax, ymin, ymax)
 
-    def reset_y_view(self, event=None):
+    def reset_y_view(self, _event=None):
         """Reset the camera view, but only in the y-axis dimension"""
         _, _, ymin, ymax = self._get_rect_extent()
         xmin, xmax, _, _ = self.camera.rect
@@ -210,7 +195,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if len(self.layers) == 1:
             self.reset_view()
 
-    def _on_layers_change(self, event):
+    def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
         self.events.layers_change()
 
@@ -280,7 +265,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Set the viewer cursor_size with the `event.cursor_size` int."""
         self.cursor.size = event.cursor_size
 
-    def _on_cursor_position_change(self, event):
+    def _on_cursor_position_change(self, _event=None):
         """Set the layer cursor position."""
         with warnings.catch_warnings():
             # Catch the deprecation warning on layer.position

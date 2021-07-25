@@ -32,7 +32,7 @@ class QtDialog(QDialog):
 
     def make_panel(self) -> QLayout:
         """Make panel"""
-        pass
+        ...
 
     def make_gui(self):
         """Make and arrange main panel"""

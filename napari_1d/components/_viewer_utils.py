@@ -1,8 +1,10 @@
 import typing as ty
-from ..utils.utilities import find_nearest_index, get_min_max
-from napari.layers import Layer
-from .. import layers
+
 import numpy as np
+from napari.layers import Layer
+
+from .. import layers
+from ..utils.utilities import find_nearest_index, get_min_max
 
 
 def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty.Optional[float], ...]:

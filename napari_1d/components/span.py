@@ -19,7 +19,7 @@ class Span(EventedModel):
     """Span"""
 
     visible: bool = False
-    color: Array[float, (4,)] = (1.0, 1.0, 1.0, 1.0)  # (0.0, 1.0, 0.0, 1.0)
+    color: Array[float, (4,)] = (1.0, 1.0, 1.0, 1.0)
     opacity: float = 0.3
     position: Tuple[float, float] = (0, 0)
     orientation: Orientation = Orientation.VERTICAL

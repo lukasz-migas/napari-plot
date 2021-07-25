@@ -5,8 +5,7 @@ from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from qtpy.QtCore import Qt
 
-from napari_1d._qt.helpers import make_label, make_slider
-
+from ..helpers import make_label, make_slider
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
@@ -14,7 +13,30 @@ if ty.TYPE_CHECKING:
 
 
 class QtLineControls(QtLayerControls):
-    """Line controls"""
+    """Line controls
+
+    Parameters
+    ----------
+    layer : napari_1d.layers.Line
+        An instance of a napari-1d Line layer.
+
+    Attributes
+    ----------
+    layer : napari_1d.layers.Line
+        An instance of a napari-1d Line layer.
+    layout : qtpy.QtWidgets.QFormLayout
+        Layout of Qt widget controls for the layer.
+    editable_checkbox : qtpy.QtWidgets.QCheckBox
+        Checkbox widget to control editability of the layer.
+    blending_combobox : qtpy.QtWidgets.QComboBox
+        Dropdown widget to select blending mode of layer.
+    opacity_slider : qtpy.QtWidgets.QSlider
+        Slider controlling opacity of the layer.
+    width_slider : qtpy.QtWidgets.QSlider
+        Slider controlling width of the layer.
+    color_swatch : napari._qt.widgets.qt_color_swatch.QColorSwatch
+        Color swatch controlling the line color.
+    """
 
     def __init__(self, layer: "Line"):
         super().__init__(layer)
@@ -23,9 +45,9 @@ class QtLineControls(QtLayerControls):
         self.layer.events.method.connect(self._on_method_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.width_slider = make_slider(self, 1, 25, tooltip="Line width.")
-        self.width_slider.setFocusPolicy(Qt.NoFocus)
-        self.width_slider.setValue(int(self.layer.width))
+        self.width_slider = make_slider(
+            self, 1, 25, val=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+        )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
         self.color_swatch = QColorSwatch(
@@ -34,6 +56,7 @@ class QtLineControls(QtLayerControls):
         )
         self.color_swatch.color_changed.connect(self.on_change_color)
 
+        # add widgets to layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
         self.layout.addRow(make_label(self, "Line width"), self.width_slider)
@@ -112,7 +135,6 @@ class QtLineControls(QtLayerControls):
             [
                 "width_slider",
                 "color_swatch",
-                # "method_combobox",
                 "opacity_slider",
                 "blending_combobox",
             ],

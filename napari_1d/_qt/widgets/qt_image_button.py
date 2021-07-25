@@ -1,3 +1,4 @@
+"""QtImagePushButton"""
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import QPushButton
 

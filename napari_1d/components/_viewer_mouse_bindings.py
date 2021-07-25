@@ -2,12 +2,12 @@
 
 
 def x_span(viewer, event):
-    """Enable span"""
+    """Enable x-axis span."""
 
-    def _check_key():
+    def _is_not_modifier() -> bool:
         return "Control" not in event.modifiers and "Shift" not in event.modifiers
 
-    if _check_key() or event.button != 1:
+    if _is_not_modifier() or event.button != 1:
         viewer.span.visible = False
         return
 
@@ -21,12 +21,12 @@ def x_span(viewer, event):
 
     # on mouse move
     while event.type == "mouse_move":
-        viewer.span.visible = not _check_key()
+        viewer.span.visible = not _is_not_modifier()
         yield
 
     # on release
     viewer.span.color = color
-    if not _check_key():
+    if not _is_not_modifier():
         position = viewer.span.position
         viewer.span.visible = False
         viewer.span.position = (0, 0)

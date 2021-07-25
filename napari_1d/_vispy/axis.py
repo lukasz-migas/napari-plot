@@ -55,11 +55,7 @@ class Ticker(_Ticker):
             length = self.axis.pos[1] - self.axis.pos[0]  # in logical coords
             n_inches = np.sqrt(np.sum(length ** 2)) / transforms.dpi
 
-            # major = np.linspace(domain[0], domain[1], num=11)
-            # major = MaxNLocator(10).tick_values(*domain)
             major = _get_ticks_talbot(domain[0], domain[1], n_inches, 2)
-
-            # labels = ["%g" % x for x in major]
             labels = [self.tick_format_func(x) for x in major]
             majstep = major[1] - major[0]
             minor = []

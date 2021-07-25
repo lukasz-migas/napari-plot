@@ -1,14 +1,19 @@
 """Grid lines visual"""
-from vispy.scene.visuals import GridLines as GridLinesNode
+from typing import TYPE_CHECKING
+
+from vispy.scene.visuals import GridLines
+
+if TYPE_CHECKING:
+    from ..components.viewer_model import ViewerModel
 
 
 class VispyGridLinesVisual:
     """Grid lines visual."""
 
-    def __init__(self, viewer, parent=None, order=1e6):
+    def __init__(self, viewer: "ViewerModel", parent=None, order=1e6):
         self._viewer = viewer
 
-        self.node = GridLinesNode()
+        self.node = GridLines()
         self.node.order = order
         parent.add(self.node)
 
