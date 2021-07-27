@@ -36,7 +36,9 @@ class QtRegionControls(QtLayerControls):
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
         Slider controlling opacity of the layer.
-    color_swatch : qtpy.QtWidgets.QFrame
+    edge_color_swatch : qtpy.QtWidgets.QFrame
+        Color swatch showing the color of the region
+    face_color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
     select_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
         Button to select region of interest.
@@ -44,22 +46,28 @@ class QtRegionControls(QtLayerControls):
         Button to move region of interest.
     panzoom_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
         Button to zoom in and disable other actions.
-
     """
 
     def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
-        self.layer.events.color.connect(self._on_color_change)
+        self.layer.events.edge_color.connect(self._on_edge_color_change)
+        self.layer.events.face_color.connect(self._on_face_color_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.color_swatch = QColorSwatch(
-            initial_color=self.layer.color,
+        self.edge_color_swatch = QColorSwatch(
+            initial_color=self.layer.edge_color,
             tooltip="Click to set face color",
         )
-        self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
+        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
-        self.select_button = QtModeRadioButton(layer, "select_region", Mode.SELECT, tooltip="Select new region (S)")
+        self.face_color_swatch = QColorSwatch(
+            initial_color=self.layer.edge_color,
+            tooltip="Click to set face color",
+        )
+        self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
+
+        self.select_button = QtModeRadioButton(layer, "select_region", Mode.ADD, tooltip="Select new region (S)")
         self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
@@ -85,7 +93,8 @@ class QtRegionControls(QtLayerControls):
         # add widgets to the layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Color"), self.color_swatch)
+        self.layout.addRow(make_label(self, "Edge color"), self.edge_color_swatch)
+        self.layout.addRow(make_label(self, "Face color"), self.face_color_swatch)
         self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row)
         self._on_editable_change()
@@ -110,7 +119,7 @@ class QtRegionControls(QtLayerControls):
         mode = event.mode
         if mode == Mode.MOVE:
             self.move_button.setChecked(True)
-        elif mode == Mode.SELECT:
+        elif mode == Mode.ADD:
             self.select_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
@@ -118,14 +127,24 @@ class QtRegionControls(QtLayerControls):
             raise ValueError(f"Mode {mode} not recognized")
 
     @Slot(np.ndarray)  # noqa
-    def on_change_color(self, color: np.ndarray):
+    def on_change_edge_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
-        self.layer.color = color
+        self.layer.edge_color = color
 
-    def _on_color_change(self, _event):
+    def _on_edge_color_change(self, _event):
         """Receive layer.current_face_color() change event and update view."""
-        with qt_signals_blocked(self.color_swatch):
-            self.color_swatch.setColor(self.layer.color)
+        with qt_signals_blocked(self.edge_color_swatch):
+            self.edge_color_swatch.setColor(self.layer.edge_color)
+
+    @Slot(np.ndarray)  # noqa
+    def on_change_face_color(self, color: np.ndarray):
+        """Update face color of layer model from color picker user input."""
+        self.layer.face_color = color
+
+    def _on_face_color_change(self, _event):
+        """Receive layer.current_edge_color() change event and update view."""
+        with qt_signals_blocked(self.face_color_swatch):
+            self.face_color_swatch.setColor(self.layer.face_color)
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -140,7 +159,8 @@ class QtRegionControls(QtLayerControls):
             [
                 "opacity_slider",
                 "blending_combobox",
-                "color_swatch",
+                "edge_color_swatch",
+                "face_color_swatch",
                 "move_button",
                 "select_button",
                 "panzoom_button",

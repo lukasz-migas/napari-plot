@@ -14,7 +14,7 @@ widget = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
 viewer1d.add_line(np.c_[np.arange(100), np.arange(100) + 300], name="line")
 viewer1d.add_centroids(np.c_[np.arange(100), np.arange(100)], name="centroids")
 viewer1d.add_scatter(np.c_[np.arange(100), np.arange(100)], name="scatter")
-viewer1d.add_region([0, 50], color="#FF0000", opacity=0.5, name="region")
+viewer1d.add_region([[0, 50]], face_color="#FF0000", opacity=0.5, name="region")
 viewer.window.add_dock_widget(widget, area="bottom", name="Line Widget")
 
 napari.run()

@@ -266,6 +266,12 @@ class QtViewer(QWidget):
         """Set view"""
         self.grid = self.canvas.central_widget.add_grid(spacing=0)
         self.view = self.grid.add_view(row=0, col=1)
+        # this gives small padding to the right of the plot
+        self.padding_x = self.grid.add_widget(row=0, col=2)
+        self.padding_x.width_max = 20
+        # # this gives small padding to the top of the plot
+        # self.padding_y = self.grid.add_widget(row=0, col=0, col_span=2)
+        # self.padding_y.height_max = 20
         with self.canvas.modify_context() as canvas:
             canvas.grid = self.grid
             canvas.view = self.view

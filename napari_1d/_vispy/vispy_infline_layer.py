@@ -3,14 +3,14 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from napari._vispy.vispy_base_layer import VispyBaseLayer
-from vispy.scene.visuals import Line
+from vispy.scene.visuals import Compound, Line
 
 if TYPE_CHECKING:
     from ..layers import InfLine
 
 
 def make_infinite_line(data: np.ndarray, orientations: np.ndarray, colors):
-    """Create all elements required to create inifinte lines."""
+    """Create all elements required to create infinite lines."""
     assert len(data) == len(orientations) == len(colors), "The number of points must match the number of orientations."
     pos, connect, _colors = [], [], []
     min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
@@ -31,7 +31,10 @@ class VispyInfLineLayer(VispyBaseLayer):
     """Infinite region layer"""
 
     def __init__(self, layer: "InfLine"):
-        node = Line()
+        # Create a compound visual with the following four sub-visuals:
+        # Lines: The actual infinite lines
+        # Lines: The lines of the interaction box used for highlights
+        node = Compound([Line(), Line()])
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_appearance_change)
@@ -42,22 +45,24 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node.set_data(color=self.layer.color)
+        self.node._subvisuals[0].set_data(color=self.layer.color)
         self.node.update()
 
     def _on_width_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node.set_data(width=self.layer.width)
+        self.node._subvisuals[0].set_data(width=self.layer.width)
         self.node.update()
 
     def _on_data_change(self, _event=None):
         """Set data"""
         pos, connect, color = make_infinite_line(self.layer.data, self.layer.orientations, self.layer.color)
-        print(len(pos), len(connect), len(color), "?")
-        self.node.set_data(
+        self.node._subvisuals[0].set_data(
             pos=pos,
             connect=connect,
             color=color,
             width=self.layer.width,
         )
         self.node.update()
+
+    def _on_highlight_change(self, _event=None):
+        """Set highlights."""

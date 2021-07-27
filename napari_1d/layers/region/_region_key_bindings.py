@@ -27,7 +27,7 @@ def activate_move_mode(layer):
 @Region.bind_key("S")
 def activate_select_mode(layer):
     """Activate move tool."""
-    layer.mode = Mode.SELECT
+    layer.mode = Mode.ADD
 
 
 @Region.bind_key("Z")

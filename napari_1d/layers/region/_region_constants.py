@@ -3,6 +3,8 @@ from enum import Enum, auto
 
 from napari.utils.misc import StringEnum
 
+from ._region import Horizontal, Vertical
+
 
 class Mode(StringEnum):
     """
@@ -15,9 +17,10 @@ class Mode(StringEnum):
     MOVE allows moving of the current window
     """
 
-    SELECT = auto()
-    MOVE = auto()
     PAN_ZOOM = auto()
+    SELECT = auto()
+    ADD = auto()
+    MOVE = auto()
 
 
 class Orientation(str, Enum):
@@ -25,3 +28,6 @@ class Orientation(str, Enum):
 
     HORIZONTAL = "horizontal"
     VERTICAL = "vertical"
+
+
+region_classes = {Orientation.HORIZONTAL: Horizontal, Orientation.VERTICAL: Vertical}

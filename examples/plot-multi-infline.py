@@ -1,4 +1,4 @@
-"""Test regions."""
+"""Multiple infinite lines in a single layer."""
 import napari_1d
 import numpy as np
 from napari_1d._qt.qt_window import make_window

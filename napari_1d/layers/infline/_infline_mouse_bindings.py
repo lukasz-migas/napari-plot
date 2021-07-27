@@ -1,6 +1,11 @@
 """Mouse bindings"""
 
 
+def highlight(layer, event):
+    """Highlight hovered lines."""
+    layer._set_highlight()
+
+
 def move(layer, event):
     """Move the currently drawn region to new location"""
 
@@ -46,8 +51,3 @@ def add(layer, event):
 
 def select(layer, event):
     """Add layer."""
-
-
-def highlight(layer, event):
-    """Add layer."""
-    layer._set_highlight()

@@ -1,27 +1,27 @@
 """Infinite region"""
-from typing import Tuple
-
 import numpy as np
 from napari.layers.base import Layer, no_op
 from napari.layers.utils.color_manager import ColorManager
+from napari.layers.utils.color_transformations import transform_color_with_defaults
 from napari.utils.events import Event
 
 from ._infline_constants import Mode, Orientation
 from ._infline_mouse_bindings import add, highlight, move, select
+from ._infline_utils import extract_inf_line_orientation
 
 
 class InfLine(Layer):
     """InfLine layer"""
 
-    # The max length of the line that will ever be used to render the thumbnail
-    # If more points are present, they will be sub-sampled
-    _max_line_thumbnail = 1024
+    _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
+    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op}
+    _cursor_modes = {Mode.ADD: "pointing", Mode.SELECT: "standard", Mode.PAN_ZOOM: "standard"}
 
     def __init__(
         self,
         data,
-        orientations,
         *,
+        orientations=None,
         label="",
         color="red",
         width=1,
@@ -41,6 +41,7 @@ class InfLine(Layer):
         if data is None:
             data = np.asarray([])
         else:
+            data, orientations = extract_inf_line_orientation(data, orientations)
             data = np.asarray(data)
 
         if not len(data) == len(orientations):
@@ -60,16 +61,36 @@ class InfLine(Layer):
             blending=blending,
             visible=visible,
         )
-        self._data = data
-        self._color = ColorManager._from_layer_kwargs(n_colors=len(data), colors=color, properties={})
         self._label = label
-        self._orientations = [Orientation(orientation) for orientation in orientations]
         self._width = width
+        self._data = data
         self._mode = Mode.PAN_ZOOM
 
+        # each line can have its own color
+        self._color = ColorManager._from_layer_kwargs(n_colors=len(data), colors=color, properties={})
+        # each line can be either horizontal or vertical
+        self._orientations = [Orientation(orientation) for orientation in orientations]
+
+        # set the current_* properties
+        if len(data) > 0:
+            self._current_color = self.color[-1]
+        else:
+            self._current_color = transform_color_with_defaults(
+                num_entries=1,
+                colors=color,
+                elem_name="color",
+                default="black",
+            )
+
         # indices of selected lines
+        self._value = None
         self._selected_data = set()
         self._selected_data_stored = set()
+        self._selected_box = None
+
+        self._drag_start = None
+        self._drag_box = None
+        self._drag_box_stored = None
 
         self.events.add(color=Event, width=Event, label=Event, mode=Event, shifted=Event)
         self.visible = visible
@@ -85,10 +106,6 @@ class InfLine(Layer):
         """
         return str(self._mode)
 
-    _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op}
-    _cursor_modes = {Mode.ADD: "pointing", Mode.SELECT: "standard", Mode.PAN_ZOOM: "standard"}
-
     @mode.setter
     def mode(self, mode):
         mode, changed = self._mode_setter_helper(mode, Mode)
@@ -96,7 +113,7 @@ class InfLine(Layer):
             return
 
         assert mode is not None, mode
-        old_mod = self._mode
+        old_mode = self._mode
 
         if mode == Mode.ADD:
             self.selected_data = set()
@@ -108,7 +125,7 @@ class InfLine(Layer):
         else:
             self.help = "Hold <space> to pan/zoom."
 
-        if mode != Mode.SELECT or old_mod != Mode.SELECT:
+        if mode != Mode.SELECT or old_mode != Mode.SELECT:
             self._selected_data_stored = set()
 
         self._mode = mode
@@ -138,15 +155,15 @@ class InfLine(Layer):
         self._orientations.extend(orientation)
         self.data = np.append(self.data, np.asarray(pos), axis=0)
 
-    def move(self, new_coords: Tuple[float], finished: bool = False):
+    def move(self, index: int, new_pos: float, finished: bool = False):
         """Move region to new location"""
-        # if self.is_vertical:
-        #     pos = new_coords[1]
-        # else:
-        #     pos = new_coords[0]
-        # self.data = np.asarray(pos)
-        # if finished:
-        #     self.events.shifted()
+        if index > len(self.data):
+            raise ValueError("Selected index is larger than total number of elements.")
+        self._data[index] = new_pos
+        self.data = self._data
+
+        if finished:
+            self.events.shifted()
 
     def _get_ndim(self) -> int:
         """Determine number of dimensions of the layer"""
@@ -162,13 +179,8 @@ class InfLine(Layer):
         """Update thumbnail with current data"""
         colormapped = np.zeros(self._thumbnail_shape)
         colormapped[..., 3] = 1
-        # TODO: add magic here
-        # if self.orientation == Orientation.VERTICAL:
-        #     y = colormapped.shape[0]
-        #     colormapped[y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
-        # if self.orientation == Orientation.HORIZONTAL:
-        #     y = colormapped.shape[1]
-        #     colormapped[:, y + 10 : y - 10] = (1.0, 1.0, 1.0, 1.0)
+        colormapped[14:18] = (1.0, 1.0, 1.0, 1.0)
+        colormapped[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
         colormapped[..., 3] *= self.opacity
         self.thumbnail = colormapped
 

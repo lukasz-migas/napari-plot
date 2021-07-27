@@ -1,5 +1,7 @@
 import typing as ty
-from qtpy.QtWidgets import QApplication, QMainWindow, QHBoxLayout, QVBoxLayout, QWidget
+
+from qtpy.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QVBoxLayout, QWidget
+
 from ..components.viewer_model import ViewerModel
 from .qt_viewer import QtViewer
 
