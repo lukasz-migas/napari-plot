@@ -68,7 +68,7 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.editable.connect(self._on_editable_change)
 
         self.size_slider = make_slider(
-            self, 1, val=int(self.layer.size), tooltip="Scatter point size", focus_policy=Qt.NoFocus
+            self, 1, value=int(self.layer.size), tooltip="Scatter point size", focus_policy=Qt.NoFocus
         )
         self.size_slider.valueChanged.connect(self.on_change_size)
 
@@ -85,7 +85,7 @@ class QtScatterControls(QtLayerControls):
         self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
         self.edge_width_slider = make_slider(
-            self, 1, val=int(self.layer.edge_width), tooltip="Scatter edge width", focus_policy=Qt.NoFocus
+            self, 1, value=int(self.layer.edge_width), tooltip="Scatter edge width", focus_policy=Qt.NoFocus
         )
         self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
 

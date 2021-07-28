@@ -46,7 +46,7 @@ class QtLineControls(QtLayerControls):
         self.layer.events.editable.connect(self._on_editable_change)
 
         self.width_slider = make_slider(
-            self, 1, 25, val=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 

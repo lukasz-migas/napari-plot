@@ -52,7 +52,7 @@ class QtAxisControls(QtFramelessPopup):
         self.x_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
         self.x_label_margin_spin = make_slider(
-            self, min_val=10, max_val=120, step_size=5, val=self.viewer.axis.x_label_margin
+            self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.x_label_margin
         )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
@@ -60,7 +60,7 @@ class QtAxisControls(QtFramelessPopup):
         self.y_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
         self.y_label_margin_spin = make_slider(
-            self, min_val=10, max_val=120, step_size=5, val=self.viewer.axis.y_label_margin
+            self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.y_label_margin
         )
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
@@ -70,7 +70,9 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.label_color_swatch.evt_color_changed.connect(self.on_change_label_color)  # noqa
 
-        self.label_font_size = make_slider(self, min_val=4, max_val=16, step_size=1, val=self.viewer.axis.label_size)
+        self.label_font_size = make_slider(
+            self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.label_size
+        )
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)  # noqa
 
         self.tick_color_swatch = QColorSwatch(
@@ -81,43 +83,45 @@ class QtAxisControls(QtFramelessPopup):
 
         self.x_max_size_spin = make_slider(
             self,
-            min_val=50,
-            max_val=150,
+            min_value=50,
+            max_value=150,
             step_size=5,
-            val=self.viewer.axis.x_max_size,
+            value=self.viewer.axis.x_max_size,
             tooltip="Maximum height (x-axis) of the axes visual.",
         )
         self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
         self.y_max_size_spin = make_slider(
             self,
-            min_val=50,
-            max_val=150,
+            min_value=50,
+            max_value=150,
             step_size=5,
-            val=self.viewer.axis.y_max_size,
+            value=self.viewer.axis.y_max_size,
             tooltip="Maximum height width (y-axis) of the axes visual.",
         )
         self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
-        self.tick_font_size = make_slider(self, min_val=4, max_val=16, step_size=1, val=self.viewer.axis.tick_size)
+        self.tick_font_size = make_slider(
+            self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.tick_size
+        )
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)  # noqa
 
         self.x_tick_margin_spin = make_slider(
             self,
-            min_val=5,
-            max_val=100,
+            min_value=5,
+            max_value=100,
             step_size=5,
-            val=self.viewer.axis.x_tick_margin,
+            value=self.viewer.axis.x_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
         self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
 
         self.y_tick_margin_spin = make_slider(
             self,
-            min_val=5,
-            max_val=100,
+            min_value=5,
+            max_value=100,
             step_size=5,
-            val=self.viewer.axis.y_tick_margin,
+            value=self.viewer.axis.y_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
         self.y_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa

@@ -54,10 +54,10 @@ def make_svg_btn(
 
 def make_slider(
     parent,
-    min_val: float = 0,
-    max_val: float = 100,
-    step_size: float = 1,
-    val: float = 1,
+    min_value: int = 0,
+    max_value: int = 100,
+    step_size: int = 1,
+    value: int = 1,
     orientation="horizontal",
     tooltip: str = None,
     is_disabled: bool = False,
@@ -66,8 +66,8 @@ def make_slider(
     """Make QSlider"""
     orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
     widget = QSlider(parent)  # noqa
-    widget.setRange(min_val, max_val)
-    widget.setValue(val)
+    widget.setRange(min_value, max_value)
+    widget.setValue(value)
     widget.setOrientation(orientation)
     widget.setPageStep(step_size)
     widget.setDisabled(is_disabled)
