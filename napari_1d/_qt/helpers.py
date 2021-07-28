@@ -1,7 +1,7 @@
 """Helper functions to easily create UI elements."""
 from typing import Dict, List, Optional, OrderedDict, Union
 
-from PySide2.QtWidgets import QButtonGroup
+from qtpy.QtWidgets import QButtonGroup
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QSizePolicy, QSlider, QSpacerItem, QWidget
