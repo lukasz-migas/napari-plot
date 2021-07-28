@@ -13,19 +13,13 @@ from napari.utils.misc import ensure_iterable
 
 from ._region_constants import Mode, Orientation, region_classes
 from ._region_list import RegionList
-from ._region_mouse_bindings import move, select
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
 
 
 class Region(Layer):
     """Line layer"""
 
-    _drag_modes = {
-        Mode.ADD: select,
-        Mode.MOVE: move,
-        Mode.SELECT: select,
-        Mode.PAN_ZOOM: no_op,
-    }
+    _drag_modes = {Mode.ADD: no_op, Mode.MOVE: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op}
     _move_modes = {Mode.ADD: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
     _cursor_modes = {Mode.ADD: "pointing", Mode.MOVE: "pointing", Mode.PAN_ZOOM: "standard", Mode.SELECT: "pointing"}
 

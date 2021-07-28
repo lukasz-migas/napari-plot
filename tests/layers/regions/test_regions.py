@@ -143,9 +143,8 @@ def test_z_index():
 
 def test_move_to_front():
     """Test moving shapes to front."""
-    shape = (10, 2)
     np.random.seed(0)
-    data = 20 * np.random.random(shape)
+    data = 20 * np.random.random((10, 2))
     z_index_list = [2, 3] * 5
     layer = Region(data, z_index=z_index_list)
     assert layer.z_index == z_index_list

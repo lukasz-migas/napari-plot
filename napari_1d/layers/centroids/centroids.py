@@ -9,10 +9,6 @@ from ._centroids_constants import Method
 class Centroids(Layer):
     """Centroids layer"""
 
-    # The max length of the line that will ever be used to render the thumbnail
-    # If more points are present, they will be sub-sampled
-    _max_line_thumbnail = 1024
-
     def __init__(
         self,
         data,

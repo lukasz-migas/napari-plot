@@ -11,10 +11,9 @@ class Mode(StringEnum):
     Mode: Interactive mode. The normal, default mode is PAN_ZOOM
 
     PAN_ZOOM which allows for normal interactivity with the canvas.
-
-    SELECT allows selection of new window
-
-    MOVE allows moving of the current window
+    SELECT allows selecting region(s) by dragging mouse in the canvas
+    ADD allows addition of new region
+    MOVE allows moving of currently selected regions
     """
 
     PAN_ZOOM = auto()

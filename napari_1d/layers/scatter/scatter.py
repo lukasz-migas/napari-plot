@@ -1,7 +1,7 @@
 """Scatter points layer"""
 # Standard library imports
 from copy import deepcopy
-from typing import Dict, Union
+import typing as ty
 
 import numpy as np
 from napari.layers import Layer
@@ -21,7 +21,7 @@ class Scatter(Layer):
     """
 
     # The max number of points that will ever be used to render the thumbnail
-    # If more points are present then they are randomly subsampled
+    # If more points are present then they are randomly sub-sampled
     _max_points_thumbnail = 1024
 
     def __init__(
@@ -189,7 +189,7 @@ class Scatter(Layer):
         return str(self._symbol)
 
     @symbol.setter
-    def symbol(self, symbol: Union[str, Symbol]) -> None:
+    def symbol(self, symbol: ty.Union[str, Symbol]) -> None:
         if isinstance(symbol, str):
             # Convert the alias string to the deduplicated string
             if symbol in SYMBOL_ALIAS:
@@ -200,12 +200,12 @@ class Scatter(Layer):
         self.events.symbol()
 
     @property
-    def size(self) -> Union[int, float, np.ndarray, list]:
+    def size(self) -> ty.Union[int, float, np.ndarray, list]:
         """(N, D) array: size of all N points in D dimensions."""
         return self._size
 
     @size.setter
-    def size(self, size: Union[int, float, np.ndarray, list]) -> None:
+    def size(self, size: ty.Union[int, float, np.ndarray, list]) -> None:
         self._size = size
         self.refresh()
 
@@ -220,12 +220,12 @@ class Scatter(Layer):
         self.events.scaling()
 
     @property
-    def edge_width(self) -> Union[None, int, float]:
+    def edge_width(self) -> ty.Union[None, int, float]:
         """float: width used for all point markers."""
         return self._edge_width
 
     @edge_width.setter
-    def edge_width(self, edge_width: Union[None, float]) -> None:
+    def edge_width(self, edge_width: ty.Union[None, float]) -> None:
         self._edge_width = edge_width
         self.events.edge_width()
 
@@ -250,12 +250,12 @@ class Scatter(Layer):
         self.events.face_color()
 
     @property
-    def properties(self) -> Dict[str, np.ndarray]:
+    def properties(self) -> ty.Dict[str, np.ndarray]:
         """dict {str: np.ndarray (N,)}, DataFrame: Annotations for each point"""
         return self._properties
 
     @properties.setter
-    def properties(self, properties: Dict[str, np.ndarray]):
+    def properties(self, properties: ty.Dict[str, np.ndarray]):
         if not isinstance(properties, dict):
             properties, _ = dataframe_to_properties(properties)
         self._properties = self._validate_properties(properties)
@@ -264,7 +264,7 @@ class Scatter(Layer):
             self.refresh_text()
         self.events.properties()
 
-    def _validate_properties(self, properties: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
+    def _validate_properties(self, properties: ty.Dict[str, np.ndarray]) -> ty.Dict[str, np.ndarray]:
         """Validates the type and size of the properties"""
         for k, v in properties.items():
             if len(v) != len(self.data):
@@ -313,7 +313,7 @@ class Scatter(Layer):
         return self.text.view_text(np.arange(len(self.data)))
 
     @property
-    def _view_text_coords(self) -> np.ndarray:
+    def _view_text_coords(self) -> ty.Tuple[np.ndarray, str, str]:
         """Get the coordinates of the text elements in view
 
         Returns
