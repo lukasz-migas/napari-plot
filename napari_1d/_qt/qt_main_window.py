@@ -2,13 +2,16 @@
 import time
 import typing as ty
 
+from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
+from napari._qt.utils import QImg2array
 from napari.resources import get_stylesheet
+from qtpy.QtWidgets import QAction
 from qtpy.QtGui import QKeySequence
 from qtpy.QtWidgets import QLabel, QShortcut
 from qtpy.QtCore import QEventLoop
 from qtpy.QtWidgets import QApplication, QDialog
 from qtpy.QtCore import QEvent
-from qtpy.QtGui import QIcon, Qt
+from qtpy.QtGui import Qt
 from qtpy.QtWidgets import QMainWindow, QWidget, QHBoxLayout
 
 from .qt_event_loop import quit_app, get_app
@@ -117,7 +120,7 @@ class Window:
 
     Parameters
     ----------
-    viewer : napari.components.ViewerModel
+    viewer : napari_1d.components.ViewerModel
         Contained viewer widget.
 
     Attributes
@@ -141,7 +144,7 @@ class Window:
         get_app()
 
         # Connect the Viewer and create the Main Window
-        self.qt_viewer = QtViewer(viewer, show_welcome_screen=True)
+        self.qt_viewer = QtViewer(viewer, dock_controls=True, add_toolbars=False, disable_controls=True)
         self._qt_window = _QtMainWindow(self.qt_viewer)
         self._status_bar = self._qt_window.statusBar()
 
@@ -150,6 +153,8 @@ class Window:
             self._qt_window.windowHandle().screenChanged.connect(self.qt_viewer.canvas._backend.screen_changed)
 
         self._add_menubar()
+        self._add_file_menu()
+        self._add_view_menu()
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -176,6 +181,65 @@ class Window:
         self._main_menu_shortcut.activated.connect(self._toggle_menubar_visible)
         self._main_menu_shortcut.setEnabled(False)
 
+    def _add_file_menu(self):
+        """Add `File` menu to app menubar."""
+        screenshot = QAction("Save Screenshot...", self._qt_window)
+        screenshot.setShortcut("Alt+S")
+        screenshot.setStatusTip("Save screenshot of current display, default .png")
+        screenshot.triggered.connect(self.qt_viewer._screenshot_dialog)
+
+        screenshot_wv = QAction("Save Screenshot with Viewer...", self._qt_window)
+        screenshot_wv.setShortcut("Alt+Shift+S")
+        screenshot_wv.setStatusTip("Save screenshot of current display with the viewer, default .png")
+        screenshot_wv.triggered.connect(self._screenshot_dialog)
+
+        clipboard = QAction("Copy Screenshot to Clipboard", self._qt_window)
+        clipboard.setStatusTip("Copy screenshot of current display to the clipboard")
+        clipboard.triggered.connect(lambda: self.qt_viewer.clipboard())
+
+        clipboard_wv = QAction(
+            "Copy Screenshot with Viewer to Clipboard",
+            self._qt_window,
+        )
+        clipboard_wv.setStatusTip("Copy screenshot of current display with the viewer to the clipboard")
+        clipboard_wv.triggered.connect(lambda: self.clipboard())
+
+        # OS X will rename this to Quit and put it in the app menu.
+        # This quits the entire QApplication and all windows that may be open.
+        quitAction = QAction("Exit", self._qt_window)
+        quitAction.setShortcut("Ctrl+Q")
+        quitAction.setMenuRole(QAction.QuitRole)
+        quitAction.triggered.connect(lambda: self._qt_window.close(quit_app=True))
+
+        closeAction = QAction("Close Window", self._qt_window)
+        closeAction.setShortcut("Ctrl+W")
+        closeAction.triggered.connect(self._qt_window.close_window)
+
+        self.file_menu = self.main_menu.addMenu("&File")
+        self.file_menu.addAction(screenshot)
+        self.file_menu.addAction(screenshot_wv)
+        self.file_menu.addAction(clipboard)
+        self.file_menu.addAction(clipboard_wv)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction(closeAction)
+        self.file_menu.addAction(quitAction)
+
+    def _add_view_menu(self):
+        """Add 'View' menu to app menubar."""
+        toggle_visible = QAction("Toggle Menubar Visibility", self._qt_window)
+        toggle_visible.setShortcut("Ctrl+M")
+        toggle_visible.setStatusTip("Hide Menubar")
+        toggle_visible.triggered.connect(self._toggle_menubar_visible)
+        toggle_fullscreen = QAction("Toggle Full Screen", self._qt_window)
+        toggle_fullscreen.setShortcut("Ctrl+F")
+        toggle_fullscreen.setStatusTip("Toggle full screen")
+        toggle_fullscreen.triggered.connect(self._toggle_fullscreen)
+
+        self.view_menu = self.main_menu.addMenu("&View")
+        self.view_menu.addAction(toggle_fullscreen)
+        self.view_menu.addAction(toggle_visible)
+        self.view_menu.addSeparator()
+
     def _toggle_menubar_visible(self):
         """Toggle visibility of app menubar.
 
@@ -189,6 +253,13 @@ class Window:
         else:
             self.main_menu.setVisible(True)
             self._main_menu_shortcut.setEnabled(False)
+
+    def _toggle_fullscreen(self, event):
+        """Toggle fullscreen mode."""
+        if self._qt_window.isFullScreen():
+            self._qt_window.showNormal()
+        else:
+            self._qt_window.showFullScreen()
 
     def _update_theme(self, event=None):
         """Update widget color theme."""
@@ -283,3 +354,66 @@ class Window:
         """Make the viewer the currently active window."""
         self._qt_window.raise_()  # for macOS
         self._qt_window.activateWindow()  # for Windows
+
+    def _screenshot_dialog(self):
+        """Save screenshot of current display with viewer, default .png"""
+        dial = ScreenshotDialog(self.screenshot, self.qt_viewer)
+
+        if dial.exec_():
+            pass
+            # dial.selectedFiles()[0]
+
+    def _screenshot(self, flash=True):
+        """Capture screenshot of the currently displayed viewer.
+
+        Parameters
+        ----------
+        flash : bool
+            Flag to indicate whether flash animation should be shown after
+            the screenshot was captured.
+        """
+        img = self._qt_window.grab().toImage()
+        if flash:
+            from napari._qt.utils import add_flash_animation
+
+            add_flash_animation(self._qt_window)
+        return img
+
+    def screenshot(self, path=None, flash=True):
+        """Take currently displayed viewer and convert to an image array.
+
+        Parameters
+        ----------
+        path : str
+            Filename for saving screenshot image.
+        flash : bool
+            Flag to indicate whether flash animation should be shown after
+            the screenshot was captured.
+
+        Returns
+        -------
+        image : array
+            Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
+            upper-left corner of the rendered region.
+        """
+        from napari.utils.io import imsave
+
+        img = self._screenshot(flash)
+        if path is not None:
+            imsave(path, QImg2array(img))  # scikit-image imsave method
+        return QImg2array(img)
+
+    def clipboard(self, flash=True):
+        """Take a screenshot of the currently displayed viewer and copy the image to the clipboard.
+
+        Parameters
+        ----------
+        flash : bool
+            Flag to indicate whether flash animation should be shown after
+            the screenshot was captured.
+        """
+        from qtpy.QtGui import QGuiApplication
+
+        img = self._screenshot(flash)
+        cb = QGuiApplication.clipboard()
+        cb.setImage(img)

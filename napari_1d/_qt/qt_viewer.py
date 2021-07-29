@@ -5,7 +5,9 @@ from typing import Tuple
 
 import numpy as np
 from napari._qt.containers import QtLayerList
+from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
+from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.utils.interactions import (
     ReadOnlyWrapper,
     mouse_move_callbacks,
@@ -17,7 +19,7 @@ from napari.utils.key_bindings import KeymapHandler
 from napari.utils.theme import get_theme
 from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
-from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget
+from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget, QSplitter
 
 from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 
@@ -32,7 +34,7 @@ from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
 
 
-class QtViewer(QWidget):
+class QtViewer(QSplitter):  # QWidget):
     """Qt view for the napari Viewer model.
 
     Parameters
@@ -183,26 +185,65 @@ class QtViewer(QWidget):
         # toolbar
         self.viewerToolbar = QtViewToolbar(self.viewer, self, **kwargs)
 
-    def _set_layout(self, add_toolbars: bool = True, **kwargs):
+    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, **kwargs):
         # set in main canvas
-        # main_widget = QWidget()  # noqa
-        image_layout = QVBoxLayout()
-        image_layout.addWidget(self.canvas.native, stretch=True)
+        # image_layout = QVBoxLayout()
+        # image_layout.addWidget(self.canvas.native, stretch=True)
 
         # view widget
-        main_layout = QHBoxLayout()
-        main_layout.addLayout(image_layout)
+        image_layout = QHBoxLayout()
+        image_layout.addWidget(self.canvas.native, stretch=True)
 
         if add_toolbars:
-            main_layout.addWidget(self.viewerToolbar.toolbar_right)
+            image_layout.addWidget(self.viewerToolbar.toolbar_right)
         else:
             self.viewerToolbar.setVisible(False)
-            self.viewerToolbar.toolbar_left.setVisible(False)
             self.viewerToolbar.toolbar_right.setVisible(False)
-            main_layout.setSpacing(0)
-            main_layout.setMargin(0)
+            image_layout.setSpacing(0)
+            image_layout.setMargin(0)
 
-        self.setLayout(main_layout)
+        if dock_controls:
+            layer_list = QWidget()
+            layer_list.setObjectName("layerList")
+            layer_list_layout = QVBoxLayout()
+            layer_list_layout.addWidget(self.layerButtons)
+            layer_list_layout.addWidget(self.layers)
+            layer_list_layout.addWidget(self.viewerButtons)
+            layer_list_layout.setContentsMargins(8, 4, 8, 6)
+            layer_list.setLayout(layer_list_layout)
+
+            self.dockLayerList = QtViewerDockWidget(
+                self,
+                layer_list,
+                name="Layer list",
+                area="left",
+                allowed_areas=["left", "right"],
+                object_name="layer list",
+            )
+            self.dockLayerList.setVisible(True)
+            self.dockLayerControls = QtViewerDockWidget(
+                self,
+                self.controls,
+                name="Layer controls",
+                area="left",
+                allowed_areas=["left", "right"],
+                object_name="layer controls",
+            )
+            self.dockLayerControls.setVisible(True)
+
+            self.dockLayerControls.visibilityChanged.connect(self._constrain_width)
+            self.dockLayerList.setMaximumWidth(258)
+            self.dockLayerList.setMinimumWidth(258)
+
+        main_widget = QWidget()
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(5, 5, 5, 2)
+        main_layout.addLayout(image_layout)
+        main_layout.setSpacing(3)
+        main_widget.setLayout(main_layout)
+
+        self.setOrientation(Qt.Vertical)
+        self.addWidget(main_widget)
 
     def _set_events(self):
         # bind events
@@ -385,11 +426,11 @@ class QtViewer(QWidget):
             Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
             upper-left corner of the rendered region.
         """
-        from skimage.io import imsave
+        from napari.utils.io import imsave
 
         img = QImg2array(self.canvas.native.grabFramebuffer())
         if path is not None:
-            imsave(path, img)  # scikit-image imsave method
+            imsave(path, img)
         return img
 
     def _on_interactive(self, _event):
@@ -533,6 +574,10 @@ class QtViewer(QWidget):
                     corner_pixels=self._canvas_corners_in_world[:, -layer.ndim :],
                     shape_threshold=self.canvas.size,
                 )
+
+    def _screenshot_dialog(self):
+        """Save screenshot of current display, default .png"""
+        dial = ScreenshotDialog(self.screenshot, self)
 
     def clipboard(self):
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard."""
