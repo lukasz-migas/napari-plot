@@ -5,16 +5,11 @@ import typing as ty
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array
 from napari.resources import get_stylesheet
-from qtpy.QtWidgets import QAction
-from qtpy.QtGui import QKeySequence
-from qtpy.QtWidgets import QLabel, QShortcut
-from qtpy.QtCore import QEventLoop
-from qtpy.QtWidgets import QApplication, QDialog
-from qtpy.QtCore import QEvent
-from qtpy.QtGui import Qt
-from qtpy.QtWidgets import QMainWindow, QWidget, QHBoxLayout
+from qtpy.QtCore import QEvent, QEventLoop
+from qtpy.QtGui import QKeySequence, Qt
+from qtpy.QtWidgets import QAction, QApplication, QDialog, QHBoxLayout, QLabel, QMainWindow, QShortcut, QWidget
 
-from .qt_event_loop import quit_app, get_app
+from .qt_event_loop import get_app, quit_app
 from .qt_viewer import QtViewer
 
 

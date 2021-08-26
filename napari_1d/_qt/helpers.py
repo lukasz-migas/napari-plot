@@ -1,10 +1,19 @@
 """Helper functions to easily create UI elements."""
 from typing import Dict, List, Optional, OrderedDict, Union
 
-from qtpy.QtWidgets import QButtonGroup
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
-from qtpy.QtWidgets import QCheckBox, QComboBox, QLabel, QLineEdit, QSizePolicy, QSlider, QSpacerItem, QWidget
+from qtpy.QtWidgets import (
+    QButtonGroup,
+    QCheckBox,
+    QComboBox,
+    QLabel,
+    QLineEdit,
+    QSizePolicy,
+    QSlider,
+    QSpacerItem,
+    QWidget,
+)
 
 from ..utils.system import IS_WIN
 from .widgets.qt_icon_label import QtIconLabel

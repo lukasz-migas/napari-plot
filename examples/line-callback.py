@@ -11,8 +11,13 @@ def _get_line_data(image, start, end):
     return measure.profile_line(image, start, end, mode="nearest")
 
 
+def update_fps(fps):
+    """Update fps."""
+    viewer1d.text_overlay.text = f"{fps:1.1f} FPS"
+
+
 viewer = napari.Viewer()
-chelsea = data.chelsea().mean(-1)
+chelsea = data.astronaut().mean(-1)
 viewer.add_image(chelsea)
 shapes_layer = viewer.add_shapes(
     [np.array([[11, 13], [250, 313]]), np.array([[100, 10], [10, 345]])],
@@ -24,7 +29,13 @@ shapes_layer = viewer.add_shapes(
 shapes_layer.mode = "select"
 
 viewer1d = napari_1d.ViewerModel1D()
-widget = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
+viewer1d.axis.y_label = "Intensity"
+viewer1d.axis.x_label = ""
+viewer1d.text_overlay.visible = True
+viewer1d.text_overlay.position = "top_right"
+
+qt_viewer = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
+qt_viewer.canvas.measure_fps(callback=update_fps)
 
 lines = []
 for i, line in enumerate(shapes_layer.data):
@@ -50,5 +61,5 @@ def _profile_lines_drag(layer, event):
         yield
 
 
-viewer.window.add_dock_widget(widget, area="bottom", name="Line Widget")
+viewer.window.add_dock_widget(qt_viewer, area="bottom", name="Line Widget")
 napari.run()

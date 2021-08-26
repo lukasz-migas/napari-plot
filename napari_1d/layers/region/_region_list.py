@@ -1,9 +1,8 @@
 """Region list."""
 import numpy as np
-
-from napari.utils.geometry import inside_triangles
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_utils import triangles_intersect_box
+from napari.utils.geometry import inside_triangles
 
 from ._region import Rectangle
 from ._region_constants import Orientation, region_classes

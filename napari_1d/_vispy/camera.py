@@ -1,5 +1,5 @@
 """Specialized camera for 1d data"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 # Third-party imports
 import numpy as np
@@ -8,9 +8,9 @@ from vispy.scene import BaseCamera, PanZoomCamera
 from vispy.util.event import Event
 
 # Local imports
-from ..components.camera import Mode
+from ..components.camera import CameraMode, ExtentMode
 
-if TYPE_CHECKING:
+if ty.TYPE_CHECKING:
     from ..components.viewer_model import ViewerModel
 
 
@@ -27,14 +27,49 @@ def make_rect(xmin, xmax, ymin, ymax):
 class LimitedPanZoomCamera(PanZoomCamera):
     """Slightly customized pan zoom camera that prevents zooming outside of specified region"""
 
-    _extents = None
-    _mode: Mode = Mode.BOTTOM_ZERO
+    _extent = None
+    _axis_mode: ty.Tuple[CameraMode] = (CameraMode.ALL,)
+    _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
 
     def __init__(self, viewer: "ViewerModel", *args, **kwargs):
         self.viewer = viewer
         super().__init__(*args, **kwargs)
 
         self.events.add(box_move=Event, box_press=Event)
+
+    @property
+    def axis_mode(self):
+        """Return axis mode."""
+        return self._axis_mode
+
+    @axis_mode.setter
+    def axis_mode(self, value: ty.Tuple[CameraMode]):
+        self._axis_mode = value
+
+    @property
+    def extent_mode(self):
+        """Return extent mode."""
+        return self._extent_mode
+
+    @extent_mode.setter
+    def extent_mode(self, value: ExtentMode):
+        self._extent_mode = value
+        self._extent = None
+        self._default_state["rect"] = None
+
+    @property
+    def extent(self):
+        """Return extent values."""
+        return self._extent
+
+    @extent.setter
+    def extent(self, extent: ty.Tuple[float, float, float, float]):
+        if self.extent_mode == ExtentMode.UNRESTRICTED:
+            return
+        rect = Rect()
+        rect.left, rect.right, rect.bottom, rect.top = extent
+        self._extent = rect
+        self._default_state["rect"] = rect
 
     def viewbox_mouse_event(self, event):
         """
@@ -70,7 +105,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 self.events.box_move(rect=(x0, x1, y0, y1))
                 event.handled = True
-            elif 2 in event.buttons and not modifiers:
+            elif 2 in event.buttons and not modifiers:  # right-button click
                 # Zoom
                 p1c = np.array(event.last_event.pos)[:2]
                 p2c = np.array(event.pos)[:2]
@@ -102,24 +137,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
         else:
             event.handled = False
 
-    def set_mode(self, mode: Mode):
-        """Set limit mode."""
-        self._mode = mode
-
-    def set_extents(self, xmin, xmax, ymin, ymax):
-        """Set plot extents"""
-        rect = Rect()
-        rect.left = xmin
-        rect.right = xmax
-        rect.bottom = ymin
-        rect.top = ymax
-        self._extents = rect
-        self._default_state["rect"] = rect
-
     def _check_zoom_limit(self, rect: Rect):
         """Check whether new range is outside of the allowed window"""
-        if isinstance(rect, Rect) and self._extents is not None:
-            limit_rect = self._extents
+        if isinstance(rect, Rect) and self.extent is not None:
+            limit_rect = self.extent
             if rect.left < limit_rect.left:
                 rect.left = limit_rect.left
             if rect.right > limit_rect.right:
@@ -132,28 +153,30 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     def _check_mode_limit(self, rect: Rect) -> Rect:
         """Check whether there are any restrictions on the movement"""
-        if self._mode == Mode.ALL or self._extents is None:
+        axis_mode = self.axis_mode
+        if CameraMode.ALL in axis_mode or self.extent is None:
             return rect
-        elif self._mode == Mode.BOTTOM_ZERO:
-            rect.bottom = np.min([0, rect.bottom])
-        elif self._mode == Mode.LOCK_TO_BOTTOM:
-            rect.bottom = self._extents.bottom
-        elif self._mode == Mode.LOCK_TO_TOP:
-            rect.top = self._extents.top
-        elif self._mode == Mode.LOCK_TO_LEFT:
-            rect.left = self._extents.left
-        elif self._mode == Mode.LOCK_TO_RIGHT:
-            rect.right = self._extents.right
+        if CameraMode.LOCK_TO_BOTTOM in axis_mode:
+            rect.bottom = self.extent.bottom
+        if CameraMode.LOCK_TO_TOP in axis_mode:
+            rect.top = self.extent.top
+        if CameraMode.LOCK_TO_LEFT in axis_mode:
+            rect.left = self.extent.left
+        if CameraMode.LOCK_TO_RIGHT in axis_mode:
+            rect.right = self.extent.right
         return rect
 
     def _check_range(self, x0, x1, y0, y1):
         """Check whether values are correct"""
+        # check whether values are in correct order (low, high)
         if y1 < y0:
             y0, y1 = y1, y0
         if x1 < x0:
             x0, x1 = x1, x0
-        if self._extents is not None:
-            limit_rect = self._extents
+
+        # check whether extent values are set and if so, limit the values
+        if self.extent_mode == ExtentMode.RESTRICTED and self.extent is not None:
+            limit_rect = self.extent
             if x0 < limit_rect.left:
                 x0 = limit_rect.left
             if x1 > limit_rect.right:

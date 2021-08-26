@@ -22,7 +22,6 @@ class VispyAxisVisual:
         self.node.order = order
         parent.add(self.node)
 
-        self._viewer.camera.events.zoom.connect(self.node._view_changed)
         self._viewer.axis.events.visible.connect(self._on_visible_change)
         self._viewer.axis.events.tick_color.connect(self._on_color_change)
         self._viewer.axis.events.label_color.connect(self._on_color_change)

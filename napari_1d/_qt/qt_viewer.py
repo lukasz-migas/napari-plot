@@ -19,7 +19,7 @@ from napari.utils.key_bindings import KeymapHandler
 from napari.utils.theme import get_theme
 from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
-from qtpy.QtWidgets import QHBoxLayout, QVBoxLayout, QWidget, QSplitter
+from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
 from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 
@@ -164,13 +164,13 @@ class QtViewer(QSplitter):  # QWidget):
         on_theme_change = self.canvas._on_theme_change
         theme.connect(on_theme_change)
 
-        def disconnect():
+        def _disconnect():
             # strange EventEmitter has no attribute _callbacks errors sometimes
             # maybe some sort of cleanup race condition?
             with suppress(AttributeError):
                 theme.disconnect(on_theme_change)
 
-        self.canvas.destroyed.connect(disconnect)
+        self.canvas.destroyed.connect(_disconnect)
 
     def _create_widgets(self, **kwargs):
         """Create ui widgets"""
@@ -187,10 +187,6 @@ class QtViewer(QSplitter):  # QWidget):
 
     def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, **kwargs):
         # set in main canvas
-        # image_layout = QVBoxLayout()
-        # image_layout.addWidget(self.canvas.native, stretch=True)
-
-        # view widget
         image_layout = QHBoxLayout()
         image_layout.addWidget(self.canvas.native, stretch=True)
 
@@ -284,14 +280,14 @@ class QtViewer(QSplitter):  # QWidget):
 
         # add x-axis widget
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
-        self.grid.add_widget(self.x_axis.node, row=1, col=1)
+        self.grid.add_widget(self.x_axis.node, row=2, col=1)
         self.x_axis.node.link_view(self.view)
         self.x_axis.node.height_max = self.viewer.axis.x_max_size
         self.x_axis.interactive = True
 
         # add y-axis widget
         self.y_axis = VispyYAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
-        self.grid.add_widget(self.y_axis.node, row=0, col=0)
+        self.grid.add_widget(self.y_axis.node, row=1, col=0)
         self.y_axis.node.link_view(self.view)
         self.y_axis.node.width_max = self.viewer.axis.y_max_size
         self.y_axis.interactive = True
@@ -306,13 +302,15 @@ class QtViewer(QSplitter):  # QWidget):
     def _set_view(self):
         """Set view"""
         self.grid = self.canvas.central_widget.add_grid(spacing=0)
-        self.view = self.grid.add_view(row=0, col=1)
+        self.view = self.grid.add_view(row=1, col=1)
+
         # this gives small padding to the right of the plot
         self.padding_x = self.grid.add_widget(row=0, col=2)
         self.padding_x.width_max = 20
-        # # this gives small padding to the top of the plot
-        # self.padding_y = self.grid.add_widget(row=0, col=0, col_span=2)
-        # self.padding_y.height_max = 20
+        # this gives small padding to the top of the plot
+        self.padding_y = self.grid.add_widget(row=0, col=0, col_span=2)
+        self.padding_y.height_max = 20
+
         with self.canvas.modify_context() as canvas:
             canvas.grid = self.grid
             canvas.view = self.view
@@ -571,7 +569,7 @@ class QtViewer(QSplitter):  # QWidget):
             if layer.ndim <= 2:
                 layer._update_draw(
                     scale_factor=1 / self.viewer.camera.zoom,
-                    corner_pixels=self._canvas_corners_in_world[:, -layer.ndim :],
+                    corner_pixels_displayed=self._canvas_corners_in_world[:, -layer.ndim :],
                     shape_threshold=self.canvas.size,
                 )
 

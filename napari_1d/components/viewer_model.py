@@ -57,7 +57,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         super().__init__(title=title)
         self.__config__.extra = Extra.ignore
 
-        self.events.add(layers_change=Event, reset_view=Event, span=Event)
+        self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
         self.cursor.events.position.connect(self._on_cursor_position_change)

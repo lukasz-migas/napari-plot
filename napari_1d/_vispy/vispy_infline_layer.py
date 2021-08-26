@@ -1,36 +1,37 @@
 """Line layer"""
-from typing import TYPE_CHECKING
-
 import numpy as np
 from napari._vispy.vispy_base_layer import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line
 
-if TYPE_CHECKING:
-    from ..layers import InfLine
+from ..layers.infline import InfLine
+from ..layers.infline._infline_constants import Orientation
 
 
 def make_infinite_line(data: np.ndarray, orientations: np.ndarray, colors):
     """Create all elements required to create infinite lines."""
-    assert len(data) == len(orientations) == len(colors), "The number of points must match the number of orientations."
+    assert (
+        len(data) == len(orientations) == len(colors)
+    ), "The number of points must match the number of orientations and colors."
     pos, connect, _colors = [], [], []
     min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
     i = 0
-    for (pt, orientation, color) in zip(data, orientations, colors):
-        if orientation == "vertical":
-            _pos = [[pt, min_val], [pt, max_val]]
+    for (val, orientation, color) in zip(data, orientations, colors):
+        if orientation == Orientation.VERTICAL:
+            _pos = [[val, min_val], [val, max_val]]
         else:
-            _pos = [[min_val, pt], [max_val, pt]]
+            _pos = [[min_val, val], [max_val, val]]
+
         _colors.extend([color, color])
         pos.extend(_pos)
         connect.append([i, i + 1])
         i += 2
-    return np.asarray(pos), np.asarray(connect), np.asarray(_colors)
+    return np.asarray(pos, dtype=object), np.asarray(connect, dtype=object), np.asarray(_colors, dtype=object)
 
 
 class VispyInfLineLayer(VispyBaseLayer):
     """Infinite region layer"""
 
-    def __init__(self, layer: "InfLine"):
+    def __init__(self, layer: InfLine):
         # Create a compound visual with the following four sub-visuals:
         # Lines: The actual infinite lines
         # Lines: The lines of the interaction box used for highlights

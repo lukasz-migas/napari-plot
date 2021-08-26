@@ -1,14 +1,14 @@
 """Event loop"""
-from warnings import warn
-import sys
 import os
+import sys
+from warnings import warn
 
+from napari._qt.qt_event_loop import _ipython_has_eventloop, run  # noqa
 from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
-from napari._qt.qt_event_loop import _ipython_has_eventloop, run, get_app  # noqa
 
 from .. import __version__
 

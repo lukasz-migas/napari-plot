@@ -1,7 +1,7 @@
 """Scatter points layer"""
 # Standard library imports
-from copy import deepcopy
 import typing as ty
+from copy import deepcopy
 
 import numpy as np
 from napari.layers import Layer
