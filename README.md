@@ -6,7 +6,47 @@
 [![tests](https://github.com/lukasz-migas/napari-1d/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
 [![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/master/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
 
-Plugion providing support for 1d plotting in napari.
+Plugin providing support for 1d plotting in napari.
+
+This plugin is in very early stages of development and many things are still in a state of disarray. New features and bug fixes
+will be coming over the coming months. 
+
+## Note
+
+`napari-1d` needs to provide several custom icons and stylesheets to full take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
+I opted to include a toolbar that quickly pulls the layer list whenever requested. For this to work, however, those aforementioned icons and stylesheets need
+to be loaded as `napari` is being loaded. For this to work, [#2900](https://github.com/napari/napari/pull/2900) needs to be merged first. For the time being,
+things will remain a little broken.
+
+## Roadmap:
+
+This is only provisional list of features that I would like to see implemented. It barely scratches the surface of what plotting tool should cover so as soon as the basics are covered,
+focus will be put towards adding more exotic features. If there are features that you certainly wish to be included,
+please modify the list below or create a [new issue](https://github.com/lukasz-migas/napari-1d/issues/new)
+
+- [ ] Support for new layer types. Layers are based on `napari's` `Layer`, albeit in a two-dimensional setting. Supported and planned layers:
+  - [x] Line Layer - simple line plot.
+  - [x] Scatter Layer - scatter plot (similar to `napari's Points` layer).
+  - [x] Centroids/Segments Layer - horizontal or vertical line segments.
+  - [x] InfLine Layer - infinite horizontal or vertical lines that span over very broad range. Useful for defining regions of interest.
+  - [x] Region Layer - infinite horizontal or vertical rectangular boxes that span over very broad range. Useful for defining regions of interest.
+  - [x] Shapes Layer - `napari's` own `Shapes` layer
+  - [x] Points Layer - `napari's` own `Points` layer
+  - [ ] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
+  - [ ] Bar - horizontal and vertical barchart (TODO)
+- [ ] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
+- [ ] Intuitive interactivity. `napari-1d` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
+  We currently support three zoom modes and plan to add a couple other tools.
+  - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
+  - [x] Horizontal span - zoom-in only in the y-axis by `Ctrl + left-mouse + drag/release` in the canvas.
+  - [x] Vertical span - span-in only in the x-axis by `Shift + left-mouse + drag/release` in the canvas.
+  - [ ] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part. (TODO)
+  - [ ] Polygon select - polygon tool allowing sub-selection of data in the canvas. (TODO)
+  - [ ] Lasso select - lasso tool allowing sub-selection of data in the canvas. (TODO)
+- [ ] Interactive plot legend
+- [ ] Customizable axis visuals.
+  - [x] Plot axis enabling customization of tick/label size and color
+  - [ ] Support for non-linear scale
 
 ----------------------------------
 
