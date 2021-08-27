@@ -1,0 +1,88 @@
+QtViewerPushButton[mode="new_inf_line"] {
+  image: url(":/themes/{{ folder }}/napari-1d:new_inf_line.svg");
+}
+QtViewerPushButton[mode="new_centroids"] {
+  image: url(":/themes/{{ folder }}/napari-1d:new_centroids.svg");
+}
+QtViewerPushButton[mode="new_line"] {
+  image: url(":/themes/{{ folder }}/napari-1d:new_line.svg");
+}
+QtViewerPushButton[mode="new_region"] {
+  image: url(":/themes/{{ folder }}/napari-1d:new_region.svg");
+}
+QtViewerPushButton[mode="new_scatter"] {
+  image: url(":/themes/{{ folder }}/napari-1d:new_scatter.svg");
+}
+
+QtImagePushButton{
+    min-width : 20px;
+    max-width : 20px;
+    min-height : 20px;
+    max-height : 20px;
+    padding: 1px;
+    border: 1px;
+    margin: 1px;
+}
+
+QtImagePushButton::checked{
+    border-radius: 5px;
+    background-color: {{ foreground }};
+}
+
+QtImagePushButton::unchecked{
+    background-color: {{ canvas }};
+}
+
+QtImagePushButton::pressed{
+    background-color: {{ foreground }};
+}
+
+QtImagePushButton::hover{
+    border-radius: 5px;
+    background-color: {{ darken(foreground, 5) }};
+}
+
+QtImagePushButton#layers{
+    image: url(":/themes/{{ folder }}/napari-1d:layers.svg");
+}
+QtImagePushButton#plot_grid{
+    image: url(":/themes/{{ folder }}/napari-1d:plot_grid.svg");
+}
+QtImagePushButton#text{
+    image: url(":/themes/{{ folder }}/napari-1d:text.svg");
+}
+QtImagePushButton#clipboard{
+    image: url(":/themes/{{ folder }}/copy_to_clipboard.svg");
+}
+QtImagePushButton#zoom_out{
+    image: url(":/themes/{{ folder }}/napari-1d:zoom_out.svg");
+}
+QtImagePushButton#erase{
+    image: url(":/themes/{{ folder }}/erase.svg");
+}
+
+QtViewerPushButton[mode="minimise"] {
+  image: url(":/themes/{{ folder }}/napari-1d:minimise.svg");
+}
+
+/* ----------------- QtIconLabel ----------------- */
+QtIconLabel{
+    min-width : 20px;
+    max-width : 20px;
+    min-height : 20px;
+    max-height : 20px;
+    padding: 0px;
+    border: 0px;
+}
+QtIconLabel#move_handle{
+    image: url(":/themes/{{ folder }}/napari-1d:move.svg");
+}
+QtModeRadioButton[mode="add_points"]::indicator {
+    image: url(":/themes/{{ folder }}/napari-1d:add.svg");
+}
+QtModeRadioButton[mode="move_region"]::indicator {
+    image: url(":/themes/{{ folder }}/napari-1d:move.svg");
+}
+QtModeRadioButton[mode="select_region"]::indicator {
+    image: url(":/themes/{{ folder }}/napari-1d:target.svg");
+}

@@ -15,7 +15,6 @@ def test_default_region():
     data = [[25, 50], [80, 90]]
     layer = Region(data)
     assert layer.n_regions == len(data)
-    print(layer.orientation)
     assert np.all([o == "vertical" for o in layer.orientation])
 
     # add single region
@@ -30,7 +29,6 @@ def test_vertical_region():
     data = [[25, 50], [80, 90]]
     layer = Region(data, orientation="vertical")
     assert layer.n_regions == len(data)
-    print(layer.orientation)
     assert np.all([o == "vertical" for o in layer.orientation])
 
     # add single region
@@ -45,7 +43,6 @@ def test_horizontal_region():
     data = [[25, 50], [80, 90]]
     layer = Region(data, orientation="horizontal")
     assert layer.n_regions == len(data)
-    print(layer.orientation)
     assert np.all([o == "horizontal" for o in layer.orientation])
 
     # add single region

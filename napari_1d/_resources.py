@@ -1,4 +1,7 @@
-"""Resources."""
+"""Resources.
+
+This will only work one https://github.com/napari/napari/pull/2900 is merged.
+"""
 from napari_plugin_engine import napari_hook_implementation
 from pathlib import Path
 
@@ -14,4 +17,4 @@ def napari_experimental_provide_icons():
 @napari_hook_implementation
 def napari_experimental_provide_qss():
     """A basic implementation of the napari_get_reader hook specification."""
-    return list((HERE / "_qt" / "styles").glob("*.qss"))
+    return list((HERE / "resources" / "qss").glob("*.qss"))
