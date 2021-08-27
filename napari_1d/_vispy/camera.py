@@ -7,6 +7,8 @@ from vispy.geometry import Rect
 from vispy.scene import BaseCamera, PanZoomCamera
 from vispy.util.event import Event
 
+from ..components.box import Shape
+
 # Local imports
 from ..components.camera import CameraMode, ExtentMode
 
@@ -14,13 +16,10 @@ if ty.TYPE_CHECKING:
     from ..components.viewer_model import ViewerModel
 
 
-def make_rect(xmin, xmax, ymin, ymax):
+def make_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> Rect:
     """Make rect."""
     rect = Rect()
-    rect.left = xmin
-    rect.right = xmax
-    rect.bottom = ymin
-    rect.top = ymax
+    rect.left, rect.right, rect.bottom, rect.top = xmin, xmax, ymin, ymax
     return rect
 
 
@@ -123,19 +122,34 @@ class LimitedPanZoomCamera(PanZoomCamera):
         elif event.type == "mouse_release":
             # this is where we change the interaction and actually perform various checks to ensure user doesn't zoom
             # to someplace where they shouldn't
-            modifiers = event.mouse_event.modifiers
+            # modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
             # ensure that user selected broad enough range and they are not using ctrl/shift modifiers
-            if abs(x1 - x0) > 1e-3 and not modifiers:
+            if abs(x1 - x0) > 1e-3:  # and not modifiers:
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 # I don't like this because it adds dependency on a instance of the viewer, however, here we can check
                 # what is the most appropriate y-axis range for line plots.
-                y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
-                self.rect = make_rect(x0, x1, y0, y1)
+                self.rect = self._make_zoom_rect(x0, x1, y0, y1)
             self.events.box_press(visible=False)
         else:
             event.handled = False
+
+    def _make_zoom_rect(self, x0, x1, y0, y1):
+        """Make zoom rectangle based on the currently active tool."""
+        # I don't like this because it adds dependency on a instance of the viewer, however, here we can check
+        # what is the most appropriate y-axis range for line plots.
+        x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
+        extent = self.extent
+        if self.viewer.box_tool.shape == Shape.VERTICAL:
+            # x0, x1 = self.viewer._get_x_range_extent_for_y(y0, y1)
+            if extent is not None:
+                y0, y1 = extent.bottom, extent.top
+        elif self.viewer.box_tool.shape == Shape.HORIZONTAL:
+            # y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
+            if extent is not None:
+                x0, x1 = extent.left, extent.right
+        return make_rect(x0, x1, y0, y1)
 
     def _check_zoom_limit(self, rect: Rect):
         """Check whether new range is outside of the allowed window"""

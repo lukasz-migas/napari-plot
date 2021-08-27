@@ -436,27 +436,6 @@ class Region(Layer):
         self.events.data(value=self.data)
         self._set_editable()
 
-    def _get_new_region_color(self, adding: int, attribute: str):
-        """Get the color for the shape(s) to be added.
-
-        Parameters
-        ----------
-        adding : int
-            the number of shapes that were added
-            (and thus the number of color entries to add)
-        attribute : str in {'edge', 'face'}
-            The name of the attribute to set the color of.
-            Should be 'edge' for edge_color_mode or 'face' for face_color_mode.
-
-        Returns
-        -------
-        new_colors : (N, 4) array
-            (Nx4) RGBA array of colors for the N new shapes
-        """
-        current_face_color = getattr(self, f"_current_{attribute}_color")
-        new_colors = np.tile(current_face_color, (adding, 1))
-        return new_colors
-
     def add(
         self,
         data,
@@ -531,23 +510,6 @@ class Region(Layer):
                 z_index=z_index,
             )
             self.events.data(value=self.data)
-
-    def _init_regions(self, data, *, orientation=None, edge_width=None, edge_color=None, face_color=None, z_index=None):
-        """Add regions to the data view."""
-        n_regions = len(data)
-        edge_color = self._initialize_color(edge_color, attribute="edge", n_regions=n_regions)
-        face_color = self._initialize_color(face_color, attribute="face", n_regions=n_regions)
-        with self.block_thumbnail_update():
-            self._add_regions(
-                data,
-                orientation=orientation,
-                edge_width=edge_width,
-                edge_color=edge_color,
-                face_color=face_color,
-                z_index=z_index,
-                z_refresh=False,
-            )
-            self._data_view._update_z_order()
 
     def _add_regions(
         self,
@@ -642,25 +604,56 @@ class Region(Layer):
                 transformed_face_color,
                 ensure_iterable(z_index),
             )
-
             self._add_regions_to_view(region_inputs, self._data_view)
 
         self._display_order_stored = copy(self._dims_order)
         self._ndisplay_stored = copy(self._ndisplay)
         self._update_dims()
 
+    def _get_new_region_color(self, adding: int, attribute: str):
+        """Get the color for the shape(s) to be added.
+
+        Parameters
+        ----------
+        adding : int
+            the number of shapes that were added
+            (and thus the number of color entries to add)
+        attribute : str in {'edge', 'face'}
+            The name of the attribute to set the color of.
+            Should be 'edge' for edge_color_mode or 'face' for face_color_mode.
+
+        Returns
+        -------
+        new_colors : (N, 4) array
+            (Nx4) RGBA array of colors for the N new shapes
+        """
+        current_face_color = getattr(self, f"_current_{attribute}_color")
+        new_colors = np.tile(current_face_color, (adding, 1))
+        return new_colors
+
+    def _init_regions(self, data, *, orientation=None, edge_width=None, edge_color=None, face_color=None, z_index=None):
+        """Add regions to the data view."""
+        n_regions = len(data)
+        edge_color = self._initialize_color(edge_color, attribute="edge", n_regions=n_regions)
+        face_color = self._initialize_color(face_color, attribute="face", n_regions=n_regions)
+        with self.block_thumbnail_update():
+            self._add_regions(
+                data,
+                orientation=orientation,
+                edge_width=edge_width,
+                edge_color=edge_color,
+                face_color=face_color,
+                z_index=z_index,
+                z_refresh=False,
+            )
+            self._data_view._update_z_order()
+
     def _add_regions_to_view(self, shape_inputs, data_view):
         """Build new region and add them to the _data_view"""
         for d, ot, ew, ec, fc, z in shape_inputs:
             region_cls = region_classes[Orientation(ot)]
             d = preprocess_region(d, ot)
-            region = region_cls(
-                d,
-                edge_width=ew,
-                z_index=z,
-                dims_order=self._dims_order,
-                ndisplay=self._ndisplay,
-            )
+            region = region_cls(d, edge_width=ew, z_index=z, dims_order=self._dims_order, ndisplay=self._ndisplay)
 
             # Add region
             data_view.add(region, edge_color=ec, face_color=fc, z_refresh=False)

@@ -14,13 +14,13 @@ from pydantic import Extra, Field
 
 from .. import layers
 from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import x_span
-from ._viewer_utils import get_layers_x_region_extent, get_range_extent
+from ._viewer_mouse_bindings import boxzoom
+from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
 from .axis import Axis
+from .box import BoxTool
 from .camera import Camera
 from .gridlines import GridLines
 from .layerlist import LayerList
-from .span import Span
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -40,7 +40,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
     axis: Axis = Field(default_factory=Axis, allow_mutation=False)
     text_overlay: TextOverlay = Field(default_factory=TextOverlay, allow_mutation=False)
-    span: Span = Field(default_factory=Span, allow_mutation=False)
+    box_tool: BoxTool = Field(default_factory=BoxTool, allow_mutation=False)
     grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
 
     help: str = ""
@@ -70,15 +70,14 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.layers_change.connect(self._on_update_extent)
 
         # Add mouse callback
-        self.mouse_drag_callbacks.append(x_span)
+        self.mouse_drag_callbacks.append(boxzoom)
 
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:
         """Get data extent"""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
         xmin, xmax = get_min_max(extent[:, 1])
-        ymax *= 1.05
-        return xmin - 1, xmax + 1, ymin, ymax
+        return xmin, xmax, ymin, ymax
 
     def _on_update_extent(self, _event=None):
         """Update data extent when there has been a change to the list of layers"""
@@ -106,8 +105,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin: float,
         xmax: float,
         ymin: float = 0,
-        y_multiplier: float = 1.05,
         auto_scale: bool = True,
+        y_multiplier: float = 1.0,
     ):
         """Calculate range for specified x-axis range."""
         _, _, real_ymin, real_ymax = self._get_rect_extent()
@@ -118,6 +117,17 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         else:
             ymin, ymax = real_ymin, real_ymax
         return ymin, ymax * y_multiplier
+
+    def _get_x_range_extent_for_y(self, ymin: float, ymax: float, auto_scale: bool = True):
+        """Calculate range for specified x-axis range."""
+        _, _, real_ymin, real_ymax = self._get_rect_extent()
+        if auto_scale:
+            ymin, ymax = get_range_extent(
+                real_ymin, real_ymax, *get_layers_y_region_extent(ymin, ymax, self.layers), ymin
+            )
+        else:
+            ymin, ymax = real_ymin, real_ymax
+        return ymin, ymax
 
     def reset_view(self, _event=None):
         """Reset the camera view."""
@@ -217,7 +227,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # Disconnect all connections from layer
         disconnect_events(layer.events, self)
         disconnect_events(layer.events, self.layers)
-
         self._on_layers_change(None)
 
     def add_layer(self, layer: Layer) -> Layer:

@@ -1,34 +1,35 @@
 """Mouse bindings to the viewer"""
+from .box import Shape
 
 
-def x_span(viewer, event):
-    """Enable x-axis span."""
+def boxzoom(viewer, event):
+    """Enable box zoom."""
 
-    def _is_not_modifier() -> bool:
-        return "Control" not in event.modifiers and "Shift" not in event.modifiers
+    def _get_shape():
+        if "Control" in event.modifiers:
+            return Shape.VERTICAL
+        elif "Shift" in event.modifiers:
+            return Shape.HORIZONTAL
+        return Shape.BOX
 
-    if _is_not_modifier() or event.button != 1:
-        viewer.span.visible = False
-        return
-
-    if not viewer.span.visible:
-        viewer.span.visible = True
+    # make sure box is visible
+    if not viewer.box_tool.visible:
+        viewer.box_tool.visible = True
 
     # on mouse press
-    color = viewer.span.color
-    viewer.span.color = (1.0, 0.0, 0.0, 1.0)
+    color = viewer.box_tool.color
+    viewer.box_tool.shape = _get_shape()
     yield
 
     # on mouse move
     while event.type == "mouse_move":
-        viewer.span.visible = not _is_not_modifier()
+        viewer.box_tool.shape = _get_shape()
         yield
 
     # on release
-    viewer.span.color = color
-    if not _is_not_modifier():
-        position = viewer.span.position
-        viewer.span.visible = False
-        viewer.span.position = (0, 0)
-        viewer.events.span(position=position)
+    viewer.box_tool.color = color
+    position = viewer.box_tool.position
+    viewer.box_tool.visible = False
+    viewer.box_tool.position = (0, 0, 0, 0)
+    viewer.events.span(position=position)
     yield

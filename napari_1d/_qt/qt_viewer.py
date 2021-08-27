@@ -25,10 +25,10 @@ from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerCont
 
 from .._vispy.utils import create_vispy_visual
 from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
+from .._vispy.vispy_box_visual import VispyBoxVisual
 from .._vispy.vispy_camera import VispyCamera
 from .._vispy.vispy_canvas import VispyCanvas
 from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
-from .._vispy.vispy_span_visual import VispySpanVisual
 from .._vispy.vispy_text_visual import VispyTextVisual
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
@@ -261,19 +261,18 @@ class QtViewer(QSplitter):  # QWidget):
 
     def _on_boxzoom(self, event):
         """Update boxzoom visibility."""
-        self.viewer.span.visible = event.visible
+        self.viewer.box_tool.visible = event.visible
         if not event.visible:
-            self.viewer.span.position = 0, 0
+            self.viewer.box_tool.position = 0, 0, 0, 0
 
     def _on_boxzoom_move(self, event):
         """Update boxzoom"""
-        rect = event.rect
-        self.viewer.span.position = rect[0], rect[1]
+        self.viewer.box_tool.position = event.rect
 
     def _add_visuals(self) -> None:
         """Add visuals for axes, scale bar"""
         # add span
-        self.span = VispySpanVisual(self.viewer, parent=self.view, order=1e5)
+        self.span = VispyBoxVisual(self.viewer, parent=self.view, order=1e5)
 
         # add gridlines
         self.grid_lines = VispyGridLinesVisual(self.viewer, parent=self.view, order=1e6)

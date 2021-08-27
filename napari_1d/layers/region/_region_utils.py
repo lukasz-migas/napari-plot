@@ -27,6 +27,11 @@ def preprocess_region(data, orientation):
     return region
 
 
+def preprocess_box(data):
+    """Pre-process data to take correct values."""
+    return [[data[2], data[0]], [data[3], data[1]]]
+
+
 def get_default_region_type(current_type):
     """If all shapes in current_type are of identical shape type,
        return this shape type, else "polygon" as lowest common

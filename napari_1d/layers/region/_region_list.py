@@ -1,10 +1,10 @@
 """Region list."""
 import numpy as np
 from napari.layers.shapes._mesh import Mesh
+from napari.layers.shapes._shapes_models import Rectangle
 from napari.layers.shapes._shapes_utils import triangles_intersect_box
 from napari.utils.geometry import inside_triangles
 
-from ._region import Rectangle
 from ._region_constants import Orientation, region_classes
 
 
@@ -69,9 +69,9 @@ class RegionList:
         self.displayed_vertices = []
         self.displayed_index = []
         self._vertices = np.empty((0, self.ndisplay))
-        self._index = np.empty((0), dtype=int)
-        self._z_index = np.empty((0), dtype=int)
-        self._z_order = np.empty((0), dtype=int)
+        self._index = np.empty(0, dtype=int)
+        self._z_index = np.empty(0, dtype=int)
+        self._z_order = np.empty(0, dtype=int)
 
         self._mesh = Mesh(ndisplay=self.ndisplay)
 

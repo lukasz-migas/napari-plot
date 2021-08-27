@@ -74,7 +74,7 @@ class Camera(EventedModel):
         return ensure_n_tuple(v, n=4)
 
     @validator("axis_mode", pre=True)
-    def _ensure_axis_tuple(v) -> ty.Tuple[CameraMode]:
+    def _ensure_axis_tuple(v: ty.Union[CameraMode, ty.Tuple[CameraMode]]) -> ty.Tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
         return v
