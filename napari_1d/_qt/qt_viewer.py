@@ -50,7 +50,7 @@ class QtViewer(QSplitter):  # QWidget):
         Dictionary mapping napari layers with their corresponding vispy_layers.
     view : vispy scene widget
         View displayed by vispy canvas. Adds a vispy ViewBox as a child widget.
-    viewer : imimsui.napari.components.ViewerModel
+    viewer : napari.components.ViewerModel
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
