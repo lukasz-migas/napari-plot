@@ -7,7 +7,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout
 
-from ..helpers import make_checkbox, make_label, make_line_edit, make_slider, make_h_line
+from ..helpers import make_checkbox, make_h_line, make_label, make_line_edit, make_slider
 from ..qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:

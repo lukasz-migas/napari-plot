@@ -2,8 +2,9 @@
 
 This will only work one https://github.com/napari/napari/pull/2900 is merged.
 """
-from napari_plugin_engine import napari_hook_implementation
 from pathlib import Path
+
+from napari_plugin_engine import napari_hook_implementation
 
 HERE = Path(__file__).parent
 

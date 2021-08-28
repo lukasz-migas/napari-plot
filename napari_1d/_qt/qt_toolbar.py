@@ -3,8 +3,8 @@
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QWidget
 
-from .widgets.qt_mini_toolbar import QtMiniToolbar
 from .layer_controls.qt_axis_controls import QtAxisControls
+from .widgets.qt_mini_toolbar import QtMiniToolbar
 
 
 class QtViewToolbar(QWidget):

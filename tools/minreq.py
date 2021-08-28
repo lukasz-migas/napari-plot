@@ -19,25 +19,17 @@ def pin_config_minimum_requirements(config_filename):
     config.read(config_filename)
 
     # swap out >= requirements for ==
-    config['options']['install_requires'] = config['options'][
-        'install_requires'
-    ].replace('>=', '==')
-    config['options.extras_require']['pyside2'] = config[
-        'options.extras_require'
-    ]['pyside2'].replace('>=', '==')
-    config['options.extras_require']['pyqt5'] = config[
-        'options.extras_require'
-    ]['pyqt5'].replace('>=', '==')
+    config["options"]["install_requires"] = config["options"]["install_requires"].replace(">=", "==")
+    config["options.extras_require"]["pyside2"] = config["options.extras_require"]["pyside2"].replace(">=", "==")
+    config["options.extras_require"]["pyqt5"] = config["options.extras_require"]["pyqt5"].replace(">=", "==")
 
     # rewrite setup.cfg with new config
-    with open(config_filename, 'w') as fout:
+    with open(config_filename, "w") as fout:
         config.write(fout)
 
 
-if __name__ == '__main__':
-    if os.environ.get('MIN_REQ', '') == '1':
+if __name__ == "__main__":
+    if os.environ.get("MIN_REQ", "") == "1":
         # find setup.cfg
-        config_filename = os.path.join(
-            os.path.dirname(__file__), "..", "setup.cfg"
-        )
+        config_filename = os.path.join(os.path.dirname(__file__), "..", "setup.cfg")
         pin_config_minimum_requirements(config_filename)

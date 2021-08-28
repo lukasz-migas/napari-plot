@@ -3,7 +3,6 @@ import typing as ty
 
 from .vispy_span_visual import VispyBoxVisual
 
-
 if ty.TYPE_CHECKING:
     from ..components.camera import Camera
     from ..components.viewer_model import ViewerModel

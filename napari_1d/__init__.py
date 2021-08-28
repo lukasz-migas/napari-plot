@@ -7,8 +7,8 @@ except ImportError:
 # Need to import to ensure that `napari_1d` is included in the auto-class generator
 from .utils import _register  # isort:skip noqa
 from ._dock_widget import napari_experimental_provide_dock_widget  # noqa: F401
-from ._resources import napari_experimental_provide_qss, napari_experimental_provide_icons  # noqa: F401
 from ._qt.qt_event_loop import run  # noqa: F401
+from ._resources import napari_experimental_provide_icons, napari_experimental_provide_qss  # noqa: F401
 from .components.viewer_model import ViewerModel as ViewerModel1D  # noqa: F401
 from .viewer import Viewer  # noqa: F401
 

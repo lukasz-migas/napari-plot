@@ -6,10 +6,19 @@ from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.resources import get_stylesheet
-from qtpy.QtWidgets import QDockWidget
 from qtpy.QtCore import QEvent, QEventLoop
 from qtpy.QtGui import QKeySequence, Qt
-from qtpy.QtWidgets import QAction, QApplication, QDialog, QHBoxLayout, QLabel, QMainWindow, QShortcut, QWidget
+from qtpy.QtWidgets import (
+    QAction,
+    QApplication,
+    QDialog,
+    QDockWidget,
+    QHBoxLayout,
+    QLabel,
+    QMainWindow,
+    QShortcut,
+    QWidget,
+)
 
 from .qt_event_loop import get_app, quit_app
 from .qt_viewer import QtViewer
@@ -155,12 +164,8 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
-        self._add_viewer_dock_widget(
-            self.qt_viewer.dockLayerControls, tabify=False
-        )
-        self._add_viewer_dock_widget(
-            self.qt_viewer.dockLayerList, tabify=False
-        )
+        self._add_viewer_dock_widget(self.qt_viewer.dockLayerControls, tabify=False)
+        self._add_viewer_dock_widget(self.qt_viewer.dockLayerList, tabify=False)
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -174,9 +179,7 @@ class Window:
         if show:
             self.show()
 
-    def _add_viewer_dock_widget(
-        self, dock_widget: QtViewerDockWidget, tabify=False
-    ):
+    def _add_viewer_dock_widget(self, dock_widget: QtViewerDockWidget, tabify=False):
         """Add a QtViewerDockWidget to the main window
 
         If other widgets already present in area then will tabify.
@@ -199,12 +202,10 @@ class Window:
         # If another dock widget present in area then tabify
         if current_dws_in_area:
             if tabify:
-                self._qt_window.tabifyDockWidget(
-                    current_dws_in_area[-1], dock_widget
-                )
+                self._qt_window.tabifyDockWidget(current_dws_in_area[-1], dock_widget)
                 dock_widget.show()
                 dock_widget.raise_()
-            elif dock_widget.area in ('right', 'left'):
+            elif dock_widget.area in ("right", "left"):
                 _wdg = current_dws_in_area + [dock_widget]
                 # add sizes to push lower widgets up
                 sizes = list(range(1, len(_wdg) * 4, 4))
@@ -289,7 +290,7 @@ class Window:
 
     def _add_window_menu(self):
         """Add 'Window' menu to app menubar."""
-        self.window_menu = self.main_menu.addMenu('&Window')
+        self.window_menu = self.main_menu.addMenu("&Window")
 
     # def _add_help_menu(self):
     #     """Add 'Help' menu to app menubar."""
@@ -334,7 +335,7 @@ class Window:
                 value = self.qt_viewer.viewer.theme
 
             self._qt_window.setStyleSheet(get_stylesheet(value))
-        except (AttributeError, RuntimeError): # wrapped C/C++ object may have been deleted
+        except (AttributeError, RuntimeError):  # wrapped C/C++ object may have been deleted
             pass
 
     def _status_changed(self, event):
