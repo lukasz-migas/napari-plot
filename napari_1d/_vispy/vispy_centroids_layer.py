@@ -9,11 +9,17 @@ if TYPE_CHECKING:
     from ..layers import Centroids
 
 
-def make_centroids(data: np.ndarray) -> np.ndarray:
+def make_centroids(data: np.ndarray, orientation: str) -> np.ndarray:
     """Make centroids data in the format [[x, 0], [x, y]]"""
     array = np.zeros((len(data) * 2, 2), dtype=data.dtype)
-    array[:, 0] = np.repeat(data[:, 0], 2)
-    array[1::2, 1] = data[:, 1]
+    if orientation == "horizontal":
+        array[:, 1] = np.repeat(data[:, 0], 2)
+        array[1::2, 0] = data[:, 1]
+        array[0::2, 0] = data[:, 2]
+    else:
+        array[:, 0] = np.repeat(data[:, 0], 2)
+        array[1::2, 1] = data[:, 1]
+        array[0::2, 1] = data[:, 2]
     return array
 
 
@@ -42,7 +48,7 @@ class VispyCentroidsLayer(VispyBaseLayer):
     def _on_data_change(self, _event=None):
         """Set data"""
         self.node.set_data(
-            make_centroids(self.layer.data),
+            make_centroids(self.layer.data, self.layer.orientation),
             connect="segments",
             color=self.layer.color,
             width=self.layer.width,

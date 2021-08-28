@@ -63,18 +63,10 @@ jobs:
           - python: 3.9
             platform: macos-11.0
             toxenv: py39-macos-pyqt
-          # test with minimum specified requirements
-          - python: 3.7
-            platform: ubuntu-18.04
-            MIN_REQ: 1
-          # test with --async_only
-          - python: 3.8
-            platform: ubuntu-18.04
-            toxenv: async-py38-linux-pyqt
-          # test without any Qt backends
-          - python: 3.8
-            platform: ubuntu-18.04
-            toxenv: headless-py38-linux
+#          # test with minimum specified requirements
+#          - python: 3.7
+#            platform: ubuntu-18.04
+#            MIN_REQ: 1
 
     steps:
       - uses: actions/checkout@v2

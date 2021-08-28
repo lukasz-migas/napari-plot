@@ -3,7 +3,8 @@ import numpy as np
 from napari.layers import Layer
 from napari.utils.events import Event
 
-from ._centroids_constants import Method
+from ._centroids_constants import Method, Orientation
+from ._centroids_utils import preprocess_centroids
 
 
 class Centroids(Layer):
@@ -13,6 +14,7 @@ class Centroids(Layer):
         self,
         data,
         *,
+        orientation="vertical",
         color=(1.0, 1.0, 1.0, 1.0),
         width=2,
         method="gl",
@@ -30,7 +32,7 @@ class Centroids(Layer):
     ):
         # sanitize data
         if data is None:
-            data = np.empty((0, 2))
+            data = np.empty((0, 3))
         else:
             data = np.asarray(data)
         super().__init__(
@@ -47,13 +49,24 @@ class Centroids(Layer):
             blending=blending,
             visible=visible,
         )
-        self._data = data
+        self._data = preprocess_centroids(data)
         self._color = color
         self._width = width
         self._method = Method(method)
+        self._orientation = Orientation(orientation)
 
         self.events.add(color=Event, width=Event, method=Event, highlight=Event)
         self.visible = visible
+
+    @property
+    def orientation(self):
+        """Orientation of the centroids layer."""
+        return self._orientation
+
+    @orientation.setter
+    def orientation(self, value):
+        self._orientation = Orientation(value)
+        self.events.set_data()
 
     def _get_ndim(self):
         """Determine number of dimensions of the layer"""

@@ -21,7 +21,7 @@ class InfLine(Layer):
         self,
         data,
         *,
-        orientations=None,
+        orientations="vertical",
         label="",
         color="red",
         width=1,
@@ -221,7 +221,7 @@ class InfLine(Layer):
 
     @property
     def orientations(self):
-        """Orientation of the infinite region."""
+        """Orientations of the infinite lines."""
         return self._orientations
 
     @property

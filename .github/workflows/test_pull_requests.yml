@@ -46,6 +46,7 @@ jobs:
 
   test:
     name: ${{ matrix.platform }} ${{ matrix.python }} ${{ matrix.toxenv || matrix.backend }} ${{ matrix.MIN_REQ && 'min_req' }}
+    timeout-minutes: 30
     runs-on: ${{ matrix.platform }}
     strategy:
       fail-fast: false
@@ -63,18 +64,10 @@ jobs:
           - python: 3.8
             platform: macos-latest
             backend: pyqt # (only testing pyqt on mac in the interest of speed)
-          # minimum specified requirements
-          - python: 3.7
-            platform: ubuntu-18.04
-            MIN_REQ: 1
-          # test with --async_only
-          - python: 3.8
-            platform: ubuntu-18.04
-            toxenv: async-pyqt-py38-linux
-          # test without any Qt backends
-          - python: 3.8
-            platform: ubuntu-18.04
-            toxenv: headless-py38-linux
+#          # minimum specified requirements
+#          - python: 3.7
+#            platform: ubuntu-18.04
+#            MIN_REQ: 1
 
     steps:
       - uses: actions/checkout@v2
@@ -151,8 +144,8 @@ jobs:
         run: |
           # pip install this git sha directly from github
           pip install --upgrade pip
-          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari-1d[all,testing]
+          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_1d[all,testing]
       - name: Test
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: pytest --pyargs napari-1d --color=yes
+          run: pytest --pyargs napari_1d --color=yes

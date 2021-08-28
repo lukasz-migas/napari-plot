@@ -2,7 +2,7 @@ include LICENSE
 include README.md
 recursive-include napari_1d *.pyi
 recursive-include napari_1d *.png *.svg *.qss *.gif
-recursive-include tests/*.py
+recursive-include tests *.py
 
 exclude requirements.txt
 
@@ -13,6 +13,8 @@ recursive-exclude * *.py[co]
 recursive-exclude tools *
 recursive-exclude docs *
 recursive-exclude examples *
-recursive-exclude napari *.pyc
+recursive-exclude misc *
+
 exclude bundle.py
 exclude dockerfile
+exclude mkdocs.yml
