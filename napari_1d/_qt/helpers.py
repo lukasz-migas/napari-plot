@@ -18,6 +18,7 @@ from qtpy.QtWidgets import (
 from ..utils.system import IS_WIN
 from .widgets.qt_icon_label import QtIconLabel
 from .widgets.qt_image_button import QtImagePushButton
+from .widgets.qt_line import QtHorzLine, QtVertLine
 
 
 def make_v_spacer() -> QSpacerItem:
@@ -207,4 +208,16 @@ def make_radio_btn_group(parent, radio_buttons) -> QButtonGroup:
     widget = QButtonGroup(parent)
     for btn_id, radio_btn in enumerate(radio_buttons):
         widget.addButton(radio_btn, btn_id)
+    return widget
+
+
+def make_h_line(parent) -> QtHorzLine:
+    """Make horizontal line"""
+    widget = QtHorzLine(parent)
+    return widget
+
+
+def make_v_line(parent) -> QtVertLine:
+    """Make horizontal line"""
+    widget = QtVertLine(parent)
     return widget

@@ -18,6 +18,18 @@ I opted to include a toolbar that quickly pulls the layer list whenever requeste
 to be loaded as `napari` is being loaded. For this to work, [#2900](https://github.com/napari/napari/pull/2900) needs to be merged first. For the time being,
 things will remain a little broken.
 
+## Usage
+
+You can use `napari-1d` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to toolbar
+where you can adjust layer properties like you would do in `napari`.
+
+![embedded](misc/embedded.png)
+
+Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
+behaviour where layer controls are embedded in the main application.
+
+![standalone](misc/standalone.png)
+
 ## Roadmap:
 
 This is only provisional list of features that I would like to see implemented. It barely scratches the surface of what plotting tool should cover so as soon as the basics are covered,
@@ -62,9 +74,19 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-You can install `napari-1d` via [pip]:
+`napari-1d` is not yet available on PyPI. I plan to add it once more documentation is complete and more bugs have been eliminated.
+While [#2900](https://github.com/napari/napari/pull/2900) is not merged, you can also install version of `napari` that implements
+the required hook specification. In the meantime, you can clone the repo and install using:
 
-    pip install napari-1d
+```python
+git clone --branch theme-hook https://github.com/lukasz-migas/napari.git
+cd naparipip install -e '.[all]'
+cd ../
+
+git clone https://github.com/lukasz-migas/napari-1d.git
+cd napari-1d
+pip install -e '.[all]'
+```
 
 ## Contributing
 

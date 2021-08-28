@@ -138,6 +138,6 @@ class QtLineControls(QtLayerControls):
                 "opacity_slider",
                 "blending_combobox",
             ],
-            not self.layer.editable,
+            self.layer.editable,
         )
         super()._on_editable_change(event)

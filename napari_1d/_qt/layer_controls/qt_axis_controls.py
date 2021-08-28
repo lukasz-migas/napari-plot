@@ -7,7 +7,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout
 
-from ..helpers import make_checkbox, make_label, make_line_edit, make_slider
+from ..helpers import make_checkbox, make_label, make_line_edit, make_slider, make_h_line
 from ..qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:
@@ -68,7 +68,7 @@ class QtAxisControls(QtFramelessPopup):
             initial_color=self.viewer.axis.label_color,
             tooltip="Click to set label color",
         )
-        self.label_color_swatch.evt_color_changed.connect(self.on_change_label_color)  # noqa
+        self.label_color_swatch.color_changed.connect(self.on_change_label_color)  # noqa
 
         self.label_font_size = make_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.label_size
@@ -79,7 +79,7 @@ class QtAxisControls(QtFramelessPopup):
             initial_color=self.viewer.axis.tick_color,
             tooltip="Click to set tick color",
         )
-        self.tick_color_swatch.evt_color_changed.connect(self.on_change_tick_color)  # noqa
+        self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)  # noqa
 
         self.x_max_size_spin = make_slider(
             self,

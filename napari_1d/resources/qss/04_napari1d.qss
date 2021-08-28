@@ -51,6 +51,9 @@ QtImagePushButton#plot_grid{
 QtImagePushButton#text{
     image: url(":/themes/{{ folder }}/napari-1d:text.svg");
 }
+QtImagePushButton#axes{
+    image: url(":/themes/{{ folder }}/napari-1d:axes_label.svg");
+}
 QtImagePushButton#clipboard{
     image: url(":/themes/{{ folder }}/copy_to_clipboard.svg");
 }
@@ -78,7 +81,7 @@ QtIconLabel#move_handle{
     image: url(":/themes/{{ folder }}/napari-1d:move.svg");
 }
 QtModeRadioButton[mode="add_points"]::indicator {
-    image: url(":/themes/{{ folder }}/napari-1d:add.svg");
+    image: url(":/themes/{{ folder }}/add.svg");
 }
 QtModeRadioButton[mode="move_region"]::indicator {
     image: url(":/themes/{{ folder }}/napari-1d:move.svg");

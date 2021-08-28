@@ -3,14 +3,15 @@
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QWidget
 
-from napari_1d._qt.widgets.qt_mini_toolbar import QtMiniToolbar
+from .widgets.qt_mini_toolbar import QtMiniToolbar
+from .layer_controls.qt_axis_controls import QtAxisControls
 
 
 class QtViewToolbar(QWidget):
     """Qt toolbars"""
 
     # dialogs
-    _dlg_shapes, _dlg_region = None, None
+    _dlg_axis = None
 
     def __init__(self, viewer, qt_viewer, **kwargs):
         super().__init__(parent=qt_viewer)
@@ -26,6 +27,12 @@ class QtViewToolbar(QWidget):
         # view modifiers
         self.tools_clip_btn = toolbar_right.insert_svg_tool(
             "clipboard", tooltip="Copy figure to clipboard", func=self.qt_viewer.clipboard
+        )
+        self.tools_axis_btn = toolbar_right.insert_svg_tool(
+            "axes",
+            tooltip="Show axis controls",
+            set_checkable=False,
+            func=self._toggle_axis_controls,
         )
         self.tools_text_btn = toolbar_right.insert_svg_tool(
             "text",
@@ -57,3 +64,7 @@ class QtViewToolbar(QWidget):
 
     def _toggle_text_visible(self, state):
         self.qt_viewer.viewer.text_overlay.visible = state
+
+    def _toggle_axis_controls(self, _):
+        _dlg_axis = QtAxisControls(self.viewer, self.qt_viewer)
+        _dlg_axis.show_left_of_widget(self.tools_axis_btn)

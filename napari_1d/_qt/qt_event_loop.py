@@ -6,6 +6,7 @@ from warnings import warn
 from napari._qt.qt_event_loop import _ipython_has_eventloop, run  # noqa
 from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
+from napari.plugins import plugin_manager
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
@@ -127,8 +128,13 @@ def get_app(
         # workers at shutdown.
         app.aboutToQuit.connect(wait_for_workers_to_quit)
 
-        # this will register all of our resources (icons) with Qt, so that they
-        # can be used in qss files and elsewhere.
+        try:
+            # this will register all of our resources (icons) with Qt, so that they
+            # can be used in qss files and elsewhere.
+            plugin_manager.discover_icons()
+            plugin_manager.discover_qss()
+        except AttributeError:
+            pass
         _register_napari_resources()
 
     _app_ref = app  # prevent garbage collection

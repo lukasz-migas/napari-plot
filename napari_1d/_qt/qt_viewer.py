@@ -69,7 +69,6 @@ class QtViewer(QSplitter):  # QWidget):
         # keyboard handler
         self._key_map_handler = KeymapHandler()
         self._key_map_handler.keymap_providers = [self.viewer]
-        self._key_bindings_dialog = None
         self._disable_controls = disable_controls
         self._layers_controls_dialog = None
 
@@ -187,16 +186,16 @@ class QtViewer(QSplitter):  # QWidget):
 
     def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, **kwargs):
         # set in main canvas
-        image_layout = QHBoxLayout()
-        image_layout.addWidget(self.canvas.native, stretch=True)
+        canvas_layout = QHBoxLayout()
+        canvas_layout.addWidget(self.canvas.native, stretch=True)
 
         if add_toolbars:
-            image_layout.addWidget(self.viewerToolbar.toolbar_right)
+            canvas_layout.addWidget(self.viewerToolbar.toolbar_right)
         else:
             self.viewerToolbar.setVisible(False)
             self.viewerToolbar.toolbar_right.setVisible(False)
-            image_layout.setSpacing(0)
-            image_layout.setMargin(0)
+            canvas_layout.setSpacing(0)
+            canvas_layout.setMargin(0)
 
         if dock_controls:
             layer_list = QWidget()
@@ -234,7 +233,7 @@ class QtViewer(QSplitter):  # QWidget):
         main_widget = QWidget()
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(5, 5, 5, 2)
-        main_layout.addLayout(image_layout)
+        main_layout.addLayout(canvas_layout)
         main_layout.setSpacing(3)
         main_widget.setLayout(main_layout)
 
@@ -344,10 +343,6 @@ class QtViewer(QSplitter):  # QWidget):
 
         if active_layer is not None:
             self._key_map_handler.keymap_providers.insert(0, active_layer)
-
-        # If a QtAboutKeyBindings exists, update its text.
-        if self._key_bindings_dialog is not None:
-            self._key_bindings_dialog.update_active_layer()
 
     def _on_add_layer_change(self, event):
         """When a layer is added, set its parent and order.

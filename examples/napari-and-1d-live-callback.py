@@ -11,11 +11,6 @@ def _get_line_data(image, start, end):
     return measure.profile_line(image, start, end, mode="nearest")
 
 
-def update_fps(fps):
-    """Update fps."""
-    viewer1d.text_overlay.text = f"{fps:1.1f} FPS"
-
-
 viewer = napari.Viewer()
 chelsea = data.astronaut().mean(-1)
 viewer.add_image(chelsea)
@@ -35,7 +30,6 @@ viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.position = "top_right"
 
 qt_viewer = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
-qt_viewer.canvas.measure_fps(callback=update_fps)
 
 lines = []
 for i, line in enumerate(shapes_layer.data):

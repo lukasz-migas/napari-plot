@@ -258,7 +258,7 @@ class QtScatterControls(QtLayerControls):
                 "edge_width_slider",
                 "symbol_combobox",
             ],
-            not self.layer.editable,
+            self.layer.editable,
         )
         super()._on_editable_change()
 

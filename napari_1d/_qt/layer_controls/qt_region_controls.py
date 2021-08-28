@@ -165,6 +165,6 @@ class QtRegionControls(QtLayerControls):
                 "select_button",
                 "panzoom_button",
             ],
-            not self.layer.editable and self.layer.visible,
+            self.layer.editable and self.layer.visible,
         )
         super()._on_editable_change(event)

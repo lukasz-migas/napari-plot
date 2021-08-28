@@ -156,6 +156,6 @@ class QtInfLineControls(QtLayerControls):
                 "panzoom_button",
                 "delete_button",
             ],
-            not self.layer.editable,
+            self.layer.editable,
         )
         super()._on_editable_change(event)

@@ -2,8 +2,10 @@
 import time
 import typing as ty
 
+from PySide2.QtWidgets import QDockWidget
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array
+from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.resources import get_stylesheet
 from qtpy.QtCore import QEvent, QEventLoop
 from qtpy.QtGui import QKeySequence, Qt
@@ -150,6 +152,15 @@ class Window:
         self._add_menubar()
         self._add_file_menu()
         self._add_view_menu()
+        self._add_window_menu()
+        self._update_theme()
+
+        self._add_viewer_dock_widget(
+            self.qt_viewer.dockLayerControls, tabify=False
+        )
+        self._add_viewer_dock_widget(
+            self.qt_viewer.dockLayerList, tabify=False
+        )
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -162,6 +173,47 @@ class Window:
 
         if show:
             self.show()
+
+    def _add_viewer_dock_widget(
+        self, dock_widget: QtViewerDockWidget, tabify=False
+    ):
+        """Add a QtViewerDockWidget to the main window
+
+        If other widgets already present in area then will tabify.
+
+        Parameters
+        ----------
+        dock_widget : QtViewerDockWidget
+            `dock_widget` will be added to the main window.
+        tabify : bool
+            Flag to tabify dockwidget or not.
+        """
+        # Find if any othe dock widgets are currently in area
+        current_dws_in_area = [
+            dw
+            for dw in self._qt_window.findChildren(QDockWidget)
+            if self._qt_window.dockWidgetArea(dw) == dock_widget.qt_area
+        ]
+        self._qt_window.addDockWidget(dock_widget.qt_area, dock_widget)
+
+        # If another dock widget present in area then tabify
+        if current_dws_in_area:
+            if tabify:
+                self._qt_window.tabifyDockWidget(
+                    current_dws_in_area[-1], dock_widget
+                )
+                dock_widget.show()
+                dock_widget.raise_()
+            elif dock_widget.area in ('right', 'left'):
+                _wdg = current_dws_in_area + [dock_widget]
+                # add sizes to push lower widgets up
+                sizes = list(range(1, len(_wdg) * 4, 4))
+                self._qt_window.resizeDocks(_wdg, sizes, Qt.Vertical)
+
+        action = dock_widget.toggleViewAction()
+        action.setStatusTip(dock_widget.name)
+        action.setText(dock_widget.name)
+        self.window_menu.addAction(action)
 
     def _add_menubar(self):
         """Add menubar to napari app."""
@@ -235,6 +287,22 @@ class Window:
         self.view_menu.addAction(toggle_visible)
         self.view_menu.addSeparator()
 
+    def _add_window_menu(self):
+        """Add 'Window' menu to app menubar."""
+        self.window_menu = self.main_menu.addMenu('&Window')
+
+    # def _add_help_menu(self):
+    #     """Add 'Help' menu to app menubar."""
+    #     self.help_menu = self.main_menu.addMenu('&Help')
+    #
+    #     about_action = QAction("napari-1d Info", self._qt_window)
+    #     about_action.setShortcut("Ctrl+/")
+    #     about_action.setStatusTip('About napari-1d')
+    #     about_action.triggered.connect(
+    #         lambda e: QtAbout.showAbout(self.qt_viewer, self._qt_window)
+    #     )
+    #     self.help_menu.addAction(about_action)
+
     def _toggle_menubar_visible(self):
         """Toggle visibility of app menubar.
 
@@ -258,18 +326,15 @@ class Window:
 
     def _update_theme(self, event=None):
         """Update widget color theme."""
-        if event:
-            value = event.value
-            self.qt_viewer.viewer.theme = value
-        else:
-            value = self.qt_viewer.viewer.theme
-
         try:
+            if event:
+                value = event.value
+                self.qt_viewer.viewer.theme = value
+            else:
+                value = self.qt_viewer.viewer.theme
+
             self._qt_window.setStyleSheet(get_stylesheet(value))
-        except AttributeError:
-            pass
-        except RuntimeError:
-            # wrapped C/C++ object may have been deleted
+        except (AttributeError, RuntimeError): # wrapped C/C++ object may have been deleted
             pass
 
     def _status_changed(self, event):
