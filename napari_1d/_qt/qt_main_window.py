@@ -2,11 +2,11 @@
 import time
 import typing as ty
 
-from PySide2.QtWidgets import QDockWidget
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.resources import get_stylesheet
+from qtpy.QtWidgets import QDockWidget
 from qtpy.QtCore import QEvent, QEventLoop
 from qtpy.QtGui import QKeySequence, Qt
 from qtpy.QtWidgets import QAction, QApplication, QDialog, QHBoxLayout, QLabel, QMainWindow, QShortcut, QWidget
