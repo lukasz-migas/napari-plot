@@ -1,6 +1,28 @@
 """Mouse bindings"""
 
 
+# TODO: this should draw temporary region of interest
+def add(layer, event):
+    """Add new infinite region."""
+    if event.type == "mouse_press":
+        pos_start = event.pos
+        position_start = event.position
+
+    while event.type != "mouse_release":
+        yield
+
+    x_dist, y_dist = pos_start - event.pos
+    coord_start = layer.world_to_data(position_start)
+    coord_end = layer.world_to_data(event.position)
+    if abs(x_dist) < abs(y_dist):
+        orientation = "horizontal"
+        pos = [coord_start[0], coord_end[0]]
+    else:
+        orientation = "vertical"
+        pos = [coord_start[1], coord_end[1]]
+    layer.add([pos], orientation=[orientation])
+
+
 def move(layer, event):
     """Move the currently drawn region to new location"""
 

@@ -3,6 +3,7 @@ import time
 import typing as ty
 
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
+from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.resources import get_stylesheet
@@ -49,6 +50,9 @@ class _QtMainWindow(QMainWindow):
         self.setCentralWidget(center)
         self.setWindowTitle(qt_viewer.viewer.title)
         _QtMainWindow._instances.append(self)
+
+        # this is required to notifications
+        Napari_QtMainWindow._instances.append(self)
 
     @classmethod
     def current(cls):

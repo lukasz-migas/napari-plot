@@ -3,10 +3,12 @@ import os
 import sys
 from warnings import warn
 
+from napari._qt.dialogs.qt_notification import NapariQtNotification, NotificationDispatcher
 from napari._qt.qt_event_loop import _ipython_has_eventloop, run  # noqa
 from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari.plugins import plugin_manager
+from napari.utils.notifications import notification_manager, show_console_notification
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
@@ -120,6 +122,10 @@ def get_app(
         app.setOrganizationDomain(kwargs.get("org_domain"))
         set_app_id(kwargs.get("app_id"))
 
+    if not _ipython_has_eventloop():
+        notification_manager.notification_ready.connect(NapariQtNotification.show_notification)
+        notification_manager.notification_ready.connect(show_console_notification)
+
     if app.windowIcon().isNull():
         app.setWindowIcon(QIcon(kwargs.get("icon")))
 
@@ -138,6 +144,13 @@ def get_app(
         _register_napari_resources()
 
     _app_ref = app  # prevent garbage collection
+
+    # Add the dispatcher attribute to the application to be able to dispatch
+    # notifications coming from threads
+    dispatcher = getattr(app, "_dispatcher", None)
+    if dispatcher is None:
+        app._dispatcher = NotificationDispatcher()
+
     return app
 
 

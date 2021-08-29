@@ -49,5 +49,10 @@ def add(layer, event):
     layer.add([pos], [orientation])
 
 
+# TODO
 def select(layer, event):
-    """Add layer."""
+    """Select lines in layer.
+
+    This function should enable selection of infinite lines by either clicking on (or near) the line or dragging
+    a rectangular box.
+    """

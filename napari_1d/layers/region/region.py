@@ -13,13 +13,27 @@ from napari.utils.misc import ensure_iterable
 
 from ._region_constants import Mode, Orientation, region_classes
 from ._region_list import RegionList
+from ._region_mouse_bindings import add
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
+
+REV_TOOL_HELP = {
+    "Hold <space> to pan/zoom": {Mode.MOVE},
+    "Hold <space> to pan/zoom, drag along x-axis -> horizontal region; drag along y-axis -> vertical region": {
+        Mode.ADD
+    },
+    "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
+    "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
+}
+TOOL_HELP = {}
+for t, modes in REV_TOOL_HELP.items():
+    for m in modes:
+        TOOL_HELP[m] = t
 
 
 class Region(Layer):
     """Line layer"""
 
-    _drag_modes = {Mode.ADD: no_op, Mode.MOVE: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op}
+    _drag_modes = {Mode.ADD: add, Mode.MOVE: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op}
     _move_modes = {Mode.ADD: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
     _cursor_modes = {Mode.ADD: "pointing", Mode.MOVE: "pointing", Mode.PAN_ZOOM: "standard", Mode.SELECT: "pointing"}
 
@@ -199,6 +213,33 @@ class Region(Layer):
         self.events.face_color()
         self._update_thumbnail()
 
+    def _set_color(self, color, attribute: str):
+        """Set the face_color or edge_color property
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        attribute : str in {'edge', 'face'}
+            The name of the attribute to set the color of.
+            Should be 'edge' for edge_color or 'face' for face_color.
+        """
+        if len(self.data) > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=len(self.data),
+                colors=color,
+                elem_name="face_color",
+                default="white",
+            )
+            colors = normalize_and_broadcast_colors(len(self.data), transformed_color)
+        else:
+            colors = np.empty((0, 4))
+
+        setattr(self._data_view, f"{attribute}_color", colors)
+
+        color_event = getattr(self.events, f"{attribute}_color")
+        color_event()
+
     @property
     def edge_width(self):
         """list of float: edge width for each shape."""
@@ -290,15 +331,10 @@ class Region(Layer):
         assert mode is not None, mode
         old_mod = self._mode
 
-        if mode == Mode.ADD:
+        if mode == Mode.SELECT:
             self.selected_data = set()
-            self.interactive = False
 
-        if mode == Mode.PAN_ZOOM:
-            self.help = ""
-            self.interactive = True
-        else:
-            self.help = "Hold <space> to pan/zoom."
+        self.help = TOOL_HELP[mode]
 
         if mode != Mode.SELECT or old_mod != Mode.SELECT:
             self._selected_data_stored = set()

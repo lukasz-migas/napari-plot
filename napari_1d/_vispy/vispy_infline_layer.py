@@ -1,14 +1,34 @@
 """Line layer"""
+import typing as ty
+
 import numpy as np
 from napari._vispy.vispy_base_layer import VispyBaseLayer
-from vispy.scene.visuals import Compound, Line
+from vispy.scene.visuals import Compound, Line, Mesh
 
 from ..layers.infline import InfLine
 from ..layers.infline._infline_constants import Orientation
 
 
-def make_infinite_line(data: np.ndarray, orientations: np.ndarray, colors):
-    """Create all elements required to create infinite lines."""
+def make_infinite_line(
+    data: np.ndarray,
+    orientations: ty.Iterable[Orientation],
+    colors: np.ndarray,
+    indices: ty.Optional[ty.List[int]] = None,
+):
+    """Create all elements required to create infinite lines.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Array containing positions of each infinite line.
+    orientations : ty.Iterable[Orientation]
+        Iterable containing orientation of each line. Values are ordered in different manner depending on whether it is
+        a horizontal or vertical line.
+    colors : np.ndarray
+        Array containing color of each line.
+    indices : ty.List[int], optional
+        List containing indices of lines to be included in the final display.
+    """
     assert (
         len(data) == len(orientations) == len(colors)
     ), "The number of points must match the number of orientations and colors."
@@ -28,14 +48,23 @@ def make_infinite_line(data: np.ndarray, orientations: np.ndarray, colors):
     return np.asarray(pos, dtype=object), np.asarray(connect, dtype=object), np.asarray(_colors, dtype=object)
 
 
+def make_infinite_color(colors) -> np.ndarray:
+    """Create properly formatted colors."""
+    _colors = []
+    for color in colors:
+        _colors.extend([color, color])
+    return np.asarray(_colors, dtype=object)
+
+
 class VispyInfLineLayer(VispyBaseLayer):
     """Infinite region layer"""
 
     def __init__(self, layer: InfLine):
         # Create a compound visual with the following four sub-visuals:
         # Lines: The actual infinite lines
-        # Lines: The lines of the interaction box used for highlights
-        node = Compound([Line(), Line()])
+        # Lines: Highlight of the selected infinite line using different color and width
+        # Mesh: Used to draw selection box in the canvas.
+        node = Compound([Line(), Line(), Mesh()])
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_appearance_change)
@@ -46,7 +75,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node._subvisuals[0].set_data(color=self.layer.color)
+        self.node._subvisuals[0].set_data(color=make_infinite_color(self.layer.color))
         self.node.update()
 
     def _on_width_change(self, _event=None):
@@ -57,6 +86,7 @@ class VispyInfLineLayer(VispyBaseLayer):
     def _on_data_change(self, _event=None):
         """Set data"""
         pos, connect, color = make_infinite_line(self.layer.data, self.layer.orientations, self.layer.color)
+        # primary visualisation of the infinite lines
         self.node._subvisuals[0].set_data(
             pos=pos,
             connect=connect,
@@ -67,3 +97,11 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_highlight_change(self, _event=None):
         """Set highlights."""
+        # pos, connect, color = make_infinite_line(self.layer.data, self.layer.orientations, self.layer.color)
+        # highlights of the infinite lines
+        # self.node._subvisuals[1].set_data(
+        #     pos=pos,
+        #     connect=connect,
+        #     color="#0000FF",  # color,
+        #     width=self.layer.width * 2,
+        # )

@@ -55,8 +55,8 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.editable.connect(self._on_editable_change)
 
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.color,
-            tooltip="Click to set face color",
+            initial_color=self.layer.current_color,
+            tooltip="Click to set current color. If lines are selected, their color will be changed.",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
 
@@ -97,6 +97,8 @@ class QtInfLineControls(QtLayerControls):
         self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row)
         self._on_editable_change()
+
+        disable_with_opacity(self, ["move_button", "select_button", "delete_button"], True)
 
     def _on_mode_change(self, event):
         """Update ticks in checkbox widgets when points layer mode is changed.
@@ -151,10 +153,11 @@ class QtInfLineControls(QtLayerControls):
                 "opacity_slider",
                 "blending_combobox",
                 "color_swatch",
-                "add_button",
-                "move_button",
+                # "move_button",
+                # "select_button",
+                # "delete_button",
                 "panzoom_button",
-                "delete_button",
+                "add_button",
             ],
             self.layer.editable,
         )

@@ -1,8 +1,11 @@
 """Infinite region"""
 import numpy as np
 from napari.layers.base import Layer, no_op
-from napari.layers.utils.color_manager import ColorManager
-from napari.layers.utils.color_transformations import transform_color_with_defaults
+from napari.layers.utils.color_transformations import (
+    normalize_and_broadcast_colors,
+    transform_color,
+    transform_color_with_defaults,
+)
 from napari.utils.events import Event
 
 from ._infline_constants import Mode, Orientation
@@ -14,8 +17,13 @@ class InfLine(Layer):
     """InfLine layer"""
 
     _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op}
-    _cursor_modes = {Mode.ADD: "pointing", Mode.SELECT: "standard", Mode.PAN_ZOOM: "standard"}
+    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
+    _cursor_modes = {
+        Mode.ADD: "standard",
+        Mode.SELECT: "standard",
+        Mode.PAN_ZOOM: "standard",
+        Mode.MOVE: "cross",
+    }
 
     def __init__(
         self,
@@ -42,7 +50,7 @@ class InfLine(Layer):
             data = np.asarray([])
         else:
             data, orientations = extract_inf_line_orientation(data, orientations)
-            data = np.asarray(data)
+            data = np.asarray(data, dtype=np.float64)
 
         if not len(data) == len(orientations):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
@@ -67,7 +75,7 @@ class InfLine(Layer):
         self._mode = Mode.PAN_ZOOM
 
         # each line can have its own color
-        self._color = ColorManager._from_layer_kwargs(n_colors=len(data), colors=color, properties={})
+        self._color = transform_color(color)  # np.asarray([transform_color(_color) for _color in color])
         # each line can be either horizontal or vertical
         self._orientations = [Orientation(orientation) for orientation in orientations]
 
@@ -79,7 +87,7 @@ class InfLine(Layer):
                 num_entries=1,
                 colors=color,
                 elem_name="color",
-                default="black",
+                default="white",
             )
 
         # indices of selected lines
@@ -115,13 +123,11 @@ class InfLine(Layer):
         assert mode is not None, mode
         old_mode = self._mode
 
-        if mode == Mode.ADD:
+        if mode == Mode.SELECT:
             self.selected_data = set()
-            self.interactive = False
 
         if mode == Mode.PAN_ZOOM:
             self.help = ""
-            self.interactive = True
         else:
             self.help = "Hold <space> to pan/zoom."
 
@@ -141,6 +147,11 @@ class InfLine(Layer):
     def selected_data(self, selected_data):
         pass
 
+    @property
+    def current_color(self):
+        """Get current color."""
+        return self._current_color
+
     def add(self, pos, orientation):
         """Adds point at coordinate.
 
@@ -151,9 +162,13 @@ class InfLine(Layer):
         orientation : sequence
             Sequence of orientations
         """
-        assert len(pos) == len(orientation)
+        if len(pos) != len(orientation):
+            raise ValueError(
+                "When adding infinite lines, it is expected that that the number of values matches the number of"
+                " orientations."
+            )
         self._orientations.extend(orientation)
-        self.data = np.append(self.data, np.asarray(pos), axis=0)
+        self.data = np.append(self._data, np.asarray(pos))
 
     def move(self, index: int, new_pos: float, finished: bool = False):
         """Move region to new location"""
@@ -206,14 +221,20 @@ class InfLine(Layer):
         self._data = data
 
         with self.events.blocker_all():
-            with self._color.events.blocker_all():
-                if len(data) < current_n_points:
-                    # if there are fewer lines, remove the colors of the extra ones
-                    self._color._remove(np.arange(len(data)), len(self._color.colors))
-                elif len(data) > current_n_points:
-                    # if there are now more points, add the colors of the new ones
-                    adding = len(data) - current_n_points
-                    self._color._add(n_colors=adding)
+            if len(data) < current_n_points:
+                # if there are fewer lines, remove the colors of the extra ones
+                self._color = np.delete(self._color, np.arange(len(data)), len(self._color))
+            elif len(data) > current_n_points:
+                # if there are now more points, add the colors of the new ones
+                adding = len(data) - current_n_points
+                transformed_color = transform_color_with_defaults(
+                    num_entries=adding,
+                    colors=self._current_color,
+                    elem_name="color",
+                    default="white",
+                )
+                broadcasted_colors = normalize_and_broadcast_colors(adding, transformed_color)
+                self._color = np.concatenate((self._color, broadcasted_colors))
 
         self._update_dims()
         self.events.data(value=self.data)
@@ -227,11 +248,14 @@ class InfLine(Layer):
     @property
     def color(self) -> np.ndarray:
         """Get color"""
-        return self._color.colors
+        return self._color
 
     @color.setter
     def color(self, color):
-        self._color._set_color(color=color, n_colors=len(self.data))
+        if self.selected_data:
+            print("update selected data")
+        else:
+            self._current_color = color
         self.events.color()
 
     @property

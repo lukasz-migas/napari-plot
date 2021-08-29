@@ -4,7 +4,7 @@ import typing as ty
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
-from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
+from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
@@ -67,8 +67,11 @@ class QtRegionControls(QtLayerControls):
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
 
+        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
         self.select_button = QtModeRadioButton(layer, "select_region", Mode.ADD, tooltip="Select new region (S)")
+        self.select_button.setDisabled(True)
         self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
+        self.move_button.setDisabled(True)
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",
@@ -76,17 +79,21 @@ class QtRegionControls(QtLayerControls):
             tooltip="Pan/zoom (Z)",
             checked=True,
         )
+        self.delete_button = QtModePushButton(layer, "delete_shape", tooltip="Delete selected infinite lines")
 
         self.button_group = QButtonGroup(self)
+        self.button_group.addButton(self.add_button)
         self.button_group.addButton(self.select_button)
         self.button_group.addButton(self.move_button)
         self.button_group.addButton(self.panzoom_button)
 
         button_row = QHBoxLayout()
         button_row.addStretch(1)
+        button_row.addWidget(self.add_button)
         button_row.addWidget(self.select_button)
         button_row.addWidget(self.move_button)
         button_row.addWidget(self.panzoom_button)
+        button_row.addWidget(self.delete_button)
         button_row.setContentsMargins(0, 0, 0, 5)
         button_row.setSpacing(4)
 
@@ -98,6 +105,8 @@ class QtRegionControls(QtLayerControls):
         self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row)
         self._on_editable_change()
+
+        disable_with_opacity(self, ["move_button", "select_button", "delete_button"], True)
 
     def _on_mode_change(self, event):
         """Update ticks in checkbox widgets when points layer mode is changed.
@@ -120,6 +129,8 @@ class QtRegionControls(QtLayerControls):
         if mode == Mode.MOVE:
             self.move_button.setChecked(True)
         elif mode == Mode.ADD:
+            self.add_button.setChecked(True)
+        elif mode == Mode.SELECT:
             self.select_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
@@ -161,9 +172,11 @@ class QtRegionControls(QtLayerControls):
                 "blending_combobox",
                 "edge_color_swatch",
                 "face_color_swatch",
-                "move_button",
-                "select_button",
+                # "move_button",
+                # "select_button",
+                # "delete_button",
                 "panzoom_button",
+                "add_button",
             ],
             self.layer.editable and self.layer.visible,
         )

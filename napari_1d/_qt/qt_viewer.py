@@ -34,12 +34,12 @@ from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
 
 
-class QtViewer(QSplitter):  # QWidget):
+class QtViewer(QSplitter):
     """Qt view for the napari Viewer model.
 
     Parameters
     ----------
-    viewer : imimspy.napari.components.ViewerModel
+    viewer : napari_1d.components.ViewerModel
         Napari viewer containing the rendered scene, layers, and controls.
 
     Attributes
@@ -131,10 +131,10 @@ class QtViewer(QSplitter):  # QWidget):
         # the first time its being set, it happens too quickly for the canvas to be fully rendered, so instead its set
         # from the model attribute rather than the rect width
         if not self._pos_offset_set:
-            self._pos_offset = int(self.viewer.axis.y_max_size), 0
+            self._pos_offset = int(self.viewer.axis.y_max_size), 20
             self._pos_offset_set = False
         else:
-            self._pos_offset = int(self.y_axis.node.rect.width), 0
+            self._pos_offset = int(self.y_axis.node.rect.width), 20
         self.viewer._canvas_size = tuple(self.canvas.size[::-1])
 
     def _create_canvas(self) -> None:
