@@ -1,20 +1,20 @@
 include LICENSE
 include README.md
 recursive-include napari_1d *.pyi
+recursive-include napari_1d _tests/*.py
 recursive-include napari_1d *.png *.svg *.qss *.gif
-recursive-include tests *.py
 
 exclude requirements.txt
 
 # explicit excludes to keep check-manifest happy and remind us that
 # these things are not being included unless we ask
-recursive-exclude * __pycache__
-recursive-exclude * *.py[co]
 recursive-exclude tools *
 recursive-exclude docs *
 recursive-exclude examples *
 recursive-exclude misc *
-
+recursive-exclude napari_1d __pycache__
+recursive-exclude napari_1d *.pyc
+exclude napari_1d _version.py
 exclude bundle.py
 exclude dockerfile
 exclude mkdocs.yml

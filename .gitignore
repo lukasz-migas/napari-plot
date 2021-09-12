@@ -76,7 +76,7 @@ target/
 .DS_Store
 
 # written by setuptools_scm
-napari_1d/_version.py
+_version.py
 
 # PyCharm
 .idea/*
