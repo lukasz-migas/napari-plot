@@ -17,8 +17,6 @@ class VispyRegionLayer(VispyBaseLayer):
         node = Compound([Mesh(), Mesh(), Line()])
         super().__init__(layer, node)
 
-        self.layer.events.edge_width.connect(self._on_data_change)
-        self.layer.events.edge_color.connect(self._on_data_change)
         self.layer.events.face_color.connect(self._on_data_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
 
@@ -48,49 +46,32 @@ class VispyRegionLayer(VispyBaseLayer):
         self.node.update()
 
     def _on_highlight_change(self, event=None):
-        pass
+        """Highlight."""
         # Compute the vertices and faces of any shape outlines
-        # vertices, faces = self.layer._outline_shapes()
-        #
-        # if vertices is None or len(vertices) == 0 or len(faces) == 0:
-        #     vertices = np.zeros((3, self.layer._ndisplay))
-        #     faces = np.array([[0, 1, 2]])
-        #
-        # self.node._subvisuals[1].set_data(
-        #     vertices=vertices,
-        #     faces=faces,
-        #     color=self.layer._highlight_color,
-        # )
-        #
-        # # Compute the location and properties of the vertices and box that
-        # # need to get rendered
-        # (
-        #     vertices,
-        #     face_color,
-        #     edge_color,
-        #     pos,
-        #     width,
-        # ) = self.layer._compute_vertices_and_box()
-        #
-        # # width = 3
-        # # if vertices is None or len(vertices) == 0:
-        # #     vertices = np.zeros((1, self.layer._ndisplay))
-        # #     size = 0
-        # # else:
-        # #     size = self.layer._vertex_size
-        # #
-        # # self.node._subvisuals[3].set_data(
-        # #     vertices,
-        # #     size=size,
-        # #     face_color=face_color,
-        # #     edge_color=edge_color,
-        # #     edge_width=width,
-        # #     symbol="square",
-        # #     scaling=False,
-        # # )
-        #
-        # if pos is None or len(pos) == 0:
-        #     pos = np.zeros((1, self.layer._ndisplay))
-        #     width = 0
-        #
-        # self.node._subvisuals[2].set_data(pos=pos, color=edge_color, width=width)
+        vertices, faces = self.layer._outline_shapes()
+        if vertices is None or len(vertices) == 0 or len(faces) == 0:
+            vertices = np.zeros((3, self.layer._ndisplay))
+            faces = np.array([[0, 1, 2]])
+
+        self.node._subvisuals[1].set_data(
+            vertices=vertices,
+            faces=faces,
+            color=self.layer._highlight_color,
+        )
+
+        # Compute the location and properties of the vertices and box that
+        # need to get rendered
+        (
+            _vertices,
+            _face_color,
+            edge_color,
+            pos,
+            _width,
+        ) = self.layer._compute_vertices_and_box()
+
+        # add region edges
+        width = 3
+        if pos is None or len(pos) == 0:
+            pos = np.zeros((1, self.layer._ndisplay))
+            width = 0
+        self.node._subvisuals[2].set_data(pos=pos, color=edge_color, width=width)

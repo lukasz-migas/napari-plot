@@ -51,27 +51,19 @@ class QtRegionControls(QtLayerControls):
     def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
-        self.layer.events.edge_color.connect(self._on_edge_color_change)
         self.layer.events.face_color.connect(self._on_face_color_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.edge_color_swatch = QColorSwatch(
-            initial_color=self.layer.edge_color,
-            tooltip="Click to set face color",
-        )
-        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
-
         self.face_color_swatch = QColorSwatch(
-            initial_color=self.layer.edge_color,
+            initial_color=self.layer.current_face_color,
             tooltip="Click to set face color",
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
 
         self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
-        self.select_button = QtModeRadioButton(layer, "select_region", Mode.ADD, tooltip="Select new region (S)")
-        self.select_button.setDisabled(True)
+        self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
+        self.edit_button = QtModeRadioButton(layer, "select_region", Mode.EDIT, tooltip="Edit region (E)")
         self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
-        self.move_button.setDisabled(True)
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",
@@ -79,31 +71,52 @@ class QtRegionControls(QtLayerControls):
             tooltip="Pan/zoom (Z)",
             checked=True,
         )
-        self.delete_button = QtModePushButton(layer, "delete_shape", tooltip="Delete selected infinite lines")
+        self.move_front_button = QtModePushButton(
+            layer, "move_front", slot=self.layer.move_to_front, tooltip="Move to front"
+        )
+
+        self.move_back_button = QtModePushButton(
+            layer,
+            "move_back",
+            slot=self.layer.move_to_back,
+            tooltip="Move to back",
+        )
+        self.delete_button = QtModePushButton(
+            layer, "delete_shape", slot=self.layer.remove_selected, tooltip="Delete selected infinite lines"
+        )
 
         self.button_group = QButtonGroup(self)
         self.button_group.addButton(self.add_button)
         self.button_group.addButton(self.select_button)
+        self.button_group.addButton(self.edit_button)
         self.button_group.addButton(self.move_button)
         self.button_group.addButton(self.panzoom_button)
 
-        button_row = QHBoxLayout()
-        button_row.addStretch(1)
-        button_row.addWidget(self.add_button)
-        button_row.addWidget(self.select_button)
-        button_row.addWidget(self.move_button)
-        button_row.addWidget(self.panzoom_button)
-        button_row.addWidget(self.delete_button)
-        button_row.setContentsMargins(0, 0, 0, 5)
-        button_row.setSpacing(4)
+        button_row_1 = QHBoxLayout()
+        button_row_1.addStretch(1)
+        button_row_1.addWidget(self.add_button)
+        button_row_1.addWidget(self.select_button)
+        button_row_1.addWidget(self.edit_button)
+        button_row_1.addWidget(self.move_button)
+        button_row_1.addWidget(self.panzoom_button)
+        button_row_1.addWidget(self.delete_button)
+        button_row_1.setContentsMargins(0, 0, 0, 5)
+        button_row_1.setSpacing(4)
+
+        button_row_2 = QHBoxLayout()
+        button_row_2.addStretch(1)
+        button_row_2.addWidget(self.move_back_button)
+        button_row_2.addWidget(self.move_front_button)
+        button_row_2.setContentsMargins(0, 0, 0, 5)
+        button_row_2.setSpacing(4)
 
         # add widgets to the layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Edge color"), self.edge_color_swatch)
         self.layout.addRow(make_label(self, "Face color"), self.face_color_swatch)
         self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
-        self.layout.addRow(button_row)
+        self.layout.addRow(button_row_1)
+        self.layout.addRow(button_row_2)
         self._on_editable_change()
 
         disable_with_opacity(self, ["move_button", "select_button", "delete_button"], True)
@@ -132,30 +145,22 @@ class QtRegionControls(QtLayerControls):
             self.add_button.setChecked(True)
         elif mode == Mode.SELECT:
             self.select_button.setChecked(True)
+        elif mode == Mode.EDIT:
+            self.edit_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
         else:
             raise ValueError(f"Mode {mode} not recognized")
 
     @Slot(np.ndarray)  # noqa
-    def on_change_edge_color(self, color: np.ndarray):
-        """Update face color of layer model from color picker user input."""
-        self.layer.edge_color = color
-
-    def _on_edge_color_change(self, _event):
-        """Receive layer.current_face_color() change event and update view."""
-        with qt_signals_blocked(self.edge_color_swatch):
-            self.edge_color_swatch.setColor(self.layer.edge_color)
-
-    @Slot(np.ndarray)  # noqa
     def on_change_face_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
-        self.layer.face_color = color
+        self.layer.current_face_color = color
 
     def _on_face_color_change(self, _event):
-        """Receive layer.current_edge_color() change event and update view."""
+        """Receive layer.current_face_color() change event and update view."""
         with qt_signals_blocked(self.face_color_swatch):
-            self.face_color_swatch.setColor(self.layer.face_color)
+            self.face_color_swatch.setColor(self.layer.current_face_color)
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -170,11 +175,10 @@ class QtRegionControls(QtLayerControls):
             [
                 "opacity_slider",
                 "blending_combobox",
-                "edge_color_swatch",
                 "face_color_swatch",
-                # "move_button",
-                # "select_button",
-                # "delete_button",
+                "move_button",
+                "select_button",
+                "delete_button",
                 "panzoom_button",
                 "add_button",
             ],

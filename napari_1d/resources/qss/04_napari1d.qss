@@ -1,17 +1,17 @@
 QtViewerPushButton[mode="new_inf_line"] {
-  image: url(":/themes/{{ folder }}/napari-1d:new_inf_line.svg");
+  image: url(":/themes/{{ name }}/napari-1d:new_inf_line.svg");
 }
 QtViewerPushButton[mode="new_centroids"] {
-  image: url(":/themes/{{ folder }}/napari-1d:new_centroids.svg");
+  image: url(":/themes/{{ name }}/napari-1d:new_centroids.svg");
 }
 QtViewerPushButton[mode="new_line"] {
-  image: url(":/themes/{{ folder }}/napari-1d:new_line.svg");
+  image: url(":/themes/{{ name }}/napari-1d:new_line.svg");
 }
 QtViewerPushButton[mode="new_region"] {
-  image: url(":/themes/{{ folder }}/napari-1d:new_region.svg");
+  image: url(":/themes/{{ name }}/napari-1d:new_region.svg");
 }
 QtViewerPushButton[mode="new_scatter"] {
-  image: url(":/themes/{{ folder }}/napari-1d:new_scatter.svg");
+  image: url(":/themes/{{ name }}/napari-1d:new_scatter.svg");
 }
 
 QtImagePushButton{
@@ -43,29 +43,29 @@ QtImagePushButton::hover{
 }
 
 QtImagePushButton#layers{
-    image: url(":/themes/{{ folder }}/napari-1d:layers.svg");
+    image: url(":/themes/{{ name }}/napari-1d:layers.svg");
 }
 QtImagePushButton#plot_grid{
-    image: url(":/themes/{{ folder }}/napari-1d:plot_grid.svg");
+    image: url(":/themes/{{ name }}/napari-1d:plot_grid.svg");
 }
 QtImagePushButton#text{
-    image: url(":/themes/{{ folder }}/napari-1d:text.svg");
+    image: url(":/themes/{{ name }}/napari-1d:text.svg");
 }
 QtImagePushButton#axes{
-    image: url(":/themes/{{ folder }}/napari-1d:axes_label.svg");
+    image: url(":/themes/{{ name }}/napari-1d:axes_label.svg");
 }
 QtImagePushButton#clipboard{
-    image: url(":/themes/{{ folder }}/copy_to_clipboard.svg");
+    image: url(":/themes/{{ name }}/copy_to_clipboard.svg");
 }
 QtImagePushButton#zoom_out{
-    image: url(":/themes/{{ folder }}/napari-1d:zoom_out.svg");
+    image: url(":/themes/{{ name }}/napari-1d:zoom_out.svg");
 }
 QtImagePushButton#erase{
-    image: url(":/themes/{{ folder }}/erase.svg");
+    image: url(":/themes/{{ name }}/erase.svg");
 }
 
 QtViewerPushButton[mode="minimise"] {
-  image: url(":/themes/{{ folder }}/napari-1d:minimise.svg");
+  image: url(":/themes/{{ name }}/napari-1d:minimise.svg");
 }
 
 /* ----------------- QtIconLabel ----------------- */
@@ -78,14 +78,14 @@ QtIconLabel{
     border: 0px;
 }
 QtIconLabel#move_handle{
-    image: url(":/themes/{{ folder }}/napari-1d:move.svg");
+    image: url(":/themes/{{ name }}/napari-1d:move.svg");
 }
 QtModeRadioButton[mode="add_points"]::indicator {
-    image: url(":/themes/{{ folder }}/add.svg");
+    image: url(":/themes/{{ name }}/add.svg");
 }
 QtModeRadioButton[mode="move_region"]::indicator {
-    image: url(":/themes/{{ folder }}/napari-1d:move.svg");
+    image: url(":/themes/{{ name }}/napari-1d:move.svg");
 }
 QtModeRadioButton[mode="select_region"]::indicator {
-    image: url(":/themes/{{ folder }}/napari-1d:target.svg");
+    image: url(":/themes/{{ name }}/napari-1d:target.svg");
 }

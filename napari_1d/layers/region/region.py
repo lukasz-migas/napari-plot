@@ -5,15 +5,19 @@ from typing import Tuple
 
 import numpy as np
 from napari.layers.base import Layer, no_op
-from napari.layers.shapes._shapes_constants import Box
 from napari.layers.shapes._shapes_utils import create_box
-from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
+from napari.layers.utils.color_transformations import (
+    ColorType,
+    normalize_and_broadcast_colors,
+    transform_color,
+    transform_color_with_defaults,
+)
 from napari.utils.events import Event
 from napari.utils.misc import ensure_iterable
 
-from ._region_constants import Mode, Orientation, region_classes
+from ._region_constants import Box, Mode, Orientation, region_classes
 from ._region_list import RegionList
-from ._region_mouse_bindings import add
+from ._region_mouse_bindings import add, select
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
 
 REV_TOOL_HELP = {
@@ -21,6 +25,7 @@ REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, drag along x-axis -> horizontal region; drag along y-axis -> vertical region": {
         Mode.ADD
     },
+    "Hold <space> to pan/zoom, ": {Mode.EDIT},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
     "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
 }
@@ -33,9 +38,24 @@ for t, modes in REV_TOOL_HELP.items():
 class Region(Layer):
     """Line layer"""
 
-    _drag_modes = {Mode.ADD: add, Mode.MOVE: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
-    _cursor_modes = {Mode.ADD: "pointing", Mode.MOVE: "pointing", Mode.PAN_ZOOM: "standard", Mode.SELECT: "pointing"}
+    _drag_modes = {Mode.ADD: add, Mode.MOVE: no_op, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
+    _move_modes = {Mode.ADD: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op, Mode.EDIT: no_op}
+    _cursor_modes = {
+        Mode.ADD: "pointing",
+        Mode.MOVE: "pointing",
+        Mode.PAN_ZOOM: "standard",
+        Mode.SELECT: "pointing",
+        Mode.EDIT: "standard",
+    }
+
+    _vertex_size = 10
+    _rotation_handle_length = 20
+    _highlight_color = (0, 0.6, 1)
+    _highlight_width = 1.5
+
+    # If more shapes are present then they are randomly sub-sampled
+    # in the thumbnail
+    _max_shapes_thumbnail = 10
 
     def __init__(
         self,
@@ -43,8 +63,6 @@ class Region(Layer):
         *,
         orientation="vertical",
         label="",
-        edge_width=1,
-        edge_color="red",
         face_color="white",
         z_index=0,
         # base parameters
@@ -79,10 +97,7 @@ class Region(Layer):
             visible=visible,
         )
         self.events.add(
-            edge_width=Event,
-            edge_color=Event,
             face_color=Event,
-            current_edge_color=Event,
             current_face_color=Event,
             highlight=Event,
             label=Event,
@@ -97,14 +112,6 @@ class Region(Layer):
         self._ndisplay_stored = self._ndisplay
 
         self._label = label
-
-        # The following shape properties are for the new shapes that will
-        # be drawn. Each shape has a corresponding property with the
-        # value for itself
-        if np.isscalar(edge_width):
-            self._current_edge_width = edge_width
-        else:
-            self._current_edge_width = 1
 
         self._data_view = RegionList(ndisplay=self._ndisplay)
         self._data_view.slice_key = np.array(self._slice_indices)[list(self._dims_not_displayed)]
@@ -133,23 +140,14 @@ class Region(Layer):
         self._init_regions(
             data,
             orientation=orientation,
-            edge_width=edge_width,
-            edge_color=edge_color,
             face_color=face_color,
             z_index=z_index,
         )
 
         # set the current_* properties
         if len(data) > 0:
-            self._current_edge_color = self.edge_color[-1]
             self._current_face_color = self.face_color[-1]
         elif len(data) == 0:
-            self._current_edge_color = transform_color_with_defaults(
-                num_entries=1,
-                colors=edge_color,
-                elem_name="edge_color",
-                default="black",
-            )
             self._current_face_color = transform_color_with_defaults(
                 num_entries=1,
                 colors=face_color,
@@ -157,6 +155,7 @@ class Region(Layer):
                 default="black",
             )
         self.visible = visible
+        self._moving_value = (None, None)
 
     # noinspection PyMethodMayBeStatic
     def _initialize_color(self, color, attribute, n_regions: int):
@@ -192,17 +191,6 @@ class Region(Layer):
         self._allow_thumbnail_update = True
 
     @property
-    def edge_color(self):
-        """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
-        return self._data_view.edge_color
-
-    @edge_color.setter
-    def edge_color(self, edge_color):
-        self._set_color(edge_color, "edge")
-        self.events.edge_color()
-        self._update_thumbnail()
-
-    @property
     def face_color(self):
         """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
         return self._data_view.face_color
@@ -213,8 +201,24 @@ class Region(Layer):
         self.events.face_color()
         self._update_thumbnail()
 
+    @property
+    def current_face_color(self):
+        """Return current face color."""
+        return self._current_face_color
+
+    @current_face_color.setter
+    def current_face_color(self, face_color: ColorType):
+        """Update edge color."""
+        self._current_face_color = transform_color(face_color)[0]
+        if self._update_properties:
+            for i in self.selected_data:
+                self._data_view.update_face_color(i, self._current_face_color)
+                self.events.face_color()
+                self._update_thumbnail()
+        self.events.current_face_color()
+
     def _set_color(self, color, attribute: str):
-        """Set the face_color or edge_color property
+        """Set the face_color property
 
         Parameters
         ----------
@@ -222,7 +226,7 @@ class Region(Layer):
             The value for setting edge or face_color
         attribute : str in {'edge', 'face'}
             The name of the attribute to set the color of.
-            Should be 'edge' for edge_color or 'face' for face_color.
+            Should be 'face' for face_color.
         """
         if len(self.data) > 0:
             transformed_color = transform_color_with_defaults(
@@ -351,6 +355,21 @@ class Region(Layer):
     @selected_data.setter
     def selected_data(self, selected_data):
         self._selected_data = set(selected_data)
+        self._selected_box = self.interaction_box(self._selected_data)
+
+        # Update properties based on selected shapes
+        if len(selected_data) > 0:
+            selected_data_indices = list(selected_data)
+            selected_face_colors = self._data_view._face_color[selected_data_indices]
+            face_colors = np.unique(selected_face_colors, axis=0)
+            if len(face_colors) == 1:
+                face_color = face_colors[0]
+                self.current_face_color = face_color
+
+            # edge_width = list({self._data_view.regions[i].edge_width for i in selected_data})
+            # if len(edge_width) == 1:
+            #     edge_width = edge_width[0]
+            #     self.current_edge_width = edge_width
 
     def remove_selected(self):
         """Remove any selected shapes."""
@@ -360,7 +379,6 @@ class Region(Layer):
             self._data_view.remove(ind)
 
         if len(index) > 0:
-            self._data_view._edge_color = np.delete(self._data_view._edge_color, index, axis=0)
             self._data_view._face_color = np.delete(self._data_view._face_color, index, axis=0)
         self.selected_data = set()
         self._finish_drawing()
@@ -394,10 +412,27 @@ class Region(Layer):
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
-        colormapped = np.zeros(self._thumbnail_shape)
-        colormapped[..., 3] = 1
-        colormapped[..., 3] *= self.opacity
-        self.thumbnail = colormapped
+        # don't update the thumbnail if dragging a shape
+        if self._is_moving is False and self._allow_thumbnail_update is True:
+            # calculate min vals for the vertices and pad with 0.5
+            # the offset is needed to ensure that the top left corner of the shapes
+            # corresponds to the top left corner of the thumbnail
+            de = self._extent_data
+            offset = np.array([de[0, d] for d in self._dims_displayed]) + 0.5
+            # calculate range of values for the vertices and pad with 1
+            # padding ensures the entire shape can be represented in the thumbnail
+            # without getting clipped
+            shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._dims_displayed]).astype(int)
+            zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
+
+            colormapped = self._data_view.to_colors(
+                colors_shape=self._thumbnail_shape[:2],
+                zoom_factor=zoom_factor,
+                offset=offset[-2:],
+                max_shapes=self._max_shapes_thumbnail,
+            )
+
+            self.thumbnail = colormapped
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -427,30 +462,19 @@ class Region(Layer):
         if orientation is None:
             orientation = self.orientation
 
-        edge_widths = self._data_view.edge_widths
-        edge_color = self._data_view.edge_color
         face_color = self._data_view.face_color
         z_indices = self._data_view.z_indices
 
         # fewer shapes, trim attributes
         if self.n_regions > n_new_regions:
             orientation = orientation[:n_new_regions]
-            edge_widths = edge_widths[:n_new_regions]
             z_indices = z_indices[:n_new_regions]
-            edge_color = edge_color[:n_new_regions]
             face_color = face_color[:n_new_regions]
         # more shapes, add attributes
         elif self.n_regions < n_new_regions:
             n_shapes_difference = n_new_regions - self.n_regions
             orientation = orientation + [get_default_region_type(orientation)] * n_shapes_difference
-            edge_widths = edge_widths + [1] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
-            edge_color = np.concatenate(
-                (
-                    edge_color,
-                    self._get_new_shape_color(n_shapes_difference, "edge"),
-                )
-            )
             face_color = np.concatenate(
                 (
                     face_color,
@@ -462,8 +486,6 @@ class Region(Layer):
         self.add(
             data,
             orientation=orientation,
-            edge_width=edge_widths,
-            edge_color=edge_color,
             face_color=face_color,
             z_index=z_indices,
         )
@@ -477,8 +499,6 @@ class Region(Layer):
         data,
         *,
         orientation="vertical",
-        edge_width=None,
-        edge_color=None,
         face_color=None,
         z_index=None,
     ):
@@ -497,17 +517,6 @@ class Region(Layer):
             If list is supplied it must be the same length as the length of `data`
             and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
-        edge_width : float | list
-            thickness of lines and edges. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
-        edge_color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
         face_color : str | tuple | list
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
@@ -523,12 +532,7 @@ class Region(Layer):
         """
         data, shape_type = extract_region_orientation(data, orientation)
 
-        if edge_width is None:
-            edge_width = self.current_edge_width
-
         n_new_shapes = len(data)
-        if edge_color is None:
-            edge_color = self._get_new_region_color(n_new_shapes, attribute="edge")
         if face_color is None:
             face_color = self._get_new_region_color(n_new_shapes, attribute="face")
         if self._data_view is not None:
@@ -540,8 +544,6 @@ class Region(Layer):
             self._add_regions(
                 data,
                 orientation=orientation,
-                edge_width=edge_width,
-                edge_color=edge_color,
                 face_color=face_color,
                 z_index=z_index,
             )
@@ -552,8 +554,6 @@ class Region(Layer):
         data,
         *,
         orientation="vertical",
-        edge_width=None,
-        edge_color=None,
         face_color=None,
         z_index=None,
         z_refresh=True,
@@ -573,17 +573,6 @@ class Region(Layer):
             If list is supplied it must be the same length as the length of `data`
             and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
-        edge_width : float | list
-            thickness of lines and edges. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
-        edge_color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
         face_color : str | tuple | list
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
@@ -603,10 +592,6 @@ class Region(Layer):
             When adding a batch of shapes, set to false  and then call
             ShapesList._update_z_order() once at the end.
         """
-        if edge_width is None:
-            edge_width = self.current_edge_width
-        if edge_color is None:
-            edge_color = self._current_edge_color
         if face_color is None:
             face_color = self._current_face_color
         if self._data_view is not None:
@@ -616,13 +601,6 @@ class Region(Layer):
 
         if len(data) > 0:
             # transform the colors
-            transformed_ec = transform_color_with_defaults(
-                num_entries=len(data),
-                colors=edge_color,
-                elem_name="edge_color",
-                default="white",
-            )
-            transformed_edge_color = normalize_and_broadcast_colors(len(data), transformed_ec)
             transformed_fc = transform_color_with_defaults(
                 num_entries=len(data),
                 colors=face_color,
@@ -635,8 +613,6 @@ class Region(Layer):
             region_inputs = zip(
                 data,
                 ensure_iterable(orientation),
-                ensure_iterable(edge_width),
-                transformed_edge_color,
                 transformed_face_color,
                 ensure_iterable(z_index),
             )
@@ -667,17 +643,14 @@ class Region(Layer):
         new_colors = np.tile(current_face_color, (adding, 1))
         return new_colors
 
-    def _init_regions(self, data, *, orientation=None, edge_width=None, edge_color=None, face_color=None, z_index=None):
+    def _init_regions(self, data, *, orientation=None, face_color=None, z_index=None):
         """Add regions to the data view."""
         n_regions = len(data)
-        edge_color = self._initialize_color(edge_color, attribute="edge", n_regions=n_regions)
         face_color = self._initialize_color(face_color, attribute="face", n_regions=n_regions)
         with self.block_thumbnail_update():
             self._add_regions(
                 data,
                 orientation=orientation,
-                edge_width=edge_width,
-                edge_color=edge_color,
                 face_color=face_color,
                 z_index=z_index,
                 z_refresh=False,
@@ -686,13 +659,13 @@ class Region(Layer):
 
     def _add_regions_to_view(self, shape_inputs, data_view):
         """Build new region and add them to the _data_view"""
-        for d, ot, ew, ec, fc, z in shape_inputs:
+        for d, ot, fc, z in shape_inputs:
             region_cls = region_classes[Orientation(ot)]
             d = preprocess_region(d, ot)
-            region = region_cls(d, edge_width=ew, z_index=z, dims_order=self._dims_order, ndisplay=self._ndisplay)
+            region = region_cls(d, z_index=z, dims_order=self._dims_order, ndisplay=self._ndisplay)
 
             # Add region
-            data_view.add(region, edge_color=ec, face_color=fc, z_refresh=False)
+            data_view.add(region, face_color=fc, z_refresh=False)
         data_view._update_z_order()
 
     @property
@@ -734,7 +707,21 @@ class Region(Layer):
 
     def _get_value(self, position):
         """Value of the data at a position in data coordinates"""
-        return None
+        coord = position[0:2]
+
+        # Check selected region
+        value = None
+        # selected_index = list(self.selected_data)
+        # if len(selected_index) > 0:
+        # if self._mode == Mode.SELECT:
+        #     # Check if inside vertex of interaction box
+        #     pass
+
+        if value is None:
+            # Check if mouse inside shape
+            region = self._data_view.inside(coord)
+            value = (region, None)
+        return value
 
     @property
     def _extent_data(self) -> np.ndarray:
@@ -777,31 +764,7 @@ class Region(Layer):
         width : float
             Width of the box edge
         """
-        if len(self.selected_data) > 0:
-            if self._mode == Mode.SELECT:
-                # If in select mode just show the interaction bounding box
-                # including its vertices and the rotation handle
-                box = self._selected_box[Box.WITH_HANDLE]
-                if self._value[0] is None:
-                    face_color = "white"
-                elif self._value[1] is None:
-                    face_color = "white"
-                else:
-                    face_color = self._highlight_color
-                edge_color = self._highlight_color
-                vertices = box[:, ::-1]
-                # Use a subset of the vertices of the interaction_box to plot
-                # the line around the edge
-                pos = box[Box.LINE_HANDLE][:, ::-1]
-                width = 1.5
-            else:
-                # Otherwise show nothing
-                vertices = np.empty((0, 2))
-                face_color = "white"
-                edge_color = "white"
-                pos = None
-                width = 0
-        elif self._is_selecting:
+        if self._is_selecting:
             # If currently dragging a selection box just show an outline of
             # that box
             vertices = np.empty((0, 2))
@@ -849,3 +812,76 @@ class Region(Layer):
         for index in self.selected_data:
             self._data_view.update_z_index(index, new_z_index)
         self.refresh()
+
+    def interaction_box(self, index):
+        """Create the interaction box around a shape or list of shapes.
+        If a single index is passed then the bounding box will be inherited
+        from that shapes interaction box. If list of indices is passed it will
+        be computed directly.
+
+        Parameters
+        ----------
+        index : int | list
+            Index of a single shape, or a list of shapes around which to
+            construct the interaction box
+
+        Returns
+        -------
+        box : np.ndarray
+            10x2 array of vertices of the interaction box. The first 8 points
+            are the corners and midpoints of the box in clockwise order
+            starting in the upper-left corner. The 9th point is the center of
+            the box, and the last point is the location of the rotation handle
+            that can be used to rotate the box
+        """
+        if isinstance(index, (list, np.ndarray, set)):
+            if len(index) == 0:
+                box = None
+            elif len(index) == 1:
+                box = copy(self._data_view.regions[list(index)[0]]._box)
+            else:
+                indices = np.isin(self._data_view.displayed_index, list(index))
+                box = create_box(self._data_view.displayed_vertices[indices])
+        else:
+            box = copy(self._data_view.regions[index]._box)
+
+        if box is not None:
+            rot = box[Box.TOP_CENTER]
+            length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
+            if length_box > 0:
+                r = self._rotation_handle_length * self.scale_factor
+                rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
+            box = np.append(box, [rot], axis=0)
+        return box
+
+    def _outline_shapes(self):
+        """Find outlines of any selected or hovered shapes.
+
+        Returns
+        -------
+        vertices : None | np.ndarray
+            Nx2 array of any vertices of outline or None
+        triangles : None | np.ndarray
+            Mx3 array of any indices of vertices for triangles of outline or
+            None
+        """
+        if self._value is not None and (self._value[0] is not None or len(self.selected_data) > 0):
+            if len(self.selected_data) > 0:
+                index = list(self.selected_data)
+                if self._value[0] is not None:
+                    if self._value[0] in index:
+                        pass
+                    else:
+                        index.append(self._value[0])
+                index.sort()
+            else:
+                index = self._value[0]
+
+            centers, offsets, triangles = self._data_view.highlight(index)
+            vertices = centers + (self.scale_factor * self._highlight_width * offsets)
+            vertices = vertices[:, ::-1]
+        else:
+            vertices = None
+            triangles = None
+
+        return vertices, triangles

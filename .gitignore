@@ -80,3 +80,8 @@ napari_1d/_version.py
 
 # PyCharm
 .idea/*
+
+# LiClipse files
+.project
+.pydevproject
+.settings/

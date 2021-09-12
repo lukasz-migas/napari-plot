@@ -415,7 +415,7 @@ class RegionList:
         data : np.ndarray
             NxD array of vertices.
         new_type : None | str | Orientation
-            If string, must be one of "{'vertical', 'horizonta'}
+            If string, must be one of "{'vertical', 'horizontal'}
         """
         if new_type is not None:
             cur_shape = self.regions[index]
@@ -612,6 +612,35 @@ class RegionList:
         self.add(shape, shape_index=index)
         self._update_z_order()
 
+    def highlight(self, indices):
+        """Find highlights of regions listed in indices"""
+        if type(indices) is list:
+            meshes = self._mesh.triangles_index
+            triangle_indices = [i for i, x in enumerate(meshes) if x[0] in indices and x[1] == 0]
+            meshes = self._mesh.vertices_index
+            vertices_indices = [i for i, x in enumerate(meshes) if x[0] in indices and x[1] == 0]
+        else:
+            triangle_indices = np.all(self._mesh.triangles_index == [indices, 0], axis=1)
+            triangle_indices = np.where(triangle_indices)[0]
+            vertices_indices = np.all(self._mesh.vertices_index == [indices, 0], axis=1)
+            vertices_indices = np.where(vertices_indices)[0]
+
+        offsets = self._mesh.vertices_offsets[vertices_indices]
+        centers = self._mesh.vertices_centers[vertices_indices]
+        triangles = self._mesh.triangles[triangle_indices]
+
+        if type(indices) is list:
+            t_ind = self._mesh.triangles_index[triangle_indices][:, 0]
+            inds = self._mesh.vertices_index[vertices_indices][:, 0]
+            starts = np.unique(inds, return_index=True)[1]
+            for i, ind in enumerate(indices):
+                inds = t_ind == ind
+                adjust_index = starts[i] - vertices_indices[starts[i]]
+                triangles[inds] = triangles[inds] + adjust_index
+        else:
+            triangles = triangles - vertices_indices[0]
+        return centers, offsets, triangles
+
     def outline(self, indices):
         """Finds outlines of shapes listed in indices
 
@@ -655,10 +684,9 @@ class RegionList:
                 triangles[inds] = triangles[inds] + adjust_index
         else:
             triangles = triangles - vertices_indices[0]
-
         return centers, offsets, triangles
 
-    def shapes_in_box(self, corners):
+    def regions_in_box(self, corners):
         """Determines which shapes, if any, are inside an axis aligned box.
 
         Looks only at displayed shapes
@@ -709,7 +737,7 @@ class RegionList:
         else:
             return None
 
-    def to_masks(self, mask_shape=None, zoom_factor=1, offset=(0, 0)):
+    def to_masks(self, mask_shape=None, zoom_factor=1, offset=[0, 0]):
         """Returns N binary masks, one for each shape, embedded in an array of
         shape `mask_shape`.
 
@@ -738,7 +766,7 @@ class RegionList:
 
         return masks
 
-    def to_labels(self, labels_shape=None, zoom_factor=1, offset=(0, 0)):
+    def to_labels(self, labels_shape=None, zoom_factor=1, offset=[0, 0]):
         """Returns a integer labels image, where each shape is embedded in an
         array of shape labels_shape with the value of the index + 1
         corresponding to it, and 0 for background. For overlapping shapes
@@ -773,7 +801,7 @@ class RegionList:
 
         return labels
 
-    def to_colors(self, colors_shape=None, zoom_factor=1, offset=(0, 0), max_shapes=None):
+    def to_colors(self, colors_shape=None, zoom_factor=1, offset=[0, 0], max_shapes=None):
         """Rasterize shapes to an RGBA image array.
 
         Each shape is embedded in an array of shape `colors_shape` with the
@@ -784,10 +812,10 @@ class RegionList:
         ----------
         colors_shape : np.ndarray | tuple | None
             2-tuple defining shape of colors image to be generated. If non
-            specified, takes the max of all the vertices
+            specified, takes the max of all the vertiecs
         zoom_factor : float
             Pre-multiplier applied to coordinates before generating mask. Used
-            for generating as down-sampled mask.
+            for generating as downsampled mask.
         offset : 2-tuple
             Offset subtracted from coordinates before multiplying by the
             zoom_factor. Used for putting negative coordinates into the mask.
@@ -823,4 +851,5 @@ class RegionList:
             mask = self.regions[ind].to_mask(colors_shape, zoom_factor=zoom_factor, offset=offset)
             col = self._face_color[ind]
             colors[mask, :] = col
+
         return colors

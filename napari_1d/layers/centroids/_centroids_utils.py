@@ -10,6 +10,6 @@ def preprocess_centroids(data: np.ndarray):
     if data.shape[1] == 3:
         return data
     if data.shape[1] == 2:
-        lower = np.zeros(data.shape[0])
-        data = np.insert(data, lower, axis=1)
+        data = np.insert(data, 0, np.zeros(data.shape[0]), axis=1)
         return data
+    raise ValueError("Provided centroid data was incorrect.")

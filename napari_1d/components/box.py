@@ -63,9 +63,9 @@ class BoxTool(EventedModel):
     def mesh(self):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         if self.shape == Shape.VERTICAL:
-            span = Vertical(self.position[0:2], edge_width=0, z_index=0)
+            span = Vertical(self.position[0:2], z_index=0)
         elif self.shape == Shape.HORIZONTAL:
-            span = Horizontal(self.position[2:], edge_width=0, z_index=0)
+            span = Horizontal(self.position[2:], z_index=0)
         else:
             span = Box(self.position, edge_width=0, z_index=0)
         self._mesh.clear()
