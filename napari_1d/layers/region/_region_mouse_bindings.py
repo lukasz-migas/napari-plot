@@ -3,61 +3,119 @@ from copy import copy
 
 import numpy as np
 
+from ._region_constants import Orientation
+from ._region_utils import preprocess_region
+
+
+def highlight(layer, event):
+    """Highlight hovered regions."""
+    layer._set_highlight()
+
 
 # TODO: this should draw temporary region of interest
 def add(layer, event):
     """Add new infinite region."""
-    print("add")
-    if event.type == "mouse_press":
-        pos_start = event.pos
-        position_start = event.position
+    # on press
+    pos_start = event.pos
+    position_start = event.position
+    yield
 
-    while event.type != "mouse_release":
+    # on move
+    index = None
+    while event.type == "mouse_move":
+        x_dist, y_dist = pos_start - event.pos
+        coord_start = layer.world_to_data(position_start)
+        coord_end = layer.world_to_data(event.position)
+        if abs(x_dist) < abs(y_dist):
+            orientation = Orientation.HORIZONTAL
+            pos = [coord_start[0], coord_end[0]]
+        else:
+            orientation = Orientation.VERTICAL
+            pos = [coord_start[1], coord_end[1]]
+        if index is None:
+            index = layer._add_creating(pos, orientation=orientation)
+        else:
+            layer.move(index, preprocess_region(pos, orientation), orientation=orientation)
         yield
 
-    x_dist, y_dist = pos_start - event.pos
-    coord_start = layer.world_to_data(position_start)
-    coord_end = layer.world_to_data(event.position)
-    if abs(x_dist) < abs(y_dist):
-        orientation = "horizontal"
-        pos = [coord_start[0], coord_end[0]]
-    else:
-        orientation = "vertical"
-        pos = [coord_start[1], coord_end[1]]
-    layer.add([pos], orientation=[orientation])
+    # on release
+    layer._finish_drawing()
+
+
+def edit(layer, event):
+    """Edit layer by first selecting and then drawing new version of the region."""
 
 
 def move(layer, event):
-    """Move the currently drawn region to new location"""
+    """Move region by first selecting and then moving along the axis."""
+    # on press
+    _select(layer, event, False)
+    # above, user should have selected single region and then can move it left-or-right or up-or-down
+    data, orientation, wh_half = None, None, None
+    if len(layer.selected_data) > 0:
+        index = list(layer.selected_data)[0]
+        data, orientation = layer.data[index], layer.orientation[index]
+        wh_half = _get_half(data, orientation)
+    yield
 
-    def _update(finished: bool = False):
-        new_coordinates = layer.world_to_data(event.position)
-        start_coordinates = new_coordinates - wh_half
-        end_coordinates = new_coordinates + wh_half
-        layer.move(start_coordinates, end_coordinates, finished)
-
-    # on press, keep track of the original data
-    if event.type == "mouse_press":
-        wh = layer.data[1] - layer.data[0]
-        wh_half = wh / 2
-        _update()
-        yield
-
-    # on mouse move
+    # on move
     while event.type == "mouse_move":
-        _update()
+        if data is not None:
+            coordinates = layer.world_to_data(event.position)
+            layer._moving_coordinates = coordinates
+            layer.move(index, _get_region(coordinates, wh_half, orientation), orientation)
         yield
 
-    # on mouse release
-    while event.type != "mouse_release":
-        yield
-    _update(True)
+    # on release
+    layer.selected_data = set()  # clear selection
+    layer._set_highlight()
+    layer._update_thumbnail()
+    if data is not None:
+        coordinates = layer.world_to_data(event.position)
+        layer._moving_coordinates = coordinates
+        layer.move(index, _get_region(coordinates, wh_half, orientation), orientation, True)
 
 
 def select(layer, event):
     """Select new region in the canvas"""
     shift = "Shift" in event.modifiers
     # on press
+    region_under_cursor, _ = _select(layer, event, shift)
+
+    # we don't update the thumbnail unless a shape has been moved
+    update_thumbnail = False
+    yield
+
+    # on move
+    while event.type == "mouse_move":
+        coordinates = layer.world_to_data(event.position)
+        layer._moving_coordinates = coordinates
+        # Drag any selected shapes
+        if len(layer.selected_data) == 0:
+            _drag_selection_box(layer, coordinates)
+        yield
+
+    # on release
+    shift = "Shift" in event.modifiers
+    if not layer._is_moving and not layer._is_selecting and not shift:
+        if region_under_cursor is not None:
+            layer.selected_data = {region_under_cursor}
+        else:
+            layer.selected_data = set()
+    elif layer._is_selecting:
+        layer.selected_data = layer._data_view.regions_in_box(layer._drag_box)
+        layer._is_selecting = False
+        layer._set_highlight()
+
+    layer._drag_start = None
+    layer._drag_box = None
+    layer._set_highlight()
+
+    if update_thumbnail:
+        layer._update_thumbnail()
+
+
+def _select(layer, event, shift: bool):
     value = layer.get_value(event.position, world=True)
     layer._moving_value = copy(value)
     region_under_cursor, vertex_under_cursor = value
@@ -73,51 +131,7 @@ def select(layer, event):
         else:
             layer.selected_data = set()
     layer._set_highlight()
-
-    # we don't update the thumbnail unless a shape has been moved
-    update_thumbnail = False
-    yield
-
-    # on move
-    while event.type == "mouse_move":
-        coordinates = layer.world_to_data(event.position)
-        layer._moving_coordinates = coordinates
-        # Drag any selected shapes
-        if len(layer.selected_data) == 0:
-            _drag_selection_box(layer, coordinates)
-
-        # if a shape is being moved, update the thumbnail
-        if layer._is_moving:
-            update_thumbnail = True
-        yield
-
-    # only emit data once dragging has finished
-    # if layer._is_moving:
-    #     layer.events.data(value=layer.data)
-
-    # on release
-    shift = "Shift" in event.modifiers
-    if not layer._is_moving and not layer._is_selecting and not shift:
-        if region_under_cursor is not None:
-            layer.selected_data = {region_under_cursor}
-        else:
-            layer.selected_data = set()
-    elif layer._is_selecting:
-        layer.selected_data = layer._data_view.regions_in_box(layer._drag_box)
-        layer._is_selecting = False
-        layer._set_highlight()
-
-    # layer._is_moving = False
-    layer._drag_start = None
-    layer._drag_box = None
-    layer._moving_value = (None, None)
-    layer._set_highlight()
-
-    # layer._is_moving = False
-    layer._set_highlight()
-
-    if update_thumbnail:
-        layer._update_thumbnail()
+    return region_under_cursor, vertex_under_cursor
 
 
 def _drag_selection_box(layer, coordinates):
@@ -144,18 +158,15 @@ def _drag_selection_box(layer, coordinates):
     layer._set_highlight()
 
 
-def _move(layer, coordinates):
-    """Moves object at given mouse position and set of indices.
+def _get_half(data: np.ndarray, orientation: Orientation):
+    """Get data along dimension."""
+    if orientation == Orientation.HORIZONTAL:
+        return abs(data[0, 0] - data[2, 0]) / 2
+    return abs(data[0, 1] - data[1, 1]) / 2
 
-    Parameters
-    ----------
-    layer : napari.layers.Shapes
-        Shapes layer.
-    coordinates : tuple
-        Position of mouse cursor in data coordinates.
-    """
-    # If nothing selected return
-    if len(layer.selected_data) == 0:
-        return
 
-    vertex = layer._moving_value[1]
+def _get_region(coordinates, wh_half: float, orientation: Orientation):
+    """Get region."""
+    if orientation == Orientation.HORIZONTAL:
+        return preprocess_region((coordinates[0] - wh_half, coordinates[0] + wh_half), orientation)
+    return preprocess_region((coordinates[1] - wh_half, coordinates[1] + wh_half), orientation)

@@ -34,12 +34,8 @@ class RegionList:
         by those values.
     shape_types : (N, ) list of str
         Name of shape type for each shape.
-    edge_color : (N x 4) np.ndarray
-        Array of RGBA edge colors for each shape.
     face_color : (N x 4) np.ndarray
         Array of RGBA face colors for each shape.
-    edge_widths : (N, ) list of float
-        Edge width for each shape.
     z_indices : (N, ) list of int
         z-index for each shape.
 
@@ -75,7 +71,6 @@ class RegionList:
 
         self._mesh = Mesh(ndisplay=self.ndisplay)
 
-        self._edge_color = np.empty((0, 4))
         self._face_color = np.empty((0, 4))
 
         for d in data:
@@ -118,15 +113,6 @@ class RegionList:
         return [s.name for s in self.regions]
 
     @property
-    def edge_color(self):
-        """(N x 4) np.ndarray: Array of RGBA edge colors for each shape"""
-        return self._edge_color
-
-    @edge_color.setter
-    def edge_color(self, edge_color):
-        self._set_color(edge_color, "edge")
-
-    @property
     def face_color(self):
         """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
         return self._face_color
@@ -158,11 +144,6 @@ class RegionList:
         for i, col in enumerate(colors):
             update_method(i, col, update=False)
         self._update_displayed()
-
-    @property
-    def edge_widths(self):
-        """list of float: edge width for each shape."""
-        return [s.edge_width for s in self.regions]
 
     @property
     def z_indices(self):
@@ -209,7 +190,6 @@ class RegionList:
         self,
         shape,
         face_color=None,
-        edge_color=None,
         shape_index=None,
         z_refresh=True,
     ):
@@ -242,9 +222,6 @@ class RegionList:
             if face_color is None:
                 face_color = np.array([1, 1, 1, 1])
             self._face_color = np.vstack([self._face_color, face_color])
-            if edge_color is None:
-                edge_color = np.array([0, 0, 0, 1])
-            self._edge_color = np.vstack([self._edge_color, edge_color])
         else:
             z_refresh = False
             self.regions[shape_index] = shape
@@ -254,10 +231,6 @@ class RegionList:
                 face_color = self._face_color[shape_index]
             else:
                 self._face_color[shape_index, :] = face_color
-            if edge_color is None:
-                edge_color = self._edge_color[shape_index]
-            else:
-                self._edge_color[shape_index, :] = edge_color
 
         self._vertices = np.append(self._vertices, shape.data_displayed, axis=0)
         index = np.repeat(shape_index, len(shape.data))
@@ -404,7 +377,7 @@ class RegionList:
             self._mesh.triangles_z_order = np.concatenate(triangles_z_order)
         self._update_displayed()
 
-    def edit(self, index, data, face_color=None, edge_color=None, new_type=None):
+    def edit(self, index, data, face_color=None, new_type=None):
         """Updates the data of a single shape located at index. If
         `new_type` is not None then converts the shape type to the new type
 
@@ -419,7 +392,7 @@ class RegionList:
         """
         if new_type is not None:
             cur_shape = self.regions[index]
-            if type(new_type) == str:
+            if isinstance(new_type, (str, Orientation)):
                 orientation = Orientation(new_type)
                 if orientation in region_classes.keys():
                     shape_cls = region_classes[orientation]
@@ -431,7 +404,6 @@ class RegionList:
                 shape_cls = new_type
             shape = shape_cls(
                 data,
-                edge_width=cur_shape.edge_width,
                 z_index=cur_shape.z_index,
                 dims_order=cur_shape.dims_order,
             )
@@ -441,46 +413,10 @@ class RegionList:
 
         if face_color is not None:
             self._face_color[index] = face_color
-        if edge_color is not None:
-            self._edge_color[index] = edge_color
 
         self.remove(index, renumber=False)
         self.add(shape, shape_index=index)
         self._update_z_order()
-
-    def update_edge_width(self, index, edge_width):
-        """Updates the edge width of a single shape located at index.
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        edge_width : float
-            thickness of lines and edges.
-        """
-        self.regions[index].edge_width = edge_width
-        self._update_mesh_vertices(index, edge=True)
-
-    def update_edge_color(self, index, edge_color, update=True):
-        """Updates the edge color of a single shape located at index.
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        edge_color : str | tuple
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements.
-        update : bool
-            If True, update the mesh with the new color property. Set to False to avoid
-            repeated updates when modifying multiple shapes. Default is True.
-        """
-        self._edge_color[index] = edge_color
-        indices = np.all(self._mesh.triangles_index == [index, 1], axis=1)
-        self._mesh.triangles_colors[indices] = self._edge_color[index]
-        if update:
-            self._update_displayed()
 
     def update_face_color(self, index, face_color, update=True):
         """Updates the face color of a single shape located at index.

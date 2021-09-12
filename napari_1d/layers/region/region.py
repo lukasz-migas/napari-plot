@@ -1,7 +1,6 @@
 """Infinite region"""
 from contextlib import contextmanager
 from copy import copy
-from typing import Tuple
 
 import numpy as np
 from napari.layers.base import Layer, no_op
@@ -17,15 +16,13 @@ from napari.utils.misc import ensure_iterable
 
 from ._region_constants import Box, Mode, Orientation, region_classes
 from ._region_list import RegionList
-from ._region_mouse_bindings import add, select
+from ._region_mouse_bindings import add, edit, highlight, move, select
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
 
 REV_TOOL_HELP = {
-    "Hold <space> to pan/zoom": {Mode.MOVE},
-    "Hold <space> to pan/zoom, drag along x-axis -> horizontal region; drag along y-axis -> vertical region": {
-        Mode.ADD
-    },
-    "Hold <space> to pan/zoom, ": {Mode.EDIT},
+    "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},
+    "Hold <space> to pan/zoom, drag along x-axis -> (horizontal); drag along y-axis (vertical)": {Mode.ADD},
+    "Hold <space> to pan/zoom, select region by clicking on it and then drag left-right or up-down ": {Mode.EDIT},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
     "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
 }
@@ -38,13 +35,13 @@ for t, modes in REV_TOOL_HELP.items():
 class Region(Layer):
     """Line layer"""
 
-    _drag_modes = {Mode.ADD: add, Mode.MOVE: no_op, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: no_op, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op, Mode.EDIT: no_op}
+    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: edit}
+    _move_modes = {Mode.ADD: no_op, Mode.MOVE: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
     _cursor_modes = {
         Mode.ADD: "pointing",
         Mode.MOVE: "pointing",
-        Mode.PAN_ZOOM: "standard",
         Mode.SELECT: "pointing",
+        Mode.PAN_ZOOM: "standard",
         Mode.EDIT: "standard",
     }
 
@@ -245,46 +242,6 @@ class Region(Layer):
         color_event()
 
     @property
-    def edge_width(self):
-        """list of float: edge width for each shape."""
-        return self._data_view.edge_widths
-
-    @edge_width.setter
-    def edge_width(self, width):
-        """Set edge width of shapes using float or list of float.
-
-        If list of float, must be of equal length to n shapes
-
-        Parameters
-        ----------
-        width : float or list of float
-            width of all shapes, or each shape if list
-        """
-        if isinstance(width, list):
-            if not len(width) == self.n_regions:
-                raise ValueError("Length of list does not match number of orientations.")
-            else:
-                widths = width
-        else:
-            widths = [width for _ in range(self.n_regions)]
-
-        for i, width in enumerate(widths):
-            self._data_view.update_edge_width(i, width)
-
-    @property
-    def current_edge_width(self):
-        """float: Width of shape edges including lines and paths."""
-        return self._current_edge_width
-
-    @current_edge_width.setter
-    def current_edge_width(self, edge_width):
-        self._current_edge_width = edge_width
-        if self._update_properties:
-            for i in self.selected_data:
-                self._data_view.update_edge_width(i, edge_width)
-        self.events.edge_width()
-
-    @property
     def z_index(self):
         """list of int: z_index for each shape."""
         return self._data_view.z_indices
@@ -366,11 +323,6 @@ class Region(Layer):
                 face_color = face_colors[0]
                 self.current_face_color = face_color
 
-            # edge_width = list({self._data_view.regions[i].edge_width for i in selected_data})
-            # if len(edge_width) == 1:
-            #     edge_width = edge_width[0]
-            #     self.current_edge_width = edge_width
-
     def remove_selected(self):
         """Remove any selected shapes."""
         index = list(self.selected_data)
@@ -386,19 +338,18 @@ class Region(Layer):
 
     def move(
         self,
-        start_coords: Tuple[float],
-        end_coords: Tuple[float],
+        index: int,
+        new_data: np.ndarray,
+        orientation,
         finished: bool = False,
     ):
         """Move region to new location"""
-
-    #     if self.is_vertical:
-    #         start, end = start_coords[1], end_coords[1]
-    #     else:
-    #         start, end = start_coords[0], end_coords[0]
-    #     self.data = np.asarray([start, end])
-    #     if finished:
-    #         self.events.shifted()
+        self._data_view.edit(index, new_data, new_type=orientation)
+        self.events.set_data()
+        self.events.data(value=self.data)
+        self._set_editable()
+        if finished:
+            self.events.shifted(index=index)
 
     def _get_ndim(self):
         """Determine number of dimensions of the layer"""
@@ -407,7 +358,7 @@ class Region(Layer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "color": self.color, "label": self.label})
+        state.update({"data": self.data, "face_color": self.face_color, "label": self.label})
         return state
 
     def _update_thumbnail(self):
@@ -493,6 +444,16 @@ class Region(Layer):
         self._update_dims()
         self.events.data(value=self.data)
         self._set_editable()
+
+    def _add_creating(self, data, *, orientation="vertical", face_color=None, z_index=None) -> int:
+        """Add region."""
+        self.add(
+            [data],
+            orientation=[orientation],
+            face_color=[face_color] if face_color is not None else face_color,
+            z_index=[z_index] if z_index is not None else z_index,
+        )
+        return self.n_regions - 1
 
     def add(
         self,
@@ -785,7 +746,7 @@ class Region(Layer):
         return vertices, face_color, edge_color, pos, width
 
     def _finish_drawing(self, event=None):
-        """Reset properties used in shape drawing."""
+        """Reset properties used in region drawing."""
         self._is_moving = False
         self.selected_data = set()
         self._drag_start = None
@@ -854,8 +815,8 @@ class Region(Layer):
             box = np.append(box, [rot], axis=0)
         return box
 
-    def _outline_shapes(self):
-        """Find outlines of any selected or hovered shapes.
+    def _highlight_regions(self):
+        """Find outlines of any selected or hovered regions.
 
         Returns
         -------
