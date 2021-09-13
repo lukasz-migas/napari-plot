@@ -1,14 +1,18 @@
 """Infinite region"""
+from copy import copy
+
 import numpy as np
 from napari.layers.base import Layer, no_op
+from napari.layers.shapes._shapes_utils import create_box
 from napari.layers.utils.color_transformations import (
+    ColorType,
     normalize_and_broadcast_colors,
     transform_color,
     transform_color_with_defaults,
 )
 from napari.utils.events import Event
 
-from ._infline_constants import Mode, Orientation
+from ._infline_constants import Box, Mode, Orientation
 from ._infline_mouse_bindings import add, highlight, move, select
 from ._infline_utils import extract_inf_line_orientation
 
@@ -51,10 +55,6 @@ class InfLine(Layer):
         else:
             data, orientations = extract_inf_line_orientation(data, orientations)
             data = np.asarray(data, dtype=np.float64)
-
-        if not len(data) == len(orientations):
-            raise ValueError("The number of points and orientations is incorrect. They must be matched.")
-
         super().__init__(
             data,
             ndim=2,
@@ -69,15 +69,39 @@ class InfLine(Layer):
             blending=blending,
             visible=visible,
         )
+        self.events.add(color=Event, width=Event, label=Event, mode=Event, shifted=Event)
+        if not len(data) == len(orientations):
+            raise ValueError("The number of points and orientations is incorrect. They must be matched.")
+
         self._label = label
         self._width = width
         self._data = data
-        self._mode = Mode.PAN_ZOOM
 
         # each line can have its own color
-        self._color = transform_color(color)  # np.asarray([transform_color(_color) for _color in color])
+        self._color = transform_color(color)
         # each line can be either horizontal or vertical
         self._orientations = [Orientation(orientation) for orientation in orientations]
+
+        # indices of selected lines
+        self._value = (None, None)
+        self._value_stored = (None, None)
+        self._selected_data = set()
+        self._selected_data_stored = set()
+        self._selected_box = None
+
+        self._drag_start = None
+        self._drag_box = None
+        self._drag_box_stored = None
+        self._is_creating = False
+        self._is_selecting = False
+        self._moving_coordinates = None
+        self._is_moving = False
+        self._moving_value = (None, None)
+
+        # change mode once to trigger the Mode setting logic
+        self._mode = Mode.PAN_ZOOM
+        self.mode = Mode.PAN_ZOOM
+        self._status = self.mode
 
         # set the current_* properties
         if len(data) > 0:
@@ -90,17 +114,6 @@ class InfLine(Layer):
                 default="white",
             )
 
-        # indices of selected lines
-        self._value = None
-        self._selected_data = set()
-        self._selected_data_stored = set()
-        self._selected_box = None
-
-        self._drag_start = None
-        self._drag_box = None
-        self._drag_box_stored = None
-
-        self.events.add(color=Event, width=Event, label=Event, mode=Event, shifted=Event)
         self.visible = visible
 
     @property
@@ -145,12 +158,35 @@ class InfLine(Layer):
 
     @selected_data.setter
     def selected_data(self, selected_data):
-        pass
+        self._selected_data = set(selected_data)
+        self._selected_box = self.interaction_box(self._selected_data)
+
+        # Update properties based on selected shapes
+        if len(selected_data) > 0:
+            selected_data_indices = list(selected_data)
+            selected_face_colors = self._color[selected_data_indices]
+            face_colors = np.unique(selected_face_colors, axis=0)
+            if len(face_colors) == 1:
+                face_color = face_colors[0]
+                self.current_color = face_color
 
     @property
     def current_color(self):
         """Get current color."""
         return self._current_color
+
+    @current_color.setter
+    def current_color(self, color: ColorType):
+        """Update current color."""
+        self._current_color = transform_color(color)[0]
+
+        # update properties
+        if self._update_properties:
+            for i in self.selected_data:
+                self._color[i] = self._current_color
+                self.events.color()
+            self._update_thumbnail()
+        self.events.current_color()
 
     def add(self, pos, orientation):
         """Adds point at coordinate.
@@ -252,10 +288,7 @@ class InfLine(Layer):
 
     @color.setter
     def color(self, color):
-        if self.selected_data:
-            print("update selected data")
-        else:
-            self._current_color = color
+        self._current_color = color
         self.events.color()
 
     @property
@@ -297,3 +330,42 @@ class InfLine(Layer):
         force : bool
             Bool that forces a redraw to occur when `True`.
         """
+
+    def interaction_box(self, index):
+        """Create the interaction box around a shape or list of shapes.
+        If a single index is passed then the bounding box will be inherited
+        from that shapes interaction box. If list of indices is passed it will
+        be computed directly.
+        Parameters
+        ----------
+        index : int | list
+            Index of a single shape, or a list of shapes around which to
+            construct the interaction box
+        Returns
+        -------
+        box : np.ndarray
+            10x2 array of vertices of the interaction box. The first 8 points
+            are the corners and midpoints of the box in clockwise order
+            starting in the upper-left corner. The 9th point is the center of
+            the box, and the last point is the location of the rotation handle
+            that can be used to rotate the box
+        """
+        if isinstance(index, (list, np.ndarray, set)):
+            if len(index) == 0:
+                box = None
+            elif len(index) == 1:
+                box = copy(self._data_view.regions[list(index)[0]]._box)
+            else:
+                indices = np.isin(self._data_view.displayed_index, list(index))
+                box = create_box(self._data_view.displayed_vertices[indices])
+        else:
+            box = copy(self._data_view.regions[index]._box)
+
+        if box is not None:
+            rot = box[Box.TOP_CENTER]
+            length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
+            if length_box > 0:
+                r = self._rotation_handle_length * self.scale_factor
+                rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
+            box = np.append(box, [rot], axis=0)
+        return box

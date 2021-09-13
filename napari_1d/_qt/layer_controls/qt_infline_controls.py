@@ -1,33 +1,29 @@
-"""Scatter layer controls"""
+"""Line controls"""
 import typing as ty
 
-import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
-from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
-from qtpy.QtCore import Slot
-from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
+from qtpy.QtCore import Qt
 
-from ...layers.infline._infline_constants import Mode
-from ..helpers import make_label
+from ..helpers import make_label, make_slider
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from napari_1d.layers import Scatter
+    from napari_1d.layers import Line
 
 
 class QtInfLineControls(QtLayerControls):
-    """Qt view and controls for the napari-1d Scatter layer.
+    """Line controls
 
     Parameters
     ----------
-    layer : napari_1d.layers.Scatter
-        An instance of a Scatter layer.
+    layer : napari_1d.layers.Line
+        An instance of a napari-1d Line layer.
 
     Attributes
     ----------
-    layer : napari_1d.layers.Scatter
-        An instance of a napari Points layer.
+    layer : napari_1d.layers.Line
+        An instance of a napari-1d Line layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
     editable_checkbox : qtpy.QtWidgets.QCheckBox
@@ -36,108 +32,96 @@ class QtInfLineControls(QtLayerControls):
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
         Slider controlling opacity of the layer.
-    color_swatch : qtpy.QtWidgets.QFrame
-        Color swatch showing the color of the region
-    move_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
-        Button to move infinite line.
-    select_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
-        Button to select infinite line.
-    add_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
-        Add new infinite line.
-    delete_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
-        Button to delete selected infinite line(s).
+    width_slider : qtpy.QtWidgets.QSlider
+        Slider controlling width of the layer.
+    color_swatch : napari._qt.widgets.qt_color_swatch.QColorSwatch
+        Color swatch controlling the line color.
     """
 
-    def __init__(self, layer: "Scatter"):
+    def __init__(self, layer: "Line"):
         super().__init__(layer)
-        self.layer.events.mode.connect(self._on_mode_change)
-        self.layer.events.color.connect(self._on_color_change)
+        self.layer.events.current_color.connect(self._on_current_color_change)
+        self.layer.events.width.connect(self._on_width_change)
+        self.layer.events.method.connect(self._on_method_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
+        self.width_slider = make_slider(
+            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+        )
+        self.width_slider.valueChanged.connect(self.on_change_width)
+
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.current_color,
-            tooltip="Click to set current color. If lines are selected, their color will be changed.",
+            initial_color=self.layer.color,
+            tooltip="Click to set new line color",
         )
-        self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
+        self.color_swatch.color_changed.connect(self.on_change_current_color)
+        self._on_current_color_change(None)
 
-        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
-        self.select_button = QtModeRadioButton(
-            layer, "select_points", Mode.SELECT, tooltip="Select infinite line(s) (S)"
-        )
-        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move infinite line (M)")
-        self.panzoom_button = QtModeRadioButton(
-            layer,
-            "pan_zoom",
-            Mode.PAN_ZOOM,
-            tooltip="Pan/zoom (Z)",
-            checked=True,
-        )
-        self.delete_button = QtModePushButton(layer, "delete_shape", tooltip="Delete selected infinite lines")
-
-        self.button_group = QButtonGroup(self)
-        self.button_group.addButton(self.add_button)
-        self.button_group.addButton(self.move_button)
-        self.button_group.addButton(self.select_button)
-        self.button_group.addButton(self.panzoom_button)
-
-        button_row = QHBoxLayout()
-        button_row.addStretch(1)
-        button_row.addWidget(self.add_button)
-        button_row.addWidget(self.move_button)
-        button_row.addWidget(self.select_button)
-        button_row.addWidget(self.panzoom_button)
-        button_row.addWidget(self.delete_button)
-        button_row.setContentsMargins(0, 0, 0, 5)
-        button_row.setSpacing(4)
-
-        # add widgets to the layout
+        # add widgets to layout
         self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Color"), self.color_swatch)
+        self.layout.addRow(make_label(self, "Line width"), self.width_slider)
+        self.layout.addRow(make_label(self, "Line color"), self.color_swatch)
         self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
-        self.layout.addRow(button_row)
         self._on_editable_change()
 
-        disable_with_opacity(self, ["move_button", "select_button", "delete_button"], True)
+    def on_change_width(self, value):
+        """Change size of points on the layer model.
 
-    def _on_mode_change(self, event):
-        """Update ticks in checkbox widgets when points layer mode is changed.
+        Parameters
+        ----------
+        value : float
+            Size of points.
+        """
+        self.layer.width = value
 
-        Available modes for scatter layer are:
-        * MOVE
-        * PAN_ZOOM
+    def _on_width_change(self, event=None):
+        """Receive layer model size change event and update point size slider.
+
+        Parameters
+        ----------
+        event : napari.utils.event.Event, optional
+            The napari event that triggered this method.
+        """
+        with self.layer.events.width.blocker():
+            value = self.layer.width
+            self.width_slider.setValue(int(value))
+
+    def on_change_current_color(self, value):
+        """Change size of points on the layer model.
+
+        Parameters
+        ----------
+        value : float
+            Size of points.
+        """
+        self.layer.current_color = self.color_swatch.color
+
+    def _on_current_color_change(self, event=None):
+        """Receive layer.current_face_color() change event and update view."""
+        with qt_signals_blocked(self.color_swatch):
+            self.color_swatch.setColor(self.layer.current_color)
+
+    def on_change_method(self, value):
+        """Change size of points on the layer model.
+
+        Parameters
+        ----------
+        value : float
+            Size of points.
+        """
+        self.layer.method = self.method_combobox.currentText()
+
+    def _on_method_change(self, event):
+        """Receive marker symbol change event and update the dropdown menu.
 
         Parameters
         ----------
         event : napari.utils.event.Event
             The napari event that triggered this method.
-
-        Raises
-        ------
-        ValueError
-            Raise error if event.mode is not ADD, PAN_ZOOM, or SELECT.
         """
-        mode = event.mode
-        if mode == Mode.ADD:
-            self.add_button.setChecked(True)
-        elif mode == Mode.MOVE:
-            self.move_button.setChecked(True)
-        elif mode == Mode.SELECT:
-            self.select_button.setChecked(True)
-        elif mode == Mode.PAN_ZOOM:
-            self.panzoom_button.setChecked(True)
-        else:
-            raise ValueError(f"Mode {mode} not recognized")
-
-    @Slot(np.ndarray)  # noqa
-    def on_change_color(self, color: np.ndarray):
-        """Update face color of layer model from color picker user input."""
-        self.layer.color = color
-
-    def _on_color_change(self, _event):
-        """Receive layer.current_face_color() change event and update view."""
-        with qt_signals_blocked(self.color_swatch):
-            self.color_swatch.setColor(self.layer.color)
+        with self.layer.events.method.blocker():
+            self.method_combobox.setCurrentText(self.layer.method)
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -150,14 +134,10 @@ class QtInfLineControls(QtLayerControls):
         disable_with_opacity(
             self,
             [
+                "width_slider",
+                "color_swatch",
                 "opacity_slider",
                 "blending_combobox",
-                "color_swatch",
-                # "move_button",
-                # "select_button",
-                # "delete_button",
-                "panzoom_button",
-                "add_button",
             ],
             self.layer.editable,
         )
