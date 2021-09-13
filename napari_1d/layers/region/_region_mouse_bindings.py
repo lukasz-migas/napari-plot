@@ -1,4 +1,4 @@
-"""Mouse bindings"""
+"""Mouse bindings."""
 from copy import copy
 
 import numpy as np
@@ -12,12 +12,12 @@ def highlight(layer, event):
     layer._set_highlight()
 
 
-# TODO: this should draw temporary region of interest
 def add(layer, event):
     """Add new infinite region."""
     # on press
     pos_start = event.pos
     position_start = event.position
+    layer._is_creating = True
     yield
 
     # on move
@@ -39,15 +39,28 @@ def add(layer, event):
         yield
 
     # on release
+    layer._is_creating = False
     layer._finish_drawing()
 
 
-def edit(layer, event):
-    """Edit layer by first selecting and then drawing new version of the region."""
+# def edit(layer, event):
+#     """Edit layer by first selecting and then drawing new version of the region."""
+#     # on press
+#     _select(layer, event, False)
+#     # above, user should have selected single region and then can move draw new region in the same orientation
+#     data, orientation = None, None
+#     if len(layer.selected_data) > 0:
+#         index = list(layer.selected_data)[0]
+#         data, orientation = layer.data[index], layer.orientation[index]
+#     yield
+# on move
+# while event.type == "mouse_move":
+#     if data is not None:
 
 
 def move(layer, event):
     """Move region by first selecting and then moving along the axis."""
+    # TODO: make sure to re-select currently active region after release
     # on press
     _select(layer, event, False)
     # above, user should have selected single region and then can move it left-or-right or up-or-down
@@ -68,12 +81,13 @@ def move(layer, event):
 
     # on release
     layer.selected_data = set()  # clear selection
-    layer._set_highlight()
-    layer._update_thumbnail()
     if data is not None:
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
         layer.move(index, _get_region(coordinates, wh_half, orientation), orientation, True)
+        layer._finish_drawing()
+        layer._set_highlight()
+        layer._update_thumbnail()
 
 
 def select(layer, event):
@@ -105,7 +119,6 @@ def select(layer, event):
     elif layer._is_selecting:
         layer.selected_data = layer._data_view.regions_in_box(layer._drag_box)
         layer._is_selecting = False
-        layer._set_highlight()
 
     layer._drag_start = None
     layer._drag_box = None
@@ -116,6 +129,8 @@ def select(layer, event):
 
 
 def _select(layer, event, shift: bool):
+    """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
+    # TODO: update current_face_color
     value = layer.get_value(event.position, world=True)
     layer._moving_value = copy(value)
     region_under_cursor, vertex_under_cursor = value

@@ -16,7 +16,7 @@ from napari.utils.misc import ensure_iterable
 
 from ._region_constants import Box, Mode, Orientation, region_classes
 from ._region_list import RegionList
-from ._region_mouse_bindings import add, edit, highlight, move, select
+from ._region_mouse_bindings import add, highlight, move, select
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
 
 REV_TOOL_HELP = {
@@ -35,8 +35,14 @@ for t, modes in REV_TOOL_HELP.items():
 class Region(Layer):
     """Line layer"""
 
-    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: edit}
-    _move_modes = {Mode.ADD: no_op, Mode.MOVE: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
+    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
+    _move_modes = {
+        Mode.ADD: no_op,
+        Mode.MOVE: highlight,
+        Mode.SELECT: highlight,
+        Mode.PAN_ZOOM: no_op,
+        Mode.EDIT: highlight,
+    }
     _cursor_modes = {
         Mode.ADD: "pointing",
         Mode.MOVE: "pointing",
@@ -113,7 +119,7 @@ class Region(Layer):
         self._data_view = RegionList(ndisplay=self._ndisplay)
         self._data_view.slice_key = np.array(self._slice_indices)[list(self._dims_not_displayed)]
 
-        # indices of selected lines
+        # indices of selected regions
         self._value = (None, None)
         self._value_stored = (None, None)
         self._selected_data = set()
@@ -127,10 +133,11 @@ class Region(Layer):
         self._is_selecting = False
         self._moving_coordinates = None
         self._is_moving = False
+        self._moving_value = (None, None)
 
         # change mode once to trigger the
         # Mode setting logic
-        self._mode = Mode.SELECT
+        self._mode = Mode.PAN_ZOOM
         self.mode = Mode.PAN_ZOOM
         self._status = self.mode
 
@@ -152,7 +159,6 @@ class Region(Layer):
                 default="black",
             )
         self.visible = visible
-        self._moving_value = (None, None)
 
     # noinspection PyMethodMayBeStatic
     def _initialize_color(self, color, attribute, n_regions: int):
@@ -211,7 +217,7 @@ class Region(Layer):
             for i in self.selected_data:
                 self._data_view.update_face_color(i, self._current_face_color)
                 self.events.face_color()
-                self._update_thumbnail()
+            self._update_thumbnail()
         self.events.current_face_color()
 
     def _set_color(self, color, attribute: str):
@@ -300,9 +306,18 @@ class Region(Layer):
         if mode != Mode.SELECT or old_mod != Mode.SELECT:
             self._selected_data_stored = set()
 
+        old_mode = self._mode
         self._mode = mode
-        self._set_highlight()
         self.events.mode(mode=mode)
+
+        draw_modes = {Mode.SELECT, Mode.ADD, Mode.MOVE, Mode.EDIT}
+        # don't update thumbnail on mode changes
+        with self.block_thumbnail_update():
+            if not (mode in draw_modes and old_mode in draw_modes):
+                # Shapes._finish_drawing() calls Shapes.refresh()
+                self._finish_drawing()
+            else:
+                self.refresh()
 
     @property
     def selected_data(self) -> set:
@@ -672,12 +687,6 @@ class Region(Layer):
 
         # Check selected region
         value = None
-        # selected_index = list(self.selected_data)
-        # if len(selected_index) > 0:
-        # if self._mode == Mode.SELECT:
-        #     # Check if inside vertex of interaction box
-        #     pass
-
         if value is None:
             # Check if mouse inside shape
             region = self._data_view.inside(coord)

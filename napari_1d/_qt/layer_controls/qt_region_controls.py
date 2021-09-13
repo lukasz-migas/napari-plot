@@ -3,7 +3,7 @@ import typing as ty
 
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
-from napari._qt.widgets.qt_color_swatch import QColorSwatch
+from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
@@ -51,18 +51,19 @@ class QtRegionControls(QtLayerControls):
     def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
-        self.layer.events.face_color.connect(self._on_face_color_change)
+        self.layer.events.current_face_color.connect(self._on_current_face_color_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.face_color_swatch = QColorSwatch(
+        self.face_color_swatch = QColorSwatchEdit(
             initial_color=self.layer.current_face_color,
-            tooltip="Click to set face color",
+            tooltip="Click to set current face color",
         )
-        self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
+        self.face_color_swatch.color_changed.connect(self.on_change_current_face_color)  # noqa
+        self._on_current_face_color_change(None)
 
         self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
         self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
-        self.edit_button = QtModeRadioButton(layer, "select_region", Mode.EDIT, tooltip="Edit region (E)")
+        # self.edit_button = QtModeRadioButton(layer, "select_region", Mode.EDIT, tooltip="Edit region (E)")
         self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
@@ -88,7 +89,7 @@ class QtRegionControls(QtLayerControls):
         self.button_group = QButtonGroup(self)
         self.button_group.addButton(self.add_button)
         self.button_group.addButton(self.select_button)
-        self.button_group.addButton(self.edit_button)
+        # self.button_group.addButton(self.edit_button)
         self.button_group.addButton(self.move_button)
         self.button_group.addButton(self.panzoom_button)
 
@@ -96,7 +97,7 @@ class QtRegionControls(QtLayerControls):
         button_row_1.addStretch(1)
         button_row_1.addWidget(self.add_button)
         button_row_1.addWidget(self.select_button)
-        button_row_1.addWidget(self.edit_button)
+        # button_row_1.addWidget(self.edit_button)
         button_row_1.addWidget(self.move_button)
         button_row_1.addWidget(self.panzoom_button)
         button_row_1.addWidget(self.delete_button)
@@ -145,19 +146,19 @@ class QtRegionControls(QtLayerControls):
             self.add_button.setChecked(True)
         elif mode == Mode.SELECT:
             self.select_button.setChecked(True)
-        elif mode == Mode.EDIT:
-            self.edit_button.setChecked(True)
+        # elif mode == Mode.EDIT:
+        #     self.edit_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
         else:
             raise ValueError(f"Mode {mode} not recognized")
 
     @Slot(np.ndarray)  # noqa
-    def on_change_face_color(self, color: np.ndarray):
+    def on_change_current_face_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
         self.layer.current_face_color = color
 
-    def _on_face_color_change(self, _event):
+    def _on_current_face_color_change(self, _event):
         """Receive layer.current_face_color() change event and update view."""
         with qt_signals_blocked(self.face_color_swatch):
             self.face_color_swatch.setColor(self.layer.current_face_color)
@@ -181,6 +182,7 @@ class QtRegionControls(QtLayerControls):
                 "delete_button",
                 "panzoom_button",
                 "add_button",
+                # "edit_button",
             ],
             self.layer.editable and self.layer.visible,
         )
