@@ -65,13 +65,7 @@ class VispyRegionLayer(VispyBaseLayer):
 
         # Compute the location and properties of the vertices and box that
         # need to get rendered
-        (
-            _vertices,
-            _face_color,
-            edge_color,
-            pos,
-            _width,
-        ) = self.layer._compute_vertices_and_box()
+        edge_color, pos = self.layer._compute_vertices_and_box()
 
         # add region edges
         width = 3  # set

@@ -1,4 +1,5 @@
 """Infinite region"""
+import typing as ty
 from contextlib import contextmanager
 from copy import copy
 
@@ -21,8 +22,8 @@ from ._region_utils import extract_region_orientation, get_default_region_type, 
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},
-    "Hold <space> to pan/zoom, drag along x-axis -> (horizontal); drag along y-axis (vertical)": {Mode.ADD},
-    "Hold <space> to pan/zoom, select region by clicking on it and then drag left-right or up-down ": {Mode.EDIT},
+    "Hold <space> to pan/zoom, drag along x-axis (horizontal); drag along y-axis (vertical)": {Mode.ADD},
+    "Hold <space> to pan/zoom, select region by clicking on it and then drag left-right or up-down": {Mode.EDIT},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
     "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
 }
@@ -33,7 +34,51 @@ for t, modes in REV_TOOL_HELP.items():
 
 
 class Region(Layer):
-    """Line layer"""
+    """Regions layer.
+
+    Parameters
+    ----------
+    data : ty.Union[ty.List[np.ndarray], ty.List[ty.Tuple[np.ndarray, str]], ty.List[ty.Tuple[np.ndarray, Orientation]]]
+        Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
+        array has two elements (start position, end position).
+    orientation : ty.Union[ty.List[str], ty.List[Orientation]]
+        List of orientations for each provided region. If orientations are not provided, they will be inferred directly
+        from `data` or using the default of `vertical`.
+    face_color : str, array-like
+        If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+        be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length of
+        `data` and each element will be applied to each region otherwise the same value will be used for all regions.
+    z_index : int or list
+        Specifier of z order priority. Regions with higher z order are displayed on top of others. If a list is
+        supplied it must be the same length as the length of `data` and each element will be applied to each region
+        otherwise the same value will be used for all regions.
+    name : str
+        Name of the layer.
+    metadata : dict
+        Layer metadata.
+    scale : tuple of float
+        Not used. Scale factors for the layer.
+    translate : tuple of float
+        Not used. Translation values for the layer.
+    rotate : float, 3-tuple of float, or n-D array.
+        Not used.  If a float convert into a 2D rotation matrix using that value as an angle. If 3-tuple convert into a
+        3D rotation matrix, using a yaw, pitch, roll convention. Otherwise assume an nD rotation. Angles are assumed to
+        be in degrees. They can be converted from radians with np.degrees if needed.
+    shear : 1-D array or n-D array
+        Not used.  Either a vector of upper triangular values, or an nD shear matrix with ones along the main diagonal.
+    affine : n-D array or napari.utils.transforms.Affine
+        Not used.  (N+1, N+1) affine transformation matrix in homogeneous coordinates. The first (N, N) entries
+        correspond to a linear transform and the final column is a length N translation vector and a 1 or a napari
+        `Affine` transform object. Applied as an extra transform on top of the provided scale, rotate, and shear values.
+    opacity : float
+        Opacity of the layer visual, between 0.0 and 1.0.
+    blending : str
+        One of a list of preset blending modes that determines how RGB and
+        alpha values of the layer visual get mixed. Allowed values are
+        {'opaque', 'translucent', and 'additive'}.
+    visible : bool
+        Whether the layer visual is currently being displayed.
+    """
 
     _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
     _move_modes = {
@@ -52,13 +97,12 @@ class Region(Layer):
     }
 
     _vertex_size = 10
-    _rotation_handle_length = 20
     _highlight_color = (0, 0.6, 1)
     _highlight_width = 1.5
 
     # If more shapes are present then they are randomly sub-sampled
     # in the thumbnail
-    _max_shapes_thumbnail = 10
+    _max_regions_thumbnail = 10
 
     def __init__(
         self,
@@ -161,13 +205,15 @@ class Region(Layer):
         self.visible = visible
 
     # noinspection PyMethodMayBeStatic
-    def _initialize_color(self, color, attribute, n_regions: int):
-        """Get the face/edge colors the Shapes layer will be initialized with
+    def _initialize_color(self, color, n_regions: int):
+        """Get the face colors the Shapes layer will be initialized with
 
         Parameters
         ----------
         color : (N, 4) array or str
             The value for setting edge or face_color
+        n_regions : int
+            Number of regions to be initialized.
 
         Returns
         -------
@@ -195,12 +241,12 @@ class Region(Layer):
 
     @property
     def face_color(self):
-        """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
+        """(N x 4) np.ndarray: Array of RGBA face colors for each region."""
         return self._data_view.face_color
 
     @face_color.setter
     def face_color(self, face_color):
-        self._set_color(face_color, "face")
+        self._set_color(face_color)
         self.events.face_color()
         self._update_thumbnail()
 
@@ -211,7 +257,6 @@ class Region(Layer):
 
     @current_face_color.setter
     def current_face_color(self, face_color: ColorType):
-        """Update edge color."""
         self._current_face_color = transform_color(face_color)[0]
         if self._update_properties:
             for i in self.selected_data:
@@ -220,16 +265,13 @@ class Region(Layer):
             self._update_thumbnail()
         self.events.current_face_color()
 
-    def _set_color(self, color, attribute: str):
+    def _set_color(self, color):
         """Set the face_color property
 
         Parameters
         ----------
         color : (N, 4) array or str
             The value for setting edge or face_color
-        attribute : str in {'edge', 'face'}
-            The name of the attribute to set the color of.
-            Should be 'face' for face_color.
         """
         if len(self.data) > 0:
             transformed_color = transform_color_with_defaults(
@@ -242,18 +284,17 @@ class Region(Layer):
         else:
             colors = np.empty((0, 4))
 
-        setattr(self._data_view, f"{attribute}_color", colors)
-
-        color_event = getattr(self.events, f"{attribute}_color")
+        setattr(self._data_view, "face_color", colors)
+        color_event = getattr(self.events, "face_color")
         color_event()
 
     @property
-    def z_index(self):
+    def z_index(self) -> ty.List[int]:
         """list of int: z_index for each shape."""
         return self._data_view.z_indices
 
     @z_index.setter
-    def z_index(self, z_index):
+    def z_index(self, z_index: ty.Union[int, ty.List[int]]):
         """Set z_index of shape using either int or list of int.
 
         When list of int is provided, must be of equal length to n shapes.
@@ -266,8 +307,7 @@ class Region(Layer):
         if isinstance(z_index, list):
             if not len(z_index) == self.n_regions:
                 raise ValueError("Length of list does not match number of orientations.")
-            else:
-                z_indices = z_index
+            z_indices = z_index
         else:
             z_indices = [z_index for _ in range(self.n_regions)]
 
@@ -320,7 +360,7 @@ class Region(Layer):
                 self.refresh()
 
     @property
-    def selected_data(self) -> set:
+    def selected_data(self) -> ty.Set[int]:
         """set: set of currently selected points."""
         return self._selected_data
 
@@ -391,14 +431,14 @@ class Region(Layer):
             shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._dims_displayed]).astype(int)
             zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
 
-            colormapped = self._data_view.to_colors(
+            color_mapped = self._data_view.to_colors(
                 colors_shape=self._thumbnail_shape[:2],
                 zoom_factor=zoom_factor,
                 offset=offset[-2:],
-                max_shapes=self._max_shapes_thumbnail,
+                max_shapes=self._max_regions_thumbnail,
             )
 
-            self.thumbnail = colormapped
+            self.thumbnail = color_mapped
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -622,7 +662,7 @@ class Region(Layer):
     def _init_regions(self, data, *, orientation=None, face_color=None, z_index=None):
         """Add regions to the data view."""
         n_regions = len(data)
-        face_color = self._initialize_color(face_color, attribute="face", n_regions=n_regions)
+        face_color = self._initialize_color(face_color, n_regions=n_regions)
         with self.block_thumbnail_update():
             self._add_regions(
                 data,
@@ -737,22 +777,16 @@ class Region(Layer):
         if self._is_selecting:
             # If currently dragging a selection box just show an outline of
             # that box
-            vertices = np.empty((0, 2))
             edge_color = self._highlight_color
-            face_color = "white"
             box = create_box(self._drag_box)
-            width = 1.5
             # Use a subset of the vertices of the interaction_box to plot
             # the line around the edge
             pos = box[Box.LINE][:, ::-1]
         else:
             # Otherwise show nothing
-            vertices = np.empty((0, 2))
-            face_color = "white"
             edge_color = "white"
             pos = None
-            width = 0
-        return vertices, face_color, edge_color, pos, width
+        return edge_color, pos
 
     def _finish_drawing(self, event=None):
         """Reset properties used in region drawing."""
@@ -791,18 +825,17 @@ class Region(Layer):
 
         Parameters
         ----------
-        index : int | list
+        index : int | list | set
             Index of a single shape, or a list of shapes around which to
             construct the interaction box
 
         Returns
         -------
         box : np.ndarray
-            10x2 array of vertices of the interaction box. The first 8 points
+            9x2 array of vertices of the interaction box. The first 8 points
             are the corners and midpoints of the box in clockwise order
             starting in the upper-left corner. The 9th point is the center of
-            the box, and the last point is the location of the rotation handle
-            that can be used to rotate the box
+            the box.
         """
         if isinstance(index, (list, np.ndarray, set)):
             if len(index) == 0:
@@ -814,14 +847,6 @@ class Region(Layer):
                 box = create_box(self._data_view.displayed_vertices[indices])
         else:
             box = copy(self._data_view.regions[index]._box)
-
-        if box is not None:
-            rot = box[Box.TOP_CENTER]
-            length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
-            if length_box > 0:
-                r = self._rotation_handle_length * self.scale_factor
-                rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
-            box = np.append(box, [rot], axis=0)
         return box
 
     def _highlight_regions(self):

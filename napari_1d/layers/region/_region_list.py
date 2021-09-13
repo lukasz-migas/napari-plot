@@ -1,4 +1,6 @@
 """Region list."""
+import typing as ty
+
 import numpy as np
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Rectangle
@@ -56,7 +58,7 @@ class RegionList:
         be rendered.
     """
 
-    def __init__(self, data=[], ndisplay=2):
+    def __init__(self, data=(), ndisplay=2):
 
         self._ndisplay = ndisplay
         self.regions = []
@@ -146,7 +148,7 @@ class RegionList:
         self._update_displayed()
 
     @property
-    def z_indices(self):
+    def z_indices(self) -> ty.List[int]:
         """list of int: z-index for each shape."""
         return [s.z_index for s in self.regions]
 
@@ -254,24 +256,6 @@ class RegionList:
         color_array = np.repeat([face_color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
-        # # Add edges to mesh
-        # m = len(self._mesh.vertices)
-        # vertices = shape._edge_vertices + shape.edge_width * shape._edge_offsets
-        # self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
-        # vertices = shape._edge_vertices
-        # self._mesh.vertices_centers = np.append(self._mesh.vertices_centers, vertices, axis=0)
-        # vertices = shape._edge_offsets
-        # self._mesh.vertices_offsets = np.append(self._mesh.vertices_offsets, vertices, axis=0)
-        # index = np.repeat([[shape_index, 1]], len(vertices), axis=0)
-        # self._mesh.vertices_index = np.append(self._mesh.vertices_index, index, axis=0)
-        #
-        # triangles = shape._edge_triangles + m
-        # self._mesh.triangles = np.append(self._mesh.triangles, triangles, axis=0)
-        # index = np.repeat([[shape_index, 1]], len(triangles), axis=0)
-        # self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
-        # color_array = np.repeat([edge_color], len(triangles), axis=0)
-        # self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
-
         if z_refresh:
             # Set z_order
             self._update_z_order()
@@ -280,9 +264,9 @@ class RegionList:
         """Removes all shapes"""
         self.regions = []
         self._vertices = np.empty((0, self.ndisplay))
-        self._index = np.empty((0), dtype=int)
-        self._z_index = np.empty((0), dtype=int)
-        self._z_order = np.empty((0), dtype=int)
+        self._index = np.empty(0, dtype=int)
+        self._z_index = np.empty(0, dtype=int)
+        self._z_order = np.empty(0, dtype=int)
         self._mesh.clear()
         self._update_displayed()
 
@@ -643,7 +627,6 @@ class RegionList:
         intersects = triangles_intersect_box(triangles, corners)
         shapes = self._mesh.displayed_triangles_index[intersects, 0]
         shapes = np.unique(shapes).tolist()
-
         return shapes
 
     def inside(self, coord):
@@ -670,8 +653,7 @@ class RegionList:
             order_indices = np.array([z_list.index(m) for m in shapes])
             ordered_shapes = shapes[np.argsort(order_indices)]
             return ordered_shapes[0]
-        else:
-            return None
+        return None
 
     def to_masks(self, mask_shape=None, zoom_factor=1, offset=[0, 0]):
         """Returns N binary masks, one for each shape, embedded in an array of
@@ -699,10 +681,9 @@ class RegionList:
             mask_shape = self.displayed_vertices.max(axis=0).astype("int")
 
         masks = np.array([s.to_mask(mask_shape, zoom_factor=zoom_factor, offset=offset) for s in self.regions])
-
         return masks
 
-    def to_labels(self, labels_shape=None, zoom_factor=1, offset=[0, 0]):
+    def to_labels(self, labels_shape=None, zoom_factor=1, offset=None):
         """Returns a integer labels image, where each shape is embedded in an
         array of shape labels_shape with the value of the index + 1
         corresponding to it, and 0 for background. For overlapping shapes
@@ -711,33 +692,31 @@ class RegionList:
         Parameters
         ----------
         labels_shape : np.ndarray | tuple | None
-            2-tuple defining shape of labels image to be generated. If non
-            specified, takes the max of all the vertices
+            2-tuple defining shape of labels image to be generated. If non specified, takes the max of all the vertices
         zoom_factor : float
-            Pre-multiplier applied to coordinates before generating mask. Used
-            for generating as downsampled mask.
+            Pre-multiplier applied to coordinates before generating mask. Used for generating as downsampled mask.
         offset : 2-tuple
-            Offset subtracted from coordinates before multiplying by the
-            zoom_factor. Used for putting negative coordinates into the mask.
+            Offset subtracted from coordinates before multiplying by the zoom_factor. Used for putting negative
+            coordinates into the mask.
 
         Returns
         -------
         labels : np.ndarray
-            MxP integer array where each value is either 0 for background or an
-            integer up to N for points inside the corresponding shape.
+            MxP integer array where each value is either 0 for background or an integer up to N for points inside
+            the corresponding shape.
         """
+        if offset is None:
+            offset = [0, 0]
         if labels_shape is None:
             labels_shape = self.displayed_vertices.max(axis=0).astype(np.int)
 
         labels = np.zeros(labels_shape, dtype=int)
-
         for ind in self._z_order[::-1]:
             mask = self.regions[ind].to_mask(labels_shape, zoom_factor=zoom_factor, offset=offset)
             labels[mask] = ind + 1
-
         return labels
 
-    def to_colors(self, colors_shape=None, zoom_factor=1, offset=[0, 0], max_shapes=None):
+    def to_colors(self, colors_shape=None, zoom_factor=1, offset=None, max_shapes=None):
         """Rasterize shapes to an RGBA image array.
 
         Each shape is embedded in an array of shape `colors_shape` with the
@@ -747,26 +726,25 @@ class RegionList:
         Parameters
         ----------
         colors_shape : np.ndarray | tuple | None
-            2-tuple defining shape of colors image to be generated. If non
-            specified, takes the max of all the vertiecs
+            2-tuple defining shape of colors image to be generated. If non specified, takes the max of all the vertices
         zoom_factor : float
-            Pre-multiplier applied to coordinates before generating mask. Used
-            for generating as downsampled mask.
+            Pre-multiplier applied to coordinates before generating mask. Used for generating as downsampled mask.
         offset : 2-tuple
-            Offset subtracted from coordinates before multiplying by the
-            zoom_factor. Used for putting negative coordinates into the mask.
+            Offset subtracted from coordinates before multiplying by the zoom_factor. Used for putting negative
+            coordinates into the mask.
         max_shapes : None | int
-            If provided, this is the maximum number of shapes that will be rasterized.
-            If the number of shapes in view exceeds max_shapes, max_shapes shapes
-            will be randomly selected from the in view shapes. If set to None, no
+            If provided, this is the maximum number of shapes that will be rasterized. If the number of shapes in view
+            exceeds max_shapes, max_shapes shapes will be randomly selected from the in view shapes. If set to None, no
             maximum is applied. The default value is None.
 
         Returns
         -------
         colors : (N, M, 4) array
-            rgba array where each value is either 0 for background or the rgba
-            value of the shape for points inside the corresponding shape.
+            rgba array where each value is either 0 for background or the rgba value of the shape for points inside
+            the corresponding shape.
         """
+        if offset is None:
+            offset = [0, 0]
         if colors_shape is None:
             colors_shape = self.displayed_vertices.max(axis=0).astype(np.int)
 
@@ -778,8 +756,7 @@ class RegionList:
         z_order_in_view_mask = np.isin(z_order, shapes_in_view)
         z_order_in_view = z_order[z_order_in_view_mask]
 
-        # If there are too many shapes to render responsively, just render
-        # the top max_shapes shapes
+        # If there are too many shapes to render responsively, just render the top max_shapes shapes
         if max_shapes is not None and len(z_order_in_view) > max_shapes:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
@@ -787,5 +764,4 @@ class RegionList:
             mask = self.regions[ind].to_mask(colors_shape, zoom_factor=zoom_factor, offset=offset)
             col = self._face_color[ind]
             colors[mask, :] = col
-
         return colors
