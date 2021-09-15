@@ -39,6 +39,7 @@ ignore = [
   "mypy.ini",
   "scripts/minreq.py",
   "tox.ini",
+  ".deepsource.toml",
   "*.pyi",  # added by make typestubs
   "napari_1d/_version.py",  # added during build by setuptools_scm
 ]
