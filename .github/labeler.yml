@@ -16,7 +16,7 @@ task:
   - '.github/**/*'
 
 tests:
-  - 'tests/**/*.py'
+  - '**/*/_tests/**/*.py'
 
 vispy:
   - 'napari_1d/_vispy'
