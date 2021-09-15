@@ -17,6 +17,7 @@ def add(layer, event):
     # on press
     pos_start = event.pos
     position_start = event.position
+    coord_start = layer.world_to_data(position_start)
     layer._is_creating = True
     yield
 
@@ -24,7 +25,6 @@ def add(layer, event):
     index = None
     while event.type == "mouse_move":
         x_dist, y_dist = pos_start - event.pos
-        coord_start = layer.world_to_data(position_start)
         coord_end = layer.world_to_data(event.position)
         if abs(x_dist) < abs(y_dist):
             orientation = Orientation.HORIZONTAL
@@ -43,24 +43,37 @@ def add(layer, event):
     layer._finish_drawing()
 
 
-# def edit(layer, event):
-#     """Edit layer by first selecting and then drawing new version of the region."""
-#     # on press
-#     _select(layer, event, False)
-#     # above, user should have selected single region and then can move draw new region in the same orientation
-#     data, orientation = None, None
-#     if len(layer.selected_data) > 0:
-#         index = list(layer.selected_data)[0]
-#         data, orientation = layer.data[index], layer.orientation[index]
-#     yield
-# on move
-# while event.type == "mouse_move":
-#     if data is not None:
+def edit(layer, event):
+    """Edit layer by first selecting and then drawing new version of the region."""
+    if len(layer.selected_data) == 1:
+        # on press
+        region = copy(layer.selected_data)
+        position_start = event.position
+        coord_start = layer.world_to_data(position_start)
+        index = list(layer.selected_data)[0]
+        data, orientation = layer.data[index], layer.orientation[index]
+        yield
+        # on move
+        while event.type == "mouse_move":
+            coord_end = layer.world_to_data(event.position)
+            if orientation == Orientation.HORIZONTAL:
+                pos = [coord_start[0], coord_end[0]]
+            else:
+                pos = [coord_start[1], coord_end[1]]
+            if index is None:
+                index = layer._add_creating(pos, orientation=orientation)
+            else:
+                layer.move(index, preprocess_region(pos, orientation), orientation=orientation)
+            yield
+
+        # on release
+        layer._is_creating = False
+        layer._finish_drawing()
+        layer.mode = "select"
 
 
 def move(layer, event):
     """Move region by first selecting and then moving along the axis."""
-    # TODO: make sure to re-select currently active region after release
     # on press
     _select(layer, event, False)
     # above, user should have selected single region and then can move it left-or-right or up-or-down

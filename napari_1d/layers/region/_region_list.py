@@ -28,14 +28,8 @@ class RegionList:
         Data arrays for each shape.
     ndisplay : int
         Number of displayed dimensions.
-    slice_keys : (N, 2, P) array
-        Array of slice keys for each shape. Each slice key has the min and max
-        values of the P non-displayed dimensions, useful for slicing
-        multidimensional shapes. If the both min and max values of shape are
-        equal then the shape is entirely contained within the slice specified
-        by those values.
-    shape_types : (N, ) list of str
-        Name of shape type for each shape.
+    orientations : (N, ) list of str
+        Name of shape type for each region.
     face_color : (N x 4) np.ndarray
         Array of RGBA face colors for each shape.
     z_indices : (N, ) list of int
@@ -452,84 +446,6 @@ class RegionList:
         """
         self.regions[index].z_index = z_index
         self._z_index[index] = z_index
-        self._update_z_order()
-
-    def shift(self, index, shift):
-        """Performs a 2D shift on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        shift : np.ndarray
-            length 2 array specifying shift of shapes.
-        """
-        self.regions[index].shift(shift)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def scale(self, index, scale, center=None):
-        """Performs a scaling on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        scale : float, list
-            scalar or list specifying rescaling of shape.
-        center : list
-            length 2 list specifying coordinate of center of scaling.
-        """
-        self.regions[index].scale(scale, center=center)
-        shape = self.regions[index]
-        self.remove(index, renumber=False)
-        self.add(shape, shape_index=index)
-        self._update_z_order()
-
-    def rotate(self, index, angle, center=None):
-        """Performs a rotation on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        angle : float
-            angle specifying rotation of shape in degrees.
-        center : list
-            length 2 list specifying coordinate of center of rotation.
-        """
-        self.regions[index].rotate(angle, center=center)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def flip(self, index, axis, center=None):
-        """Performs an vertical flip on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        axis : int
-            integer specifying axis of flip. `0` flips horizontal, `1` flips
-            vertical.
-        center : list
-            length 2 list specifying coordinate of center of flip axes.
-        """
-        self.regions[index].flip(axis, center=center)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def transform(self, index, transform):
-        """Performs a linear transform on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        transform : np.ndarray
-            2x2 array specifying linear transform.
-        """
-        self.regions[index].transform(transform)
-        shape = self.regions[index]
-        self.remove(index, renumber=False)
-        self.add(shape, shape_index=index)
         self._update_z_order()
 
     def highlight(self, indices):

@@ -13,11 +13,12 @@ from napari.layers.utils.color_transformations import (
     transform_color_with_defaults,
 )
 from napari.utils.events import Event
+from napari.utils.events.containers import EventedSet
 from napari.utils.misc import ensure_iterable
 
 from ._region_constants import Box, Mode, Orientation, region_classes
 from ._region_list import RegionList
-from ._region_mouse_bindings import add, highlight, move, select
+from ._region_mouse_bindings import add, edit, highlight, move, select
 from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
 
 REV_TOOL_HELP = {
@@ -80,13 +81,13 @@ class Region(Layer):
         Whether the layer visual is currently being displayed.
     """
 
-    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: no_op}
+    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: edit}
     _move_modes = {
         Mode.ADD: no_op,
         Mode.MOVE: highlight,
         Mode.SELECT: highlight,
         Mode.PAN_ZOOM: no_op,
-        Mode.EDIT: highlight,
+        Mode.EDIT: no_op,
     }
     _cursor_modes = {
         Mode.ADD: "pointing",
@@ -151,6 +152,7 @@ class Region(Layer):
             mode=Event,
             shifted=Event,
             accept=Event,
+            selected=Event,
         )
         # Flag set to false to block thumbnail refresh
         self._allow_thumbnail_update = True
@@ -354,7 +356,7 @@ class Region(Layer):
         # don't update thumbnail on mode changes
         with self.block_thumbnail_update():
             if not (mode in draw_modes and old_mode in draw_modes):
-                # Shapes._finish_drawing() calls Shapes.refresh()
+                # Region._finish_drawing() calls Region.refresh()
                 self._finish_drawing()
             else:
                 self.refresh()
@@ -366,7 +368,8 @@ class Region(Layer):
 
     @selected_data.setter
     def selected_data(self, selected_data):
-        self._selected_data = set(selected_data)
+        self._selected_data = EventedSet(selected_data)
+        self._selected_data.events.changed.connect(lambda _: self.events.selected())
         self._selected_box = self.interaction_box(self._selected_data)
 
         # Update properties based on selected shapes
@@ -377,6 +380,7 @@ class Region(Layer):
             if len(face_colors) == 1:
                 face_color = face_colors[0]
                 self.current_face_color = face_color
+        self.events.selected()
 
     def remove_selected(self):
         """Remove any selected shapes."""
@@ -437,7 +441,6 @@ class Region(Layer):
                 offset=offset[-2:],
                 max_shapes=self._max_regions_thumbnail,
             )
-
             self.thumbnail = color_mapped
 
     @property
@@ -689,25 +692,6 @@ class Region(Layer):
         """Orientation of the infinite region."""
         return self._data_view.orientations
 
-    # @orientation.setter
-    # def orientation(self, orientation):
-    #     self._finish_drawing()
-    #
-    #     new_data_view = RegionList()
-    #     shape_inputs = zip(
-    #         self._data_view.data,
-    #         ensure_iterable(orientation),
-    #         self._data_view.edge_widths,
-    #         self._data_view.edge_color,
-    #         self._data_view.face_color,
-    #         self._data_view.z_indices,
-    #     )
-    #
-    #     self._add_regions_to_view(shape_inputs, new_data_view)
-    #
-    #     self._data_view = new_data_view
-    #     self._update_dims()
-
     @property
     def label(self):
         """Get label"""
@@ -825,7 +809,7 @@ class Region(Layer):
 
         Parameters
         ----------
-        index : int | list | set
+        index : int | list | set | EventedSet
             Index of a single shape, or a list of shapes around which to
             construct the interaction box
 
@@ -837,7 +821,7 @@ class Region(Layer):
             starting in the upper-left corner. The 9th point is the center of
             the box.
         """
-        if isinstance(index, (list, np.ndarray, set)):
+        if isinstance(index, (list, np.ndarray, set, EventedSet)):
             if len(index) == 0:
                 box = None
             elif len(index) == 1:
