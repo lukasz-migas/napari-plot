@@ -24,10 +24,22 @@ def activate_move_mode(layer):
     layer.mode = Mode.MOVE
 
 
+@Region.bind_key("A")
+def activate_add_mode(layer):
+    """Activate move tool."""
+    layer.mode = Mode.ADD
+
+
 @Region.bind_key("S")
 def activate_select_mode(layer):
     """Activate move tool."""
-    layer.mode = Mode.ADD
+    layer.mode = Mode.SELECT
+
+
+@Region.bind_key("E")
+def activate_edit_mode(layer):
+    """Activate move tool."""
+    layer.mode = Mode.EDIT
 
 
 @Region.bind_key("Z")
@@ -35,6 +47,13 @@ def activate_select_mode(layer):
 def activate_pan_zoom_mode(layer):
     """Activate pan and zoom mode."""
     layer.mode = Mode.PAN_ZOOM
+
+
+@Region.bind_key("Backspace")
+@Region.bind_key("Delete")
+def delete_current(layer):
+    """Activate pan and zoom mode."""
+    layer.remove_selected()
 
 
 @Region.bind_key("Enter")

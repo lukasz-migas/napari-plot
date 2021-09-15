@@ -65,13 +65,6 @@ def test_with_orientation():
     assert np.all([o == "horizontal" for o in layer.orientation])
 
 
-# def test_changing_orientation():
-#     data = [[25, 50], [50, 100]]
-#     layer = Region(data, orientation="vertical")
-#     layer.orientation = "horizontal"
-#     assert np.all([o == "horizontal" for o in layer.orientation])
-
-
 def test_adding_regions():
     data = [[25, 50], [50, 100]]
     layer = Region(data, orientation="vertical")
@@ -81,6 +74,54 @@ def test_adding_regions():
     new_data = [[75, 123], [142, 143]]
     layer.add(new_data, orientation="horizontal")
     assert layer.n_regions == len(data + new_data)
+
+
+def test_region_color_default():
+    data = [[25, 50], [50, 100]]
+    layer = Region(data, orientation="vertical")
+    assert layer.n_regions == len(data)
+    assert layer.ndim == 2
+    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+
+
+@pytest.mark.parametrize("color", ["red", "#FF0000", (1, 0, 0), (1, 0, 0, 1)])
+def test_region_color_set(color):
+    data = [[25, 50], [50, 100]]
+    layer = Region(data, orientation="vertical", face_color=color)
+    assert layer.n_regions == len(data)
+    assert layer.ndim == 2
+    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
+
+
+def test_region_color_current():
+    data = 20 * [np.random.random((2, 1))]
+    layer = Region(data, orientation="vertical")
+    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+
+    layer.selected_data = {0, 1}
+    assert layer.selected_data == {0, 1}
+    layer.current_face_color = "red"
+    np.testing.assert_array_equal(layer.face_color[1], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.face_color[2], np.asarray([1.0, 1.0, 1.0, 1.0]))
+
+    layer.selected_data = {9}
+    assert layer.selected_data == {9}
+    layer.current_face_color = "#00FF00"
+    np.testing.assert_array_equal(layer.face_color[5], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.face_color[9], np.asarray([0.0, 1.0, 0.0, 1.0]))
+
+
+def test_region_selection():
+    data = 20 * [np.random.random((2, 1))]
+    layer = Region(data, orientation="vertical")
+    layer.selected_data = {0, 1}
+    assert layer.selected_data == {0, 1}
+
+    layer.selected_data = {9}
+    assert layer.selected_data == {9}
+
+    layer.selected_data = set()
+    assert layer.selected_data == set()
 
 
 def test_thumbnail():

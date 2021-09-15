@@ -11,7 +11,7 @@ HERE = Path(__file__).parent
 
 @napari_hook_implementation
 def napari_experimental_provide_icons():
-    """Provide icons to """
+    """Provide icons to"""
     return list((HERE / "resources" / "icons").glob("*.svg"))
 
 

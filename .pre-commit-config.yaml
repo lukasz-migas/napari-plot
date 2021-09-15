@@ -3,17 +3,13 @@ repos:
     rev: 5.8.0
     hooks:
     - id: isort
-#-   repo: https://github.com/seddonym/import-linter
-#    rev: v1.2.1
-#    hooks:
-#    - id: import-linter
 -   repo: https://github.com/asottile/pyupgrade
     rev: v2.7.4
     hooks:
     - id: pyupgrade
       args: ["--py37-plus"]
 -   repo: https://github.com/python/black
-    rev: 20.8b1
+    rev: 21.9b0
     hooks:
     - id: black
       pass_filenames: true
@@ -22,3 +18,8 @@ repos:
     hooks:
     - id: flake8
       pass_filenames: true
+-   repo: https://github.com/seddonym/import-linter
+    rev: v1.2.1
+    hooks:
+    - id: import-linter
+      stages: [manual]

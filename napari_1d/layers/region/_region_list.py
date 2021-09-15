@@ -1,4 +1,6 @@
 """Region list."""
+import typing as ty
+
 import numpy as np
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Rectangle
@@ -26,20 +28,10 @@ class RegionList:
         Data arrays for each shape.
     ndisplay : int
         Number of displayed dimensions.
-    slice_keys : (N, 2, P) array
-        Array of slice keys for each shape. Each slice key has the min and max
-        values of the P non-displayed dimensions, useful for slicing
-        multidimensional shapes. If the both min and max values of shape are
-        equal then the shape is entirely contained within the slice specified
-        by those values.
-    shape_types : (N, ) list of str
-        Name of shape type for each shape.
-    edge_color : (N x 4) np.ndarray
-        Array of RGBA edge colors for each shape.
+    orientations : (N, ) list of str
+        Name of shape type for each region.
     face_color : (N x 4) np.ndarray
         Array of RGBA face colors for each shape.
-    edge_widths : (N, ) list of float
-        Edge width for each shape.
     z_indices : (N, ) list of int
         z-index for each shape.
 
@@ -60,7 +52,7 @@ class RegionList:
         be rendered.
     """
 
-    def __init__(self, data=[], ndisplay=2):
+    def __init__(self, data=(), ndisplay=2):
 
         self._ndisplay = ndisplay
         self.regions = []
@@ -75,7 +67,6 @@ class RegionList:
 
         self._mesh = Mesh(ndisplay=self.ndisplay)
 
-        self._edge_color = np.empty((0, 4))
         self._face_color = np.empty((0, 4))
 
         for d in data:
@@ -118,15 +109,6 @@ class RegionList:
         return [s.name for s in self.regions]
 
     @property
-    def edge_color(self):
-        """(N x 4) np.ndarray: Array of RGBA edge colors for each shape"""
-        return self._edge_color
-
-    @edge_color.setter
-    def edge_color(self, edge_color):
-        self._set_color(edge_color, "edge")
-
-    @property
     def face_color(self):
         """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
         return self._face_color
@@ -160,12 +142,7 @@ class RegionList:
         self._update_displayed()
 
     @property
-    def edge_widths(self):
-        """list of float: edge width for each shape."""
-        return [s.edge_width for s in self.regions]
-
-    @property
-    def z_indices(self):
+    def z_indices(self) -> ty.List[int]:
         """list of int: z-index for each shape."""
         return [s.z_index for s in self.regions]
 
@@ -209,7 +186,6 @@ class RegionList:
         self,
         shape,
         face_color=None,
-        edge_color=None,
         shape_index=None,
         z_refresh=True,
     ):
@@ -242,9 +218,6 @@ class RegionList:
             if face_color is None:
                 face_color = np.array([1, 1, 1, 1])
             self._face_color = np.vstack([self._face_color, face_color])
-            if edge_color is None:
-                edge_color = np.array([0, 0, 0, 1])
-            self._edge_color = np.vstack([self._edge_color, edge_color])
         else:
             z_refresh = False
             self.regions[shape_index] = shape
@@ -254,10 +227,6 @@ class RegionList:
                 face_color = self._face_color[shape_index]
             else:
                 self._face_color[shape_index, :] = face_color
-            if edge_color is None:
-                edge_color = self._edge_color[shape_index]
-            else:
-                self._edge_color[shape_index, :] = edge_color
 
         self._vertices = np.append(self._vertices, shape.data_displayed, axis=0)
         index = np.repeat(shape_index, len(shape.data))
@@ -281,24 +250,6 @@ class RegionList:
         color_array = np.repeat([face_color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
-        # # Add edges to mesh
-        # m = len(self._mesh.vertices)
-        # vertices = shape._edge_vertices + shape.edge_width * shape._edge_offsets
-        # self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
-        # vertices = shape._edge_vertices
-        # self._mesh.vertices_centers = np.append(self._mesh.vertices_centers, vertices, axis=0)
-        # vertices = shape._edge_offsets
-        # self._mesh.vertices_offsets = np.append(self._mesh.vertices_offsets, vertices, axis=0)
-        # index = np.repeat([[shape_index, 1]], len(vertices), axis=0)
-        # self._mesh.vertices_index = np.append(self._mesh.vertices_index, index, axis=0)
-        #
-        # triangles = shape._edge_triangles + m
-        # self._mesh.triangles = np.append(self._mesh.triangles, triangles, axis=0)
-        # index = np.repeat([[shape_index, 1]], len(triangles), axis=0)
-        # self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
-        # color_array = np.repeat([edge_color], len(triangles), axis=0)
-        # self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
-
         if z_refresh:
             # Set z_order
             self._update_z_order()
@@ -307,9 +258,9 @@ class RegionList:
         """Removes all shapes"""
         self.regions = []
         self._vertices = np.empty((0, self.ndisplay))
-        self._index = np.empty((0), dtype=int)
-        self._z_index = np.empty((0), dtype=int)
-        self._z_order = np.empty((0), dtype=int)
+        self._index = np.empty(0, dtype=int)
+        self._z_index = np.empty(0, dtype=int)
+        self._z_order = np.empty(0, dtype=int)
         self._mesh.clear()
         self._update_displayed()
 
@@ -404,7 +355,7 @@ class RegionList:
             self._mesh.triangles_z_order = np.concatenate(triangles_z_order)
         self._update_displayed()
 
-    def edit(self, index, data, face_color=None, edge_color=None, new_type=None):
+    def edit(self, index, data, face_color=None, new_type=None):
         """Updates the data of a single shape located at index. If
         `new_type` is not None then converts the shape type to the new type
 
@@ -419,7 +370,7 @@ class RegionList:
         """
         if new_type is not None:
             cur_shape = self.regions[index]
-            if type(new_type) == str:
+            if isinstance(new_type, (str, Orientation)):
                 orientation = Orientation(new_type)
                 if orientation in region_classes.keys():
                     shape_cls = region_classes[orientation]
@@ -431,7 +382,6 @@ class RegionList:
                 shape_cls = new_type
             shape = shape_cls(
                 data,
-                edge_width=cur_shape.edge_width,
                 z_index=cur_shape.z_index,
                 dims_order=cur_shape.dims_order,
             )
@@ -441,46 +391,10 @@ class RegionList:
 
         if face_color is not None:
             self._face_color[index] = face_color
-        if edge_color is not None:
-            self._edge_color[index] = edge_color
 
         self.remove(index, renumber=False)
         self.add(shape, shape_index=index)
         self._update_z_order()
-
-    def update_edge_width(self, index, edge_width):
-        """Updates the edge width of a single shape located at index.
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        edge_width : float
-            thickness of lines and edges.
-        """
-        self.regions[index].edge_width = edge_width
-        self._update_mesh_vertices(index, edge=True)
-
-    def update_edge_color(self, index, edge_color, update=True):
-        """Updates the edge color of a single shape located at index.
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        edge_color : str | tuple
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements.
-        update : bool
-            If True, update the mesh with the new color property. Set to False to avoid
-            repeated updates when modifying multiple shapes. Default is True.
-        """
-        self._edge_color[index] = edge_color
-        indices = np.all(self._mesh.triangles_index == [index, 1], axis=1)
-        self._mesh.triangles_colors[indices] = self._edge_color[index]
-        if update:
-            self._update_displayed()
 
     def update_face_color(self, index, face_color, update=True):
         """Updates the face color of a single shape located at index.
@@ -532,84 +446,6 @@ class RegionList:
         """
         self.regions[index].z_index = z_index
         self._z_index[index] = z_index
-        self._update_z_order()
-
-    def shift(self, index, shift):
-        """Performs a 2D shift on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        shift : np.ndarray
-            length 2 array specifying shift of shapes.
-        """
-        self.regions[index].shift(shift)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def scale(self, index, scale, center=None):
-        """Performs a scaling on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        scale : float, list
-            scalar or list specifying rescaling of shape.
-        center : list
-            length 2 list specifying coordinate of center of scaling.
-        """
-        self.regions[index].scale(scale, center=center)
-        shape = self.regions[index]
-        self.remove(index, renumber=False)
-        self.add(shape, shape_index=index)
-        self._update_z_order()
-
-    def rotate(self, index, angle, center=None):
-        """Performs a rotation on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        angle : float
-            angle specifying rotation of shape in degrees.
-        center : list
-            length 2 list specifying coordinate of center of rotation.
-        """
-        self.regions[index].rotate(angle, center=center)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def flip(self, index, axis, center=None):
-        """Performs an vertical flip on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        axis : int
-            integer specifying axis of flip. `0` flips horizontal, `1` flips
-            vertical.
-        center : list
-            length 2 list specifying coordinate of center of flip axes.
-        """
-        self.regions[index].flip(axis, center=center)
-        self._update_mesh_vertices(index, edge=True, face=True)
-
-    def transform(self, index, transform):
-        """Performs a linear transform on a single shape located at index
-
-        Parameters
-        ----------
-        index : int
-            Location in list of the shape to be changed.
-        transform : np.ndarray
-            2x2 array specifying linear transform.
-        """
-        self.regions[index].transform(transform)
-        shape = self.regions[index]
-        self.remove(index, renumber=False)
-        self.add(shape, shape_index=index)
         self._update_z_order()
 
     def highlight(self, indices):
@@ -707,7 +543,6 @@ class RegionList:
         intersects = triangles_intersect_box(triangles, corners)
         shapes = self._mesh.displayed_triangles_index[intersects, 0]
         shapes = np.unique(shapes).tolist()
-
         return shapes
 
     def inside(self, coord):
@@ -734,8 +569,7 @@ class RegionList:
             order_indices = np.array([z_list.index(m) for m in shapes])
             ordered_shapes = shapes[np.argsort(order_indices)]
             return ordered_shapes[0]
-        else:
-            return None
+        return None
 
     def to_masks(self, mask_shape=None, zoom_factor=1, offset=[0, 0]):
         """Returns N binary masks, one for each shape, embedded in an array of
@@ -763,10 +597,9 @@ class RegionList:
             mask_shape = self.displayed_vertices.max(axis=0).astype("int")
 
         masks = np.array([s.to_mask(mask_shape, zoom_factor=zoom_factor, offset=offset) for s in self.regions])
-
         return masks
 
-    def to_labels(self, labels_shape=None, zoom_factor=1, offset=[0, 0]):
+    def to_labels(self, labels_shape=None, zoom_factor=1, offset=None):
         """Returns a integer labels image, where each shape is embedded in an
         array of shape labels_shape with the value of the index + 1
         corresponding to it, and 0 for background. For overlapping shapes
@@ -775,33 +608,31 @@ class RegionList:
         Parameters
         ----------
         labels_shape : np.ndarray | tuple | None
-            2-tuple defining shape of labels image to be generated. If non
-            specified, takes the max of all the vertices
+            2-tuple defining shape of labels image to be generated. If non specified, takes the max of all the vertices
         zoom_factor : float
-            Pre-multiplier applied to coordinates before generating mask. Used
-            for generating as downsampled mask.
+            Pre-multiplier applied to coordinates before generating mask. Used for generating as downsampled mask.
         offset : 2-tuple
-            Offset subtracted from coordinates before multiplying by the
-            zoom_factor. Used for putting negative coordinates into the mask.
+            Offset subtracted from coordinates before multiplying by the zoom_factor. Used for putting negative
+            coordinates into the mask.
 
         Returns
         -------
         labels : np.ndarray
-            MxP integer array where each value is either 0 for background or an
-            integer up to N for points inside the corresponding shape.
+            MxP integer array where each value is either 0 for background or an integer up to N for points inside
+            the corresponding shape.
         """
+        if offset is None:
+            offset = [0, 0]
         if labels_shape is None:
             labels_shape = self.displayed_vertices.max(axis=0).astype(np.int)
 
         labels = np.zeros(labels_shape, dtype=int)
-
         for ind in self._z_order[::-1]:
             mask = self.regions[ind].to_mask(labels_shape, zoom_factor=zoom_factor, offset=offset)
             labels[mask] = ind + 1
-
         return labels
 
-    def to_colors(self, colors_shape=None, zoom_factor=1, offset=[0, 0], max_shapes=None):
+    def to_colors(self, colors_shape=None, zoom_factor=1, offset=None, max_shapes=None):
         """Rasterize shapes to an RGBA image array.
 
         Each shape is embedded in an array of shape `colors_shape` with the
@@ -811,26 +642,25 @@ class RegionList:
         Parameters
         ----------
         colors_shape : np.ndarray | tuple | None
-            2-tuple defining shape of colors image to be generated. If non
-            specified, takes the max of all the vertiecs
+            2-tuple defining shape of colors image to be generated. If non specified, takes the max of all the vertices
         zoom_factor : float
-            Pre-multiplier applied to coordinates before generating mask. Used
-            for generating as downsampled mask.
+            Pre-multiplier applied to coordinates before generating mask. Used for generating as downsampled mask.
         offset : 2-tuple
-            Offset subtracted from coordinates before multiplying by the
-            zoom_factor. Used for putting negative coordinates into the mask.
+            Offset subtracted from coordinates before multiplying by the zoom_factor. Used for putting negative
+            coordinates into the mask.
         max_shapes : None | int
-            If provided, this is the maximum number of shapes that will be rasterized.
-            If the number of shapes in view exceeds max_shapes, max_shapes shapes
-            will be randomly selected from the in view shapes. If set to None, no
+            If provided, this is the maximum number of shapes that will be rasterized. If the number of shapes in view
+            exceeds max_shapes, max_shapes shapes will be randomly selected from the in view shapes. If set to None, no
             maximum is applied. The default value is None.
 
         Returns
         -------
         colors : (N, M, 4) array
-            rgba array where each value is either 0 for background or the rgba
-            value of the shape for points inside the corresponding shape.
+            rgba array where each value is either 0 for background or the rgba value of the shape for points inside
+            the corresponding shape.
         """
+        if offset is None:
+            offset = [0, 0]
         if colors_shape is None:
             colors_shape = self.displayed_vertices.max(axis=0).astype(np.int)
 
@@ -842,8 +672,7 @@ class RegionList:
         z_order_in_view_mask = np.isin(z_order, shapes_in_view)
         z_order_in_view = z_order[z_order_in_view_mask]
 
-        # If there are too many shapes to render responsively, just render
-        # the top max_shapes shapes
+        # If there are too many shapes to render responsively, just render the top max_shapes shapes
         if max_shapes is not None and len(z_order_in_view) > max_shapes:
             z_order_in_view = z_order_in_view[0:max_shapes]
 
@@ -851,5 +680,4 @@ class RegionList:
             mask = self.regions[ind].to_mask(colors_shape, zoom_factor=zoom_factor, offset=offset)
             col = self._face_color[ind]
             colors[mask, :] = col
-
         return colors
