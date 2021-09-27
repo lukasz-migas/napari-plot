@@ -59,7 +59,7 @@ class VispyCamera:
         if self.rect == rect:
             return
         _rect = Rect(self.camera.rect)
-        _rect.left, _rect.right, _rect.bot, _rect.top = rect  # nicely unpack tuple
+        _rect.left, _rect.right, _rect.bottom, _rect.top = rect  # nicely unpack tuple
         self.camera.rect = _rect
 
     @property
