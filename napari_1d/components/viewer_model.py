@@ -1,6 +1,7 @@
 """Viewer model"""
 import typing as ty
 import warnings
+from functools import partial
 
 import numpy as np
 from napari.components.cursor import Cursor
@@ -14,13 +15,14 @@ from pydantic import Extra, Field
 
 from .. import layers
 from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import boxzoom
+from ._viewer_mouse_bindings import boxzoom, boxzoom_shape
 from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
 from .axis import Axis
-from .box import BoxTool
 from .camera import Camera
+from .dragtool import DragTool
 from .gridlines import GridLines
 from .layerlist import LayerList
+from .tools import BoxTool
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -40,7 +42,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
     axis: Axis = Field(default_factory=Axis, allow_mutation=False)
     text_overlay: TextOverlay = Field(default_factory=TextOverlay, allow_mutation=False)
-    box_tool: BoxTool = Field(default_factory=BoxTool, allow_mutation=False)
+    drag_tool: DragTool = Field(default_factory=DragTool, allow_mutation=False)
     grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
 
     help: str = ""
@@ -71,6 +73,42 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
         # Add mouse callback
         self.mouse_drag_callbacks.append(boxzoom)
+
+        self.drag_tool.events.active.connect(self._on_update_tool)
+        self.drag_tool.active = "box"
+
+    def _on_update_tool(self, event):
+        """Update drag method based on currently active tool."""
+        from .dragtool import BOX_INTERACTIVE_TOOL, DragMode
+        from .tools import Shape
+
+        if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
+            for callback_func in [
+                partial(boxzoom_shape, Shape.VERTICAL),
+                partial(boxzoom_shape, Shape.HORIZONTAL),
+                partial(boxzoom_shape, Shape.BOX),
+                boxzoom,
+            ]:
+                try:
+                    index = self.mouse_drag_callbacks.index(callback_func)
+                    self.mouse_drag_callbacks.pop(index)
+                except ValueError:
+                    pass
+
+            tool = BoxTool()
+            if self.drag_tool.active == DragMode.VERTICAL_SPAN:
+                tool.shape = Shape.VERTICAL
+                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.VERTICAL))
+            elif self.drag_tool.active == DragMode.HORIZONTAL_SPAN:
+                tool.shape = Shape.HORIZONTAL
+                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.HORIZONTAL))
+            elif self.drag_tool.active == DragMode.BOX:
+                tool.shape = Shape.BOX
+                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.BOX))
+            elif self.drag_tool.active == DragMode.AUTO:
+                tool.shape = Shape.BOX
+                self.mouse_drag_callbacks.append(boxzoom)
+            self.drag_tool.tool = tool
 
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:
         """Get data extent"""

@@ -165,6 +165,7 @@ class Window:
         self._add_menubar()
         self._add_file_menu()
         self._add_view_menu()
+        self._add_interaction_menu()
         self._add_window_menu()
         self._update_theme()
 
@@ -291,6 +292,69 @@ class Window:
         self.view_menu.addAction(toggle_fullscreen)
         self.view_menu.addAction(toggle_visible)
         self.view_menu.addSeparator()
+
+    def _add_interaction_menu(self):
+        """Add 'View' menu to app menubar."""
+        from ..components.camera import CameraMode, ExtentMode
+        from ..components.dragtool import DragMode
+
+        # add DragMode
+        self.view_tools = self.main_menu.addMenu("&Interaction")
+        toggle_tool = QAction("Tool: Auto", self._qt_window)
+        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Tool: Box", self._qt_window)
+        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Tool: Horizontal span", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
+        )
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Tool: Vertical span", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+        )
+        self.view_tools.addAction(toggle_tool)
+
+        # add CameraMode
+        self.view_tools.addSeparator()
+        toggle_tool = QAction("Camera mode: No locking", self._qt_window)
+        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.camera, "axis_mode", CameraMode.ALL))
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Camera mode: Lock to bottom", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "axis_mode", CameraMode.LOCK_TO_BOTTOM)
+        )
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Camera mode: Lock to top", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "axis_mode", CameraMode.LOCK_TO_TOP)
+        )
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Camera mode: Lock to left", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "axis_mode", CameraMode.LOCK_TO_LEFT)
+        )
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Camera mode: Lock to right", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "axis_mode", CameraMode.LOCK_TO_RIGHT)
+        )
+        self.view_tools.addAction(toggle_tool)
+
+        # add ExtentMode
+        self.view_tools.addSeparator()
+        toggle_tool = QAction("Extent mode: Unrestricted", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
+        )
+        self.view_tools.addAction(toggle_tool)
+        toggle_tool = QAction("Extent mode: Restricted", self._qt_window)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
+        )
+        self.view_tools.addAction(toggle_tool)
 
     def _add_window_menu(self):
         """Add 'Window' menu to app menubar."""

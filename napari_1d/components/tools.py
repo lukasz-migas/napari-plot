@@ -26,7 +26,15 @@ class Shape(str, Enum):
 span_classes = {Shape.HORIZONTAL: Horizontal, Shape.VERTICAL: Vertical, Shape.BOX: Box}
 
 
-class BoxTool(EventedModel):
+class BaseTool(EventedModel):
+    """Base class for all drag tools."""
+
+    visible: bool = False
+    color: Array[float, (4,)] = (0.0, 0.0, 1.0, 1.0)
+    opacity: float = 0.5
+
+
+class BoxTool(BaseTool):
     """Zoom tool that is represented by rectangular box.
 
     visible : bool
@@ -46,10 +54,7 @@ class BoxTool(EventedModel):
             `y_max` in the vertical axis.
     """
 
-    visible: bool = False
-    color: Array[float, (4,)] = (1.0, 1.0, 1.0, 1.0)
-    opacity: float = 0.3
-    position: ty.Tuple[float, float, float, float] = (0, 0, 0, 0)
+    position: Array[float, (4,)] = (0.0, 0.0, 0.0, 0.0)
     shape: Shape = Shape.VERTICAL
 
     # private attributes
@@ -59,15 +64,20 @@ class BoxTool(EventedModel):
     def _coerce_color(cls, v):
         return transform_color(v)[0]
 
+    @validator("position", pre=True)
+    def _validate_position(cls, v):
+        assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
+        return np.asarray(v)
+
     @property
     def mesh(self):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         if self.shape == Shape.VERTICAL:
-            span = Vertical(self.position[0:2], z_index=0)
+            span = Vertical(self.position[0:2])
         elif self.shape == Shape.HORIZONTAL:
-            span = Horizontal(self.position[2:], z_index=0)
+            span = Horizontal(self.position[2:])
         else:
-            span = Box(self.position, edge_width=0, z_index=0)
+            span = Box(self.position, edge_width=0)
         self._mesh.clear()
         self._add(span)
         return self._mesh
@@ -90,3 +100,23 @@ class BoxTool(EventedModel):
         self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
         color_array = np.repeat([self.color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
+
+
+class LassoTool(BaseTool):
+    """Base class for lasso tool."""
+
+    position: np.ndarray = np.zeros(0)
+
+    @validator("position", pre=True)
+    def _validate_position(cls, v):
+        return v
+
+
+class PolygonTool(BaseTool):
+    """Base class for lasso tool."""
+
+    position: np.ndarray = np.zeros(0)
+
+    @validator("position", pre=True)
+    def _validate_position(cls, v):
+        return v

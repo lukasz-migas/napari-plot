@@ -1,7 +1,7 @@
 """Interaction tool."""
 import typing as ty
 
-from .vispy_span_visual import VispyBoxVisual
+from .vispy_box_visual import VispyBoxVisual
 
 if ty.TYPE_CHECKING:
     from ..components.camera import Camera
@@ -16,6 +16,7 @@ class VispyTool:
         self._camera = camera
         self._viewer = viewer
 
-        self._span = VispyBoxVisual(viewer, parent=view, order=1e5)
-        self._box = None
-        self.tool = self._span
+        self._box = VispyBoxVisual(viewer, parent=view, order=1e5)
+        self._lasso = None
+        self._polygon = None
+        self.tool = self._box

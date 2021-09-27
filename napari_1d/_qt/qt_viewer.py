@@ -255,19 +255,6 @@ class QtViewer(QSplitter):
         self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer)
         self.canvas.connect(self.camera.on_draw)
 
-        self.camera.camera.events.box_press.connect(self._on_boxzoom)
-        self.camera.camera.events.box_move.connect(self._on_boxzoom_move)
-
-    def _on_boxzoom(self, event):
-        """Update boxzoom visibility."""
-        self.viewer.box_tool.visible = event.visible
-        if not event.visible:
-            self.viewer.box_tool.position = 0, 0, 0, 0
-
-    def _on_boxzoom_move(self, event):
-        """Update boxzoom"""
-        self.viewer.box_tool.position = event.rect
-
     def _add_visuals(self) -> None:
         """Add visuals for axes, scale bar"""
         # add span
