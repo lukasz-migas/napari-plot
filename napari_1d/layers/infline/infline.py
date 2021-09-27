@@ -3,7 +3,6 @@ from copy import copy
 
 import numpy as np
 from napari.layers.base import Layer, no_op
-from napari.layers.shapes._shapes_utils import create_box
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -12,9 +11,9 @@ from napari.layers.utils.color_transformations import (
 )
 from napari.utils.events import Event
 
-from ._infline_constants import Box, Mode, Orientation
+from ._infline_constants import Mode, Orientation
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import extract_inf_line_orientation
+from ._infline_utils import extract_inf_line_orientation, inside
 
 
 class InfLine(Layer):
@@ -69,7 +68,9 @@ class InfLine(Layer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, label=Event, mode=Event, shifted=Event)
+        self.events.add(
+            color=Event, width=Event, label=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event
+        )
         if not len(data) == len(orientations):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
@@ -206,11 +207,17 @@ class InfLine(Layer):
         self._orientations.extend(orientation)
         self.data = np.append(self._data, np.asarray(pos))
 
-    def move(self, index: int, new_pos: float, finished: bool = False):
+    def _add_creating(self, pos, orientation) -> int:
+        """Add line while return the count."""
+        self.add([pos], [orientation])
+        return len(self.data) - 1
+
+    def move(self, index: int, new_pos: float, orientation, finished: bool = False):
         """Move region to new location"""
         if index > len(self.data):
             raise ValueError("Selected index is larger than total number of elements.")
         self._data[index] = new_pos
+        self._orientations[index] = Orientation(orientation)
         self.data = self._data
 
         if finished:
@@ -316,7 +323,15 @@ class InfLine(Layer):
 
     def _get_value(self, position):
         """Value of the data at a position in data coordinates"""
-        return None
+        coord = position[0:2]
+
+        # Check selected region
+        value = None
+        if value is None:
+            # Check if mouse inside shape
+            infline = inside(coord, self.data)
+            value = (infline, None)
+        return value
 
     @property
     def _extent_data(self) -> np.ndarray:
@@ -330,6 +345,17 @@ class InfLine(Layer):
         force : bool
             Bool that forces a redraw to occur when `True`.
         """
+        # Check if any shape or vertex ids have changed since last call
+        if (
+            self.selected_data == self._selected_data_stored
+            and np.all(self._value == self._value_stored)
+            and np.all(self._drag_box == self._drag_box_stored)
+        ) and not force:
+            return
+        self._selected_data_stored = copy(self.selected_data)
+        self._value_stored = copy(self._value)
+        self._drag_box_stored = copy(self._drag_box)
+        self.events.highlight()
 
     def interaction_box(self, index):
         """Create the interaction box around a shape or list of shapes.
@@ -350,22 +376,23 @@ class InfLine(Layer):
             the box, and the last point is the location of the rotation handle
             that can be used to rotate the box
         """
-        if isinstance(index, (list, np.ndarray, set)):
-            if len(index) == 0:
-                box = None
-            elif len(index) == 1:
-                box = copy(self._data_view.regions[list(index)[0]]._box)
-            else:
-                indices = np.isin(self._data_view.displayed_index, list(index))
-                box = create_box(self._data_view.displayed_vertices[indices])
-        else:
-            box = copy(self._data_view.regions[index]._box)
-
-        if box is not None:
-            rot = box[Box.TOP_CENTER]
-            length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
-            if length_box > 0:
-                r = self._rotation_handle_length * self.scale_factor
-                rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
-            box = np.append(box, [rot], axis=0)
+        box = None
+        # if isinstance(index, (list, np.ndarray, set)):
+        #     if len(index) == 0:
+        #         box = None
+        #     elif len(index) == 1:
+        #         box = copy(self._data_view.regions[list(index)[0]]._box)
+        #     else:
+        #         indices = np.isin(self._data_view.displayed_index, list(index))
+        #         box = create_box(self._data_view.displayed_vertices[indices])
+        # else:
+        #     box = copy(self._data_view.regions[index]._box)
+        #
+        # if box is not None:
+        #     rot = box[Box.TOP_CENTER]
+        #     length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
+        #     if length_box > 0:
+        #         r = self._rotation_handle_length * self.scale_factor
+        #         rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
+        #     box = np.append(box, [rot], axis=0)
         return box
