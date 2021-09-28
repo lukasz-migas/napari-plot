@@ -1,7 +1,6 @@
 """Viewer model"""
 import typing as ty
 import warnings
-from functools import partial
 
 import numpy as np
 from napari.components.cursor import Cursor
@@ -15,7 +14,7 @@ from pydantic import Extra, Field
 
 from .. import layers
 from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import boxzoom, boxzoom_shape
+from ._viewer_mouse_bindings import boxzoom, boxzoom_box, boxzoom_horizontal, boxzoom_vertical
 from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
 from .axis import Axis
 from .camera import Camera
@@ -72,8 +71,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.layers_change.connect(self._on_update_extent)
 
         # Add mouse callback
-        self.mouse_drag_callbacks.append(boxzoom)
-
         self.drag_tool.events.active.connect(self._on_update_tool)
         self.drag_tool.active = "box"
 
@@ -83,28 +80,26 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         from .tools import Shape
 
         if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
-            for callback_func in [
-                partial(boxzoom_shape, Shape.VERTICAL),
-                partial(boxzoom_shape, Shape.HORIZONTAL),
-                partial(boxzoom_shape, Shape.BOX),
-                boxzoom,
-            ]:
+            for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom]:
                 try:
                     index = self.mouse_drag_callbacks.index(callback_func)
                     self.mouse_drag_callbacks.pop(index)
                 except ValueError:
                     pass
+            if type(self.drag_tool.tool) == BoxTool:
+                tool = self.drag_tool.tool
+            else:
+                tool = BoxTool()
 
-            tool = BoxTool()
             if self.drag_tool.active == DragMode.VERTICAL_SPAN:
                 tool.shape = Shape.VERTICAL
-                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.VERTICAL))
+                self.mouse_drag_callbacks.append(boxzoom_vertical)
             elif self.drag_tool.active == DragMode.HORIZONTAL_SPAN:
                 tool.shape = Shape.HORIZONTAL
-                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.HORIZONTAL))
+                self.mouse_drag_callbacks.append(boxzoom_horizontal)
             elif self.drag_tool.active == DragMode.BOX:
                 tool.shape = Shape.BOX
-                self.mouse_drag_callbacks.append(partial(boxzoom_shape, Shape.BOX))
+                self.mouse_drag_callbacks.append(boxzoom_box)
             elif self.drag_tool.active == DragMode.AUTO:
                 tool.shape = Shape.BOX
                 self.mouse_drag_callbacks.append(boxzoom)

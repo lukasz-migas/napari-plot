@@ -1,4 +1,6 @@
 """Mouse bindings to the viewer"""
+from functools import partial
+
 from .tools import Shape
 
 ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
@@ -71,3 +73,8 @@ def boxzoom_shape(shape: Shape, viewer, event):
     viewer.drag_tool.tool.visible = False
     viewer.drag_tool.tool.position = (0, 0, 0, 0)
     viewer.events.span(position=position)
+
+
+boxzoom_vertical = partial(boxzoom_shape, Shape.VERTICAL)
+boxzoom_horizontal = partial(boxzoom_shape, Shape.HORIZONTAL)
+boxzoom_box = partial(boxzoom_shape, Shape.BOX)

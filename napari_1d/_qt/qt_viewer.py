@@ -25,9 +25,9 @@ from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerCont
 
 from .._vispy.utils import create_vispy_visual
 from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
-from .._vispy.vispy_box_visual import VispyBoxVisual
 from .._vispy.vispy_camera import VispyCamera
 from .._vispy.vispy_canvas import VispyCanvas
+from .._vispy.vispy_drag_tool import VispyDragTool
 from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
 from .._vispy.vispy_text_visual import VispyTextVisual
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
@@ -258,7 +258,7 @@ class QtViewer(QSplitter):
     def _add_visuals(self) -> None:
         """Add visuals for axes, scale bar"""
         # add span
-        self.span = VispyBoxVisual(self.viewer, parent=self.view, order=1e5)
+        self.tool = VispyDragTool(self.viewer, view=self.view, order=1e5)
 
         # add gridlines
         self.grid_lines = VispyGridLinesVisual(self.viewer, parent=self.view, order=1e6)

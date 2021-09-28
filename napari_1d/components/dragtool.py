@@ -29,9 +29,9 @@ class DragMode(str, Enum):
     """
 
     NONE = "none"
-    AUTO = "auto"  # TODO
-    VERTICAL_SPAN = "v_span"  # TODO
-    HORIZONTAL_SPAN = "h_span"  # TODO
+    AUTO = "auto"
+    VERTICAL_SPAN = "v_span"
+    HORIZONTAL_SPAN = "h_span"
     BOX = "box"  # default interaction
     LASSO = "lasso"  # TODO
     POLYGON = "polygon"  # TODO
