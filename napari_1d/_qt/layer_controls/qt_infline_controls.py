@@ -4,13 +4,12 @@ import typing as ty
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
-from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 from ...layers.infline._infline_constants import Mode
 from .. import helpers as hp
-from ..widgets.qt_image_button import QtModePushButton
+from ..widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:

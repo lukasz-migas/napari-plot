@@ -1,8 +1,12 @@
 """Get all paths."""
 from pathlib import Path
 
+from napari._qt.qt_resources import STYLES, get_stylesheet  # noqa
+
 ICON_PATH = (Path(__file__).parent / "icons").resolve()
 ICONS = {x.stem: str(x) for x in ICON_PATH.iterdir() if x.suffix == ".svg"}
+STYLE_PATH = (Path(__file__).parent / "qss").resolve()
+STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
 
 
 QTA_MAPPING = {
@@ -31,4 +35,5 @@ QTA_MAPPING = {
     "delete_shape": "fa5s.times",
     "move_back": "mdi6.arrange-send-backward",
     "move_front": "mdi6.arrange-bring-to-front",
+    "draw": "mdi.draw",
 }

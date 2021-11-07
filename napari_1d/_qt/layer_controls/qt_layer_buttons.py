@@ -2,7 +2,7 @@
 from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton
 from qtpy.QtWidgets import QFrame, QHBoxLayout
 
-from ..widgets.qt_image_button import QtViewerPushButton
+from ..widgets.qt_icon_button import QtViewerPushButton
 
 
 class QtLayerButtons(QFrame):

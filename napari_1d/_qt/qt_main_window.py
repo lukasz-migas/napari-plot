@@ -6,7 +6,6 @@ from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-from napari.resources import get_stylesheet
 from qtpy.QtCore import QEvent, QEventLoop
 from qtpy.QtGui import QKeySequence, Qt
 from qtpy.QtWidgets import (
@@ -21,6 +20,7 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
+from ..resources import get_stylesheet
 from .qt_event_loop import get_app, quit_app
 from .qt_viewer import QtViewer
 

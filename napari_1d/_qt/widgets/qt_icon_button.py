@@ -3,7 +3,6 @@ import typing as ty
 
 import qtawesome
 from napari._qt.widgets.qt_mode_buttons import QtModePushButton as _QtModePushButton
-from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton as _QtModeRadioButton
 from napari._qt.widgets.qt_viewer_buttons import QtViewerPushButton as _QtViewerPushButton
 from napari.settings import get_settings
 from napari.utils.events.event_utils import connect_no_arg
@@ -96,16 +95,42 @@ class QtModePushButton(QtaMixin, _QtModePushButton):
 
     def __init__(self, layer, button_name, *, slot=None, tooltip=None):
         super().__init__(layer, "", tooltip=tooltip, slot=slot)
+        self.set_qta(button_name)
+        self.set_size((28, 28))
+        self.set_size_name("default")
+
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
         _themes.events.connect(self._update_from_event)
-        self.set_qta(button_name)
 
 
-class QtModeRadioButton(QtaMixin, _QtModeRadioButton):
+class QtModeRadioButton(QtImagePushButton):
     """Overwritten class with added support for qtawesome icons."""
 
     def __init__(self, layer, button_name, mode, *, tooltip=None, checked=False):
-        super().__init__(layer, "", mode=mode, tooltip=tooltip, checked=checked)
+        super().__init__()
+        self.layer = layer
+        self.setCheckable(True)
+        self.set_qta(button_name)
+        self.setChecked(checked)
+        self.setProperty("mode", button_name)
+        self.set_size((28, 28))
+        self.set_size_name("default")
+        self.setToolTip(tooltip)
+        self.mode = mode
+        if mode is not None:
+            self.toggled.connect(self._set_mode)
+
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
         _themes.events.connect(self._update_from_event)
-        self.set_qta(button_name)
+
+    def _set_mode(self, bool):
+        """Toggle the mode associated with the layer.
+
+        Parameters
+        ----------
+        bool : bool
+            Whether this mode is currently selected or not.
+        """
+        with self.layer.events.mode.blocker(self._set_mode):
+            if bool:
+                self.layer.mode = self.mode
