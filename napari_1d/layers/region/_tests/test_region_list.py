@@ -27,8 +27,7 @@ def test_adding_to_list():
     assert region_list.orientations[1] == "horizontal"
 
 
-@pytest.mark.parametrize("attribute", ["edge", "face"])
-def test_bad_color_array(attribute):
+def test_bad_color_array():
     """Test adding shapes to ShapeList."""
     np.random.seed(0)
     data = np.random.random((4, 2))
@@ -39,4 +38,4 @@ def test_bad_color_array(attribute):
     # test setting color with a color array of the wrong shape
     bad_color_array = np.array([[0, 0, 0, 1], [1, 1, 1, 1]])
     with pytest.raises(ValueError):
-        setattr(region_list, f"{attribute}_color", bad_color_array)
+        setattr(region_list, "face_color", bad_color_array)

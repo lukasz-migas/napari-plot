@@ -2,8 +2,8 @@
 from typing import TYPE_CHECKING
 
 import numpy as np
-from napari._vispy._text_utils import update_text
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
+from napari._vispy.utils.text import update_text
 from vispy.scene.visuals import Compound, Markers, Text
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self.layer.events.scaling.connect(self._on_data_change)
         self.layer.text._connect_update_events(self._on_text_change, self._on_blending_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_data_change(self, event=None):

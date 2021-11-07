@@ -5,12 +5,11 @@ import typing as ty
 import numpy as np
 from vispy.geometry import Rect
 from vispy.scene import BaseCamera, PanZoomCamera
-from vispy.util.event import Event
-
-from ..components.box import Shape
 
 # Local imports
 from ..components.camera import CameraMode, ExtentMode
+from ..components.dragtool import BOX_INTERACTIVE_TOOL
+from ..components.tools import Shape
 
 if ty.TYPE_CHECKING:
     from ..components.viewer_model import ViewerModel
@@ -33,8 +32,6 @@ class LimitedPanZoomCamera(PanZoomCamera):
     def __init__(self, viewer: "ViewerModel", *args, **kwargs):
         self.viewer = viewer
         super().__init__(*args, **kwargs)
-
-        self.events.add(box_move=Event, box_press=Event)
 
     @property
     def axis_mode(self):
@@ -102,7 +99,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
-                self.events.box_move(rect=(x0, x1, y0, y1))
+                self.viewer.drag_tool.tool.position = x0, x1, y0, y1
                 event.handled = True
             elif 2 in event.buttons and not modifiers:  # right-button click
                 # Zoom
@@ -118,20 +115,18 @@ class LimitedPanZoomCamera(PanZoomCamera):
             # accept the event if it is button 1 or 2.
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
-            self.events.box_press(visible=True)
         elif event.type == "mouse_release":
             # this is where we change the interaction and actually perform various checks to ensure user doesn't zoom
             # to someplace where they shouldn't
-            # modifiers = event.mouse_event.modifiers
+            modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
             # ensure that user selected broad enough range and they are not using ctrl/shift modifiers
-            if abs(x1 - x0) > 1e-3:  # and not modifiers:
+            if abs(x1 - x0) > 1e-3 and not (self.viewer.drag_tool.selecting and modifiers):
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 # I don't like this because it adds dependency on a instance of the viewer, however, here we can check
                 # what is the most appropriate y-axis range for line plots.
                 self.rect = self._make_zoom_rect(x0, x1, y0, y1)
-            self.events.box_press(visible=False)
         else:
             event.handled = False
 
@@ -141,15 +136,16 @@ class LimitedPanZoomCamera(PanZoomCamera):
         # what is the most appropriate y-axis range for line plots.
         x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
         extent = self.extent
-        if self.viewer.box_tool.shape == Shape.VERTICAL:
-            # x0, x1 = self.viewer._get_x_range_extent_for_y(y0, y1)
-            if extent is not None:
-                y0, y1 = extent.bottom, extent.top
-        elif self.viewer.box_tool.shape == Shape.HORIZONTAL:
-            # y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
-            if extent is not None:
-                x0, x1 = extent.left, extent.right
-        return make_rect(x0, x1, y0, y1)
+        if self.viewer.drag_tool.active in BOX_INTERACTIVE_TOOL:
+            if self.viewer.drag_tool.tool.shape == Shape.VERTICAL:
+                # x0, x1 = self.viewer._get_x_range_extent_for_y(y0, y1)
+                if extent is not None:
+                    y0, y1 = extent.bottom, extent.top
+            elif self.viewer.drag_tool.tool.shape == Shape.HORIZONTAL:
+                # y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
+                if extent is not None:
+                    x0, x1 = extent.left, extent.right
+            return make_rect(x0, x1, y0, y1)
 
     def _check_zoom_limit(self, rect: Rect):
         """Check whether new range is outside of the allowed window"""

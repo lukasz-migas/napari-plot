@@ -3,16 +3,16 @@ import typing as ty
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
-from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 from ...layers.infline._infline_constants import Mode
-from ..helpers import make_label, make_slider
+from .. import helpers as hp
+from ..widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from napari_1d.layers import InfLine
+    from ...layers import InfLine
 
 
 class QtInfLineControls(QtLayerControls):
@@ -48,7 +48,7 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.width_slider = make_slider(
+        self.width_slider = hp.make_slider(
             self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
@@ -60,9 +60,11 @@ class QtInfLineControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_current_color)
         self._on_current_color_change(None)
 
-        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
-        self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
-        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
+        self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
+        self.select_button = QtModeRadioButton(
+            layer, "select_points", Mode.SELECT, tooltip="Select infinite line(s) (S)"
+        )
+        self.move_button = QtModeRadioButton(layer, "move", Mode.MOVE, tooltip="Move infinite line (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",
@@ -83,23 +85,22 @@ class QtInfLineControls(QtLayerControls):
         self.button_group.addButton(self.move_button)
         self.button_group.addButton(self.panzoom_button)
 
-        button_row_1 = QHBoxLayout()
-        button_row_1.addStretch(1)
-        button_row_1.addWidget(self.add_button)
-        button_row_1.addWidget(self.select_button)
-        button_row_1.addWidget(self.move_button)
-        button_row_1.addWidget(self.panzoom_button)
-        button_row_1.addWidget(self.delete_button)
-        button_row_1.setContentsMargins(0, 0, 0, 5)
-        button_row_1.setSpacing(4)
+        button_row = QHBoxLayout()
+        button_row.addStretch(1)
+        button_row.addWidget(self.add_button)
+        button_row.addWidget(self.move_button)
+        button_row.addWidget(self.select_button)
+        button_row.addWidget(self.panzoom_button)
+        button_row.addWidget(self.delete_button)
+        button_row.setContentsMargins(0, 0, 0, 5)
+        button_row.setSpacing(4)
 
-        # add widgets to layout
-        self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Line width"), self.width_slider)
-        self.layout.addRow(make_label(self, "Line color"), self.color_swatch)
-        self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
-        self.layout.addRow(button_row_1)
+        # add widgets to the layout
+        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
+        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
+        self.layout.addRow(button_row)
         self._on_editable_change()
 
     def _on_mode_change(self, event):

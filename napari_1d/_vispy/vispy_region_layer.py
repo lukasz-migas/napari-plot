@@ -1,9 +1,13 @@
 """Region layer"""
 import numpy as np
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
 from ..layers import Region
+
+MESH_MAIN = 0
+MESH_HIGHLIGHT = 1
+LINE = 2
 
 
 class VispyRegionLayer(VispyBaseLayer):
@@ -20,7 +24,7 @@ class VispyRegionLayer(VispyBaseLayer):
         self.layer.events.face_color.connect(self._on_data_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_data_change(self, _event=None):
@@ -39,7 +43,7 @@ class VispyRegionLayer(VispyBaseLayer):
             faces = np.array([[0, 1, 2]])
             colors = np.array([[0, 0, 0, 0]])
 
-        self.node._subvisuals[0].set_data(vertices=vertices, faces=faces, face_colors=colors)
+        self.node._subvisuals[MESH_MAIN].set_data(vertices=vertices, faces=faces, face_colors=colors)
 
         # Call to update order of translation values with new dims:
         self._on_matrix_change()
@@ -47,13 +51,13 @@ class VispyRegionLayer(VispyBaseLayer):
 
     def _on_highlight_change(self, event=None):
         """Highlight."""
-        # Compute the vertices and faces of any shape outlines
-        vertices, faces = self.layer._outline_shapes()
+        # Compute the vertices and faces of selected regions
+        vertices, faces = self.layer._highlight_regions()
         if vertices is None or len(vertices) == 0 or len(faces) == 0:
             vertices = np.zeros((3, self.layer._ndisplay))
             faces = np.array([[0, 1, 2]])
 
-        self.node._subvisuals[1].set_data(
+        self.node._subvisuals[MESH_HIGHLIGHT].set_data(
             vertices=vertices,
             faces=faces,
             color=self.layer._highlight_color,
@@ -61,17 +65,11 @@ class VispyRegionLayer(VispyBaseLayer):
 
         # Compute the location and properties of the vertices and box that
         # need to get rendered
-        (
-            _vertices,
-            _face_color,
-            edge_color,
-            pos,
-            _width,
-        ) = self.layer._compute_vertices_and_box()
+        edge_color, pos = self.layer._compute_vertices_and_box()
 
         # add region edges
-        width = 3
+        width = 3  # set
         if pos is None or len(pos) == 0:
             pos = np.zeros((1, self.layer._ndisplay))
             width = 0
-        self.node._subvisuals[2].set_data(pos=pos, color=edge_color, width=width)
+        self.node._subvisuals[LINE].set_data(pos=pos, color=edge_color, width=width)

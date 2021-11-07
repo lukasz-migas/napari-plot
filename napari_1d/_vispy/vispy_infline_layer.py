@@ -1,6 +1,6 @@
 """Line layer"""
 
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
 from ..layers.infline import InfLine
@@ -25,7 +25,7 @@ class VispyInfLineLayer(VispyBaseLayer):
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.width.connect(self._on_width_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_appearance_change(self, _event=None):

@@ -8,14 +8,7 @@ from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
-from ..helpers import (
-    make_checkbox,
-    make_combobox,
-    make_label,
-    make_slider,
-    set_combobox_data,
-    set_current_combobox_index,
-)
+from .. import helpers as hp
 from .qt_layer_controls_base import QtLayerControls
 
 if TYPE_CHECKING:
@@ -67,7 +60,7 @@ class QtScatterControls(QtLayerControls):
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.size_slider = make_slider(
+        self.size_slider = hp.make_slider(
             self, 1, value=int(self.layer.size), tooltip="Scatter point size", focus_policy=Qt.NoFocus
         )
         self.size_slider.valueChanged.connect(self.on_change_size)
@@ -84,32 +77,34 @@ class QtScatterControls(QtLayerControls):
         )
         self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
-        self.edge_width_slider = make_slider(
+        self.edge_width_slider = hp.make_slider(
             self, 1, value=int(self.layer.edge_width), tooltip="Scatter edge width", focus_policy=Qt.NoFocus
         )
         self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
 
-        self.symbol_combobox = make_combobox(self, tooltip="Marker symbol")
-        set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
+        self.symbol_combobox = hp.make_combobox(self, tooltip="Marker symbol")
+        hp.set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
         self.symbol_combobox.activated[str].connect(self.on_change_symbol)
 
-        self.scaling_checkbox = make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")
+        self.scaling_checkbox = hp.make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")
         self.scaling_checkbox.stateChanged.connect(self.on_change_scaling)
 
-        self.text_display_checkbox = make_checkbox(self, val=self.layer.text.visible, tooltip="Toggle text visibility")
+        self.text_display_checkbox = hp.make_checkbox(
+            self, val=self.layer.text.visible, tooltip="Toggle text visibility"
+        )
         self.text_display_checkbox.stateChanged.connect(self.on_change_text_visibility)
 
         # add widgets to the layout
-        self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(make_label(self, "Points size"), self.size_slider)
-        self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Symbol"), self.symbol_combobox)
-        self.layout.addRow(make_label(self, "Face color"), self.face_color_swatch)
-        self.layout.addRow(make_label(self, "Edge color"), self.edge_color_swatch)
-        self.layout.addRow(make_label(self, "Edge width"), self.edge_width_slider)
-        self.layout.addRow(make_label(self, "Scaling"), self.scaling_checkbox)
-        self.layout.addRow(make_label(self, "Display text"), self.text_display_checkbox)
-        self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
+        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout.addRow(hp.make_label(self, "Points size"), self.size_slider)
+        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout.addRow(hp.make_label(self, "Symbol"), self.symbol_combobox)
+        self.layout.addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
+        self.layout.addRow(hp.make_label(self, "Edge color"), self.edge_color_swatch)
+        self.layout.addRow(hp.make_label(self, "Edge width"), self.edge_width_slider)
+        self.layout.addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
+        self.layout.addRow(hp.make_label(self, "Display text"), self.text_display_checkbox)
+        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_change()
 
     def on_change_symbol(self, _text):
@@ -131,7 +126,7 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.symbol.blocker():
-            set_current_combobox_index(self.symbol_combobox, self.layer.symbol)
+            hp.set_current_combobox_index(self.symbol_combobox, self.layer.symbol)
 
     def on_change_size(self, value):
         """Change size of points on the layer model.

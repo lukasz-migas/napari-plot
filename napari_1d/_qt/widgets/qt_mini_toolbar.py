@@ -1,10 +1,10 @@
 """Mini toolbar"""
-from typing import Callable, Optional
+import typing as ty
 
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
+from qtpy.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout
 
-from ..helpers import make_h_spacer, make_svg_btn, make_v_spacer
+from .. import helpers as hp
 
 
 class QtMiniToolbar(QFrame):
@@ -17,7 +17,7 @@ class QtMiniToolbar(QFrame):
         self.orientation = orientation
 
         self.layout = QHBoxLayout() if orientation == Qt.Horizontal else QVBoxLayout()
-        self.layout.addSpacerItem(make_h_spacer() if orientation == Qt.Horizontal else make_v_spacer())
+        self.layout.addSpacerItem(hp.make_h_spacer() if orientation == Qt.Horizontal else hp.make_v_spacer())
         self.layout.setSpacing(0)
         self.layout.setMargin(0)
         self.setLayout(self.layout)
@@ -28,44 +28,22 @@ class QtMiniToolbar(QFrame):
         """Return the number of items in the layout"""
         return self.layout.count()
 
-    def insert_svg_tool(
+    def insert_qta_tool(
         self,
-        object_name: str,
+        name: str,
         flat: bool = True,
-        func: Optional[Callable] = None,
+        func: ty.Optional[ty.Callable] = None,
         tooltip: str = None,
-        set_checkable: bool = False,
+        checkable: bool = False,
         check: bool = False,
     ):
         """Insert tool"""
-        btn = make_svg_btn(self, object_name, "", tooltip=tooltip, flat=flat)
-        btn.setMaximumSize(10, 10)
+        btn = hp.make_qta_btn(self, name, tooltip=tooltip, flat=flat, size_name="small", size=(26, 26))
         if callable(func):
             btn.clicked.connect(func)
-        if set_checkable:
-            btn.setCheckable(True)
+        btn.setCheckable(checkable)
         if check:
             btn.setChecked(True)
-        self._tools[object_name] = btn
+        self._tools[name] = btn
         self.layout.insertWidget(0, btn, alignment=Qt.AlignCenter)
         return btn
-
-
-if __name__ == "__main__":
-    import sys
-
-    from qtpy.QtWidgets import QApplication
-
-    app = QApplication(sys.argv)
-    frame = QWidget()
-    ha = QHBoxLayout()
-    frame.setLayout(ha)
-
-    h = QtMiniToolbar(None, orientation=Qt.Horizontal)
-    h.insert_svg_tool("save")
-    h.insert_svg_tool("extract")
-    h.insert_svg_tool("add")
-
-    ha.addWidget(h)
-    frame.show()
-    sys.exit(app.exec_())

@@ -1,6 +1,8 @@
 """Layer buttons"""
-from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton, QtViewerPushButton
+from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton
 from qtpy.QtWidgets import QFrame, QHBoxLayout
+
+from ..widgets.qt_icon_button import QtViewerPushButton
 
 
 class QtLayerButtons(QFrame):
