@@ -69,9 +69,9 @@ class DragTool(EventedModel):
     active: DragMode = DragMode.NONE
     tool: ty.Optional[BaseTool] = None
 
-    shift: Array[float, (4,)] = 0, 0, 0, 0
-    alt: Array[float, (4,)] = 0, 0, 0, 0
-    ctrl: Array[float, (4,)] = 0, 0, 0, 0
+    shift: Array[float, (4,)] = (0, 0, 0, 0)
+    alt: Array[float, (4,)] = (0, 0, 0, 0)
+    ctrl: Array[float, (4,)] = (0, 0, 0, 0)
 
     @property
     def selecting(self) -> bool:

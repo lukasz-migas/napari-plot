@@ -1,5 +1,5 @@
 """Helper functions to easily create UI elements."""
-from typing import Dict, List, Optional, OrderedDict, Union
+import typing as ty
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
@@ -16,8 +16,8 @@ from qtpy.QtWidgets import (
 )
 
 from ..utils.system import IS_WIN
-from .widgets.qt_icon_label import QtIconLabel
-from .widgets.qt_image_button import QtImagePushButton
+from .widgets.qt_icon_button import QtImagePushButton
+from .widgets.qt_icon_label import QtQtaLabel
 from .widgets.qt_line import QtHorzLine, QtVertLine
 
 
@@ -33,28 +33,39 @@ def make_h_spacer() -> QSpacerItem:
     return widget
 
 
-def make_label_icon(parent, object_name: str, tooltip: str = None) -> QtIconLabel:
-    """Make icon label"""
-    widget = QtIconLabel(parent=parent, object_name=object_name)
+def make_qta_label(parent, icon_name: str, alignment=None, tooltip: str = None, small: bool = False, **kwargs):
+    """Make QLabel element"""
+    widget = QtQtaLabel(parent=parent)
+    widget.set_qta(icon_name, **kwargs)
+    if small:
+        widget.set_small()
+    if alignment is not None:
+        widget.setAlignment(alignment)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     return widget
 
 
-def make_svg_btn(
+def make_qta_btn(
     parent,
-    object_name: str,
-    text: str = "",
+    icon_name: str,
     tooltip: str = None,
     flat: bool = False,
     checkable: bool = False,
+    size: ty.Optional[ty.Tuple[int, int]] = None,
+    size_name: ty.Optional[str] = None,
+    **kwargs,
 ) -> QtImagePushButton:
-    """Make button"""
-    widget = QtImagePushButton(None, text, parent)
-    widget.setObjectName(object_name)
-    widget.setText(text)
+    """Make button with qtawesome icon."""
+    widget = QtImagePushButton(None, "", parent)
+    widget.set_qta(icon_name, **kwargs)
+    widget.set_size_name(size_name)
+    if size_name:
+        widget.set_size_name(size_name)
+    if size and len(size) == 2:
+        widget.set_size(size)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     if flat:
         widget.setFlat(flat)
     if checkable:
@@ -70,7 +81,6 @@ def make_slider(
     value: int = 1,
     orientation="horizontal",
     tooltip: str = None,
-    is_disabled: bool = False,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider"""
@@ -80,23 +90,24 @@ def make_slider(
     widget.setValue(value)
     widget.setOrientation(orientation)
     widget.setPageStep(step_size)
-    widget.setDisabled(is_disabled)
     widget.setFocusPolicy(focus_policy)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     return widget
 
 
 def make_checkbox(
-    parent, text: str = "", val: bool = False, tooltip: str = None, is_disabled: bool = False
+    parent,
+    text: str = "",
+    val: bool = False,
+    tooltip: str = None,
 ) -> QCheckBox:
     """Make checkbox"""
     widget = QCheckBox(parent)
     widget.setText(text)
     widget.setChecked(val)
-    widget.setDisabled(is_disabled)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     return widget
 
 
@@ -115,16 +126,14 @@ def make_label(
     alignment=None,
     wrap: bool = False,
     object_name: str = "",
-    is_disabled: bool = False,
     bold: bool = False,
-    font_size: Optional[int] = None,
+    font_size: ty.Optional[int] = None,
     tooltip: str = None,
 ) -> QLabel:
     """Make QLabel element"""
     widget = QLabel(parent)
     widget.setText(text)
     widget.setObjectName(object_name)
-    widget.setDisabled(is_disabled)
     if enable_url:
         widget.setTextFormat(Qt.RichText)
         widget.setTextInteractionFlags(Qt.TextBrowserInteraction)
@@ -134,16 +143,11 @@ def make_label(
     if bold:
         set_bold(widget, bold)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     if font_size:
         set_font(widget, font_size=font_size, bold=bold)
     widget.setWordWrap(wrap)
     return widget
-
-
-def set_tooltip(widget: QWidget, text: str):
-    """Set tooltip"""
-    widget.setToolTip(text)
 
 
 def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: bool = False):
@@ -155,18 +159,17 @@ def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: b
     widget.setFont(font)
 
 
-def make_combobox(parent, items: List[str] = None, tooltip: str = None, is_disabled: bool = False) -> QComboBox:
+def make_combobox(parent, items: ty.List[str] = None, tooltip: str = None) -> QComboBox:
     """Make QComboBox"""
     widget = QComboBox(parent)
-    widget.setDisabled(is_disabled)
     if items:
         widget.addItems(items)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     return widget
 
 
-def set_combobox_data(widget: QComboBox, data: Union[Dict, OrderedDict], current_item: Optional = None):
+def set_combobox_data(widget: QComboBox, data: ty.Union[ty.Dict, ty.OrderedDict], current_item: ty.Optional = None):
     """Set data/value on combobox"""
     for index, (data, text) in enumerate(data.items()):
         if not isinstance(data, str):
@@ -191,14 +194,12 @@ def make_line_edit(
     text: str = "",
     tooltip: str = None,
     placeholder: str = "",
-    is_disabled: bool = False,
 ) -> QLineEdit:
     """Make QLineEdit"""
     widget = QLineEdit(parent)  # noqa
     widget.setText(text)
-    widget.setDisabled(is_disabled)
     if tooltip:
-        set_tooltip(widget, tooltip)
+        widget.setToolTip(tooltip)
     widget.setPlaceholderText(placeholder)
     return widget
 

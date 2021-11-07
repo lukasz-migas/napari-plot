@@ -1,8 +1,8 @@
 """Utils"""
 import numpy as np
-from napari._vispy.vispy_base_layer import VispyBaseLayer
-from napari._vispy.vispy_points_layer import VispyPointsLayer
-from napari._vispy.vispy_shapes_layer import VispyShapesLayer
+from napari._vispy.layers.base import VispyBaseLayer
+from napari._vispy.layers.points import VispyPointsLayer
+from napari._vispy.layers.shapes import VispyShapesLayer
 
 from ..layers import Centroids, InfLine, Line, Points, Region, Scatter, Shapes
 from .vispy_centroids_layer import VispyCentroidsLayer

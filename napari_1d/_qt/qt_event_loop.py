@@ -3,7 +3,7 @@ import os
 import sys
 from warnings import warn
 
-from napari._qt.dialogs.qt_notification import NapariQtNotification, NotificationDispatcher
+from napari._qt.dialogs.qt_notification import NapariQtNotification
 from napari._qt.qt_event_loop import _ipython_has_eventloop, run  # noqa
 from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
@@ -144,12 +144,6 @@ def get_app(
         _register_napari_resources()
 
     _app_ref = app  # prevent garbage collection
-
-    # Add the dispatcher attribute to the application to be able to dispatch
-    # notifications coming from threads
-    dispatcher = getattr(app, "_dispatcher", None)
-    if dispatcher is None:
-        app._dispatcher = NotificationDispatcher()
 
     return app
 

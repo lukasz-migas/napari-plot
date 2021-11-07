@@ -1,7 +1,7 @@
 """Line layer"""
 from typing import TYPE_CHECKING
 
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Line as LineVisual
 
 if TYPE_CHECKING:
@@ -19,7 +19,7 @@ class VispyLineLayer(VispyBaseLayer):
         self.layer.events.width.connect(self._on_appearance_change)
         self.layer.events.method.connect(self._on_method_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_appearance_change(self, _event=None):

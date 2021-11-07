@@ -4,7 +4,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QFrame
 
-from ..._qt.helpers import make_checkbox, make_combobox, make_slider, set_combobox_data, set_current_combobox_index
+from .. import helpers as hp
 
 
 class QtLayerControls(QFrame):
@@ -42,15 +42,15 @@ class QtLayerControls(QFrame):
         self.layer.events.opacity.connect(self._on_opacity_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.opacity_slider = make_slider(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
+        self.opacity_slider = hp.make_slider(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
         self.opacity_slider.valueChanged.connect(self.on_change_opacity)
         self._on_opacity_change()
 
-        self.blending_combobox = make_combobox(self)
-        set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
+        self.blending_combobox = hp.make_combobox(self)
+        hp.set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
         self.blending_combobox.activated[str].connect(self.on_change_blending)
 
-        self.editable_checkbox = make_checkbox(self, "")
+        self.editable_checkbox = hp.make_checkbox(self, "")
         self.editable_checkbox.stateChanged.connect(self.on_change_editable)
 
         # layout where all widgets will go
@@ -120,7 +120,7 @@ class QtLayerControls(QFrame):
             The napari event that triggered this method, by default None.
         """
         with self.layer.events.blending.blocker():
-            set_current_combobox_index(self.blending_combobox, self.layer.blending)
+            hp.set_current_combobox_index(self.blending_combobox, self.layer.blending)
 
     def close(self):
         """Disconnect events when widget is closing."""

@@ -1,6 +1,6 @@
 """Region layer"""
 import numpy as np
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
 from ..layers import Region
@@ -24,7 +24,7 @@ class VispyRegionLayer(VispyBaseLayer):
         self.layer.events.face_color.connect(self._on_data_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_data_change(self, _event=None):

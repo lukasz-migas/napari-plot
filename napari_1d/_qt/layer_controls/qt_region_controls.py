@@ -4,12 +4,12 @@ import typing as ty
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
-from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 from ...layers.region._region_constants import Mode
 from ..helpers import make_label
+from ..widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
@@ -62,15 +62,15 @@ class QtRegionControls(QtLayerControls):
         self.face_color_swatch.color_changed.connect(self.on_change_current_face_color)  # noqa
         self._on_current_face_color_change(None)
 
-        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
+        self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
         self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
         self.edit_button = QtModeRadioButton(
             layer,
-            "select_region",
+            "draw",
             Mode.EDIT,
             tooltip="Edit region (E). Please first select ONE region and then modify it's range.",
         )
-        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move region (M)")
+        self.move_button = QtModeRadioButton(layer, "move", Mode.MOVE, tooltip="Move region (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",

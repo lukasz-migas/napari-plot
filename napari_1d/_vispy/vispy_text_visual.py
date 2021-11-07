@@ -1,7 +1,6 @@
 """Override text visual to fix label cropping"""
-from napari._vispy.vispy_text_visual import TextOverlayPosition
-from napari._vispy.vispy_text_visual import VispyTextVisual as _VispyTextVisual
-from napari._vispy.vispy_text_visual import trans
+from napari._vispy.overlays.text import TextOverlayPosition
+from napari._vispy.overlays.text import VispyTextOverlay as _VispyTextVisual
 
 
 class VispyTextVisual(_VispyTextVisual):
@@ -48,7 +47,7 @@ class VispyTextVisual(_VispyTextVisual):
             transform = [canvas_size[0] // 2, canvas_size[1] - y_offset, 0, 0]
             anchors = ("center", "top")
         else:
-            raise ValueError(trans._("Position {position} is not recognized.", position=position))
+            raise ValueError("Position {position} is not recognized.")
 
         self.node.transform.translate = transform
         if self.node.anchors != anchors:
