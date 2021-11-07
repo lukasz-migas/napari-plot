@@ -1,10 +1,10 @@
 """Mini toolbar"""
-from typing import Callable, Optional
+import typing as ty
 
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QWidget
 
-from ..helpers import make_h_spacer, make_svg_btn, make_v_spacer
+from .. import helpers as hp
 
 
 class QtMiniToolbar(QFrame):
@@ -17,7 +17,7 @@ class QtMiniToolbar(QFrame):
         self.orientation = orientation
 
         self.layout = QHBoxLayout() if orientation == Qt.Horizontal else QVBoxLayout()
-        self.layout.addSpacerItem(make_h_spacer() if orientation == Qt.Horizontal else make_v_spacer())
+        self.layout.addSpacerItem(hp.make_h_spacer() if orientation == Qt.Horizontal else hp.make_v_spacer())
         self.layout.setSpacing(0)
         self.layout.setMargin(0)
         self.setLayout(self.layout)
@@ -32,17 +32,17 @@ class QtMiniToolbar(QFrame):
         self,
         object_name: str,
         flat: bool = True,
-        func: Optional[Callable] = None,
+        func: ty.Optional[ty.Callable] = None,
         tooltip: str = None,
-        set_checkable: bool = False,
+        checkable: bool = False,
         check: bool = False,
     ):
         """Insert tool"""
-        btn = make_svg_btn(self, object_name, "", tooltip=tooltip, flat=flat)
+        btn = hp.make_svg_btn(self, object_name, "", tooltip=tooltip, flat=flat)
         btn.setMaximumSize(10, 10)
         if callable(func):
             btn.clicked.connect(func)
-        if set_checkable:
+        if checkable:
             btn.setCheckable(True)
         if check:
             btn.setChecked(True)
@@ -50,8 +50,29 @@ class QtMiniToolbar(QFrame):
         self.layout.insertWidget(0, btn, alignment=Qt.AlignCenter)
         return btn
 
+    def insert_qta_tool(
+        self,
+        name: str,
+        flat: bool = True,
+        func: ty.Optional[ty.Callable] = None,
+        tooltip: str = None,
+        checkable: bool = False,
+        check: bool = False,
+    ):
+        """Insert tool"""
+        btn = hp.make_qta_btn(self, name, tooltip=tooltip, flat=flat, medium=False, size=(26, 26))
+        if callable(func):
+            btn.clicked.connect(func)
+        if checkable:
+            btn.setCheckable(True)
+        if check:
+            btn.setChecked(True)
+        self._tools[name] = btn
+        self.layout.insertWidget(0, btn, alignment=Qt.AlignCenter)
+        return btn
 
-if __name__ == "__main__":
+
+if __name__ == "__main__":  # pragma: no cover
     import sys
 
     from qtpy.QtWidgets import QApplication

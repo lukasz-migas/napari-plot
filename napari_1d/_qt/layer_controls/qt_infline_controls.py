@@ -4,16 +4,17 @@ import typing as ty
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
-from napari._qt.widgets.qt_mode_buttons import QtModePushButton, QtModeRadioButton
+from napari._qt.widgets.qt_mode_buttons import QtModeRadioButton
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 from ...layers.infline._infline_constants import Mode
-from ..helpers import make_label
+from .. import helpers as hp
+from ..widgets.qt_image_button import QtModePushButton
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from napari_1d.layers import Scatter
+    from ...layers import Scatter
 
 
 class QtInfLineControls(QtLayerControls):
@@ -60,11 +61,11 @@ class QtInfLineControls(QtLayerControls):
         )
         self.color_swatch.color_changed.connect(self.on_change_color)  # noqa
 
-        self.add_button = QtModeRadioButton(layer, "add_points", Mode.ADD, tooltip="Add infinite line (A)")
+        self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
         self.select_button = QtModeRadioButton(
             layer, "select_points", Mode.SELECT, tooltip="Select infinite line(s) (S)"
         )
-        self.move_button = QtModeRadioButton(layer, "move_region", Mode.MOVE, tooltip="Move infinite line (M)")
+        self.move_button = QtModeRadioButton(layer, "move", Mode.MOVE, tooltip="Move infinite line (M)")
         self.panzoom_button = QtModeRadioButton(
             layer,
             "pan_zoom",
@@ -91,10 +92,10 @@ class QtInfLineControls(QtLayerControls):
         button_row.setSpacing(4)
 
         # add widgets to the layout
-        self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
+        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
+        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row)
         self._on_editable_change()
 

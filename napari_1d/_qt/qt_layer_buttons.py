@@ -1,6 +1,8 @@
 """Layer buttons"""
-from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton, QtViewerPushButton
+from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton
 from qtpy.QtWidgets import QFrame, QHBoxLayout
+
+from .widgets.qt_image_button import QtViewerPushButton as QtQtaViewerPushButton
 
 
 class QtLayerButtons(QFrame):
@@ -25,7 +27,7 @@ class QtLayerButtons(QFrame):
         self.delete_btn = QtDeleteButton(self.viewer)
         self.delete_btn.setParent(self)
 
-        self.new_points_btn = QtViewerPushButton(
+        self.new_points_btn = QtQtaViewerPushButton(
             self.viewer,
             "new_points",
             "Add new points layer",
@@ -35,7 +37,7 @@ class QtLayerButtons(QFrame):
             ),
         )
 
-        self.new_shapes_btn = QtViewerPushButton(
+        self.new_shapes_btn = QtQtaViewerPushButton(
             self.viewer,
             "new_shapes",
             "Add new shapes layer",
@@ -78,14 +80,14 @@ class QtViewerButtons(QFrame):
 
         self.viewer = viewer
 
-        self.resetViewButton = QtViewerPushButton(
+        self.resetViewButton = QtQtaViewerPushButton(
             self.viewer,
             "home",
             "Reset view (Ctrl-R)",
             lambda: self.viewer.reset_view(),
         )
 
-        self.hidePanelButton = QtViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
+        self.hidePanelButton = QtQtaViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
         if parent is not None:
             self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
 

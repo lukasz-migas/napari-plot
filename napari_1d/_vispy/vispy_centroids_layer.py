@@ -2,7 +2,7 @@
 from typing import TYPE_CHECKING
 
 import numpy as np
-from napari._vispy.vispy_base_layer import VispyBaseLayer
+from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Line as LineVisual
 
 if TYPE_CHECKING:
@@ -35,7 +35,7 @@ class VispyCentroidsLayer(VispyBaseLayer):
         self.layer.events.method.connect(self._on_method_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
 
-        self._reset_base()
+        self.reset()
         self._on_data_change()
 
     def _on_highlight_change(self, _event=None):

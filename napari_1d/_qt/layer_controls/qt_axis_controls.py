@@ -7,7 +7,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout
 
-from ..helpers import make_checkbox, make_h_line, make_label, make_line_edit, make_slider
+from .. import helpers as hp
 from ..qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:
@@ -45,21 +45,21 @@ class QtAxisControls(QtFramelessPopup):
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Make panel"""
-        self.visible_checkbox = make_checkbox(self, "", val=self.viewer.axis.visible, tooltip="Show/hide x/y-axes")
+        self.visible_checkbox = hp.make_checkbox(self, "", val=self.viewer.axis.visible, tooltip="Show/hide x/y-axes")
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)  # noqa
 
-        self.x_axis_edit = make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
+        self.x_axis_edit = hp.make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
         self.x_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.x_label_margin_spin = make_slider(
+        self.x_label_margin_spin = hp.make_slider(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.x_label_margin
         )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
 
-        self.y_axis_edit = make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
+        self.y_axis_edit = hp.make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)  # noqa
 
-        self.y_label_margin_spin = make_slider(
+        self.y_label_margin_spin = hp.make_slider(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.y_label_margin
         )
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
@@ -70,7 +70,7 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.label_color_swatch.color_changed.connect(self.on_change_label_color)  # noqa
 
-        self.label_font_size = make_slider(
+        self.label_font_size = hp.make_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.label_size
         )
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)  # noqa
@@ -81,7 +81,7 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)  # noqa
 
-        self.x_max_size_spin = make_slider(
+        self.x_max_size_spin = hp.make_slider(
             self,
             min_value=50,
             max_value=150,
@@ -91,7 +91,7 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
-        self.y_max_size_spin = make_slider(
+        self.y_max_size_spin = hp.make_slider(
             self,
             min_value=50,
             max_value=150,
@@ -101,12 +101,12 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
 
-        self.tick_font_size = make_slider(
+        self.tick_font_size = hp.make_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.tick_size
         )
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)  # noqa
 
-        self.x_tick_margin_spin = make_slider(
+        self.x_tick_margin_spin = hp.make_slider(
             self,
             min_value=5,
             max_value=100,
@@ -116,7 +116,7 @@ class QtAxisControls(QtFramelessPopup):
         )
         self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
 
-        self.y_tick_margin_spin = make_slider(
+        self.y_tick_margin_spin = hp.make_slider(
             self,
             min_value=5,
             max_value=100,
@@ -128,21 +128,21 @@ class QtAxisControls(QtFramelessPopup):
 
         layout = QFormLayout(self)
         layout.addRow(self._make_move_handle())  # noqa
-        layout.addRow(make_label(self, "Visible"), self.visible_checkbox)
-        layout.addRow(make_label(self, "X-axis label"), self.x_axis_edit)
-        layout.addRow(make_label(self, "Y-axis label"), self.y_axis_edit)
-        layout.addRow(make_label(self, "X-axis label margin"), self.x_label_margin_spin)
-        layout.addRow(make_label(self, "X-axis tick margin"), self.x_tick_margin_spin)
-        layout.addRow(make_h_line(self))  # noqa
-        layout.addRow(make_label(self, "Label color"), self.label_color_swatch)
-        layout.addRow(make_label(self, "Label font size"), self.label_font_size)
-        layout.addRow(make_label(self, "Tick color"), self.tick_color_swatch)
-        layout.addRow(make_label(self, "Tick font size"), self.tick_font_size)
-        layout.addRow(make_label(self, "Y-axis label margin"), self.y_label_margin_spin)
-        layout.addRow(make_label(self, "Y-axis tick margin"), self.y_tick_margin_spin)
-        layout.addRow(make_h_line(self))  # noqa
-        layout.addRow(make_label(self, "Max height"), self.x_max_size_spin)
-        layout.addRow(make_label(self, "Max width"), self.y_max_size_spin)
+        layout.addRow(hp.make_label(self, "Visible"), self.visible_checkbox)
+        layout.addRow(hp.make_label(self, "X-axis label"), self.x_axis_edit)
+        layout.addRow(hp.make_label(self, "Y-axis label"), self.y_axis_edit)
+        layout.addRow(hp.make_label(self, "X-axis label margin"), self.x_label_margin_spin)
+        layout.addRow(hp.make_label(self, "X-axis tick margin"), self.x_tick_margin_spin)
+        layout.addRow(hp.make_h_line(self))
+        layout.addRow(hp.make_label(self, "Label color"), self.label_color_swatch)
+        layout.addRow(hp.make_label(self, "Label font size"), self.label_font_size)
+        layout.addRow(hp.make_label(self, "Tick color"), self.tick_color_swatch)
+        layout.addRow(hp.make_label(self, "Tick font size"), self.tick_font_size)
+        layout.addRow(hp.make_label(self, "Y-axis label margin"), self.y_label_margin_spin)
+        layout.addRow(hp.make_label(self, "Y-axis tick margin"), self.y_tick_margin_spin)
+        layout.addRow(hp.make_h_line(self))
+        layout.addRow(hp.make_label(self, "Max height"), self.x_max_size_spin)
+        layout.addRow(hp.make_label(self, "Max width"), self.y_max_size_spin)
         layout.setSpacing(2)
         return layout
 

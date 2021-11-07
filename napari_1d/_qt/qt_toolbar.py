@@ -22,34 +22,34 @@ class QtViewToolbar(QWidget):
         toolbar_right = QtMiniToolbar(qt_viewer, Qt.Vertical)
         self.toolbar_right = toolbar_right
         # view reset/clear
-        self.tools_erase_btn = toolbar_right.insert_svg_tool("erase", tooltip="Clear image", func=self._clear_canvas)
-        self.tools_zoomout_btn = toolbar_right.insert_svg_tool("zoom_out", tooltip="Zoom-out", func=self._reset_view)
+        self.tools_erase_btn = toolbar_right.insert_qta_tool("erase", tooltip="Clear image", func=self._clear_canvas)
+        self.tools_zoomout_btn = toolbar_right.insert_qta_tool("zoom_out", tooltip="Zoom-out", func=self._reset_view)
         # view modifiers
-        self.tools_clip_btn = toolbar_right.insert_svg_tool(
+        self.tools_clip_btn = toolbar_right.insert_qta_tool(
             "clipboard", tooltip="Copy figure to clipboard", func=self.qt_viewer.clipboard
         )
-        self.tools_axis_btn = toolbar_right.insert_svg_tool(
+        self.tools_axis_btn = toolbar_right.insert_qta_tool(
             "axes",
             tooltip="Show axis controls",
-            set_checkable=False,
+            checkable=False,
             func=self._toggle_axis_controls,
         )
-        self.tools_text_btn = toolbar_right.insert_svg_tool(
+        self.tools_text_btn = toolbar_right.insert_qta_tool(
             "text",
             tooltip="Show/hide text label",
-            set_checkable=True,
+            checkable=True,
             func=self._toggle_text_visible,
         )
-        self.tools_grid_btn = toolbar_right.insert_svg_tool(
-            "plot_grid",
+        self.tools_grid_btn = toolbar_right.insert_qta_tool(
+            "grid",
             tooltip="Show/hide grid",
-            set_checkable=True,
+            checkable=True,
             func=self._toggle_grid_lines_visible,
         )
-        self.layers_btn = toolbar_right.insert_svg_tool(
+        self.layers_btn = toolbar_right.insert_qta_tool(
             "layers",
             tooltip="Display layer controls",
-            set_checkable=False,
+            checkable=False,
             func=qt_viewer.on_toggle_controls_dialog,
         )
 

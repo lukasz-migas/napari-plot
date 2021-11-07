@@ -1,5 +1,5 @@
 """Helper functions to easily create UI elements."""
-from typing import Dict, List, Optional, OrderedDict, Union
+import typing as ty
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
@@ -53,6 +53,32 @@ def make_svg_btn(
     widget = QtImagePushButton(None, text, parent)
     widget.setObjectName(object_name)
     widget.setText(text)
+    if tooltip:
+        set_tooltip(widget, tooltip)
+    if flat:
+        widget.setFlat(flat)
+    if checkable:
+        widget.setCheckable(checkable)
+    return widget
+
+
+def make_qta_btn(
+    parent,
+    icon_name: str,
+    tooltip: str = None,
+    flat: bool = False,
+    checkable: bool = False,
+    size: ty.Optional[ty.Tuple[int, int]] = None,
+    size_name: ty.Optional[str] = None,
+    **kwargs,
+) -> QtImagePushButton:
+    """Make button with qtawesome icon."""
+    widget = QtImagePushButton(None, "", parent)
+    widget.set_qta(icon_name, **kwargs)
+    if size_name:
+        widget.set_size_name(size_name)
+    if size and len(size) == 2:
+        widget.set_size(size)
     if tooltip:
         set_tooltip(widget, tooltip)
     if flat:
@@ -117,7 +143,7 @@ def make_label(
     object_name: str = "",
     is_disabled: bool = False,
     bold: bool = False,
-    font_size: Optional[int] = None,
+    font_size: ty.Optional[int] = None,
     tooltip: str = None,
 ) -> QLabel:
     """Make QLabel element"""
@@ -155,7 +181,7 @@ def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: b
     widget.setFont(font)
 
 
-def make_combobox(parent, items: List[str] = None, tooltip: str = None, is_disabled: bool = False) -> QComboBox:
+def make_combobox(parent, items: ty.List[str] = None, tooltip: str = None, is_disabled: bool = False) -> QComboBox:
     """Make QComboBox"""
     widget = QComboBox(parent)
     widget.setDisabled(is_disabled)
@@ -166,7 +192,7 @@ def make_combobox(parent, items: List[str] = None, tooltip: str = None, is_disab
     return widget
 
 
-def set_combobox_data(widget: QComboBox, data: Union[Dict, OrderedDict], current_item: Optional = None):
+def set_combobox_data(widget: QComboBox, data: ty.Union[ty.Dict, ty.OrderedDict], current_item: ty.Optional = None):
     """Set data/value on combobox"""
     for index, (data, text) in enumerate(data.items()):
         if not isinstance(data, str):
