@@ -1,13 +1,13 @@
 """Scatter points layer"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from napari._vispy.utils.text import update_text
 from vispy.scene.visuals import Compound, Markers, Text
 
-if TYPE_CHECKING:
-    from ..layers import Scatter
+if ty.TYPE_CHECKING:
+    from ...layers import Scatter
 
 
 class VispyScatterLayer(VispyBaseLayer):

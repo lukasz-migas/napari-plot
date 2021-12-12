@@ -8,12 +8,12 @@ from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 from ...layers.region._region_constants import Mode
-from ..helpers import make_label
+from .. import helpers as hp
 from ..widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from napari_1d.layers import Region
+    from ...layers import Region
 
 
 class QtRegionControls(QtLayerControls):
@@ -117,10 +117,10 @@ class QtRegionControls(QtLayerControls):
         button_row_2.setSpacing(4)
 
         # add widgets to the layout
-        self.layout.addRow(make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(make_label(self, "Face color"), self.face_color_swatch)
-        self.layout.addRow(make_label(self, "Editable"), self.editable_checkbox)
+        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout.addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
+        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row_1)
         self.layout.addRow(button_row_2)
         self._on_editable_change()

@@ -1,9 +1,7 @@
 """Camera model"""
-# Standard library imports
 import typing as ty
 from enum import Enum
 
-# Third-party imports
 from napari.utils.events import EventedModel
 from napari.utils.misc import ensure_n_tuple
 from pydantic import validator

@@ -58,6 +58,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         super().__init__(title=title)
         self.__config__.extra = Extra.ignore
 
+        # Add extra events
         self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
@@ -73,6 +74,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # Add mouse callback
         self.drag_tool.events.active.connect(self._on_update_tool)
         self.drag_tool.active = "box"
+
+    def __hash__(self):
+        return id(self)
+
+    def __str__(self):
+        """Simple string representation"""
+        return f"napari_1d.Viewer: {self.title}"
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""

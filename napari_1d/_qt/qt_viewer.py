@@ -1,5 +1,4 @@
 """Qt widget that embeds the canvas"""
-# Third-party imports
 from contextlib import suppress
 from typing import Tuple
 
@@ -21,15 +20,14 @@ from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
-from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
-
-from .._vispy.utils import create_vispy_visual
-from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
-from .._vispy.vispy_camera import VispyCamera
-from .._vispy.vispy_canvas import VispyCanvas
-from .._vispy.vispy_drag_tool import VispyDragTool
-from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
-from .._vispy.vispy_text_visual import VispyTextVisual
+from .._vispy.camera import VispyCamera
+from .._vispy.canvas import VispyCanvas
+from .._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
+from .._vispy.overlays.grid_lines import VispyGridLinesVisual
+from .._vispy.overlays.text import VispyTextVisual
+from .._vispy.tools.drag import VispyDragTool
+from .._vispy.utils.visual import create_vispy_visual
+from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
 

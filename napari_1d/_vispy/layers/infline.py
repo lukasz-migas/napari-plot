@@ -1,16 +1,19 @@
 """Line layer"""
+import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
-from ..layers.infline import InfLine
-from ..layers.utilities import make_infinite_color, make_infinite_line
+from ...layers.utilities import make_infinite_color, make_infinite_line
+
+if ty.TYPE_CHECKING:
+    from ...layers.infline import InfLine
 
 
 class VispyInfLineLayer(VispyBaseLayer):
     """Infinite region layer"""
 
-    def __init__(self, layer: InfLine):
+    def __init__(self, layer: "InfLine"):
         # Create a compound visual with the following four sub-visuals:
         # Lines: The actual infinite lines
         # Lines: Highlight of the selected infinite line using different color and width

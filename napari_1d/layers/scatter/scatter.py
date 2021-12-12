@@ -1,12 +1,9 @@
 """Scatter points layer"""
-# Standard library imports
 import typing as ty
 from copy import deepcopy
 
 import numpy as np
 from napari.layers import Layer
-
-# Third-party imports
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
 from napari.layers.utils.layer_utils import dataframe_to_properties
 from napari.layers.utils.text_manager import TextManager

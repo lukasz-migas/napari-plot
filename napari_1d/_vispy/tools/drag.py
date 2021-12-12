@@ -1,11 +1,11 @@
 """Interaction tool."""
 import typing as ty
 
-from ..components.dragtool import BOX_INTERACTIVE_TOOL, DragMode
-from .vispy_box_visual import VispyBoxVisual
+from ...components.dragtool import BOX_INTERACTIVE_TOOL, DragMode
+from .box import VispyBoxVisual
 
 if ty.TYPE_CHECKING:
-    from ..components.viewer_model import ViewerModel
+    from ...components.viewer_model import ViewerModel
 
 
 class VispyDragTool:

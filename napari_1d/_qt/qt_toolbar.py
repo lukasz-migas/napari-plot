@@ -1,5 +1,4 @@
 """Toolbar"""
-# Third-party imports
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QWidget
 

@@ -1,14 +1,14 @@
 """Span visual - based on the `Region` layer"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 import numpy as np
 from vispy.scene.visuals import Mesh
 
-from ..components.dragtool import BOX_INTERACTIVE_TOOL
-from ..components.tools import BoxTool
+from ...components.dragtool import BOX_INTERACTIVE_TOOL
+from ...components.tools import BoxTool
 
-if TYPE_CHECKING:
-    from ..components.viewer_model import ViewerModel
+if ty.TYPE_CHECKING:
+    from ...components.viewer_model import ViewerModel
 
 
 class VispyBoxVisual:

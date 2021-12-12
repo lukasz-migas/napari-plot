@@ -126,7 +126,7 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.symbol.blocker():
-            hp.set_current_combobox_index(self.symbol_combobox, self.layer.symbol)
+            hp.set_combobox_current_index(self.symbol_combobox, self.layer.symbol)
 
     def on_change_size(self, value):
         """Change size of points on the layer model.
