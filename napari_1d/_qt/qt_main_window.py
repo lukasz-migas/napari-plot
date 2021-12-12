@@ -369,6 +369,7 @@ class Window:
         actions = []
         toggle_tool = QAction("Extent mode: Unrestricted", self._qt_window)
         toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(True)
         toggle_tool.triggered.connect(
             lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
         )
@@ -380,7 +381,6 @@ class Window:
         toggle_tool.triggered.connect(
             lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
         )
-        toggle_tool.setChecked(True)
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
 

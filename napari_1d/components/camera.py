@@ -72,7 +72,7 @@ class Camera(EventedModel):
     zoom: float = 1.0
     rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    extent_mode: ExtentMode = ExtentMode.RESTRICTED
+    extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
 
     # validators
