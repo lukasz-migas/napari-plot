@@ -12,7 +12,6 @@ class CameraMode(str, Enum):
 
     Sets the zoom mode:
         * all: no locking available
-        * bottom_zero: bottom axis is always 0
         * lock_to_bottom: the axis zoom will be locked at the bottom of the canvas
         * lock_to_top: the axis zoom
         * lock_to_left:
@@ -48,23 +47,33 @@ class Camera(EventedModel):
     extent : 4-tuple
         The Left, right, top and bottom corner limits the camera should restrict the view to. See `restrict` value
         for the available modes.
-    restrict : ExtentMode
-        Specify whether the plot limits should be restricted using the `extent` value of not.
+    extent_mode : ExtentMode
+        Specify whether the plot limits should be restricted using the `extent` value or not.
         ExtentMode.RESTRICTED
             The value of `extent` will be automatically set and plot will always be limited to the available area.
         ExtentMode.UNRESTRICTED
             The value of `extent` will NOT be used and zooming out will be permitted to outside of the plot area.
-    mode : CameraMode
+    axis_mode : tuple of CameraMode
         Specify the x/y-axis behaviour during normal interaction.
+        CameraMode.ALL
+            There will be no restrictions in the way the camera zooms in and out.
+        CameraMode.LOCK_TO_BOTTOM
+            The lower y-axis value will be locked so it does not zoom-out further than the lowest possible value.
+        CameraMode.LOCK_TO_TOP
+            The upper y-axis value will be locked so it does not zoom-out further than the highest possible value.
+        CameraMode.LOCK_TO_LEFT
+            The lower x-axis value will be locked so it does not zoom-out further than the lowest possible value.
+        CameraMode.LOCK_TO_RIGHT
+            The upper x-axis value will be locked so it does not zoom-out further than the highest possible value.
     """
 
     # fields
     interactive: bool = True
     zoom: float = 1.0
     rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    axis_mode: ty.Tuple[CameraMode] = (CameraMode.ALL,)
+    extent_mode: ExtentMode = ExtentMode.RESTRICTED
+    axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
 
     # validators
     @validator("rect", "extent", pre=True)

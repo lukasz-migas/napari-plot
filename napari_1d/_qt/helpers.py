@@ -1,9 +1,11 @@
 """Helper functions to easily create UI elements."""
 import typing as ty
+from contextlib import contextmanager
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (
+    QActionGroup,
     QButtonGroup,
     QCheckBox,
     QComboBox,
@@ -224,3 +226,19 @@ def make_v_line(parent: ty.Optional[QWidget]) -> QtVertLine:
     """Make horizontal line. Styling of the `QtVertLine` is setup in one of the stylesheets."""
     widget = QtVertLine(parent)
     return widget
+
+
+def make_menu_group(parent: QWidget, *actions):
+    """Make actions group"""
+    group = QActionGroup(parent)
+    for action in actions:
+        group.addAction(action)
+    return group
+
+
+@contextmanager
+def qt_signals_blocked(obj):
+    """Context manager to temporarily block signals from `obj`"""
+    obj.blockSignals(True)
+    yield
+    obj.blockSignals(False)

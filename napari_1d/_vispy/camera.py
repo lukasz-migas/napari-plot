@@ -49,13 +49,13 @@ class VispyCamera:
         return self._view.camera
 
     @property
-    def rect(self):
+    def rect(self) -> ty.Tuple[float, float, float, float]:
         """Get rect"""
         rect = self.camera.rect
         return rect.left, rect.right, rect.bottom, rect.top
 
     @rect.setter
-    def rect(self, rect):
+    def rect(self, rect: Rect):
         if self.rect == rect:
             return
         _rect = Rect(self.camera.rect)
@@ -81,10 +81,10 @@ class VispyCamera:
         self.extent = self._camera.extent
 
     def _on_axis_mode_change(self, event):
-        self.camera.axis_mode = self._camera.extent
+        self.camera.axis_mode = self._camera.axis_mode
 
     def _on_extent_mode_change(self, event):
-        self.camera.extent_mode = self._camera.extent
+        self.camera.extent_mode = self._camera.extent_mode
         self._on_extent_change(None)
 
     def on_draw(self, event):

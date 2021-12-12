@@ -71,7 +71,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.layers.events.removed.connect(self._on_update_extent)
         self.events.layers_change.connect(self._on_update_extent)
 
-        # Add mouse callback
+        # Set current drag tool
         self.drag_tool.events.active.connect(self._on_update_tool)
         self.drag_tool.active = "box"
 

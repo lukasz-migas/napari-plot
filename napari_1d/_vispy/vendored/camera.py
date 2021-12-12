@@ -24,7 +24,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
     """Slightly customized pan zoom camera that prevents zooming outside of specified region"""
 
     _extent = None
-    _axis_mode: ty.Tuple[CameraMode] = (CameraMode.ALL,)
+    _axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
 
     def __init__(self, viewer: "ViewerModel", *args, **kwargs):
@@ -32,12 +32,12 @@ class LimitedPanZoomCamera(PanZoomCamera):
         super().__init__(*args, **kwargs)
 
     @property
-    def axis_mode(self):
+    def axis_mode(self) -> ty.Tuple[CameraMode, ...]:
         """Return axis mode."""
         return self._axis_mode
 
     @axis_mode.setter
-    def axis_mode(self, value: ty.Tuple[CameraMode]):
+    def axis_mode(self, value: ty.Tuple[CameraMode, ...]):
         self._axis_mode = value
 
     @property
@@ -52,7 +52,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
         self._default_state["rect"] = None
 
     @property
-    def extent(self):
+    def extent(self) -> ty.Tuple[float, float, float, float]:
         """Return extent values."""
         return self._extent
 
@@ -128,7 +128,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
         else:
             event.handled = False
 
-    def _make_zoom_rect(self, x0, x1, y0, y1):
+    def _make_zoom_rect(self, x0: float, x1: float, y0: float, y1: float) -> Rect:
         """Make zoom rectangle based on the currently active tool."""
         # I don't like this because it adds dependency on a instance of the viewer, however, here we can check
         # what is the most appropriate y-axis range for line plots.
@@ -145,7 +145,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
                     x0, x1 = extent.left, extent.right
             return make_rect(x0, x1, y0, y1)
 
-    def _check_zoom_limit(self, rect: Rect):
+    def _check_zoom_limit(self, rect: Rect) -> Rect:
         """Check whether new range is outside of the allowed window"""
         if isinstance(rect, Rect) and self.extent is not None:
             limit_rect = self.extent
@@ -174,7 +174,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             rect.right = self.extent.right
         return rect
 
-    def _check_range(self, x0, x1, y0, y1):
+    def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
         """Check whether values are correct"""
         # check whether values are in correct order (low, high)
         if y1 < y0:
@@ -196,7 +196,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
         return x0, x1, y0, y1
 
     @property
-    def rect(self):
+    def rect(self) -> Rect:
         """Get rect"""
         return super().rect
 
