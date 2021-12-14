@@ -12,10 +12,12 @@ if ty.TYPE_CHECKING:
 def make_centroids(data: np.ndarray, orientation: str) -> np.ndarray:
     """Make centroids data in the format [[x, 0], [x, y]]"""
     array = np.zeros((len(data) * 2, 2), dtype=data.dtype)
+    # in horizontal centroids, the three columns correspond to x-min, x-max, y
     if orientation == "horizontal":
         array[:, 1] = np.repeat(data[:, 0], 2)
         array[1::2, 0] = data[:, 1]
         array[0::2, 0] = data[:, 2]
+    # in vertical centroids, the three columns correspond to x, y-min, y-max
     else:
         array[:, 0] = np.repeat(data[:, 0], 2)
         array[1::2, 1] = data[:, 1]

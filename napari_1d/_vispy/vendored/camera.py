@@ -134,14 +134,19 @@ class LimitedPanZoomCamera(PanZoomCamera):
         # what is the most appropriate y-axis range for line plots.
         x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
         extent = self.extent
+        last = self.rect
         if self.viewer.drag_tool.active in BOX_INTERACTIVE_TOOL:
             if self.viewer.drag_tool.tool.shape == Shape.VERTICAL:
                 # x0, x1 = self.viewer._get_x_range_extent_for_y(y0, y1)
-                if extent is not None:
+                if last is not None:
+                    y0, y1 = last.bottom, last.top
+                elif extent is not None:
                     y0, y1 = extent.bottom, extent.top
             elif self.viewer.drag_tool.tool.shape == Shape.HORIZONTAL:
                 # y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
-                if extent is not None:
+                if last is not None:
+                    x0, x1 = last.left, last.right
+                elif extent is not None:
                     x0, x1 = extent.left, extent.right
             return make_rect(x0, x1, y0, y1)
 

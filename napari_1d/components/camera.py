@@ -72,16 +72,24 @@ class Camera(EventedModel):
     zoom: float = 1.0
     rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    x_range: ty.Optional[ty.Tuple[float, float]] = None
+    y_range: ty.Optional[ty.Tuple[float, float]] = None
     extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
 
     # validators
+    @validator("x_range", "y_range", pre=True)
+    def _ensure_2_tuple(v) -> ty.Optional[ty.Tuple[float, float]]:
+        if v is None:
+            return v
+        return ensure_n_tuple(v, n=2)
+
     @validator("rect", "extent", pre=True)
-    def _ensure_r_tuple(v) -> ty.Tuple[float, float, float, float]:
+    def _ensure_4_tuple(v) -> ty.Tuple[float, float, float, float]:
         return ensure_n_tuple(v, n=4)
 
     @validator("axis_mode", pre=True)
     def _ensure_axis_tuple(v: ty.Union[CameraMode, ty.Tuple[CameraMode]]) -> ty.Tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
-        return v
+        return tuple(v)

@@ -117,7 +117,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Get data extent"""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
+        if self.camera.y_range is not None:
+            ymin, ymax = self.camera.y_range
         xmin, xmax = get_min_max(extent[:, 1])
+        if self.camera.x_range is not None:
+            xmin, xmax = self.camera.x_range
         return xmin, xmax, ymin, ymax
 
     def _on_update_extent(self, _event=None):

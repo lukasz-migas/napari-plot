@@ -58,6 +58,16 @@ class Centroids(Layer):
         self.events.add(color=Event, width=Event, method=Event, highlight=Event)
         self.visible = visible
 
+    #
+    # def _get_x_region_extent(self, x_min: float, x_max: float):
+    #     """Return data extents in the (xmin, xmax, ymin, ymax) format."""
+    #     from napari_1d.utils.utilities import find_nearest_index
+    #
+    #     if self.orientation == Orientation.VERTICAL:
+    #         idx_min, idx_max = find_nearest_index(self.data[:, 1], [x_min, x_max])
+    #         if idx_min == idx_max:
+    #             idx_max += 1
+
     @property
     def orientation(self):
         """Orientation of the centroids layer."""

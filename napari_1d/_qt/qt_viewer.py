@@ -7,8 +7,8 @@ from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.interactions import (
-    ReadOnlyWrapper,
     mouse_move_callbacks,
     mouse_press_callbacks,
     mouse_release_callbacks,
