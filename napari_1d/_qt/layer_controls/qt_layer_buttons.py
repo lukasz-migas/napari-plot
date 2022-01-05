@@ -84,7 +84,7 @@ class QtViewerButtons(QFrame):
             self.viewer,
             "home",
             "Reset view (Ctrl-R)",
-            lambda: self.viewer.reset_view(),
+            slot=lambda: self.viewer.reset_view(),
         )
 
         self.hidePanelButton = QtViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
