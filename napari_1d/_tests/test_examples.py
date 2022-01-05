@@ -21,6 +21,7 @@ examples, examples_with_napari = [], []
 for f in EXAMPLE_DIR.glob("*.py"):
     if f.name in skip:
         continue
+
     if f.name.startswith("napari-and"):
         examples_with_napari.append(f.name)
     else:
