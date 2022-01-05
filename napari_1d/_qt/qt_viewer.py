@@ -193,7 +193,7 @@ class QtViewer(QSplitter):
             self.viewerToolbar.setVisible(False)
             self.viewerToolbar.toolbar_right.setVisible(False)
             canvas_layout.setSpacing(0)
-            canvas_layout.setMargin(0)
+            canvas_layout.setContentsMargins(0, 0, 0, 0)
 
         if dock_controls:
             layer_list = QWidget()
