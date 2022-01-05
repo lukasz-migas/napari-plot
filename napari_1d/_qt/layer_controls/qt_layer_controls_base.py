@@ -120,7 +120,7 @@ class QtLayerControls(QFrame):
             The napari event that triggered this method, by default None.
         """
         with self.layer.events.blending.blocker():
-            hp.set_current_combobox_index(self.blending_combobox, self.layer.blending)
+            hp.set_combobox_current_index(self.blending_combobox, self.layer.blending)
 
     def close(self):
         """Disconnect events when widget is closing."""

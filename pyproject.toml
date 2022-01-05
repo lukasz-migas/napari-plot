@@ -37,11 +37,13 @@ ignore = [
   "codecov.yml",
   "Makefile",
   "mypy.ini",
-  "scripts/minreq.py",
+  "tools/minreq.py",
   "tox.ini",
   ".deepsource.toml",
   "*.pyi",  # added by make typestubs
   "napari_1d/_version.py",  # added during build by setuptools_scm
+  "scripts/*.bat",  # scripts
+  "renovate.json",
 ]
 
 [tool.isort]
@@ -52,7 +54,7 @@ skip_glob = ["*examples/*"]
 [tool.pytest.ini_options]
 # These follow standard library warnings filters syntax.  See more here:
 # https://docs.python.org/3/library/warnings.html#describing-warning-filters
-addopts = "--maxfail=5 --durations=5"
+addopts = "--maxfail=10 --durations=10"
 
 filterwarnings = [
   "error:::napari_1d", # turn warnings from napari into errors

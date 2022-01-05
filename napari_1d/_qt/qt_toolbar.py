@@ -1,8 +1,8 @@
 """Toolbar"""
-# Third-party imports
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QWidget
+from qtpy.QtWidgets import QAction, QMenu, QWidget
 
+from . import helpers as hp
 from .layer_controls.qt_axis_controls import QtAxisControls
 from .widgets.qt_mini_toolbar import QtMiniToolbar
 
@@ -46,6 +46,11 @@ class QtViewToolbar(QWidget):
             checkable=True,
             func=self._toggle_grid_lines_visible,
         )
+        self.tools_tool_btn = toolbar_right.insert_qta_tool(
+            "tools",
+            tooltip="Select current tool.",
+        )
+        self._on_set_tools_menu()
         self.layers_btn = toolbar_right.insert_qta_tool(
             "layers",
             tooltip="Display layer controls",
@@ -68,3 +73,46 @@ class QtViewToolbar(QWidget):
     def _toggle_axis_controls(self, _):
         _dlg_axis = QtAxisControls(self.viewer, self.qt_viewer)
         _dlg_axis.show_left_of_widget(self.tools_axis_btn)
+
+    def _on_set_tools_menu(self):
+        """Open menu of available tools."""
+        from ..components.dragtool import DragMode
+
+        menu = QMenu(self)
+        actions = []
+        toggle_tool = QAction("Tool: Auto", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.AUTO)
+        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Box", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.BOX)
+        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Horizontal span", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Vertical span", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.VERTICAL_SPAN)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        self.tools_tool_btn.setMenu(menu)
+
+        # ensures that only single tool can be selected at at ime
+        hp.make_menu_group(self, *actions)

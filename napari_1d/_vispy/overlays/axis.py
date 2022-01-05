@@ -1,7 +1,7 @@
 """Axes visual"""
 from vispy.scene import AxisWidget
 
-from .utils import tick_formatter
+from ..utils.axis import tick_formatter
 
 
 class VispyAxisVisual:

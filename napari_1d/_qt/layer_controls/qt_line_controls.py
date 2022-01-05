@@ -9,7 +9,7 @@ from .. import helpers as hp
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from napari_1d.layers import Line
+    from ...layers import Line
 
 
 class QtLineControls(QtLayerControls):

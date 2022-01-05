@@ -31,7 +31,7 @@ class QtLayerButtons(QFrame):
             self.viewer,
             "new_points",
             "Add new points layer",
-            lambda: self.viewer.add_points(
+            slot=lambda: self.viewer.add_points(
                 ndim=2,
                 scale=self.viewer.layers.extent.step,
             ),
@@ -41,7 +41,7 @@ class QtLayerButtons(QFrame):
             self.viewer,
             "new_shapes",
             "Add new shapes layer",
-            lambda: self.viewer.add_shapes(
+            slot=lambda: self.viewer.add_shapes(
                 ndim=2,
                 scale=self.viewer.layers.extent.step,
             ),
@@ -84,7 +84,7 @@ class QtViewerButtons(QFrame):
             self.viewer,
             "home",
             "Reset view (Ctrl-R)",
-            lambda: self.viewer.reset_view(),
+            slot=lambda: self.viewer.reset_view(),
         )
 
         self.hidePanelButton = QtViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
