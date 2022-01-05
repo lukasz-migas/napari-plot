@@ -31,7 +31,7 @@ class QtLayerButtons(QFrame):
             self.viewer,
             "new_points",
             "Add new points layer",
-            lambda: self.viewer.add_points(
+            slot=lambda: self.viewer.add_points(
                 ndim=2,
                 scale=self.viewer.layers.extent.step,
             ),
@@ -41,7 +41,7 @@ class QtLayerButtons(QFrame):
             self.viewer,
             "new_shapes",
             "Add new shapes layer",
-            lambda: self.viewer.add_shapes(
+            slot=lambda: self.viewer.add_shapes(
                 ndim=2,
                 scale=self.viewer.layers.extent.step,
             ),

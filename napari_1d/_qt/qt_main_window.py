@@ -7,8 +7,8 @@ from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-from qtpy.QtCore import QEvent, QEventLoop
-from qtpy.QtGui import QKeySequence, Qt
+from qtpy.QtCore import QEvent, QEventLoop, Qt
+from qtpy.QtGui import QKeySequence
 from qtpy.QtWidgets import (
     QAction,
     QApplication,
