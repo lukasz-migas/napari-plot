@@ -37,11 +37,13 @@ ignore = [
   "codecov.yml",
   "Makefile",
   "mypy.ini",
-  "scripts/minreq.py",
+  "tools/minreq.py",
   "tox.ini",
   ".deepsource.toml",
   "*.pyi",  # added by make typestubs
   "napari_1d/_version.py",  # added during build by setuptools_scm
+  "scripts/*.bat",  # scripts
+  "renovate.json",
 ]
 
 [tool.isort]
