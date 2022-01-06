@@ -4,7 +4,7 @@ from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
-from napari.layers.base import Layer, no_op
+from napari.layers.base import no_op
 from napari.layers.shapes._shapes_utils import create_box
 from napari.layers.utils.color_transformations import (
     ColorType,
@@ -16,6 +16,7 @@ from napari.utils.events import Event
 from napari.utils.events.containers import EventedSet
 from napari.utils.misc import ensure_iterable
 
+from ..base import BaseLayer
 from ._region_constants import Box, Mode, Orientation, region_classes
 from ._region_list import RegionList
 from ._region_mouse_bindings import add, edit, highlight, move, select
@@ -34,15 +35,15 @@ for t, modes in REV_TOOL_HELP.items():
         TOOL_HELP[m] = t
 
 
-class Region(Layer):
+class Region(BaseLayer):
     """Regions layer.
 
     Parameters
     ----------
-    data : ty.Union[ty.List[np.ndarray], ty.List[ty.Tuple[np.ndarray, str]], ty.List[ty.Tuple[np.ndarray, Orientation]]]
+    data : list of array-like or list of tuple of array-like and str or list of tuple of array-like and Orientation
         Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
         array has two elements (start position, end position).
-    orientation : ty.Union[ty.List[str], ty.List[Orientation]]
+    orientation : list of str or list of Orientation
         List of orientations for each provided region. If orientations are not provided, they will be inferred directly
         from `data` or using the default of `vertical`.
     face_color : str, array-like
@@ -53,30 +54,31 @@ class Region(Layer):
         Specifier of z order priority. Regions with higher z order are displayed on top of others. If a list is
         supplied it must be the same length as the length of `data` and each element will be applied to each region
         otherwise the same value will be used for all regions.
+    label : str
+        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
         Layer metadata.
     scale : tuple of float
-        Not used. Scale factors for the layer.
+        Scale factors for the layer.
     translate : tuple of float
-        Not used. Translation values for the layer.
+        Translation values for the layer.
     rotate : float, 3-tuple of float, or n-D array.
-        Not used.  If a float convert into a 2D rotation matrix using that value as an angle. If 3-tuple convert into a
-        3D rotation matrix, using a yaw, pitch, roll convention. Otherwise assume an nD rotation. Angles are assumed to
-        be in degrees. They can be converted from radians with np.degrees if needed.
+        If a float convert into a 2D rotation matrix using that value as an angle. If 3-tuple convert into a 3D
+        rotation matrix, using a yaw, pitch, roll convention. Otherwise assume an nD rotation. Angles are assumed
+        to be in degrees. They can be converted from radians with np.degrees if needed.
     shear : 1-D array or n-D array
-        Not used.  Either a vector of upper triangular values, or an nD shear matrix with ones along the main diagonal.
+        Either a vector of upper triangular values, or an nD shear matrix with ones along the main diagonal.
     affine : n-D array or napari.utils.transforms.Affine
-        Not used.  (N+1, N+1) affine transformation matrix in homogeneous coordinates. The first (N, N) entries
-        correspond to a linear transform and the final column is a length N translation vector and a 1 or a napari
-        `Affine` transform object. Applied as an extra transform on top of the provided scale, rotate, and shear values.
+        (N+1, N+1) affine transformation matrix in homogeneous coordinates. The first (N, N) entries correspond to a
+        linear transform and the final column is a length N translation vector and a 1 or a napari `Affine` transform
+        object. Applied as an extra transform on top of the provided scale, rotate, and shear values.
     opacity : float
         Opacity of the layer visual, between 0.0 and 1.0.
     blending : str
-        One of a list of preset blending modes that determines how RGB and
-        alpha values of the layer visual get mixed. Allowed values are
-        {'opaque', 'translucent', and 'additive'}.
+        One of a list of preset blending modes that determines how RGB and alpha values of the layer visual get mixed.
+        Allowed values are {'opaque', 'translucent', 'translucent_no_depth', and 'additive'}.
     visible : bool
         Whether the layer visual is currently being displayed.
     """
@@ -109,11 +111,12 @@ class Region(Layer):
         self,
         data,
         *,
+        # napari-1d parameters
         orientation="vertical",
-        label="",
-        face_color="white",
+        face_color=(1.0, 1.0, 1.0, 1.0),
         z_index=0,
-        # base parameters
+        label="",
+        # napari parameters
         name=None,
         metadata=None,
         scale=None,
@@ -132,7 +135,7 @@ class Region(Layer):
             data, orientation = extract_region_orientation(data, orientation)
         super().__init__(
             data,
-            ndim=2,
+            label=label,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -148,7 +151,6 @@ class Region(Layer):
             face_color=Event,
             current_face_color=Event,
             highlight=Event,
-            label=Event,
             mode=Event,
             shifted=Event,
             accept=Event,
@@ -159,8 +161,6 @@ class Region(Layer):
 
         self._display_order_stored = []
         self._ndisplay_stored = self._ndisplay
-
-        self._label = label
 
         self._data_view = RegionList(ndisplay=self._ndisplay)
         self._data_view.slice_key = np.array(self._slice_indices)[list(self._dims_not_displayed)]
@@ -409,10 +409,6 @@ class Region(Layer):
         self._set_editable()
         if finished:
             self.events.shifted(index=index)
-
-    def _get_ndim(self):
-        """Determine number of dimensions of the layer"""
-        return 2
 
     def _get_state(self):
         """Get dictionary of layer state"""
@@ -691,16 +687,6 @@ class Region(Layer):
     def orientation(self):
         """Orientation of the infinite region."""
         return self._data_view.orientations
-
-    @property
-    def label(self):
-        """Get label"""
-        return self._label
-
-    @label.setter
-    def label(self, value):
-        self._label = value
-        self.events.label()
 
     def _set_view_slice(self):
         pass
