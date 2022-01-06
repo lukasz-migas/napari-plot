@@ -48,6 +48,19 @@ def make_infinite_line(
     return np.asarray(pos, dtype=object), np.asarray(connect, dtype=object), np.asarray(_colors, dtype=object)
 
 
+def make_infinite_pos(data: np.ndarray, orientations: ty.Iterable[Orientation]):
+    """Create position in format x,y"""
+    pos = []
+    for val, orientation in zip(data, orientations):
+        if orientation == Orientation.VERTICAL:
+            _pos = [val, np.nan]
+        else:
+            _pos = [np.nan, val]
+        pos.extend([_pos])
+
+    return np.asarray(pos, dtype=np.float32)
+
+
 def make_infinite_color(colors) -> np.ndarray:
     """Create properly formatted colors."""
     _colors = []

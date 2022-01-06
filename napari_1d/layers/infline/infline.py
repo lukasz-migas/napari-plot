@@ -1,8 +1,11 @@
 """Infinite region"""
+import typing as ty
+from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
 from napari.layers.base import Layer, no_op
+from napari.layers.shapes._shapes_utils import create_box
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -10,10 +13,13 @@ from napari.layers.utils.color_transformations import (
     transform_color_with_defaults,
 )
 from napari.utils.events import Event
+from napari.utils.misc import ensure_iterable
 
-from ._infline_constants import Mode, Orientation
+from ._infline import infline_classes
+from ._infline_constants import Box, Mode, Orientation
+from ._infline_list import InfiniteLineList
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import extract_inf_line_orientation, inside
+from ._infline_utils import extract_inf_line_orientation, get_default_infline_type
 
 
 class InfLine(Layer):
@@ -28,14 +34,18 @@ class InfLine(Layer):
         Mode.MOVE: "cross",
     }
 
+    _highlight_color = (0, 0.6, 1)
+    _highlight_width = 1.5
+
     def __init__(
         self,
         data,
         *,
-        orientations="vertical",
+        orientation="vertical",
         label="",
         color="red",
         width=1,
+        z_index=0,
         # base parameters
         name=None,
         metadata=None,
@@ -52,7 +62,7 @@ class InfLine(Layer):
         if data is None:
             data = np.asarray([])
         else:
-            data, orientations = extract_inf_line_orientation(data, orientations)
+            data, orientation = extract_inf_line_orientation(data, orientation)
             data = np.asarray(data, dtype=np.float64)
         super().__init__(
             data,
@@ -71,17 +81,18 @@ class InfLine(Layer):
         self.events.add(
             color=Event, width=Event, label=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event
         )
-        if not len(data) == len(orientations):
+        # Flag set to false to block thumbnail refresh
+        self._allow_thumbnail_update = True
+
+        if not len(data) == len(orientation):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
         self._label = label
         self._width = width
-        self._data = data
+        self._data_view = InfiniteLineList()
 
         # each line can have its own color
         self._color = transform_color(color)
-        # each line can be either horizontal or vertical
-        self._orientations = [Orientation(orientation) for orientation in orientations]
 
         # indices of selected lines
         self._value = (None, None)
@@ -104,6 +115,13 @@ class InfLine(Layer):
         self.mode = Mode.PAN_ZOOM
         self._status = self.mode
 
+        self._init_lines(
+            data,
+            orientation=orientation,
+            color=color,
+            z_index=z_index,
+        )
+
         # set the current_* properties
         if len(data) > 0:
             self._current_color = self.color[-1]
@@ -116,6 +134,131 @@ class InfLine(Layer):
             )
 
         self.visible = visible
+
+    def _init_lines(self, data, *, orientation=None, color=None, z_index=None):
+        """Add regions to the data view."""
+        n = len(data)
+        color = self._initialize_color(color, n_lines=n)
+        with self.block_thumbnail_update():
+            self._add_line(
+                data,
+                orientation=orientation,
+                color=color,
+                z_index=z_index,
+                z_refresh=False,
+            )
+            self._data_view._update_z_order()
+
+    def _add_line(
+        self,
+        data,
+        *,
+        orientation="vertical",
+        color=None,
+        z_index=None,
+        z_refresh=True,
+    ):
+        """Add shapes to the data view.
+
+        Parameters
+        ----------
+        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
+            List of shape data, where each element is either an (N, D) array of the
+            N vertices of a shape in D dimensions or a tuple containing an array of
+            the N vertices and the shape_type string. When a shape_type is present,
+            it overrides keyword arg shape_type. Can be an 3-dimensional array
+            if each shape has the same number of vertices.
+        orientation : string | list
+            String of orientation type, must be one of "{'vertical', 'horizontal'}.
+            If list is supplied it must be the same length as the length of `data`
+            and each element will be applied to each region otherwise the same
+            value will be used for all regions. Override by data orientation, if present.
+        color : str | tuple | list
+            If string can be any color name recognized by vispy or hex value if
+            starting with `#`. If array-like must be 1-dimensional array with 3
+            or 4 elements. If a list is supplied it must be the same length as
+            the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
+        z_index : int | list
+            Specifier of z order priority. Shapes with higher z order are
+            displayed on top of others. If a list is supplied it must be the
+            same length as the length of `data` and each element will be
+            applied to each shape otherwise the same value will be used for all
+            shapes.
+        z_refresh : bool
+            If set to true, the mesh elements are re-indexed with the new z order.
+            When shape_index is provided, z_refresh will be overwritten to false,
+            as the z indices will not change.
+            When adding a batch of shapes, set to false  and then call
+            ShapesList._update_z_order() once at the end.
+        """
+        if color is None:
+            color = self._current_color
+        if self._data_view is not None:
+            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+        else:
+            z_index = z_index or 0
+
+        if len(data) > 0:
+            # transform the colors
+            transformed_c = transform_color_with_defaults(
+                num_entries=len(data),
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            transformed_color = normalize_and_broadcast_colors(len(data), transformed_c)
+
+            # Turn input arguments into iterables
+            region_inputs = zip(
+                data,
+                ensure_iterable(orientation),
+                transformed_color,
+                ensure_iterable(z_index),
+            )
+            self._add_line_to_view(region_inputs, self._data_view)
+
+        self._display_order_stored = copy(self._dims_order)
+        self._ndisplay_stored = copy(self._ndisplay)
+        self._update_dims()
+
+    def _add_line_to_view(self, infline_inputs, data_view):
+        """Build new region and add them to the _data_view"""
+        for d, ot, c, z in infline_inputs:
+            infline_cls = infline_classes[Orientation(ot)]
+            region = infline_cls(d, z_index=z)
+
+            # Add region
+            data_view.add(region, color=c, z_refresh=False)
+        data_view._update_z_order()
+
+    # noinspection PyMethodMayBeStatic
+    def _initialize_color(self, color, n_lines: int):
+        """Get the face colors the Shapes layer will be initialized with
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        n_lines : int
+            Number of lines to be initialized.
+
+        Returns
+        -------
+        init_colors : (N, 4) array or str
+            The calculated values for setting edge or face_color
+        """
+        if n_lines > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=n_lines,
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            init_colors = normalize_and_broadcast_colors(n_lines, transformed_color)
+        else:
+            init_colors = np.empty((0, 4))
+        return init_colors
 
     @property
     def mode(self) -> str:
@@ -189,40 +332,6 @@ class InfLine(Layer):
             self._update_thumbnail()
         self.events.current_color()
 
-    def add(self, pos, orientation):
-        """Adds point at coordinate.
-
-        Parameters
-        ----------
-        pos : sequence
-            Sequence of values to add infinite lines at
-        orientation : sequence
-            Sequence of orientations
-        """
-        if len(pos) != len(orientation):
-            raise ValueError(
-                "When adding infinite lines, it is expected that that the number of values matches the number of"
-                " orientations."
-            )
-        self._orientations.extend(orientation)
-        self.data = np.append(self._data, np.asarray(pos))
-
-    def _add_creating(self, pos, orientation) -> int:
-        """Add line while return the count."""
-        self.add([pos], [orientation])
-        return len(self.data) - 1
-
-    def move(self, index: int, new_pos: float, orientation, finished: bool = False):
-        """Move region to new location"""
-        if index > len(self.data):
-            raise ValueError("Selected index is larger than total number of elements.")
-        self._data[index] = new_pos
-        self._orientations[index] = Orientation(orientation)
-        self.data = self._data
-
-        if finished:
-            self.events.shifted()
-
     def _get_ndim(self) -> int:
         """Determine number of dimensions of the layer"""
         return 2
@@ -254,49 +363,148 @@ class InfLine(Layer):
         return self.data
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data"""
-        return self._data
+        return self._data_view.data
 
     @data.setter
-    def data(self, data: np.ndarray):
-        current_n_points = len(self._data)
-        self._data = data
+    def data(self, data):
+        data, orientation = extract_inf_line_orientation(data)
+        n_new_regions = len(data)
+        if orientation is None:
+            orientation = self.orientation
 
-        with self.events.blocker_all():
-            if len(data) < current_n_points:
-                # if there are fewer lines, remove the colors of the extra ones
-                self._color = np.delete(self._color, np.arange(len(data)), len(self._color))
-            elif len(data) > current_n_points:
-                # if there are now more points, add the colors of the new ones
-                adding = len(data) - current_n_points
-                transformed_color = transform_color_with_defaults(
-                    num_entries=adding,
-                    colors=self._current_color,
-                    elem_name="color",
-                    default="white",
-                )
-                broadcasted_colors = normalize_and_broadcast_colors(adding, transformed_color)
-                self._color = np.concatenate((self._color, broadcasted_colors))
+        color = self._data_view.color
+        z_indices = self._data_view.z_indices
+
+        # fewer shapes, trim attributes
+        if self.n_regions > n_new_regions:
+            orientation = orientation[:n_new_regions]
+            z_indices = z_indices[:n_new_regions]
+            color = color[:n_new_regions]
+        # more shapes, add attributes
+        elif self.n_regions < n_new_regions:
+            n_shapes_difference = n_new_regions - self.n_regions
+            orientation = orientation + [get_default_infline_type(orientation)] * n_shapes_difference
+            z_indices = z_indices + [0] * n_shapes_difference
+            color = np.concatenate((color, self._get_new_color(n_shapes_difference)))
+        self._data_view = InfiniteLineList()
+        self.add(data, orientation=orientation, color=color, z_index=z_indices)
 
         self._update_dims()
         self.events.data(value=self.data)
         self._set_editable()
 
     @property
-    def orientations(self):
-        """Orientations of the infinite lines."""
-        return self._orientations
+    def orientations(self) -> ty.List[Orientation]:
+        return self._data_view.orientations
+
+    def add(
+        self,
+        data,
+        *,
+        orientation="vertical",
+        color=None,
+        z_index=None,
+    ):
+        """Add shapes to the current layer.
+
+        Parameters
+        ----------
+        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
+            List of shape data, where each element is either an (N, D) array of the
+            N vertices of a shape in D dimensions or a tuple containing an array of
+            the N vertices and the shape_type string. When a shape_type is present,
+            it overrides keyword arg shape_type. Can be an 3-dimensional array
+            if each shape has the same number of vertices.
+        orientation : string | list
+            String of orientation type, must be one of "{'vertical', 'horizontal'}.
+            If list is supplied it must be the same length as the length of `data`
+            and each element will be applied to each region otherwise the same
+            value will be used for all regions. Override by data orientation, if present.
+        color : str | tuple | list
+            If string can be any color name recognized by vispy or hex value if
+            starting with `#`. If array-like must be 1-dimensional array with 3
+            or 4 elements. If a list is supplied it must be the same length as
+            the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
+        z_index : int | list
+            Specifier of z order priority. Shapes with higher z order are
+            displayed on top of others. If a list is supplied it must be the
+            same length as the length of `data` and each element will be
+            applied to each shape otherwise the same value will be used for all
+            shapes.
+        """
+        data, orientation = extract_inf_line_orientation(data, orientation)
+
+        n_new_shapes = len(data)
+        if color is None:
+            color = self._get_new_color(n_new_shapes)
+        if self._data_view is not None:
+            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+        else:
+            z_index = z_index or 0
+
+        if n_new_shapes > 0:
+            self._add_line(
+                data,
+                orientation=orientation,
+                color=color,
+                z_index=z_index,
+            )
+            self.events.data(value=self.data)
+
+    def _add_creating(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
+        """Add line while return the count."""
+        self.add(
+            [pos],
+            orientation=[orientation],
+            color=[color] if color is not None else color,
+            z_index=[z_index] if z_index is not None else z_index,
+        )
+        return len(self.data) - 1
+
+    def move(self, index: int, data: float, orientation=None, finished: bool = False):
+        """Move region to new location"""
+        if index > len(self.data):
+            raise ValueError("Selected index is larger than total number of elements.")
+        self._data_view.edit(index, data=data, new_orientation=orientation)
+        self._emit_new_data()
+        if finished:
+            self.events.shifted()
+
+    def _emit_new_data(self):
+        self._update_dims()
+        self.events.data(value=self.data)
+        self._set_editable()
+
+    def _get_new_color(self, adding: int):
+        """Get the color for the shape(s) to be added.
+
+        Parameters
+        ----------
+        adding : int
+            the number of shapes that were added
+            (and thus the number of color entries to add)
+
+        Returns
+        -------
+        new_colors : (N, 4) array
+            (Nx4) RGBA array of colors for the N new shapes
+        """
+        new_colors = np.tile(self._current_color, (adding, 1))
+        return new_colors
 
     @property
     def color(self) -> np.ndarray:
         """Get color"""
-        return self._color
+        return self._data_view.color
 
     @color.setter
     def color(self, color):
-        self._current_color = color
+        self._data_view.color = color
         self.events.color()
+        self._update_thumbnail()
 
     @property
     def label(self):
@@ -329,7 +537,7 @@ class InfLine(Layer):
         value = None
         if value is None:
             # Check if mouse inside shape
-            infline = inside(coord, self.data)
+            infline = self._data_view.inside(coord)
             value = (infline, None)
         return value
 
@@ -396,3 +604,41 @@ class InfLine(Layer):
         #         rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
         #     box = np.append(box, [rot], axis=0)
         return box
+
+    @contextmanager
+    def block_thumbnail_update(self):
+        """Use this context manager to block thumbnail updates"""
+        self._allow_thumbnail_update = False
+        yield
+        self._allow_thumbnail_update = True
+
+    def _compute_vertices_and_box(self):
+        """Compute location of highlight vertices and box for rendering.
+
+        Returns
+        -------
+        vertices : np.ndarray
+            Nx2 array of any vertices to be rendered as Markers
+        face_color : str
+            String of the face color of the Markers
+        edge_color : str
+            String of the edge color of the Markers and Line for the box
+        pos : np.ndarray
+            Nx2 array of vertices of the box that will be rendered using a
+            Vispy Line
+        width : float
+            Width of the box edge
+        """
+        if self._is_selecting:
+            # If currently dragging a selection box just show an outline of
+            # that box
+            edge_color = self._highlight_color
+            box = create_box(self._drag_box)
+            # Use a subset of the vertices of the interaction_box to plot
+            # the line around the edge
+            pos = box[Box.LINE][:, ::-1]
+        else:
+            # Otherwise show nothing
+            edge_color = "white"
+            pos = None
+        return edge_color, pos

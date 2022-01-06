@@ -47,7 +47,6 @@ def edit(layer, event):
     """Edit layer by first selecting and then drawing new version of the region."""
     if len(layer.selected_data) == 1:
         # on press
-        region = copy(layer.selected_data)
         position_start = event.position
         coord_start = layer.world_to_data(position_start)
         index = list(layer.selected_data)[0]

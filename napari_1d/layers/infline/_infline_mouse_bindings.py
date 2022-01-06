@@ -53,13 +53,14 @@ def add(layer, event):
             orientation = Orientation.VERTICAL
             pos = coordinates[1]
         if index is None:
-            index = layer._add_creating(pos, orientation)
+            index = layer._add_creating(pos, orientation=orientation)
         else:
             layer.move(index, pos, orientation)
         yield
 
     # on release
-    layer.move(index, pos, orientation, True)
+    if index is not None:
+        layer.move(index, pos, orientation, True)
 
 
 def select(layer, event):
@@ -68,6 +69,60 @@ def select(layer, event):
     This function should enable selection of infinite lines by either clicking on (or near) the line or dragging
     a rectangular box.
     """
+    shift = "Shift" in event.modifiers
+    # on press
+    line_under_cursor, _ = _select(layer, event, shift)
+
+    # we don't update the thumbnail unless a shape has been moved
+    update_thumbnail = False
+    yield
+
+    # on move
+    while event.type == "mouse_move":
+        coordinates = layer.world_to_data(event.position)
+        layer._moving_coordinates = coordinates
+        # Drag any selected shapes
+        if len(layer.selected_data) == 0:
+            _drag_selection_box(layer, coordinates)
+        yield
+
+    # on release
+    shift = "Shift" in event.modifiers
+    if not layer._is_moving and not layer._is_selecting and not shift:
+        if line_under_cursor is not None:
+            layer.selected_data = {line_under_cursor}
+        else:
+            layer.selected_data = set()
+    elif layer._is_selecting:
+        layer.selected_data = layer._data_view.lines_in_box(layer._drag_box)
+        layer._is_selecting = False
+
+    layer._drag_start = None
+    layer._drag_box = None
+    layer._set_highlight()
+
+    if update_thumbnail:
+        layer._update_thumbnail()
+
+
+def _select(layer, event, shift: bool):
+    """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
+    value = layer.get_value(event.position, world=True)
+    layer._moving_value = copy(value)
+    region_under_cursor, vertex_under_cursor = value
+    if vertex_under_cursor is None:
+        if shift and region_under_cursor is not None:
+            if region_under_cursor in layer.selected_data:
+                layer.selected_data.remove(region_under_cursor)
+            else:
+                layer.selected_data.add(region_under_cursor)
+        elif region_under_cursor is not None:
+            if region_under_cursor not in layer.selected_data:
+                layer.selected_data = {region_under_cursor}
+        else:
+            layer.selected_data = set()
+    layer._set_highlight()
+    return region_under_cursor, vertex_under_cursor
 
 
 def _drag_selection_box(layer, coordinates):
@@ -92,23 +147,3 @@ def _drag_selection_box(layer, coordinates):
         layer._drag_start = coord
     layer._drag_box = np.array([layer._drag_start, coord])
     layer._set_highlight()
-
-
-def _select(layer, event, shift: bool):
-    """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
-    value = layer.get_value(event.position, world=True)
-    layer._moving_value = copy(value)
-    region_under_cursor, vertex_under_cursor = value
-    if vertex_under_cursor is None:
-        if shift and region_under_cursor is not None:
-            if region_under_cursor in layer.selected_data:
-                layer.selected_data.remove(region_under_cursor)
-            else:
-                layer.selected_data.add(region_under_cursor)
-        elif region_under_cursor is not None:
-            if region_under_cursor not in layer.selected_data:
-                layer.selected_data = {region_under_cursor}
-        else:
-            layer.selected_data = set()
-    layer._set_highlight()
-    return region_under_cursor, vertex_under_cursor

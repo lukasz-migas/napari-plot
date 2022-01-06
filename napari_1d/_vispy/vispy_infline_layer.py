@@ -1,5 +1,5 @@
 """Line layer"""
-
+import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
@@ -24,6 +24,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.width.connect(self._on_width_change)
+        self.layer.events.highlight.connect(self._on_highlight_change)
 
         self.reset()
         self._on_data_change()
@@ -50,13 +51,27 @@ class VispyInfLineLayer(VispyBaseLayer):
         )
         self.node.update()
 
-    def _on_highlight_change(self, _event=None):
-        """Set highlights."""
-        # pos, connect, color = make_infinite_line(self.layer.data, self.layer.orientations, self.layer.color)
-        # highlights of the infinite lines
-        # self.node._subvisuals[LINE_HIGHLIGHT].set_data(
-        #     pos=pos,
-        #     connect=connect,
-        #     color="#0000FF",  # color,
-        #     width=self.layer.width * 2,
+    def _on_highlight_change(self, event=None):
+        """Highlight."""
+        # # Compute the vertices and faces of selected regions
+        # vertices, faces = self.layer._highlight_regions()
+        # if vertices is None or len(vertices) == 0 or len(faces) == 0:
+        #     vertices = np.zeros((3, self.layer._ndisplay))
+        #     faces = np.array([[0, 1, 2]])
+        #
+        # self.node._subvisuals[MESH_HIGHLIGHT].set_data(
+        #     vertices=vertices,
+        #     faces=faces,
+        #     color=self.layer._highlight_color,
         # )
+
+        # Compute the location and properties of the vertices and box that
+        # need to get rendered
+        edge_color, pos = self.layer._compute_vertices_and_box()
+
+        # add region edges
+        width = 3  # set
+        if pos is None or len(pos) == 0:
+            pos = np.zeros((1, self.layer._ndisplay))
+            width = 0
+        self.node._subvisuals[LINE_HIGHLIGHT].set_data(pos=pos, color=edge_color, width=width)
