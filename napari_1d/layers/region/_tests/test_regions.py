@@ -6,8 +6,8 @@ from napari_1d.layers.region import Region
 
 
 def test_empty_regions():
-    reg = Region(None)
-    assert reg.ndim == 2
+    layer = Region(None)
+    assert layer.ndim == 2
 
 
 def test_default_region():

@@ -2,7 +2,7 @@
 import typing as ty
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
-from napari._qt.widgets.qt_color_swatch import QColorSwatch
+from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
 from .. import helpers as hp
@@ -50,7 +50,7 @@ class QtLineControls(QtLayerControls):
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
-        self.color_swatch = QColorSwatch(
+        self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.color,
             tooltip="Click to set new line color",
         )

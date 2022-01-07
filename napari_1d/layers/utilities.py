@@ -33,19 +33,44 @@ def make_infinite_line(
         indices = np.arange(len(data))
 
     pos, connect, _colors = [], [], []
+    if len(indices) == 0:
+        return np.zeros((0, 2)), np.zeros((0, 2)), np.zeros((0, 4))
+
     min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
     i = 0
-    for (val, orientation, color) in zip(data, orientations, colors):
-        if orientation == Orientation.VERTICAL:
-            _pos = [[val, min_val], [val, max_val]]
-        else:
-            _pos = [[min_val, val], [max_val, val]]
+    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
+        if index in indices:
+            if orientation == Orientation.VERTICAL:
+                _pos = [[val, min_val], [val, max_val]]
+            else:
+                _pos = [[min_val, val], [max_val, val]]
 
-        _colors.extend([color, color])
-        pos.extend(_pos)
-        connect.append([i, i + 1])
-        i += 2
-    return np.asarray(pos, dtype=object), np.asarray(connect, dtype=object), np.asarray(_colors, dtype=object)
+            _colors.extend([color, color])
+            pos.extend(_pos)
+            connect.append([i, i + 1])
+            i += 2
+    if len(pos) == 0:
+        return np.zeros((0, 2)), np.zeros((0, 2)), np.zeros((0, 4))
+    return (
+        np.asarray(pos, dtype=np.float32),
+        np.asarray(connect, dtype=np.float32),
+        np.asarray(_colors, dtype=np.float32),
+    )
+
+
+def make_infinite_pos(data: np.ndarray, orientations: ty.Iterable[Orientation]):
+    """Create position in format x,y"""
+    pos = []
+    if len(data) == 0:
+        return np.zeros((0, 2))
+    for val, orientation in zip(data, orientations):
+        if orientation == Orientation.VERTICAL:
+            _pos = [val, np.nan]
+        else:
+            _pos = [np.nan, val]
+        pos.extend([_pos])
+
+    return np.asarray(pos, dtype=np.float32)
 
 
 def make_infinite_color(colors) -> np.ndarray:

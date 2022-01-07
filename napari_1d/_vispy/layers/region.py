@@ -10,7 +10,7 @@ if ty.TYPE_CHECKING:
 
 MESH_MAIN = 0
 MESH_HIGHLIGHT = 1
-LINE = 2
+LINE_HIGHLIGHT = 2
 
 
 class VispyRegionLayer(VispyBaseLayer):
@@ -75,4 +75,4 @@ class VispyRegionLayer(VispyBaseLayer):
         if pos is None or len(pos) == 0:
             pos = np.zeros((1, self.layer._ndisplay))
             width = 0
-        self.node._subvisuals[LINE].set_data(pos=pos, color=edge_color, width=width)
+        self.node._subvisuals[LINE_HIGHLIGHT].set_data(pos=pos, color=edge_color, width=width)
