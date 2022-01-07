@@ -99,7 +99,6 @@ class Region(BaseLayer):
         Mode.EDIT: "standard",
     }
 
-    _vertex_size = 10
     _highlight_color = (0, 0.6, 1)
     _highlight_width = 1.5
 
@@ -480,20 +479,10 @@ class Region(BaseLayer):
             n_shapes_difference = n_new_regions - self.n_regions
             orientation = orientation + [get_default_region_type(orientation)] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
-            face_color = np.concatenate(
-                (
-                    face_color,
-                    self._get_new_shape_color(n_shapes_difference, "face"),
-                )
-            )
+            face_color = np.concatenate((face_color, self._get_new_region_color(n_shapes_difference, "face")))
 
         self._data_view = RegionList()
-        self.add(
-            data,
-            orientation=orientation,
-            face_color=face_color,
-            z_index=z_indices,
-        )
+        self.add(data, orientation=orientation, face_color=face_color, z_index=z_indices)
 
         self._update_dims()
         self.events.data(value=self.data)

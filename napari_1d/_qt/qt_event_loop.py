@@ -4,9 +4,10 @@ import sys
 from warnings import warn
 
 from napari._qt.dialogs.qt_notification import NapariQtNotification
-from napari._qt.qt_event_loop import _ipython_has_eventloop, run  # noqa
+from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop  # noqa
 from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
+from napari._qt.utils import _maybe_allow_interrupt
 from napari.plugins import plugin_manager
 from napari.utils.notifications import notification_manager, show_console_notification
 from qtpy.QtCore import Qt
@@ -162,3 +163,63 @@ def quit_app():
     # quit just close all the windows (and clear our app icon).
     else:
         QApplication.setWindowIcon(QIcon())
+
+
+def run(*, force=False, gui_exceptions=False, max_loop_level=1, _func_name="run"):
+    """Start the Qt Event Loop
+
+    Parameters
+    ----------
+    force : bool, optional
+        Force the application event_loop to start, even if there are no top
+        level widgets to show.
+    gui_exceptions : bool, optional
+        Whether to show uncaught exceptions in the GUI. By default they will be
+        shown in the console that launched the event loop.
+    max_loop_level : int, optional
+        The maximum allowable "loop level" for the execution thread.  Every
+        time `QApplication.exec_()` is called, Qt enters the event loop,
+        increments app.thread().loopLevel(), and waits until exit() is called.
+        This function will prevent calling `exec_()` if the application already
+        has at least ``max_loop_level`` event loops running.  By default, 1.
+    _func_name : str, optional
+        name of calling function, by default 'run'.  This is only here to
+        provide functions like `gui_qt` a way to inject their name into the
+        warning message.
+
+    Raises
+    ------
+    RuntimeError
+        (To avoid confusion) if no widgets would be shown upon starting the
+        event loop.
+    """
+    if _ipython_has_eventloop():
+        # If %gui qt is active, we don't need to block again.
+        return
+
+    app = QApplication.instance()
+    if _pycharm_has_eventloop(app):
+        # explicit check for PyCharm pydev console
+        return
+
+    if not app:
+        raise RuntimeError(
+            "No Qt app has been created. One can be created by calling `get_app()` or `qtpy.QtWidgets.QApplication([])`"
+        )
+    if not app.topLevelWidgets() and not force:
+        warn(
+            f"Refusing to run a QApplication with no topLevelWidgets. To run the app anyway, use `{_func_name}"
+            "(force=True)`",
+        )
+        return
+
+    if app.thread().loopLevel() >= max_loop_level:
+        loops = app.thread().loopLevel()
+        warn(
+            f"A QApplication is already running with 1 event loop. To enter *another* event loop, use `{_func_name}"
+            f"(max_loop_level={max_loop_level})` A QApplication is already running with {loops} event loops. To enter"
+            f" *another* event loop, use `{_func_name}(max_loop_level={max_loop_level})`",
+        )
+        return
+    with _maybe_allow_interrupt(app):
+        app.exec_()

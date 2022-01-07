@@ -53,7 +53,6 @@ class RegionList:
     """
 
     def __init__(self, data=(), ndisplay=2):
-
         self._ndisplay = ndisplay
         self.regions = []
         self._displayed = []
@@ -193,9 +192,12 @@ class RegionList:
 
         Parameters
         ----------
-        shape : subclass Shape
-            Must be a subclass of Shape, one of "{'Line', 'Rectangle',
-            'Ellipse', 'Path', 'Polygon'}"
+        shape : subclass Orientation
+            Must be a subclass of Orientation, one of "{'vertical', 'horizontal}"
+        face_color : str | tuple
+            If string can be any color name recognized by vispy or hex value if
+            starting with `#`. If array-like must be 1-dimensional array with 3
+            or 4 elements.
         shape_index : None | int
             If int then edits the shape date at current index. To be used in
             conjunction with `remove` when renumber is `False`. If None, then
@@ -365,6 +367,10 @@ class RegionList:
             Location in list of the shape to be changed.
         data : np.ndarray
             NxD array of vertices.
+        face_color : str | tuple
+            If string can be any color name recognized by vispy or hex value if
+            starting with `#`. If array-like must be 1-dimensional array with 3
+            or 4 elements.
         new_type : None | str | Orientation
             If string, must be one of "{'vertical', 'horizontal'}
         """

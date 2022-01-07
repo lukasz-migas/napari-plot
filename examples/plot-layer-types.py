@@ -43,7 +43,7 @@ def add_infline():
     """Inf line plot"""
     viewer1d.add_inf_line(
         [50, 15, 250],
-        orientations=["vertical", "vertical", "horizontal"],
+        orientation=["vertical", "vertical", "horizontal"],
         width=3,
         color=["red", "orange", "green"],
         name="Infinite Line",

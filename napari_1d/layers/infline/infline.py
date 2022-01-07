@@ -1,17 +1,37 @@
 """Infinite region"""
+import typing as ty
+from contextlib import contextmanager
+from copy import copy
+
 import numpy as np
 from napari.layers.base import no_op
 from napari.layers.utils.color_transformations import (
+    ColorType,
     normalize_and_broadcast_colors,
     transform_color,
     transform_color_with_defaults,
 )
 from napari.utils.events import Event
+from napari.utils.misc import ensure_iterable
 
 from ..base import BaseLayer
-from ._infline_constants import Mode, Orientation
+from ._infline import infline_classes
+from ._infline_constants import Box, Mode, Orientation
+from ._infline_list import InfiniteLineList
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import extract_inf_line_orientation
+from ._infline_utils import get_default_infline_type, parse_inf_line_orientation
+
+REV_TOOL_HELP = {
+    "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
+    "Hold <space> to pan/zoom, hold <ctrl> or drag along y-axis (vertical line), hold <shift> or drag along x-axis"
+    " (horizontal line)": {Mode.ADD},
+    "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
+    "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
+}
+TOOL_HELP = {}
+for t, modes in REV_TOOL_HELP.items():
+    for m in modes:
+        TOOL_HELP[m] = t
 
 
 class InfLine(BaseLayer):
@@ -68,16 +88,19 @@ class InfLine(BaseLayer):
         Mode.MOVE: "cross",
     }
 
+    _highlight_color = (0, 0.6, 1, 0.5)
+    _highlight_width = 3
+
     def __init__(
         self,
         data,
         *,
-        # napari-1d parameters
-        orientations="vertical",
-        color=(1.0, 0.0, 0.0, 1.0),
+        orientation="vertical",
+        color=(1.0, 1.0, 1.0, 1.0),
         width=1,
+        z_index=0,
         label="",
-        # napari parameters
+        # base parameters
         name=None,
         metadata=None,
         scale=None,
@@ -90,13 +113,8 @@ class InfLine(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.asarray([])
-        else:
-            data, orientations = extract_inf_line_orientation(data, orientations)
-            data = np.asarray(data, dtype=np.float64)
-
-        if not len(data) == len(orientations):
+        data, orientation = parse_inf_line_orientation(data, orientation)
+        if not len(data) == len(orientation):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
         super().__init__(
@@ -113,16 +131,39 @@ class InfLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, mode=Event, shifted=Event)
+        self.events.add(color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event)
+        # Flag set to false to block thumbnail refresh
+        self._allow_thumbnail_update = True
 
         self._width = width
-        self._data = data
-        self._mode = Mode.PAN_ZOOM
+        self._data_view = InfiniteLineList()
 
-        # each line can have its own color
-        self._color = transform_color(color)
-        # each line can be either horizontal or vertical
-        self._orientations = [Orientation(orientation) for orientation in orientations]
+        # indices of selected lines
+        self._value = (None, None)
+        self._value_stored = (None, None)
+        self._selected_data = set()
+        self._selected_data_stored = set()
+
+        self._drag_start = None
+        self._drag_box = None
+        self._drag_box_stored = None
+        self._is_creating = False
+        self._is_selecting = False
+        self._moving_coordinates = None
+        self._is_moving = False
+        self._moving_value = (None, None)
+
+        # change mode once to trigger the Mode setting logic
+        self._mode = Mode.PAN_ZOOM
+        self.mode = Mode.PAN_ZOOM
+        self._status = self.mode
+
+        self._init_lines(
+            data,
+            orientation=orientation,
+            color=color,
+            z_index=z_index,
+        )
 
         # set the current_* properties
         if len(data) > 0:
@@ -135,17 +176,216 @@ class InfLine(BaseLayer):
                 default="white",
             )
 
-        # indices of selected lines
-        self._value = None
-        self._selected_data = set()
-        self._selected_data_stored = set()
-        self._selected_box = None
-
-        self._drag_start = None
-        self._drag_box = None
-        self._drag_box_stored = None
-
         self.visible = visible
+
+    def add(
+        self,
+        data,
+        *,
+        orientation="vertical",
+        color=None,
+        z_index=None,
+    ):
+        """Add lines to the current layer.
+
+        Parameters
+        ----------
+        data : Array | Tuple(float,str) | List[float | Tuple(float, str)] | Tuple(List[float], str)
+            List of line data, where each element is either position or a tuple containing (position, orientation).
+            When orientation is present, it overrides keyword argument `orientation`.
+        orientation : string | list
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
+            value will be used for all regions. Override by data orientation, if present.
+        color : str | tuple | list
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            lines.
+        z_index : int | list
+            Specifier of z order priority. Lines with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
+        """
+        data, orientation = parse_inf_line_orientation(data, orientation)
+
+        n_new_shapes = len(data)
+        if color is None:
+            color = self._get_new_color(n_new_shapes)
+        if self._data_view is not None:
+            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+        else:
+            z_index = z_index or 0
+
+        if n_new_shapes > 0:
+            self._add_line(
+                data,
+                orientation=orientation,
+                color=color,
+                z_index=z_index,
+            )
+            self.events.data(value=self.data)
+
+    def _add_creating(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
+        """Add new line and return the index of said line.
+
+        Parameters
+        ----------
+        pos : float
+            Position along the x-axis or y-axis.
+        orientation : str or Orientation
+            String of orientation type, must be one of "{'vertical', 'horizontal'}.
+        color : str or tuple or list or array, optional
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements.
+        z_index : int, optional
+            Specifier of z order priority. Lines with higher z order are displayed on top of others.
+
+        Returns
+        -------
+        index : int
+            Index of the just added line.
+        """
+        self.add(
+            [pos],
+            orientation=[orientation],
+            color=[color] if color is not None else color,
+            z_index=[z_index] if z_index is not None else z_index,
+        )
+        return len(self.data) - 1
+
+    def move(self, index: int, pos: float, orientation=None, finished: bool = False):
+        """Move line to new location.
+
+        Parameters
+        ----------
+        index : int
+            Index of the line.
+        pos : float
+            New position along the x-axis or y-axis.
+        orientation : str or Orientation, optional
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If one is not provided, only the
+            position is changed.
+        finished : bool
+            Flag to indicate whether the `shifted` events should be emitted.
+        """
+        if index > len(self.data):
+            raise ValueError("Selected index is larger than total number of elements.")
+        self._data_view.edit(index, data=pos, new_orientation=orientation)
+        self._emit_new_data()
+        if finished:
+            self.events.shifted(index=index)
+
+    def _init_lines(self, data, *, orientation=None, color=None, z_index=None):
+        """Add lines to the data view."""
+        n = len(data)
+        color = self._initialize_color(color, n_lines=n)
+        with self.block_thumbnail_update():
+            self._add_line(
+                data,
+                orientation=orientation,
+                color=color,
+                z_index=z_index,
+            )
+            self._data_view._update_z_order()
+
+    def _add_line(
+        self,
+        data,
+        *,
+        orientation="vertical",
+        color=None,
+        z_index=None,
+    ):
+        """Add lines to the data view.
+
+        Parameters
+        ----------
+        data : Array | Tuple(float,str) | List[float | Tuple(float, str)] | Tuple(List[float], str)
+            List of line data, where each element is either position or a tuple containing (position, orientation).
+            When orientation is present, it overrides keyword argument `orientation`.
+        orientation : string | list
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
+            value will be used for all regions. Override by data orientation, if present.
+        color : str | tuple | list
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            lines.
+        z_index : int | list
+            Specifier of z order priority. Lines with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
+        """
+        if color is None:
+            color = self._current_color
+        if self._data_view is not None:
+            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+        else:
+            z_index = z_index or 0
+
+        if len(data) > 0:
+            # transform the colors
+            transformed_c = transform_color_with_defaults(
+                num_entries=len(data),
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            transformed_color = normalize_and_broadcast_colors(len(data), transformed_c)
+
+            # Turn input arguments into iterables
+            region_inputs = zip(
+                data,
+                ensure_iterable(orientation),
+                transformed_color,
+                ensure_iterable(z_index),
+            )
+            self._add_line_to_view(region_inputs, self._data_view)
+
+        self._display_order_stored = copy(self._dims_order)
+        self._ndisplay_stored = copy(self._ndisplay)
+        self._update_dims()
+
+    @staticmethod
+    def _add_line_to_view(infline_inputs, data_view):
+        """Build new region and add them to the _data_view"""
+        for d, ot, c, z in infline_inputs:
+            infline_cls = infline_classes[Orientation(ot)]
+            infline = infline_cls(d, z_index=z)
+
+            # Add region
+            data_view.add(infline, color=c, z_refresh=False)
+        data_view._update_z_order()
+
+    @staticmethod
+    def _initialize_color(color, n_lines: int):
+        """Get the face colors the Shapes layer will be initialized with
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        n_lines : int
+            Number of lines to be initialized.
+
+        Returns
+        -------
+        init_colors : (N, 4) array or str
+            The calculated values for setting edge or face_color
+        """
+        if n_lines > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=n_lines,
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            init_colors = normalize_and_broadcast_colors(n_lines, transformed_color)
+        else:
+            init_colors = np.empty((0, 4))
+        return init_colors
 
     @property
     def mode(self) -> str:
@@ -170,10 +410,7 @@ class InfLine(BaseLayer):
         if mode == Mode.SELECT:
             self.selected_data = set()
 
-        if mode == Mode.PAN_ZOOM:
-            self.help = ""
-        else:
-            self.help = "Hold <space> to pan/zoom."
+        self.help = TOOL_HELP[mode]
 
         if mode != Mode.SELECT or old_mode != Mode.SELECT:
             self._selected_data_stored = set()
@@ -183,46 +420,45 @@ class InfLine(BaseLayer):
         self.events.mode(mode=mode)
 
     @property
+    def n_inflines(self) -> int:
+        """Get number of inflines."""
+        return len(self._data_view.inflines)
+
+    @property
     def selected_data(self) -> set:
         """set: set of currently selected points."""
         return self._selected_data
 
     @selected_data.setter
     def selected_data(self, selected_data):
-        pass
+        self._selected_data = set(selected_data)
+
+        # Update properties based on selected shapes
+        if len(selected_data) > 0:
+            selected_data_indices = list(selected_data)
+            selected_face_colors = self.color[selected_data_indices]
+            face_colors = np.unique(selected_face_colors, axis=0)
+            if len(face_colors) == 1:
+                face_color = face_colors[0]
+                self.current_color = face_color
 
     @property
     def current_color(self):
         """Get current color."""
         return self._current_color
 
-    def add(self, pos, orientation):
-        """Adds point at coordinate.
+    @current_color.setter
+    def current_color(self, color: ColorType):
+        """Update current color."""
+        self._current_color = transform_color(color)[0]
 
-        Parameters
-        ----------
-        pos : sequence
-            Sequence of values to add infinite lines at
-        orientation : sequence
-            Sequence of orientations
-        """
-        if len(pos) != len(orientation):
-            raise ValueError(
-                "When adding infinite lines, it is expected that that the number of values matches the number of"
-                " orientations."
-            )
-        self._orientations.extend(orientation)
-        self.data = np.append(self._data, np.asarray(pos))
-
-    def move(self, index: int, new_pos: float, finished: bool = False):
-        """Move region to new location"""
-        if index > len(self.data):
-            raise ValueError("Selected index is larger than total number of elements.")
-        self._data[index] = new_pos
-        self.data = self._data
-
-        if finished:
-            self.events.shifted()
+        # update properties
+        if self._update_properties:
+            for i in self.selected_data:
+                self._data_view.update_color(i, self._current_color)
+                self.events.color()
+            self._update_thumbnail()
+        self.events.current_color()
 
     def _get_state(self):
         """Get dictionary of layer state"""
@@ -232,12 +468,13 @@ class InfLine(BaseLayer):
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
-        colormapped = np.zeros(self._thumbnail_shape)
-        colormapped[..., 3] = 1
-        colormapped[14:18] = (1.0, 1.0, 1.0, 1.0)
-        colormapped[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
-        colormapped[..., 3] *= self.opacity
-        self.thumbnail = colormapped
+        if self._is_moving is False and self._allow_thumbnail_update is True:
+            thumbnail = np.zeros(self._thumbnail_shape)
+            thumbnail[..., 3] = 1
+            thumbnail[14:18] = (1.0, 1.0, 1.0, 1.0)
+            thumbnail[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
+            thumbnail[..., 3] *= self.opacity
+            self.thumbnail = thumbnail
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -251,52 +488,84 @@ class InfLine(BaseLayer):
         return self.data
 
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data"""
-        return self._data
+        return self._data_view.data
 
     @data.setter
-    def data(self, data: np.ndarray):
-        current_n_points = len(self._data)
-        self._data = data
+    def data(self, data):
+        data, orientation = parse_inf_line_orientation(data)
+        n_new_regions = len(data)
+        if orientation is None:
+            orientation = self.orientation
 
-        with self.events.blocker_all():
-            if len(data) < current_n_points:
-                # if there are fewer lines, remove the colors of the extra ones
-                self._color = np.delete(self._color, np.arange(len(data)), len(self._color))
-            elif len(data) > current_n_points:
-                # if there are now more points, add the colors of the new ones
-                adding = len(data) - current_n_points
-                transformed_color = transform_color_with_defaults(
-                    num_entries=adding,
-                    colors=self._current_color,
-                    elem_name="color",
-                    default="white",
-                )
-                broadcasted_colors = normalize_and_broadcast_colors(adding, transformed_color)
-                self._color = np.concatenate((self._color, broadcasted_colors))
+        color = self._data_view.color
+        z_indices = self._data_view.z_indices
+
+        # fewer shapes, trim attributes
+        if self.n_regions > n_new_regions:
+            orientation = orientation[:n_new_regions]
+            z_indices = z_indices[:n_new_regions]
+            color = color[:n_new_regions]
+        # more shapes, add attributes
+        elif self.n_regions < n_new_regions:
+            n_shapes_difference = n_new_regions - self.n_regions
+            orientation = orientation + [get_default_infline_type(orientation)] * n_shapes_difference
+            z_indices = z_indices + [0] * n_shapes_difference
+            color = np.concatenate((color, self._get_new_color(n_shapes_difference)))
+        self._data_view = InfiniteLineList()
+        self.add(data, orientation=orientation, color=color, z_index=z_indices)
 
         self._update_dims()
         self.events.data(value=self.data)
         self._set_editable()
 
     @property
-    def orientations(self):
-        """Orientations of the infinite lines."""
-        return self._orientations
+    def orientation(self) -> ty.List[Orientation]:
+        """Return list of orientations."""
+        return self._data_view.orientations
+
+    def remove_selected(self):
+        """Remove any selected shapes."""
+        index = list(self.selected_data)
+        to_remove = sorted(index, reverse=True)
+        for ind in to_remove:
+            self._data_view.remove(ind)
+        self.selected_data = set()
+        self._emit_new_data()
+
+    def _emit_new_data(self):
+        self._update_dims()
+        self.events.data(value=self.data)
+        self._set_editable()
+
+    def _get_new_color(self, adding: int):
+        """Get the color for the shape(s) to be added.
+
+        Parameters
+        ----------
+        adding : int
+            the number of shapes that were added
+            (and thus the number of color entries to add)
+
+        Returns
+        -------
+        new_colors : (N, 4) array
+            (Nx4) RGBA array of colors for the N new shapes
+        """
+        new_colors = np.tile(self._current_color, (adding, 1))
+        return new_colors
 
     @property
     def color(self) -> np.ndarray:
         """Get color"""
-        return self._color
+        return self._data_view.color
 
     @color.setter
     def color(self, color):
-        if self.selected_data:
-            print("update selected data")
-        else:
-            self._current_color = color
+        self._data_view.color = color
         self.events.color()
+        self._update_thumbnail()
 
     @property
     def width(self):
@@ -313,7 +582,15 @@ class InfLine(BaseLayer):
 
     def _get_value(self, position):
         """Value of the data at a position in data coordinates"""
-        return None
+        coord = position[0:2]  # always two-d so two coordinates needed
+
+        # Check selected region
+        value = None
+        if value is None:
+            # Check if mouse inside shape
+            infline = self._data_view.inside(coord)
+            value = (infline, None)
+        return value
 
     @property
     def _extent_data(self) -> np.ndarray:
@@ -327,3 +604,48 @@ class InfLine(BaseLayer):
         force : bool
             Bool that forces a redraw to occur when `True`.
         """
+        # Check if any shape or vertex ids have changed since last call
+        if (
+            self.selected_data == self._selected_data_stored
+            and np.all(self._value == self._value_stored)
+            and np.all(self._drag_box == self._drag_box_stored)
+        ) and not force:
+            return
+        self._selected_data_stored = copy(self.selected_data)
+        self._value_stored = copy(self._value)
+        self._drag_box_stored = copy(self._drag_box)
+        self.events.highlight()
+
+    @contextmanager
+    def block_thumbnail_update(self):
+        """Use this context manager to block thumbnail updates"""
+        self._allow_thumbnail_update = False
+        yield
+        self._allow_thumbnail_update = True
+
+    def _compute_box(self):
+        """Compute location of highlight vertices and box for rendering.
+
+        Returns
+        -------
+        edge_color : str
+            String of the edge color of the Markers and Line for the box
+        pos : np.ndarray
+            Nx2 array of vertices of the box that will be rendered using a
+            Vispy Line
+        """
+        from napari.layers.shapes._shapes_utils import create_box
+
+        if self._is_selecting:
+            # If currently dragging a selection box just show an outline of
+            # that box
+            edge_color = self._highlight_color
+            box = create_box(self._drag_box)
+            # Use a subset of the vertices of the interaction_box to plot
+            # the line around the edge
+            pos = box[Box.LINE][:, ::-1]
+        else:
+            # Otherwise show nothing
+            edge_color = "white"
+            pos = None
+        return edge_color, pos, self._highlight_width

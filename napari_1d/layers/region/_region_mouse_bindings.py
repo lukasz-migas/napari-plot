@@ -24,14 +24,22 @@ def add(layer, event):
     # on move
     index = None
     while event.type == "mouse_move":
-        x_dist, y_dist = pos_start - event.pos
         coord_end = layer.world_to_data(event.position)
-        if abs(x_dist) < abs(y_dist):
-            orientation = Orientation.HORIZONTAL
-            pos = [coord_start[0], coord_end[0]]
-        else:
+        shift = "Shift" in event.modifiers
+        ctrl = "Control" in event.modifiers
+
+        # if the Ctrl key is pressed, orientation is vertical
+        if ctrl:
             orientation = Orientation.VERTICAL
-            pos = [coord_start[1], coord_end[1]]
+        # if the Shift key is pressed, orientation is horizontal
+        elif shift:
+            orientation = Orientation.HORIZONTAL
+        # otherwise, it's based on distance
+        else:
+            x_dist, y_dist = pos_start - event.pos
+            orientation = Orientation.HORIZONTAL if abs(x_dist) < abs(y_dist) else Orientation.VERTICAL
+
+        pos = [coord_start[1], coord_end[1]] if orientation == "vertical" else [coord_start[0], coord_end[0]]
         if index is None:
             index = layer._add_creating(pos, orientation=orientation)
         else:
@@ -47,7 +55,6 @@ def edit(layer, event):
     """Edit layer by first selecting and then drawing new version of the region."""
     if len(layer.selected_data) == 1:
         # on press
-        region = copy(layer.selected_data)
         position_start = event.position
         coord_start = layer.world_to_data(position_start)
         index = list(layer.selected_data)[0]
