@@ -13,6 +13,9 @@ class InfiniteLine:
         self.name = ""
         self.z_index = z_index
 
+    def __repr__(self):
+        return f"{self.name}<{self.data:.2f}>"
+
     @property
     def data(self):
         """Return data."""

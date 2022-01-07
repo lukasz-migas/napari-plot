@@ -75,7 +75,7 @@ class QtInfLineControls(QtLayerControls):
         self.delete_button = QtModePushButton(
             layer,
             "delete_shape",
-            # slot=self.layer.remove_selected,
+            slot=self.layer.remove_selected,
             tooltip="Delete selected infinite lines (Backspace)",
         )
 
@@ -96,12 +96,12 @@ class QtInfLineControls(QtLayerControls):
         button_row.setSpacing(4)
 
         # add widgets to the layout
+        self.layout.addRow(button_row)
         self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
         self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self.layout.addRow(button_row)
         self._on_editable_change()
 
     def _on_mode_change(self, event):
@@ -203,6 +203,11 @@ class QtInfLineControls(QtLayerControls):
                 "color_swatch",
                 "opacity_slider",
                 "blending_combobox",
+                "add_button",
+                "move_button",
+                "select_button",
+                "panzoom_button",
+                "delete_button",
             ],
             self.layer.editable,
         )

@@ -11,29 +11,6 @@ def highlight(layer, event):
     layer._set_highlight()
 
 
-def move(layer, event):
-    """Move the currently drawn region to new location"""
-
-    def _update(finished: bool = False):
-        new_coordinates = layer.world_to_data(event.position)
-        layer.move(new_coordinates, finished)
-
-    # on press, keep track of the original data
-    if event.type == "mouse_press":
-        _update()
-        yield
-
-    # on mouse move
-    while event.type == "mouse_move":
-        _update()
-        yield
-
-    # on mouse release
-    while event.type != "mouse_release":
-        yield
-    _update(True)
-
-
 def add(layer, event):
     """Add a new infinite line at the clicked position."""
     # on press
@@ -61,6 +38,36 @@ def add(layer, event):
     # on release
     if index is not None:
         layer.move(index, pos, orientation, True)
+
+
+def move(layer, event):
+    """Move currently selected line to new location."""
+    _select(layer, event, False)
+    # above, user should have selected single region and then can move it left-or-right or up-or-down
+    data, orientation = None, None
+    if len(layer.selected_data) > 0:
+        index = list(layer.selected_data)[0]
+        data, orientation = layer.data[index], layer.orientation[index]
+        layer.selected_data = {index}
+        layer._set_highlight()
+    yield
+
+    # on move
+    while event.type == "mouse_move":
+        if data is not None:
+            coordinates = layer.world_to_data(event.position)
+            layer._moving_coordinates = coordinates
+            layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0])
+        yield
+
+    # on release
+    layer.selected_data = set()  # clear selection
+    if data is not None:
+        coordinates = layer.world_to_data(event.position)
+        layer._moving_coordinates = coordinates
+        layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=True)
+        layer._set_highlight()
+        layer._update_thumbnail()
 
 
 def select(layer, event):
@@ -109,20 +116,20 @@ def _select(layer, event, shift: bool):
     """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
     value = layer.get_value(event.position, world=True)
     layer._moving_value = copy(value)
-    region_under_cursor, vertex_under_cursor = value
+    line_under_cursor, vertex_under_cursor = value
     if vertex_under_cursor is None:
-        if shift and region_under_cursor is not None:
-            if region_under_cursor in layer.selected_data:
-                layer.selected_data.remove(region_under_cursor)
+        if shift and line_under_cursor is not None:
+            if line_under_cursor in layer.selected_data:
+                layer.selected_data.remove(line_under_cursor)
             else:
-                layer.selected_data.add(region_under_cursor)
-        elif region_under_cursor is not None:
-            if region_under_cursor not in layer.selected_data:
-                layer.selected_data = {region_under_cursor}
+                layer.selected_data.add(line_under_cursor)
+        elif line_under_cursor is not None:
+            if line_under_cursor not in layer.selected_data:
+                layer.selected_data = {line_under_cursor}
         else:
             layer.selected_data = set()
     layer._set_highlight()
-    return region_under_cursor, vertex_under_cursor
+    return line_under_cursor, vertex_under_cursor
 
 
 def _drag_selection_box(layer, coordinates):

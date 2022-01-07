@@ -91,15 +91,11 @@ class InfLine(Layer):
         self._width = width
         self._data_view = InfiniteLineList()
 
-        # each line can have its own color
-        self._color = transform_color(color)
-
         # indices of selected lines
         self._value = (None, None)
         self._value_stored = (None, None)
         self._selected_data = set()
         self._selected_data_stored = set()
-        self._selected_box = None
 
         self._drag_start = None
         self._drag_box = None
@@ -303,12 +299,11 @@ class InfLine(Layer):
     @selected_data.setter
     def selected_data(self, selected_data):
         self._selected_data = set(selected_data)
-        self._selected_box = self.interaction_box(self._selected_data)
 
         # Update properties based on selected shapes
         if len(selected_data) > 0:
             selected_data_indices = list(selected_data)
-            selected_face_colors = self._color[selected_data_indices]
+            selected_face_colors = self.color[selected_data_indices]
             face_colors = np.unique(selected_face_colors, axis=0)
             if len(face_colors) == 1:
                 face_color = face_colors[0]
@@ -327,7 +322,7 @@ class InfLine(Layer):
         # update properties
         if self._update_properties:
             for i in self.selected_data:
-                self._color[i] = self._current_color
+                self._data_view.update_color(i, self._current_color)
                 self.events.color()
             self._update_thumbnail()
         self.events.current_color()
@@ -396,7 +391,7 @@ class InfLine(Layer):
         self._set_editable()
 
     @property
-    def orientations(self) -> ty.List[Orientation]:
+    def orientation(self) -> ty.List[Orientation]:
         return self._data_view.orientations
 
     def add(
@@ -472,6 +467,15 @@ class InfLine(Layer):
         self._emit_new_data()
         if finished:
             self.events.shifted()
+
+    def remove_selected(self):
+        """Remove any selected shapes."""
+        index = list(self.selected_data)
+        to_remove = sorted(index, reverse=True)
+        for ind in to_remove:
+            self._data_view.remove(ind)
+        self.selected_data = set()
+        self._emit_new_data()
 
     def _emit_new_data(self):
         self._update_dims()
@@ -564,46 +568,6 @@ class InfLine(Layer):
         self._value_stored = copy(self._value)
         self._drag_box_stored = copy(self._drag_box)
         self.events.highlight()
-
-    def interaction_box(self, index):
-        """Create the interaction box around a shape or list of shapes.
-        If a single index is passed then the bounding box will be inherited
-        from that shapes interaction box. If list of indices is passed it will
-        be computed directly.
-        Parameters
-        ----------
-        index : int | list
-            Index of a single shape, or a list of shapes around which to
-            construct the interaction box
-        Returns
-        -------
-        box : np.ndarray
-            10x2 array of vertices of the interaction box. The first 8 points
-            are the corners and midpoints of the box in clockwise order
-            starting in the upper-left corner. The 9th point is the center of
-            the box, and the last point is the location of the rotation handle
-            that can be used to rotate the box
-        """
-        box = None
-        # if isinstance(index, (list, np.ndarray, set)):
-        #     if len(index) == 0:
-        #         box = None
-        #     elif len(index) == 1:
-        #         box = copy(self._data_view.regions[list(index)[0]]._box)
-        #     else:
-        #         indices = np.isin(self._data_view.displayed_index, list(index))
-        #         box = create_box(self._data_view.displayed_vertices[indices])
-        # else:
-        #     box = copy(self._data_view.regions[index]._box)
-        #
-        # if box is not None:
-        #     rot = box[Box.TOP_CENTER]
-        #     length_box = np.linalg.norm(box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT])
-        #     if length_box > 0:
-        #         r = self._rotation_handle_length * self.scale_factor
-        #         rot = rot - r * (box[Box.BOTTOM_LEFT] - box[Box.TOP_LEFT]) / length_box
-        #     box = np.append(box, [rot], axis=0)
-        return box
 
     @contextmanager
     def block_thumbnail_update(self):

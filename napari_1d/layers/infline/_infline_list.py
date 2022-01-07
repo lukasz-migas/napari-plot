@@ -19,14 +19,10 @@ class InfiniteLineList:
 
     def __init__(self, data=(), ndisplay=2):
         self._ndisplay = ndisplay
+
         self.inflines: ty.List[InfiniteLine] = []
-        self._displayed = []
-        # self._slice_key = []
-        self.displayed_index = []
-        self._index = np.empty(0, dtype=int)
         self._z_index = np.empty(0, dtype=int)
         self._z_order = np.empty(0, dtype=int)
-
         self._color = np.empty((0, 4))
 
         for d in data:
@@ -78,7 +74,6 @@ class InfiniteLineList:
 
         for i, col in enumerate(colors):
             self.update_color(i, col, update=False)
-        self._update_displayed()
 
     def update_color(self, index, color, update=True):
         """Updates the face color of a single shape located at index.
@@ -96,8 +91,6 @@ class InfiniteLineList:
             repeated updates when modifying multiple shapes. Default is True.
         """
         self._color[index] = color
-        if update:
-            self._update_displayed()
 
     def add(self, infline, color=None, index=None, z_refresh: bool = False):
         """Adds a single InfiniteLine object"""
@@ -146,16 +139,15 @@ class InfiniteLineList:
         if color is not None:
             self._color[index] = color
 
-        self.remove(index, renumber=False)
         self.add(infline, index=index)
         self._update_z_order()
 
     def remove_all(self):
         """Removes all shapes"""
         self.inflines = []
-        self._index = np.empty(0, dtype=int)
         self._z_index = np.empty(0, dtype=int)
         self._z_order = np.empty(0, dtype=int)
+        self._color = np.empty((0, 4))
 
     def remove(self, index, renumber=True):
         """Removes a single shape located at index.
@@ -169,8 +161,11 @@ class InfiniteLineList:
             expectation is that this shape is being immediately added back to the
             list using `add`.
         """
-        indices = self._index != index
-        self._index = self._index[indices]
+        self.inflines.pop(index)
+        self._color = np.delete(self._color, index, axis=0)
+        self._z_index = np.delete(self._z_index, index)
+        self._z_order = np.delete(self._z_order, index)
+
         if renumber:
             self._update_z_order()
 
@@ -178,19 +173,33 @@ class InfiniteLineList:
         """Updates the z order of the triangles given the z_index list"""
         self._z_order = np.argsort(self._z_index)
 
-    def _update_displayed(self):
-        """Update the displayed data based on the slice key."""
-
     def inside(self, coord, max_dist: float = 5.0):
         """Determine if any line at given coord by looking at nearest line within defined limit."""
         pos = make_infinite_pos(self.data, self.orientations)
-        diff = np.abs(pos - coord[::-1])
-        indices = np.where(np.any(diff < max_dist, axis=1) is True)[0]
+        indices = nearby_line(pos - coord[::-1], max_dist)
         if len(indices) > 0:
             z_list = [self._z_order[i] for i in indices]
             return indices[np.argsort(z_list)][0]
 
     def lines_in_box(self, corners):
         """Determines which lines, if any, are inside an axis aligned box."""
-        print(corners)
-        return []
+        pos = make_infinite_pos(self.data, self.orientations)
+        indices = lines_intersect_box(pos, corners)
+        return indices
+
+
+def nearby_line(distance, max_dist: float):
+    """Returns mask of nearest elements and if they meet the distance criteria."""
+    return np.where(np.any(np.abs(distance) < max_dist, axis=1))[0]
+
+
+def lines_intersect_box(lines, corners):
+    """Return indices of lines that intersect with the box."""
+    y, x = corners[:, 0], corners[:, 1]
+    ymin, ymax = np.min(y), np.max(y)
+    xmin, xmax = np.min(x), np.max(x)
+
+    # check whether any x-axis elements are between the x-min, x-max
+    x_mask = np.logical_and(lines[:, 0] > xmin, lines[:, 0] < xmax)
+    y_mask = np.logical_and(lines[:, 1] > ymin, lines[:, 1] < ymax)
+    return np.where(np.logical_or(x_mask, y_mask))[0]
