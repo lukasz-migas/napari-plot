@@ -1,9 +1,12 @@
 """Line layer"""
+import typing as ty
+
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line
 
-from ..layers.infline import InfLine
+if ty.TYPE_CHECKING:
+    from ...layers import InfLine
 
 LINE_MAIN = 0
 LINE_BOX = 1
