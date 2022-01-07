@@ -113,14 +113,14 @@ class InfLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, label=Event, mode=Event, shifted=Event)
+        self.events.add(color=Event, width=Event, mode=Event, shifted=Event)
 
         self._width = width
         self._data = data
         self._mode = Mode.PAN_ZOOM
 
         # each line can have its own color
-        self._color = transform_color(color)  # np.asarray([transform_color(_color) for _color in color])
+        self._color = transform_color(color)
         # each line can be either horizontal or vertical
         self._orientations = [Orientation(orientation) for orientation in orientations]
 
