@@ -3,15 +3,11 @@ import collections
 
 import numpy as np
 import pytest
-from napari.utils.interactions import (
-    ReadOnlyWrapper,
-    mouse_move_callbacks,
-    mouse_press_callbacks,
-    mouse_release_callbacks,
-)
+from napari.utils.interactions import mouse_move_callbacks, mouse_press_callbacks, mouse_release_callbacks
 
 from napari_1d.layers import Region
 from napari_1d.layers.region.region import Mode, Orientation
+from napari_1d.utils.vendored.interactions import ReadOnlyWrapper
 
 
 @pytest.fixture

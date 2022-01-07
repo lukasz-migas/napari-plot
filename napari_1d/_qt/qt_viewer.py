@@ -1,5 +1,4 @@
 """Qt widget that embeds the canvas"""
-# Third-party imports
 from contextlib import suppress
 from typing import Tuple
 
@@ -9,7 +8,6 @@ from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.utils.interactions import (
-    ReadOnlyWrapper,
     mouse_move_callbacks,
     mouse_press_callbacks,
     mouse_release_callbacks,
@@ -21,15 +19,15 @@ from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
-from napari_1d._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
-
-from .._vispy.utils import create_vispy_visual
-from .._vispy.vispy_axis_label_visual import VispyXAxisVisual, VispyYAxisVisual
-from .._vispy.vispy_camera import VispyCamera
-from .._vispy.vispy_canvas import VispyCanvas
-from .._vispy.vispy_drag_tool import VispyDragTool
-from .._vispy.vispy_grid_lines_visual import VispyGridLinesVisual
-from .._vispy.vispy_text_visual import VispyTextVisual
+from .._vispy.camera import VispyCamera
+from .._vispy.canvas import VispyCanvas
+from .._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
+from .._vispy.overlays.grid_lines import VispyGridLinesVisual
+from .._vispy.overlays.text import VispyTextVisual
+from .._vispy.tools.drag import VispyDragTool
+from .._vispy.utils.visual import create_vispy_visual
+from ..utils.vendored.interactions import ReadOnlyWrapper
+from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
 
@@ -195,7 +193,7 @@ class QtViewer(QSplitter):
             self.viewerToolbar.setVisible(False)
             self.viewerToolbar.toolbar_right.setVisible(False)
             canvas_layout.setSpacing(0)
-            canvas_layout.setMargin(0)
+            canvas_layout.setContentsMargins(0, 0, 0, 0)
 
         if dock_controls:
             layer_list = QWidget()

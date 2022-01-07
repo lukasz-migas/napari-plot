@@ -4,8 +4,7 @@ from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
-from napari.layers.base import Layer, no_op
-from napari.layers.shapes._shapes_utils import create_box
+from napari.layers.base import no_op
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -15,6 +14,7 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.events import Event
 from napari.utils.misc import ensure_iterable
 
+from ..base import BaseLayer
 from ._infline import infline_classes
 from ._infline_constants import Box, Mode, Orientation
 from ._infline_list import InfiniteLineList
@@ -34,8 +34,50 @@ for t, modes in REV_TOOL_HELP.items():
         TOOL_HELP[m] = t
 
 
-class InfLine(Layer):
-    """InfLine layer"""
+class InfLine(BaseLayer):
+    """InfLine layer
+
+    Parameters
+    ----------
+    data :
+        Coordinates for N points in 2 dimensions.
+    orientations : str or Orientation or list of str or list of Orientation
+        If string, can be `vertical` or `horizontal`. If a list is supplied it must have the same length as the length
+        of the `data` and each element will be applied to each infinite line otherwise the same value will be used for
+        all lines.
+    color : str, array-like
+        If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+        be 1-dimensional array with 3 or 4 elements.
+    width : float
+        Width of the line in pixel units.
+    label : str
+        Label to be displayed in the plot legend. (unused at the moment)
+    name : str
+        Name of the layer.
+    metadata : dict
+        Layer metadata.
+    scale : tuple of float
+        Scale factors for the layer.
+    translate : tuple of float
+        Translation values for the layer.
+    rotate : float, 3-tuple of float, or n-D array.
+        If a float convert into a 2D rotation matrix using that value as an angle. If 3-tuple convert into a 3D
+        rotation matrix, using a yaw, pitch, roll convention. Otherwise assume an nD rotation. Angles are assumed
+        to be in degrees. They can be converted from radians with np.degrees if needed.
+    shear : 1-D array or n-D array
+        Either a vector of upper triangular values, or an nD shear matrix with ones along the main diagonal.
+    affine : n-D array or napari.utils.transforms.Affine
+        (N+1, N+1) affine transformation matrix in homogeneous coordinates. The first (N, N) entries correspond to a
+        linear transform and the final column is a length N translation vector and a 1 or a napari `Affine` transform
+        object. Applied as an extra transform on top of the provided scale, rotate, and shear values.
+    opacity : float
+        Opacity of the layer visual, between 0.0 and 1.0.
+    blending : str
+        One of a list of preset blending modes that determines how RGB and alpha values of the layer visual get mixed.
+        Allowed values are {'opaque', 'translucent', 'translucent_no_depth', and 'additive'}.
+    visible : bool
+        Whether the layer visual is currently being displayed.
+    """
 
     _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
     _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
@@ -54,10 +96,10 @@ class InfLine(Layer):
         data,
         *,
         orientation="vertical",
-        label="",
         color=(1.0, 1.0, 1.0, 1.0),
         width=1,
         z_index=0,
+        label="",
         # base parameters
         name=None,
         metadata=None,
@@ -77,7 +119,7 @@ class InfLine(Layer):
 
         super().__init__(
             data,
-            ndim=2,
+            label=label,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -89,13 +131,10 @@ class InfLine(Layer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(
-            color=Event, width=Event, label=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event
-        )
+        self.events.add(color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event)
         # Flag set to false to block thumbnail refresh
         self._allow_thumbnail_update = True
 
-        self._label = label
         self._width = width
         self._data_view = InfiniteLineList()
 
@@ -421,10 +460,6 @@ class InfLine(Layer):
             self._update_thumbnail()
         self.events.current_color()
 
-    def _get_ndim(self) -> int:
-        """Determine number of dimensions of the layer"""
-        return 2
-
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
@@ -533,16 +568,6 @@ class InfLine(Layer):
         self._update_thumbnail()
 
     @property
-    def label(self):
-        """Get label"""
-        return self._label
-
-    @label.setter
-    def label(self, value):
-        self._label = value
-        self.events.label()
-
-    @property
     def width(self):
         """Get width"""
         return self._width
@@ -609,6 +634,8 @@ class InfLine(Layer):
             Nx2 array of vertices of the box that will be rendered using a
             Vispy Line
         """
+        from napari.layers.shapes._shapes_utils import create_box
+
         if self._is_selecting:
             # If currently dragging a selection box just show an outline of
             # that box

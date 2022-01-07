@@ -1,5 +1,6 @@
 """Viewer instance."""
 import typing as ty
+from weakref import WeakSet
 
 from .components.viewer_model import ViewerModel
 
@@ -21,6 +22,7 @@ class Viewer(ViewerModel):
 
     # Create private variable for window
     _window: "Window"
+    _instances: ty.ClassVar[WeakSet] = WeakSet()
 
     def __init__(
         self,
@@ -34,6 +36,7 @@ class Viewer(ViewerModel):
         from .window import Window
 
         self._window = Window(self, show=show)
+        self._instances.add(self)
 
     # Expose private window publicly. This is needed to keep window off pydantic model
     @property
@@ -79,3 +82,26 @@ class Viewer(ViewerModel):
         self.layers.clear()
         # Close the main window
         self.window.close()
+
+    @classmethod
+    def close_all(cls) -> int:
+        """
+        Class method, Close all existing viewer instances.
+
+        This is mostly exposed to avoid leaking of viewers when running tests.
+        As having many non-closed viewer can adversely affect performances.
+
+        It will return the number of viewer closed.
+
+        Returns
+        -------
+        int :
+            number of viewer closed.
+
+        """
+        # copy to not iterate while changing.
+        viewers = [v for v in cls._instances]
+        ret = len(viewers)
+        for viewer in viewers:
+            viewer.close()
+        return ret

@@ -17,7 +17,7 @@ class Napari1dWidget(QWidget):
 
         layout = QVBoxLayout()
         layout.addWidget(self.qt_viewer, stretch=True)
-        layout.setMargin(0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.setLayout(layout)
 

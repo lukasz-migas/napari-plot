@@ -1,23 +1,72 @@
 """Scatter points layer"""
-# Standard library imports
 import typing as ty
 from copy import deepcopy
 
 import numpy as np
-from napari.layers import Layer
-
-# Third-party imports
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
 from napari.layers.utils.layer_utils import dataframe_to_properties
 from napari.layers.utils.text_manager import TextManager
 from napari.utils.events import Event
 
+from ..base import BaseLayer
 
-class Scatter(Layer):
+
+class Scatter(BaseLayer):
     """Scatter layer
 
-    data : array
-        An array containing x and y-axis values.
+    Parameters
+    ----------
+    data : array (N, 2)
+        Coordinates for N points in 2 dimensions.
+    symbol : str or Symbol
+        Symbol to be used for the point markers. Must be one of the following: arrow, clobber, cross, diamond, disc,
+        hbar, ring, square, star, tailed_arrow, triangle_down, triangle_up, vbar, x.
+    text : str, dict
+        Text to be displayed with the points. If text is set to a key in properties, the value of that property will be
+        displayed. Multiple properties can be composed using f-string-like syntax
+        (e.g., '{property_1}, {float_property:.2f}). A dictionary can be provided with keyword arguments to set the
+        text values and display properties. See TextManager.__init__() for the valid keyword arguments.
+        For example usage, see /napari/examples/add_points_with_text.py.
+    face_color : str, array-like, dict
+        Color of the point marker body. Numeric color values should be RGB(A).
+    edge_color : str, array-like, dict
+        Color of the point marker border. Numeric color values should be RGB(A).
+    edge_width : float
+        Width of the symbol edge in pixels.
+    size : float, array
+        Size of the point marker in data pixels. If given as a scalar, all points are made the same size. If given as
+        an array, size must be the same or broadcastable to the same shape as the data.
+    scaling : bool
+        Toggle to either enable or disable auto-scaling of the points.
+    properties : dict {str: array (N,)}, DataFrame
+        Properties for each point. Each property should be an array of length N, where N is the number of points.
+    label : str
+        Label to be displayed in the plot legend. (unused at the moment)
+    name : str
+        Name of the layer.
+    metadata : dict
+        Layer metadata.
+    scale : tuple of float
+        Scale factors for the layer.
+    translate : tuple of float
+        Translation values for the layer.
+    rotate : float, 3-tuple of float, or n-D array.
+        If a float convert into a 2D rotation matrix using that value as an angle. If 3-tuple convert into a 3D
+        rotation matrix, using a yaw, pitch, roll convention. Otherwise assume an nD rotation. Angles are assumed
+        to be in degrees. They can be converted from radians with np.degrees if needed.
+    shear : 1-D array or n-D array
+        Either a vector of upper triangular values, or an nD shear matrix with ones along the main diagonal.
+    affine : n-D array or napari.utils.transforms.Affine
+        (N+1, N+1) affine transformation matrix in homogeneous coordinates. The first (N, N) entries correspond to a
+        linear transform and the final column is a length N translation vector and a 1 or a napari `Affine` transform
+        object. Applied as an extra transform on top of the provided scale, rotate, and shear values.
+    opacity : float
+        Opacity of the layer visual, between 0.0 and 1.0.
+    blending : str
+        One of a list of preset blending modes that determines how RGB and alpha values of the layer visual get mixed.
+        Allowed values are {'opaque', 'translucent', 'translucent_no_depth', and 'additive'}.
+    visible : bool
+        Whether the layer visual is currently being displayed.
     """
 
     # The max number of points that will ever be used to render the thumbnail
@@ -28,16 +77,17 @@ class Scatter(Layer):
         self,
         data,
         *,
+        # napari-1d parameters
         symbol="o",
         text=None,
-        face_color="#FFFFFF",
+        face_color=(1.0, 1.0, 1.0, 1.0),
         edge_width=1,
-        edge_color="#FF0000",
+        edge_color=(1.0, 0.0, 0.0, 1.0),
         size=1,
-        label="",
         scaling=True,
         properties=None,
-        # base parameters
+        label="",
+        # napari parameters
         name=None,
         metadata=None,
         scale=None,
@@ -55,7 +105,7 @@ class Scatter(Layer):
             data = np.asarray(data)
         super().__init__(
             data,
-            ndim=2,
+            label=label,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -85,7 +135,6 @@ class Scatter(Layer):
         self._edge_color = edge_color
         self._size = size
         self._scaling = scaling
-        self._label = label
 
         # Save the properties
         if properties is None:

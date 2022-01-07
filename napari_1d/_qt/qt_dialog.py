@@ -2,7 +2,7 @@ from qtpy.QtCore import QPoint, Qt
 from qtpy.QtGui import QCursor
 from qtpy.QtWidgets import QApplication, QDialog, QHBoxLayout, QLayout, QWidget
 
-from napari_1d._qt.helpers import make_qta_label
+from . import helpers as hp
 
 
 class QtDialog(QDialog):
@@ -145,7 +145,7 @@ class QtFramelessPopup(QtDialog):
 
     def _make_move_handle(self) -> QHBoxLayout:
         """Make handle button that helps move the window around"""
-        self._move_handle = make_qta_label(
+        self._move_handle = hp.make_qta_label(
             self,
             "move",
             tooltip="Click here and drag the mouse around to move the window.",

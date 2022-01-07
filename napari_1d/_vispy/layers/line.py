@@ -1,11 +1,11 @@
 """Line layer"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Line as LineVisual
 
-if TYPE_CHECKING:
-    from ..layers import Line
+if ty.TYPE_CHECKING:
+    from ...layers import Line
 
 
 class VispyLineLayer(VispyBaseLayer):

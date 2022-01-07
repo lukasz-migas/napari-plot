@@ -36,4 +36,5 @@ QTA_MAPPING = {
     "move_back": "mdi6.arrange-send-backward",
     "move_front": "mdi6.arrange-bring-to-front",
     "draw": "mdi.draw",
+    "tools": "fa5s.tools",
 }

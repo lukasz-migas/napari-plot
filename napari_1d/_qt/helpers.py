@@ -1,14 +1,17 @@
 """Helper functions to easily create UI elements."""
 import typing as ty
+from contextlib import contextmanager
 
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (
+    QActionGroup,
     QButtonGroup,
     QCheckBox,
     QComboBox,
     QLabel,
     QLineEdit,
+    QPushButton,
     QSizePolicy,
     QSlider,
     QSpacerItem,
@@ -22,19 +25,21 @@ from .widgets.qt_line import QtHorzLine, QtVertLine
 
 
 def make_v_spacer() -> QSpacerItem:
-    """Make vertical QSpacerItem"""
+    """Make vertical QSpacerItem."""
     widget = QSpacerItem(40, 20, QSizePolicy.Preferred, QSizePolicy.Expanding)
     return widget
 
 
 def make_h_spacer() -> QSpacerItem:
-    """Make horizontal QSpacerItem"""
+    """Make horizontal QSpacerItem."""
     widget = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Preferred)
     return widget
 
 
-def make_qta_label(parent, icon_name: str, alignment=None, tooltip: str = None, small: bool = False, **kwargs):
-    """Make QLabel element"""
+def make_qta_label(
+    parent: ty.Optional[QWidget], icon_name: str, alignment=None, tooltip: str = None, small: bool = False, **kwargs
+):
+    """Make QLabel with QtAwesome icon."""
     widget = QtQtaLabel(parent=parent)
     widget.set_qta(icon_name, **kwargs)
     if small:
@@ -47,7 +52,7 @@ def make_qta_label(parent, icon_name: str, alignment=None, tooltip: str = None, 
 
 
 def make_qta_btn(
-    parent,
+    parent: ty.Optional[QWidget],
     icon_name: str,
     tooltip: str = None,
     flat: bool = False,
@@ -56,8 +61,8 @@ def make_qta_btn(
     size_name: ty.Optional[str] = None,
     **kwargs,
 ) -> QtImagePushButton:
-    """Make button with qtawesome icon."""
-    widget = QtImagePushButton(None, "", parent)
+    """Make QPushButton with QtAwesome icon."""
+    widget = QtImagePushButton(parent=parent)
     widget.set_qta(icon_name, **kwargs)
     widget.set_size_name(size_name)
     if size_name:
@@ -74,7 +79,7 @@ def make_qta_btn(
 
 
 def make_slider(
-    parent,
+    parent: ty.Optional[QWidget],
     min_value: int = 0,
     max_value: int = 100,
     step_size: int = 1,
@@ -83,7 +88,7 @@ def make_slider(
     tooltip: str = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
-    """Make QSlider"""
+    """Make QSlider."""
     orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
     widget = QSlider(parent)  # noqa
     widget.setRange(min_value, max_value)
@@ -97,12 +102,12 @@ def make_slider(
 
 
 def make_checkbox(
-    parent,
+    parent: ty.Optional[QWidget],
     text: str = "",
     val: bool = False,
     tooltip: str = None,
 ) -> QCheckBox:
-    """Make checkbox"""
+    """Make QCheckBox"""
     widget = QCheckBox(parent)
     widget.setText(text)
     widget.setChecked(val)
@@ -111,16 +116,24 @@ def make_checkbox(
     return widget
 
 
-def set_bold(widget: QWidget, bold: bool = True) -> QWidget:
-    """Set text on widget as bold"""
+def set_bold(widget: QWidget, bold: bool = True):
+    """Set text of particular widget bold."""
     font = widget.font()
     font.setBold(bold)
     widget.setFont(font)
-    return widget
+
+
+def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: bool = False):
+    """Set font with specified font size, font weight and boldness for particular widget."""
+    font = QFont()
+    font.setPointSize(font_size if IS_WIN else font_size + 2)
+    font.setWeight(font_weight)
+    font.setBold(bold)
+    widget.setFont(font)
 
 
 def make_label(
-    parent,
+    parent: ty.Optional[QWidget],
     text: str,
     enable_url: bool = False,
     alignment=None,
@@ -130,7 +143,7 @@ def make_label(
     font_size: ty.Optional[int] = None,
     tooltip: str = None,
 ) -> QLabel:
-    """Make QLabel element"""
+    """Make QLabel."""
     widget = QLabel(parent)
     widget.setText(text)
     widget.setObjectName(object_name)
@@ -150,17 +163,8 @@ def make_label(
     return widget
 
 
-def set_font(widget: QWidget, font_size: int = 7, font_weight: int = 50, bold: bool = False):
-    """Set font on a widget"""
-    font = QFont()
-    font.setPointSize(font_size if IS_WIN else font_size + 2)
-    font.setWeight(font_weight)
-    font.setBold(bold)
-    widget.setFont(font)
-
-
-def make_combobox(parent, items: ty.List[str] = None, tooltip: str = None) -> QComboBox:
-    """Make QComboBox"""
+def make_combobox(parent: ty.Optional[QWidget], items: ty.List[str] = None, tooltip: str = None) -> QComboBox:
+    """Make QComboBox with specified items."""
     widget = QComboBox(parent)
     if items:
         widget.addItems(items)
@@ -181,8 +185,8 @@ def set_combobox_data(widget: QComboBox, data: ty.Union[ty.Dict, ty.OrderedDict]
                 widget.setCurrentIndex(index)
 
 
-def set_current_combobox_index(widget: QComboBox, current_data):
-    """Set current index on combobox"""
+def set_combobox_current_index(widget: QComboBox, current_data: ty.Any):
+    """Set current index on combobox."""
     for index in range(widget.count()):
         if widget.itemData(index) == current_data:
             widget.setCurrentIndex(index)
@@ -190,12 +194,12 @@ def set_current_combobox_index(widget: QComboBox, current_data):
 
 
 def make_line_edit(
-    parent,
+    parent: ty.Optional[QWidget],
     text: str = "",
     tooltip: str = None,
     placeholder: str = "",
 ) -> QLineEdit:
-    """Make QLineEdit"""
+    """Make QLineEdit/"""
     widget = QLineEdit(parent)  # noqa
     widget.setText(text)
     if tooltip:
@@ -204,21 +208,37 @@ def make_line_edit(
     return widget
 
 
-def make_radio_btn_group(parent, radio_buttons) -> QButtonGroup:
-    """Make radio button group"""
+def make_radio_btn_group(parent: ty.Optional[QWidget], radio_buttons: ty.Iterable[QPushButton]) -> QButtonGroup:
+    """Make radio button group."""
     widget = QButtonGroup(parent)
     for btn_id, radio_btn in enumerate(radio_buttons):
         widget.addButton(radio_btn, btn_id)
     return widget
 
 
-def make_h_line(parent) -> QtHorzLine:
-    """Make horizontal line"""
+def make_h_line(parent: ty.Optional[QWidget]) -> QtHorzLine:
+    """Make horizontal line. Styling of the `QtHorzLine` is setup in one of the stylesheets."""
     widget = QtHorzLine(parent)
     return widget
 
 
-def make_v_line(parent) -> QtVertLine:
-    """Make horizontal line"""
+def make_v_line(parent: ty.Optional[QWidget]) -> QtVertLine:
+    """Make horizontal line. Styling of the `QtVertLine` is setup in one of the stylesheets."""
     widget = QtVertLine(parent)
     return widget
+
+
+def make_menu_group(parent: QWidget, *actions):
+    """Make actions group"""
+    group = QActionGroup(parent)
+    for action in actions:
+        group.addAction(action)
+    return group
+
+
+@contextmanager
+def qt_signals_blocked(obj):
+    """Context manager to temporarily block signals from `obj`"""
+    obj.blockSignals(True)
+    yield
+    obj.blockSignals(False)

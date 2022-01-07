@@ -1,9 +1,12 @@
 """Region layer"""
+import typing as ty
+
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line, Mesh
 
-from ..layers import Region
+if ty.TYPE_CHECKING:
+    from ...layers import Region
 
 MESH_MAIN = 0
 MESH_HIGHLIGHT = 1
@@ -13,7 +16,7 @@ LINE_HIGHLIGHT = 2
 class VispyRegionLayer(VispyBaseLayer):
     """Infinite region layer"""
 
-    def __init__(self, layer: Region):
+    def __init__(self, layer: "Region"):
         # Create a compound visual with the following four sub-visuals:
         # Mesh: The actual meshes of the shape faces and edges
         # Mesh: The mesh of the outlines for each shape used for highlights

@@ -13,7 +13,7 @@ LINE_HIGHLIGHT = 2
 class VispyInfLineLayer(VispyBaseLayer):
     """Infinite region layer"""
 
-    def __init__(self, layer: InfLine):
+    def __init__(self, layer: "InfLine"):
         # Create a compound visual with the following four sub-visuals:
         # Line: The actual infinite lines
         # Line: Used to draw selection box in the canvas.

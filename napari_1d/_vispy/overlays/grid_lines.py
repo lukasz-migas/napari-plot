@@ -1,10 +1,10 @@
 """Grid lines visual"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 from vispy.scene.visuals import GridLines
 
-if TYPE_CHECKING:
-    from ..components.viewer_model import ViewerModel
+if ty.TYPE_CHECKING:
+    from ...components.viewer_model import ViewerModel
 
 
 class VispyGridLinesVisual:

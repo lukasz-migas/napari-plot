@@ -58,6 +58,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         super().__init__(title=title)
         self.__config__.extra = Extra.ignore
 
+        # Add extra events
         self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
@@ -70,9 +71,16 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.layers.events.removed.connect(self._on_update_extent)
         self.events.layers_change.connect(self._on_update_extent)
 
-        # Add mouse callback
+        # Set current drag tool
         self.drag_tool.events.active.connect(self._on_update_tool)
         self.drag_tool.active = "box"
+
+    def __hash__(self):
+        return id(self)
+
+    def __str__(self):
+        """Simple string representation"""
+        return f"napari_1d.Viewer: {self.title}"
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
@@ -109,7 +117,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Get data extent"""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
+        if self.camera.y_range is not None:
+            ymin, ymax = self.camera.y_range
         xmin, xmax = get_min_max(extent[:, 1])
+        if self.camera.x_range is not None:
+            xmin, xmax = self.camera.x_range
         return xmin, xmax, ymin, ymax
 
     def _on_update_extent(self, _event=None):
