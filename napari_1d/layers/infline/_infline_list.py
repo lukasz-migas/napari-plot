@@ -3,9 +3,10 @@ import typing as ty
 
 import numpy as np
 
-from ..utilities import make_infinite_line, make_infinite_pos
+from ..utilities import make_infinite_color, make_infinite_line, make_infinite_pos
 from ._infline import InfiniteLine, infline_classes
 from ._infline_constants import Orientation
+from ._infline_utils import lines_intersect_box, nearby_line
 
 
 class InfiniteLineList:
@@ -33,10 +34,9 @@ class InfiniteLineList:
         """list of (M, D) array: data arrays for each shape."""
         return np.asarray([s.data for s in self.inflines])
 
-    @property
-    def lines(self) -> np.ndarray:
-        """Return array of lines to be rendered."""
-        return make_infinite_line(self.data, self.orientations, self.color)
+    def get_display_lines(self, indices=None):
+        """Return data to be displayed."""
+        return make_infinite_line(self.data, self.orientations, self.color, indices=indices)
 
     @property
     def orientations(self):
@@ -57,6 +57,10 @@ class InfiniteLineList:
     def color(self, color):
         self._set_color(color)
 
+    def get_display_color(self):
+        """Get display color."""
+        return make_infinite_color(self.color)
+
     def _set_color(self, colors):
         """Set the face_color or edge_color property
 
@@ -73,9 +77,9 @@ class InfiniteLineList:
             )
 
         for i, col in enumerate(colors):
-            self.update_color(i, col, update=False)
+            self.update_color(i, col)
 
-    def update_color(self, index, color, update=True):
+    def update_color(self, index, color):
         """Updates the face color of a single shape located at index.
 
         Parameters
@@ -86,9 +90,6 @@ class InfiniteLineList:
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements.
-        update : bool
-            If True, update the mesh with the new color property. Set to False to avoid
-            repeated updates when modifying multiple shapes. Default is True.
         """
         self._color[index] = color
 
@@ -186,20 +187,3 @@ class InfiniteLineList:
         pos = make_infinite_pos(self.data, self.orientations)
         indices = lines_intersect_box(pos, corners)
         return indices
-
-
-def nearby_line(distance, max_dist: float):
-    """Returns mask of nearest elements and if they meet the distance criteria."""
-    return np.where(np.any(np.abs(distance) < max_dist, axis=1))[0]
-
-
-def lines_intersect_box(lines, corners):
-    """Return indices of lines that intersect with the box."""
-    y, x = corners[:, 0], corners[:, 1]
-    ymin, ymax = np.min(y), np.max(y)
-    xmin, xmax = np.min(x), np.max(x)
-
-    # check whether any x-axis elements are between the x-min, x-max
-    x_mask = np.logical_and(lines[:, 0] > xmin, lines[:, 0] < xmax)
-    y_mask = np.logical_and(lines[:, 1] > ymin, lines[:, 1] < ymax)
-    return np.where(np.logical_or(x_mask, y_mask))[0]

@@ -4,7 +4,6 @@ from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Compound, Line
 
 from ..layers.infline import InfLine
-from ..layers.utilities import make_infinite_color, make_infinite_line
 
 LINE_MAIN = 0
 LINE_BOX = 1
@@ -16,9 +15,9 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def __init__(self, layer: InfLine):
         # Create a compound visual with the following four sub-visuals:
-        # Lines: The actual infinite lines
+        # Line: The actual infinite lines
         # Line: Used to draw selection box in the canvas.
-        # Lines: Highlight of the selected infinite line using different color and width
+        # Line: Highlight of the selected infinite line using different color and width
         node = Compound([Line(), Line(), Line()])
         super().__init__(layer, node)
 
@@ -31,7 +30,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node._subvisuals[LINE_MAIN].set_data(color=make_infinite_color(self.layer.color))
+        self.node._subvisuals[LINE_MAIN].set_data(color=self.layer._data_view.get_display_color())
         self.node.update()
 
     def _on_width_change(self, _event=None):
@@ -41,7 +40,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_data_change(self, _event=None):
         """Set data"""
-        pos, connect, color = make_infinite_line(self.layer.data, self.layer.orientation, self.layer.color)
+        pos, connect, color = self.layer._data_view.get_display_lines()
         if len(pos) == 0:
             color = (0, 0, 0, 0)
         # primary visualisation of the infinite lines
@@ -55,9 +54,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_highlight_change(self, _event=None):
         """Highlight."""
-        pos, connect, _ = make_infinite_line(
-            self.layer.data, self.layer.orientation, self.layer.color, indices=self.layer.selected_data
-        )
+        pos, connect, _ = self.layer._data_view.get_display_lines(indices=self.layer.selected_data)
         # primary visualisation of the infinite lines
         self.node._subvisuals[LINE_HIGHLIGHT].set_data(
             pos=pos,
@@ -68,10 +65,9 @@ class VispyInfLineLayer(VispyBaseLayer):
 
         # Compute the location and properties of the vertices and box that
         # need to get rendered
-        edge_color, pos = self.layer._compute_vertices_and_box()
+        edge_color, pos, width = self.layer._compute_box()
 
         # add region edges
-        width = 3  # set
         if pos is None or len(pos) == 0:
             pos = np.zeros((1, self.layer._ndisplay))
             width = 0

@@ -19,7 +19,19 @@ from ._infline import infline_classes
 from ._infline_constants import Box, Mode, Orientation
 from ._infline_list import InfiniteLineList
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import extract_inf_line_orientation, get_default_infline_type
+from ._infline_utils import get_default_infline_type, parse_inf_line_orientation
+
+REV_TOOL_HELP = {
+    "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
+    "Hold <space> to pan/zoom, hold <ctrl> or drag along y-axis (vertical line), hold <shift> or drag along x-axis"
+    " (horizontal line)": {Mode.ADD},
+    "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
+    "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
+}
+TOOL_HELP = {}
+for t, modes in REV_TOOL_HELP.items():
+    for m in modes:
+        TOOL_HELP[m] = t
 
 
 class InfLine(Layer):
@@ -34,8 +46,8 @@ class InfLine(Layer):
         Mode.MOVE: "cross",
     }
 
-    _highlight_color = (0, 0.6, 1)
-    _highlight_width = 1.5
+    _highlight_color = (0, 0.6, 1, 0.5)
+    _highlight_width = 3
 
     def __init__(
         self,
@@ -43,7 +55,7 @@ class InfLine(Layer):
         *,
         orientation="vertical",
         label="",
-        color="red",
+        color=(1.0, 1.0, 1.0, 1.0),
         width=1,
         z_index=0,
         # base parameters
@@ -59,11 +71,10 @@ class InfLine(Layer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.asarray([])
-        else:
-            data, orientation = extract_inf_line_orientation(data, orientation)
-            data = np.asarray(data, dtype=np.float64)
+        data, orientation = parse_inf_line_orientation(data, orientation)
+        if not len(data) == len(orientation):
+            raise ValueError("The number of points and orientations is incorrect. They must be matched.")
+
         super().__init__(
             data,
             ndim=2,
@@ -83,9 +94,6 @@ class InfLine(Layer):
         )
         # Flag set to false to block thumbnail refresh
         self._allow_thumbnail_update = True
-
-        if not len(data) == len(orientation):
-            raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
         self._label = label
         self._width = width
@@ -131,8 +139,106 @@ class InfLine(Layer):
 
         self.visible = visible
 
+    def add(
+        self,
+        data,
+        *,
+        orientation="vertical",
+        color=None,
+        z_index=None,
+    ):
+        """Add lines to the current layer.
+
+        Parameters
+        ----------
+        data : Array | Tuple(float,str) | List[float | Tuple(float, str)] | Tuple(List[float], str)
+            List of line data, where each element is either position or a tuple containing (position, orientation).
+            When orientation is present, it overrides keyword argument `orientation`.
+        orientation : string | list
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
+            value will be used for all regions. Override by data orientation, if present.
+        color : str | tuple | list
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            lines.
+        z_index : int | list
+            Specifier of z order priority. Lines with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
+        """
+        data, orientation = parse_inf_line_orientation(data, orientation)
+
+        n_new_shapes = len(data)
+        if color is None:
+            color = self._get_new_color(n_new_shapes)
+        if self._data_view is not None:
+            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+        else:
+            z_index = z_index or 0
+
+        if n_new_shapes > 0:
+            self._add_line(
+                data,
+                orientation=orientation,
+                color=color,
+                z_index=z_index,
+            )
+            self.events.data(value=self.data)
+
+    def _add_creating(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
+        """Add new line and return the index of said line.
+
+        Parameters
+        ----------
+        pos : float
+            Position along the x-axis or y-axis.
+        orientation : str or Orientation
+            String of orientation type, must be one of "{'vertical', 'horizontal'}.
+        color : str or tuple or list or array, optional
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements.
+        z_index : int, optional
+            Specifier of z order priority. Lines with higher z order are displayed on top of others.
+
+        Returns
+        -------
+        index : int
+            Index of the just added line.
+        """
+        self.add(
+            [pos],
+            orientation=[orientation],
+            color=[color] if color is not None else color,
+            z_index=[z_index] if z_index is not None else z_index,
+        )
+        return len(self.data) - 1
+
+    def move(self, index: int, pos: float, orientation=None, finished: bool = False):
+        """Move line to new location.
+
+        Parameters
+        ----------
+        index : int
+            Index of the line.
+        pos : float
+            New position along the x-axis or y-axis.
+        orientation : str or Orientation, optional
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If one is not provided, only the
+            position is changed.
+        finished : bool
+            Flag to indicate whether the `shifted` events should be emitted.
+        """
+        if index > len(self.data):
+            raise ValueError("Selected index is larger than total number of elements.")
+        self._data_view.edit(index, data=pos, new_orientation=orientation)
+        self._emit_new_data()
+        if finished:
+            self.events.shifted(index=index)
+
     def _init_lines(self, data, *, orientation=None, color=None, z_index=None):
-        """Add regions to the data view."""
+        """Add lines to the data view."""
         n = len(data)
         color = self._initialize_color(color, n_lines=n)
         with self.block_thumbnail_update():
@@ -141,7 +247,6 @@ class InfLine(Layer):
                 orientation=orientation,
                 color=color,
                 z_index=z_index,
-                z_refresh=False,
             )
             self._data_view._update_z_order()
 
@@ -152,41 +257,27 @@ class InfLine(Layer):
         orientation="vertical",
         color=None,
         z_index=None,
-        z_refresh=True,
     ):
-        """Add shapes to the data view.
+        """Add lines to the data view.
 
         Parameters
         ----------
-        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
-            List of shape data, where each element is either an (N, D) array of the
-            N vertices of a shape in D dimensions or a tuple containing an array of
-            the N vertices and the shape_type string. When a shape_type is present,
-            it overrides keyword arg shape_type. Can be an 3-dimensional array
-            if each shape has the same number of vertices.
+        data : Array | Tuple(float,str) | List[float | Tuple(float, str)] | Tuple(List[float], str)
+            List of line data, where each element is either position or a tuple containing (position, orientation).
+            When orientation is present, it overrides keyword argument `orientation`.
         orientation : string | list
-            String of orientation type, must be one of "{'vertical', 'horizontal'}.
-            If list is supplied it must be the same length as the length of `data`
-            and each element will be applied to each region otherwise the same
+            String of orientation type, must be one of "{'vertical', 'horizontal'}. If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
         color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            lines.
         z_index : int | list
-            Specifier of z order priority. Shapes with higher z order are
-            displayed on top of others. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
-        z_refresh : bool
-            If set to true, the mesh elements are re-indexed with the new z order.
-            When shape_index is provided, z_refresh will be overwritten to false,
-            as the z indices will not change.
-            When adding a batch of shapes, set to false  and then call
-            ShapesList._update_z_order() once at the end.
+            Specifier of z order priority. Lines with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all shapes.
         """
         if color is None:
             color = self._current_color
@@ -218,18 +309,19 @@ class InfLine(Layer):
         self._ndisplay_stored = copy(self._ndisplay)
         self._update_dims()
 
-    def _add_line_to_view(self, infline_inputs, data_view):
+    @staticmethod
+    def _add_line_to_view(infline_inputs, data_view):
         """Build new region and add them to the _data_view"""
         for d, ot, c, z in infline_inputs:
             infline_cls = infline_classes[Orientation(ot)]
-            region = infline_cls(d, z_index=z)
+            infline = infline_cls(d, z_index=z)
 
             # Add region
-            data_view.add(region, color=c, z_refresh=False)
+            data_view.add(infline, color=c, z_refresh=False)
         data_view._update_z_order()
 
-    # noinspection PyMethodMayBeStatic
-    def _initialize_color(self, color, n_lines: int):
+    @staticmethod
+    def _initialize_color(color, n_lines: int):
         """Get the face colors the Shapes layer will be initialized with
 
         Parameters
@@ -279,10 +371,7 @@ class InfLine(Layer):
         if mode == Mode.SELECT:
             self.selected_data = set()
 
-        if mode == Mode.PAN_ZOOM:
-            self.help = ""
-        else:
-            self.help = "Hold <space> to pan/zoom."
+        self.help = TOOL_HELP[mode]
 
         if mode != Mode.SELECT or old_mode != Mode.SELECT:
             self._selected_data_stored = set()
@@ -290,6 +379,11 @@ class InfLine(Layer):
         self._mode = mode
         self._set_highlight()
         self.events.mode(mode=mode)
+
+    @property
+    def n_inflines(self) -> int:
+        """Get number of inflines."""
+        return len(self._data_view.inflines)
 
     @property
     def selected_data(self) -> set:
@@ -339,12 +433,13 @@ class InfLine(Layer):
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
-        colormapped = np.zeros(self._thumbnail_shape)
-        colormapped[..., 3] = 1
-        colormapped[14:18] = (1.0, 1.0, 1.0, 1.0)
-        colormapped[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
-        colormapped[..., 3] *= self.opacity
-        self.thumbnail = colormapped
+        if self._is_moving is False and self._allow_thumbnail_update is True:
+            thumbnail = np.zeros(self._thumbnail_shape)
+            thumbnail[..., 3] = 1
+            thumbnail[14:18] = (1.0, 1.0, 1.0, 1.0)
+            thumbnail[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
+            thumbnail[..., 3] *= self.opacity
+            self.thumbnail = thumbnail
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -364,7 +459,7 @@ class InfLine(Layer):
 
     @data.setter
     def data(self, data):
-        data, orientation = extract_inf_line_orientation(data)
+        data, orientation = parse_inf_line_orientation(data)
         n_new_regions = len(data)
         if orientation is None:
             orientation = self.orientation
@@ -392,81 +487,8 @@ class InfLine(Layer):
 
     @property
     def orientation(self) -> ty.List[Orientation]:
+        """Return list of orientations."""
         return self._data_view.orientations
-
-    def add(
-        self,
-        data,
-        *,
-        orientation="vertical",
-        color=None,
-        z_index=None,
-    ):
-        """Add shapes to the current layer.
-
-        Parameters
-        ----------
-        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
-            List of shape data, where each element is either an (N, D) array of the
-            N vertices of a shape in D dimensions or a tuple containing an array of
-            the N vertices and the shape_type string. When a shape_type is present,
-            it overrides keyword arg shape_type. Can be an 3-dimensional array
-            if each shape has the same number of vertices.
-        orientation : string | list
-            String of orientation type, must be one of "{'vertical', 'horizontal'}.
-            If list is supplied it must be the same length as the length of `data`
-            and each element will be applied to each region otherwise the same
-            value will be used for all regions. Override by data orientation, if present.
-        color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
-        z_index : int | list
-            Specifier of z order priority. Shapes with higher z order are
-            displayed on top of others. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
-        """
-        data, orientation = extract_inf_line_orientation(data, orientation)
-
-        n_new_shapes = len(data)
-        if color is None:
-            color = self._get_new_color(n_new_shapes)
-        if self._data_view is not None:
-            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
-        else:
-            z_index = z_index or 0
-
-        if n_new_shapes > 0:
-            self._add_line(
-                data,
-                orientation=orientation,
-                color=color,
-                z_index=z_index,
-            )
-            self.events.data(value=self.data)
-
-    def _add_creating(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
-        """Add line while return the count."""
-        self.add(
-            [pos],
-            orientation=[orientation],
-            color=[color] if color is not None else color,
-            z_index=[z_index] if z_index is not None else z_index,
-        )
-        return len(self.data) - 1
-
-    def move(self, index: int, data: float, orientation=None, finished: bool = False):
-        """Move region to new location"""
-        if index > len(self.data):
-            raise ValueError("Selected index is larger than total number of elements.")
-        self._data_view.edit(index, data=data, new_orientation=orientation)
-        self._emit_new_data()
-        if finished:
-            self.events.shifted()
 
     def remove_selected(self):
         """Remove any selected shapes."""
@@ -535,7 +557,7 @@ class InfLine(Layer):
 
     def _get_value(self, position):
         """Value of the data at a position in data coordinates"""
-        coord = position[0:2]
+        coord = position[0:2]  # always two-d so two coordinates needed
 
         # Check selected region
         value = None
@@ -576,22 +598,16 @@ class InfLine(Layer):
         yield
         self._allow_thumbnail_update = True
 
-    def _compute_vertices_and_box(self):
+    def _compute_box(self):
         """Compute location of highlight vertices and box for rendering.
 
         Returns
         -------
-        vertices : np.ndarray
-            Nx2 array of any vertices to be rendered as Markers
-        face_color : str
-            String of the face color of the Markers
         edge_color : str
             String of the edge color of the Markers and Line for the box
         pos : np.ndarray
             Nx2 array of vertices of the box that will be rendered using a
             Vispy Line
-        width : float
-            Width of the box edge
         """
         if self._is_selecting:
             # If currently dragging a selection box just show an outline of
@@ -605,4 +621,4 @@ class InfLine(Layer):
             # Otherwise show nothing
             edge_color = "white"
             pos = None
-        return edge_color, pos
+        return edge_color, pos, self._highlight_width
