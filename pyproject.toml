@@ -1,4 +1,15 @@
-# Tools
+[build-system]
+requires = [
+  "setuptools >= 42",
+  "wheel",
+  "setuptools_scm[toml]>=3.4"
+]
+build-backend = "setuptools.build_meta"
+
+
+[tool.setuptools_scm]
+write_to = "napari_1d/_version.py"
+
 [tool.black]
 line-length = 120
 target-version = ['py36', 'py37', 'py38']
