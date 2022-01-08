@@ -15,6 +15,7 @@ from qtpy.QtWidgets import (
     QSizePolicy,
     QSlider,
     QSpacerItem,
+    QSpinBox,
     QWidget,
 )
 
@@ -95,6 +96,24 @@ def make_slider(
     widget.setValue(value)
     widget.setOrientation(orientation)
     widget.setPageStep(step_size)
+    widget.setFocusPolicy(focus_policy)
+    if tooltip:
+        widget.setToolTip(tooltip)
+    return widget
+
+
+def make_int_spin(
+    parent: ty.Optional[QWidget],
+    min_value: int = 0,
+    max_value: int = 100,
+    value: int = 1,
+    tooltip: str = None,
+    focus_policy: Qt.FocusPolicy = Qt.TabFocus,
+) -> QSpinBox:
+    """Make QSpinBox."""
+    widget = QSpinBox(parent)
+    widget.setRange(min_value, max_value)
+    widget.setValue(value)
     widget.setFocusPolicy(focus_policy)
     if tooltip:
         widget.setToolTip(tooltip)

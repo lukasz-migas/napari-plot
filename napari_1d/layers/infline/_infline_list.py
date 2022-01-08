@@ -3,10 +3,9 @@ import typing as ty
 
 import numpy as np
 
-from ..utilities import make_infinite_color, make_infinite_line, make_infinite_pos
 from ._infline import InfiniteLine, infline_classes
 from ._infline_constants import Orientation
-from ._infline_utils import lines_intersect_box, nearby_line
+from ._infline_utils import lines_intersect_box, make_infinite_color, make_infinite_line, make_infinite_pos, nearby_line
 
 
 class InfiniteLineList:

@@ -59,3 +59,46 @@ def parse_multiline_data(data) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarr
         for x, y in zip(xs, ys):
             check_length(x, y)
     return xs, ys
+
+
+def make_multiline_line(xs: ty.List, ys: ty.List, colors: np.ndarray):
+    """Create all elements required to create multiline lines."""
+    pos, connect, _colors = [], [], []
+    if len(xs) == 1:
+        xs = [xs[0]] * len(ys)
+
+    start = 0
+    for x, y, color in zip(xs, ys, colors):
+        n = len(x)
+        # data
+        pos.append(np.c_[x, y])
+
+        # connect
+        _connect = np.empty((n - 1, 2), np.float32)
+        _connect[:, 0] = np.arange(start=start, stop=start + n - 1)
+        _connect[:, 1] = _connect[:, 0] + 1
+        connect.append(_connect)
+        start = _connect[-1, 1] + 1
+
+        # add color
+        _colors.append(np.full((n, 4), fill_value=color, dtype=np.float32))
+    pos = np.vstack(pos)
+    colors = np.vstack(_colors)
+    connect = np.vstack(connect)
+    return pos, connect, colors
+
+
+def make_multiline_color(ys: ty.List, colors: np.ndarray):
+    """Create all elements required to create multiline lines."""
+    _colors = []
+    for y, color in zip(ys, colors):
+        _colors.append(np.full((len(y), 4), fill_value=color, dtype=np.float32))
+    colors = np.vstack(_colors)
+    return colors
+
+
+def get_data_limits(xs: ty.List, ys: ty.List) -> np.ndarray:
+    """Get data limits along both axes."""
+    x = [(np.min(v), np.max(v)) for v in xs]
+    y = [(np.min(v), np.max(v)) for v in ys]
+    return np.asarray([[np.min(y), np.min(x)], [np.max(y), np.max(x)]])

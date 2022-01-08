@@ -3,6 +3,8 @@ import typing as ty
 
 import numpy as np
 
+from ._multiline_utils import get_data_limits, make_multiline_color, make_multiline_line
+
 
 class MultiLineList:
     """Multi-line class."""
@@ -74,8 +76,18 @@ class MultiLineList:
         """Return nicely formatted data."""
         return
 
+    @property
+    def extent_data(self) -> np.ndarray:
+        """Get data extents."""
+        return get_data_limits(self.xs, self.ys)
+
     def get_display_lines(self):
         """Return data in a manner that can be understood by vispy Line visual."""
+        return make_multiline_line(self.xs, self.ys, self.color)
+
+    def get_display_color(self):
+        """Return color."""
+        return make_multiline_color(self.ys, self.color)
 
     @property
     def color(self):

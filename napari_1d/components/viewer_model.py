@@ -342,6 +342,7 @@ for _layer in [
     layers.Region,
     layers.InfLine,
     layers.Centroids,
+    layers.MultiLine,
 ]:
     func = create_add_method(_layer)
     setattr(ViewerModel, func.__name__, func)

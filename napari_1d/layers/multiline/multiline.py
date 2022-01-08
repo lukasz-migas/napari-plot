@@ -52,10 +52,6 @@ class MultiLine(BaseLayer):
         Whether the layer visual is currently being displayed.
     """
 
-    # The max length of the line that will ever be used to render the thumbnail
-    # If more points are present, they will be subsampled
-    _max_line_thumbnail = 1024
-
     def __init__(
         self,
         data,
@@ -160,7 +156,7 @@ class MultiLine(BaseLayer):
         if color is None:
             color = self._get_new_color(n_new)
         if n_new > 0:
-            self._add_line(xs, ys, color)
+            self._add_line(xs, ys, color=color)
 
     def _add_line(self, xs, ys, *, color=None):
         """Add lines to data view."""
@@ -186,6 +182,12 @@ class MultiLine(BaseLayer):
     @color.setter
     def color(self, color):
         self._data_view.color = color
+        self.events.color()
+        self._update_thumbnail()
+
+    def update_color(self, index: int, color: np.ndarray):
+        """Update color."""
+        self._data_view.update_color(index, color)
         self.events.color()
         self._update_thumbnail()
 
@@ -283,4 +285,4 @@ class MultiLine(BaseLayer):
 
     @property
     def _extent_data(self) -> np.ndarray:
-        return np.full((2, 2), np.nan)
+        return self._data_view.extent_data

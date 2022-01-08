@@ -18,7 +18,7 @@ from ._infline import infline_classes
 from ._infline_constants import Box, Mode, Orientation
 from ._infline_list import InfiniteLineList
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import get_default_infline_type, parse_inf_line_orientation
+from ._infline_utils import get_default_infline_type, parse_infline_orientation
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
@@ -112,7 +112,7 @@ class InfLine(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        data, orientation = parse_inf_line_orientation(data, orientation)
+        data, orientation = parse_infline_orientation(data, orientation)
         if not len(data) == len(orientation):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
@@ -197,7 +197,7 @@ class InfLine(BaseLayer):
             supplied it must be the same length as the length of `data` and each element will be applied to each shape
             otherwise the same value will be used for all shapes.
         """
-        data, orientation = parse_inf_line_orientation(data, orientation)
+        data, orientation = parse_infline_orientation(data, orientation)
 
         n_new = len(data)
         if color is None:
@@ -484,7 +484,7 @@ class InfLine(BaseLayer):
 
     @data.setter
     def data(self, data):
-        data, orientation = parse_inf_line_orientation(data)
+        data, orientation = parse_infline_orientation(data)
         n_new_regions = len(data)
         if orientation is None:
             orientation = self.orientation
