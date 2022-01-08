@@ -1,6 +1,5 @@
 """Infinite region"""
 import typing as ty
-from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
@@ -155,9 +154,6 @@ class Region(BaseLayer):
             accept=Event,
             selected=Event,
         )
-        # Flag set to false to block thumbnail refresh
-        self._allow_thumbnail_update = True
-
         self._display_order_stored = []
         self._ndisplay_stored = self._ndisplay
 
@@ -232,13 +228,6 @@ class Region(BaseLayer):
         else:
             init_colors = np.empty((0, 4))
         return init_colors
-
-    @contextmanager
-    def block_thumbnail_update(self):
-        """Use this context manager to block thumbnail updates"""
-        self._allow_thumbnail_update = False
-        yield
-        self._allow_thumbnail_update = True
 
     @property
     def face_color(self):
