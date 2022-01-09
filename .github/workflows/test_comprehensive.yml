@@ -137,7 +137,7 @@ jobs:
         run: |
           # pip install this git sha directly from github
           pip install --upgrade pip
-          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_1d[all,testing]
+          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_plot[all,testing]
 
       - name: Test
         uses: GabrielBB/xvfb-action@v1
