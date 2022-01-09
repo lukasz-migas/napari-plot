@@ -1,8 +1,8 @@
 # napari-plot
 
 [![License](https://img.shields.io/pypi/l/napari-1d.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/main/LICENSE)
-[![PyPI](https://img.shields.io/pypi/v/napari-1d.svg?color=green)](https://pypi.org/project/napari-1d)
-[![Python Version](https://img.shields.io/pypi/pyversions/napari-1d.svg?color=green)](https://python.org)
+[![PyPI](https://img.shields.io/pypi/v/napari-1d.svg?color=green)](https://pypi.org/project/napari-plot)
+[![Python Version](https://img.shields.io/pypi/pyversions/napari-plot.svg?color=green)](https://python.org)
 [![tests](https://github.com/lukasz-migas/napari-1d/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
 [![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
 
@@ -21,12 +21,12 @@ I opted to include a toolbar that quickly pulls the layer list whenever requeste
 You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to toolbar
 where you can adjust layer properties like you would do in `napari`.
 
-![embedded](misc/embedded.png)
+![embedded](https://github.com/lukasz-migas/napari-1d/blob/main/misc/embedded.png)
 
 Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
 behaviour where layer controls are embedded in the main application.
 
-![standalone](misc/standalone.png)
+![standalone](https://github.com/lukasz-migas/napari-1d/blob/main/misc/standalone.png)
 
 ## Roadmap:
 
@@ -72,7 +72,13 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-`napari-plot` is not yet available on PyPI. I plan to add it once more documentation is complete and more bugs have been eliminated.
+You can install `napari-plot` directly from PyPI via:
+
+```python
+pip install napari-plot
+```
+
+or from the git repo:
 
 ```python
 git clone https://github.com/lukasz-migas/napari-1d.git
@@ -97,12 +103,8 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [napari]: https://github.com/napari/napari
 [Cookiecutter]: https://github.com/audreyr/cookiecutter
 [@napari]: https://github.com/napari
-[MIT]: http://opensource.org/licenses/MIT
 [BSD-3]: http://opensource.org/licenses/BSD-3-Clause
-[GNU GPL v3.0]: http://www.gnu.org/licenses/gpl-3.0.txt
-[GNU LGPL v3.0]: http://www.gnu.org/licenses/lgpl-3.0.txt
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
-[Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 [file an issue]: https://github.com/lukasz-migas/napari-1d/issues
 [napari]: https://github.com/napari/napari
