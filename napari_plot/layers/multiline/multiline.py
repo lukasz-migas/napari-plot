@@ -95,7 +95,7 @@ class MultiLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, method=Event, highlight=Event)
+        self.events.add(color=Event, width=Event, method=Event, highlight=Event, stream=Event)
         # Flag set to false to block thumbnail refresh
         self._allow_thumbnail_update = True
 
@@ -277,16 +277,20 @@ class MultiLine(BaseLayer):
         self.add(data)
         self._emit_new_data()
 
-    def stream(self, data):
+    def stream(self, data, full_update: bool = False):
         """Rapidly update data on the layer without doing additional checks.
 
         This method will simply replace the existing data with new without checking e.g. the number of lines or the
         number of colors. This validation falls to the user to ensure that data is correct.
+
+        This method only triggers the `stream` event which will update the line data without updating line connections
+        or colors.
+
         """
         xs, ys = parse_multiline_data(data)
         self._data_view.xs = xs
         self._data_view.ys = ys
-        self._emit_new_data()
+        self.events.stream() if not full_update else self._emit_new_data()
 
     @property
     def width(self) -> float:

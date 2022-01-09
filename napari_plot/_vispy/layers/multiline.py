@@ -23,6 +23,7 @@ class VispyMultiLineLayer(VispyBaseLayer):
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
+        self.layer.events.stream.connect(self._on_pos_change)
 
         self.reset()
         self._on_data_change()
@@ -35,6 +36,12 @@ class VispyMultiLineLayer(VispyBaseLayer):
     def _on_width_change(self, _event=None):
         """Change the appearance of the data"""
         self.node._subvisuals[LINE_MAIN].set_data(width=self.layer.width)
+        self.node.update()
+
+    def _on_pos_change(self, _event=None):
+        """Set data"""
+        pos = self.layer._data_view.get_display_data()
+        self.node._subvisuals[LINE_MAIN].set_data(pos=pos)
         self.node.update()
 
     def _on_data_change(self, _event=None):

@@ -37,7 +37,7 @@ def run_update(*_):
     """Function that will run for fair amount of time and try to update the canvas every 50ms."""
     for i in range(100_000):
         yield make_data()
-        time.sleep(0.05)
+        time.sleep(0.01)
 
 
 n_lines = 100
