@@ -1,3 +1,3 @@
-# Welcome to napari-1d
+# Welcome to napari-plot
 
 Plugion providing support for 1d plotting in napari.

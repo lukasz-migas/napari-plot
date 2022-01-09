@@ -63,10 +63,6 @@ jobs:
           - python: 3.9
             platform: macos-11.0
             toxenv: py39-macos-pyqt
-#          # test with minimum specified requirements
-#          - python: 3.7
-#            platform: ubuntu-18.04
-#            MIN_REQ: 1
 
     steps:
       - uses: actions/checkout@v2
@@ -122,20 +118,6 @@ jobs:
         if: runner.os == 'Linux' && matrix.python == '3.9'
         uses: codecov/codecov-action@v1
 
-#      - name: Report Failures
-#        if: ${{ failure() }}
-#        uses: JasonEtco/create-an-issue@v2
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#          PLATFORM: ${{ matrix.platform }}
-#          PYTHON: ${{ matrix.python }}
-#          BACKEND: ${{ matrix.toxenv }}
-#          RUN_ID: ${{ github.run_id }}
-#          TITLE: '[test-bot] Comprehensive tests failing'
-#        with:
-#          filename: .github/TEST_FAIL_TEMPLATE.md
-#          update_existing: true
-
   test_pip_install:
     name: ubuntu-latest 3.8 pip install
     runs-on: ubuntu-latest
@@ -155,9 +137,43 @@ jobs:
         run: |
           # pip install this git sha directly from github
           pip install --upgrade pip
-          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_1d[all,testing]
+          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_plot[all,testing]
 
       - name: Test
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: pytest --pyargs napari_1d --color=yes
+          run: pytest --pyargs napari_plot --color=yes
+
+  deploy:
+    # this will run when you have tagged a commit, starting with "v*"
+    # and requires that you have put your twine API key in your
+    # github secrets (see readme for details)
+    needs: [test, test_pip_install]
+    runs-on: ubuntu-latest
+    if: contains(github.ref, 'tags')
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: "3.x"
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -U setuptools setuptools_scm wheel twine
+      - name: Build package
+        run: |
+          python setup.py sdist bdist_wheel
+      - name: Publish to Test PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+        with:
+          user: __token__
+          password: ${{ secrets.TEST_PYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+#      - name: Publish to PyPI
+#        uses: pypa/gh-action-pypi-publish@master
+#        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')
+#        with:
+#          user: __token__
+#          password: ${{ secrets.PYPI_API_TOKEN }}

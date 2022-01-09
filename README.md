@@ -1,4 +1,4 @@
-# napari-1d
+# napari-plot
 
 [![License](https://img.shields.io/pypi/l/napari-1d.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-1d.svg?color=green)](https://pypi.org/project/napari-1d)
@@ -13,12 +13,12 @@ will be coming over the coming months.
 
 ## Note
 
-`napari-1d` provides several custom icons and stylesheets to take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
+`napari-plot` provides several custom icons and stylesheets to take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
 I opted to include a toolbar that quickly pulls the layer list whenever requested. Simple use the toolbar to access several commonly accessed elements.
 
 ## Usage
 
-You can use `napari-1d` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to toolbar
+You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to toolbar
 where you can adjust layer properties like you would do in `napari`.
 
 ![embedded](misc/embedded.png)
@@ -45,7 +45,7 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
   - [ ] Bar - horizontal and vertical barchart (TODO)
 - [ ] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
-- [ ] Intuitive interactivity. `napari-1d` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
+- [ ] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
   We currently support three zoom modes and plan to add a couple other tools.
   - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
   - [x] Horizontal span - zoom-in only in the y-axis by `Ctrl + left-mouse + drag/release` in the canvas.
@@ -72,7 +72,7 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
-`napari-1d` is not yet available on PyPI. I plan to add it once more documentation is complete and more bugs have been eliminated.
+`napari-plot` is not yet available on PyPI. I plan to add it once more documentation is complete and more bugs have been eliminated.
 
 ```python
 git clone https://github.com/lukasz-migas/napari-1d.git
@@ -88,7 +88,7 @@ the coverage at least stays the same before you submit a pull request.
 ## License
 
 Distributed under the terms of the [BSD-3] license,
-"napari-1d" is free and open source software
+"napari-plot" is free and open source software
 
 ## Issues
 

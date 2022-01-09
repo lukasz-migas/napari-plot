@@ -5,7 +5,7 @@ a `stream` method which rapidly replaces existing data with new data and trigger
 This method does not do many checks so you must make sure that whatever data you replace, it has the same
 characteristics as the original or at least it's valid.
 """
-import napari_1d
+import napari_plot
 import numpy as np
 from napari.qt import thread_worker
 import time
@@ -45,10 +45,10 @@ n_pts = np.full(n_lines, fill_value=2000)
 data = make_data()
 colors = np.random.random((n_lines, 3))
 
-viewer1d = napari_1d.Viewer()
+viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.color = "red"
 viewer1d.window.qt_viewer.canvas.measure_fps(callback=update_fps)
 layer = viewer1d.add_multi_line(data, color=colors, name="MultiLine")
 run_update()
-napari_1d.run()
+napari_plot.run()

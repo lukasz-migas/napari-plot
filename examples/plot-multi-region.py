@@ -1,8 +1,8 @@
 """Multiple infinite regions in a single layer."""
-import napari_1d
+import napari_plot
 import numpy as np
 
-viewer1d = napari_1d.Viewer()
+viewer1d = napari_plot.Viewer()
 viewer1d.add_line(np.c_[np.arange(100), np.random.randint(0, 1000, 100)], name="line")
 
 regions = [
@@ -17,4 +17,4 @@ layer = viewer1d.add_region(
     opacity=0.5,
     name="Infinite Region",
 )
-napari_1d.run()
+napari_plot.run()
