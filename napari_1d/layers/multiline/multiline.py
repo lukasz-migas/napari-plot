@@ -1,6 +1,11 @@
-"""Line layer"""
+"""MultiLine layer."""
 import numpy as np
-from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
+from napari.layers.utils.color_transformations import (
+    ColorType,
+    normalize_and_broadcast_colors,
+    transform_color_with_defaults,
+)
+from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
 from ..base import BaseLayer
@@ -159,7 +164,19 @@ class MultiLine(BaseLayer):
             self._add_line(xs, ys, color=color)
 
     def _add_line(self, xs, ys, *, color=None):
-        """Add lines to data view."""
+        """Add lines to data view.
+
+        Parameters
+        ----------
+        xs : list of np.ndarray
+            List of x-axis arrays.
+        ys : list of np.ndarray
+            List of y-axis arrays.
+        color : iterable of str | tuple | np.ndarray, optional
+            Iterable of colors for each line. If value is not provided then default color is used instead.
+            If the color is a single entry, then all lines will have the same color. If the color is iterable of colors
+            then those will be used instead.
+        """
         if color is None:
             color = self._current_color
 
@@ -176,7 +193,7 @@ class MultiLine(BaseLayer):
 
     @property
     def color(self) -> np.ndarray:
-        """Get color"""
+        """Get color."""
         return self._data_view.color
 
     @color.setter
@@ -186,7 +203,15 @@ class MultiLine(BaseLayer):
         self._update_thumbnail()
 
     def update_color(self, index: int, color: np.ndarray):
-        """Update color."""
+        """Update color of single line.
+
+        Parameters
+        ----------
+        index : int
+            Index of the line to update the color of.
+        color : str | tuple | np.ndarray
+            Color of the line.
+        """
         self._data_view.update_color(index, color)
         self.events.color()
         self._update_thumbnail()
@@ -197,13 +222,12 @@ class MultiLine(BaseLayer):
         Parameters
         ----------
         adding : int
-            the number of shapes that were added
-            (and thus the number of color entries to add)
+            The number of new lines that were added (and thus the number of entries to add)
 
         Returns
         -------
         new_colors : (N, 4) array
-            (Nx4) RGBA array of colors for the N new shapes
+            (Nx4) RGBA array of colors for the N new lines
         """
         new_colors = np.tile(self._current_color, (adding, 1))
         return new_colors
@@ -251,23 +275,31 @@ class MultiLine(BaseLayer):
         data = parse_multiline_data(value)
         self._data_view = MultiLineList()
         self.add(data)
+        self._emit_new_data()
 
-        self._update_dims()
-        self.events.data(value=self.data)
-        self._set_editable()
+    def stream(self, data):
+        """Rapidly update data on the layer without doing additional checks.
+
+        This method will simply replace the existing data with new without checking e.g. the number of lines or the
+        number of colors. This validation falls to the user to ensure that data is correct.
+        """
+        xs, ys = parse_multiline_data(data)
+        self._data_view.xs = xs
+        self._data_view.ys = ys
+        self._emit_new_data()
 
     @property
-    def width(self):
+    def width(self) -> float:
         """Get width"""
         return self._width
 
     @width.setter
-    def width(self, value):
+    def width(self, value: float):
         self._width = value
         self.events.width()
 
     @property
-    def method(self):
+    def method(self) -> Method:
         """Get method"""
         return self._method
 
@@ -275,6 +307,17 @@ class MultiLine(BaseLayer):
     def method(self, value):
         self._method = value
         self.events.method()
+
+    @property
+    def current_color(self):
+        """Get current color."""
+        return self._current_color
+
+    @current_color.setter
+    def current_color(self, color: ColorType):
+        """Update current color."""
+        self._current_color = transform_color(color)[0]
+        self.events.current_color()
 
     def _set_view_slice(self):
         self.events.set_data()

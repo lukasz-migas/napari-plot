@@ -1,7 +1,9 @@
 """Example showing how to use the MultiLine layer type.
 
-The MultiLine layer accepts data of different sizes. You can provide dict of `xs` and `ys` of arbitrary lengths
-as long as the number of lines arrays is the same and the corresponding arrays have identical size.
+This example shows how one could update the MultiLine layer without changes to e.g. colors. The layer implements
+a `stream` method which rapidly replaces existing data with new data and triggers an canvas update.
+This method does not do many checks so you must make sure that whatever data you replace, it has the same
+characteristics as the original or at least it's valid.
 """
 import napari_1d
 import numpy as np
@@ -25,7 +27,7 @@ def make_data():
 
 def update_layer(data):
     """Update layer data."""
-    layer.data = data
+    layer.stream(data)
 
 
 @thread_worker(
@@ -38,13 +40,15 @@ def run_update(*_):
         time.sleep(0.05)
 
 
-n_lines = 50
+n_lines = 100
 n_pts = np.full(n_lines, fill_value=2000)
 data = make_data()
+colors = np.random.random((n_lines, 3))
 
 viewer1d = napari_1d.Viewer()
 viewer1d.text_overlay.visible = True
+viewer1d.text_overlay.color = "red"
 viewer1d.window.qt_viewer.canvas.measure_fps(callback=update_fps)
-layer = viewer1d.add_multi_line(data)
+layer = viewer1d.add_multi_line(data, color=colors, name="MultiLine")
 run_update()
 napari_1d.run()

@@ -42,7 +42,7 @@ class Region(BaseLayer):
     data : list of array-like or list of tuple of array-like and str or list of tuple of array-like and Orientation
         Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
         array has two elements (start position, end position).
-    orientation : list of str or list of Orientation
+    orientation : str or list of str or list of Orientation
         List of orientations for each provided region. If orientations are not provided, they will be inferred directly
         from `data` or using the default of `vertical`.
     face_color : str, array-like

@@ -1,4 +1,4 @@
-"""Line controls"""
+"""MultiLine controls"""
 import typing as ty
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
@@ -32,6 +32,8 @@ class QtMultiLineControls(QtLayerControls):
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
         Slider controlling opacity of the layer.
+    selection_spin : qtpy.QtWidgets.QSpinBox
+        Index selection spin box.
     width_slider : qtpy.QtWidgets.QSlider
         Slider controlling width of the layer.
     color_swatch : napari._qt.widgets.qt_color_swatch.QColorSwatch
@@ -56,7 +58,7 @@ class QtMultiLineControls(QtLayerControls):
         self.width_slider.valueChanged.connect(self.on_change_width)
 
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.color,
+            initial_color=self.layer.current_color,
             tooltip="Click to set new line color. The color corresponds to the current index.",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)

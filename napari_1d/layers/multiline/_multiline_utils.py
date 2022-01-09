@@ -17,7 +17,7 @@ def check_keys(data: ty.Dict, keys: ty.Tuple):
     return all([key in data for key in keys])
 
 
-def parse_multiline_data(data) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
+def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
     """Parse data to be displayed in multiline layer."""
     xs, ys = [], []
     # Data can be None in which case return two empty lists.
@@ -52,12 +52,13 @@ def parse_multiline_data(data) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarr
     else:
         raise NotImplementedError("Could not parse provided data.")
 
-    if len(xs) == 1:
-        for y in ys:
-            check_length(xs[0], y)
-    else:
-        for x, y in zip(xs, ys):
-            check_length(x, y)
+    if check:
+        if len(xs) == 1:
+            for y in ys:
+                check_length(xs[0], y)
+        else:
+            for x, y in zip(xs, ys):
+                check_length(x, y)
     return xs, ys
 
 
@@ -86,6 +87,21 @@ def make_multiline_line(xs: ty.List, ys: ty.List, colors: np.ndarray):
     colors = np.vstack(_colors)
     connect = np.vstack(connect)
     return pos, connect, colors
+
+
+def make_multiline_connect(ys: ty.List):
+    """Create array of how points should be connected."""
+    connect = []
+    start = 0
+    for y in ys:
+        n = len(y)
+
+        _connect = np.empty((n - 1, 2), np.float32)
+        _connect[:, 0] = np.arange(start=start, stop=start + n - 1)
+        _connect[:, 1] = _connect[:, 0] + 1
+        connect.append(_connect)
+        start = _connect[-1, 1] + 1
+    return np.vstack(connect)
 
 
 def make_multiline_color(ys: ty.List, colors: np.ndarray):

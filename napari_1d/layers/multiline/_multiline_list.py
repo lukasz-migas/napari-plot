@@ -62,14 +62,22 @@ class MultiLineList:
         return len(self._data["xs"]) == len(self._data["ys"])
 
     @property
-    def xs(self):
+    def xs(self) -> ty.List[np.ndarray]:
         """Get x-axis arrays."""
         return self._data["xs"]
 
+    @xs.setter
+    def xs(self, value):
+        self._data["xs"] = value
+
     @property
-    def ys(self):
+    def ys(self) -> ty.List[np.ndarray]:
         """Get y-axis arrays."""
         return self._data["ys"]
+
+    @ys.setter
+    def ys(self, value):
+        self._data["ys"] = value
 
     @property
     def data(self):
@@ -123,7 +131,7 @@ class MultiLineList:
         ----------
         index : int
             Location in list of the shape to be changed.
-        color : str | tuple
+        color : str | tuple | np.ndarray
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements.
