@@ -13,10 +13,8 @@ will be coming over the coming months.
 
 ## Note
 
-`napari-1d` needs to provide several custom icons and stylesheets to full take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
-I opted to include a toolbar that quickly pulls the layer list whenever requested. For this to work, however, those aforementioned icons and stylesheets need
-to be loaded as `napari` is being loaded. For this to work, [#2900](https://github.com/napari/napari/pull/2900) needs to be merged first. For the time being,
-things will remain a little broken.
+`napari-1d` provides several custom icons and stylesheets to take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
+I opted to include a toolbar that quickly pulls the layer list whenever requested. Simple use the toolbar to access several commonly accessed elements.
 
 ## Usage
 
@@ -44,7 +42,7 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Region Layer - infinite horizontal or vertical rectangular boxes that span over very broad range. Useful for defining regions of interest.
   - [x] Shapes Layer - `napari's` own `Shapes` layer
   - [x] Points Layer - `napari's` own `Points` layer
-  - [ ] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
+  - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
   - [ ] Bar - horizontal and vertical barchart (TODO)
 - [ ] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
 - [ ] Intuitive interactivity. `napari-1d` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
@@ -75,14 +73,8 @@ https://napari.org/docs/plugins/index.html
 ## Installation
 
 `napari-1d` is not yet available on PyPI. I plan to add it once more documentation is complete and more bugs have been eliminated.
-While [#2900](https://github.com/napari/napari/pull/2900) is not merged, you can also install version of `napari` that implements
-the required hook specification. In the meantime, you can clone the repo and install using:
 
 ```python
-git clone --branch theme-hook https://github.com/lukasz-migas/napari.git
-cd naparipip install -e '.[all]'
-cd ../
-
 git clone https://github.com/lukasz-migas/napari-1d.git
 cd napari-1d
 pip install -e '.[all]'
