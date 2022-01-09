@@ -1,10 +1,10 @@
 # napari-1d
 
-[![License](https://img.shields.io/pypi/l/napari-1d.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/master/LICENSE)
+[![License](https://img.shields.io/pypi/l/napari-1d.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-1d.svg?color=green)](https://pypi.org/project/napari-1d)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-1d.svg?color=green)](https://python.org)
 [![tests](https://github.com/lukasz-migas/napari-1d/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
-[![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/master/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
+[![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
 
 Plugin providing support for 1d plotting in napari.
 
