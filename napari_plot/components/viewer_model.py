@@ -46,7 +46,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     help: str = ""
     status: str = "Ready"
-    title: str = "napari-1d"
+    title: str = "napari-plot"
     theme: str = "dark"
 
     # 2-tuple indicating height and width
