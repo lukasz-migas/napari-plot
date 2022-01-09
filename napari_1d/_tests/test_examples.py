@@ -11,7 +11,9 @@ import napari_1d
 from napari_1d._qt.qt_main_window import Window
 
 # not testing these examples
-skip = []
+skip = [
+    "plot-multi-line-live-update.py",  # has very long-running thread which would take a lifetime
+]
 
 
 EXAMPLE_DIR = Path(napari_1d.__file__).parent.parent / "examples"

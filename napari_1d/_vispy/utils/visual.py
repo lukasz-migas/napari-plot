@@ -4,10 +4,11 @@ from napari._vispy.layers.points import VispyPointsLayer
 from napari._vispy.layers.shapes import VispyShapesLayer
 from napari.layers import Points, Shapes
 
-from ...layers import Centroids, InfLine, Line, Region, Scatter
+from ...layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
 from ..layers.centroids import VispyCentroidsLayer
 from ..layers.infline import VispyInfLineLayer
 from ..layers.line import VispyLineLayer
+from ..layers.multiline import VispyMultiLineLayer
 from ..layers.region import VispyRegionLayer
 from ..layers.scatter import VispyScatterLayer
 
@@ -19,6 +20,7 @@ layer_to_visual = {
     Points: VispyPointsLayer,
     Region: VispyRegionLayer,
     InfLine: VispyInfLineLayer,
+    MultiLine: VispyMultiLineLayer,
 }
 
 

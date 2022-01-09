@@ -1,6 +1,5 @@
 """Infinite region"""
 import typing as ty
-from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
@@ -43,7 +42,7 @@ class Region(BaseLayer):
     data : list of array-like or list of tuple of array-like and str or list of tuple of array-like and Orientation
         Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
         array has two elements (start position, end position).
-    orientation : list of str or list of Orientation
+    orientation : str or list of str or list of Orientation
         List of orientations for each provided region. If orientations are not provided, they will be inferred directly
         from `data` or using the default of `vertical`.
     face_color : str, array-like
@@ -155,9 +154,6 @@ class Region(BaseLayer):
             accept=Event,
             selected=Event,
         )
-        # Flag set to false to block thumbnail refresh
-        self._allow_thumbnail_update = True
-
         self._display_order_stored = []
         self._ndisplay_stored = self._ndisplay
 
@@ -232,13 +228,6 @@ class Region(BaseLayer):
         else:
             init_colors = np.empty((0, 4))
         return init_colors
-
-    @contextmanager
-    def block_thumbnail_update(self):
-        """Use this context manager to block thumbnail updates"""
-        self._allow_thumbnail_update = False
-        yield
-        self._allow_thumbnail_update = True
 
     @property
     def face_color(self):

@@ -1,6 +1,5 @@
 """Infinite region"""
 import typing as ty
-from contextlib import contextmanager
 from copy import copy
 
 import numpy as np
@@ -19,7 +18,7 @@ from ._infline import infline_classes
 from ._infline_constants import Box, Mode, Orientation
 from ._infline_list import InfiniteLineList
 from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import get_default_infline_type, parse_inf_line_orientation
+from ._infline_utils import get_default_infline_type, parse_infline_orientation
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
@@ -41,7 +40,7 @@ class InfLine(BaseLayer):
     ----------
     data :
         Coordinates for N points in 2 dimensions.
-    orientations : str or Orientation or list of str or list of Orientation
+    orientation : str or Orientation or list of str or list of Orientation
         If string, can be `vertical` or `horizontal`. If a list is supplied it must have the same length as the length
         of the `data` and each element will be applied to each infinite line otherwise the same value will be used for
         all lines.
@@ -113,7 +112,7 @@ class InfLine(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        data, orientation = parse_inf_line_orientation(data, orientation)
+        data, orientation = parse_infline_orientation(data, orientation)
         if not len(data) == len(orientation):
             raise ValueError("The number of points and orientations is incorrect. They must be matched.")
 
@@ -132,8 +131,6 @@ class InfLine(BaseLayer):
             visible=visible,
         )
         self.events.add(color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event)
-        # Flag set to false to block thumbnail refresh
-        self._allow_thumbnail_update = True
 
         self._width = width
         self._data_view = InfiniteLineList()
@@ -178,14 +175,7 @@ class InfLine(BaseLayer):
 
         self.visible = visible
 
-    def add(
-        self,
-        data,
-        *,
-        orientation="vertical",
-        color=None,
-        z_index=None,
-    ):
+    def add(self, data, *, orientation="vertical", color=None, z_index=None):
         """Add lines to the current layer.
 
         Parameters
@@ -207,17 +197,17 @@ class InfLine(BaseLayer):
             supplied it must be the same length as the length of `data` and each element will be applied to each shape
             otherwise the same value will be used for all shapes.
         """
-        data, orientation = parse_inf_line_orientation(data, orientation)
+        data, orientation = parse_infline_orientation(data, orientation)
 
-        n_new_shapes = len(data)
+        n_new = len(data)
         if color is None:
-            color = self._get_new_color(n_new_shapes)
+            color = self._get_new_color(n_new)
         if self._data_view is not None:
             z_index = z_index or max(self._data_view._z_index, default=-1) + 1
         else:
             z_index = z_index or 0
 
-        if n_new_shapes > 0:
+        if n_new > 0:
             self._add_line(
                 data,
                 orientation=orientation,
@@ -494,7 +484,7 @@ class InfLine(BaseLayer):
 
     @data.setter
     def data(self, data):
-        data, orientation = parse_inf_line_orientation(data)
+        data, orientation = parse_infline_orientation(data)
         n_new_regions = len(data)
         if orientation is None:
             orientation = self.orientation
@@ -533,11 +523,6 @@ class InfLine(BaseLayer):
             self._data_view.remove(ind)
         self.selected_data = set()
         self._emit_new_data()
-
-    def _emit_new_data(self):
-        self._update_dims()
-        self.events.data(value=self.data)
-        self._set_editable()
 
     def _get_new_color(self, adding: int):
         """Get the color for the shape(s) to be added.
@@ -615,13 +600,6 @@ class InfLine(BaseLayer):
         self._value_stored = copy(self._value)
         self._drag_box_stored = copy(self._drag_box)
         self.events.highlight()
-
-    @contextmanager
-    def block_thumbnail_update(self):
-        """Use this context manager to block thumbnail updates"""
-        self._allow_thumbnail_update = False
-        yield
-        self._allow_thumbnail_update = True
 
     def _compute_box(self):
         """Compute location of highlight vertices and box for rendering.

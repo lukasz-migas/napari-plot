@@ -24,10 +24,10 @@ flake:
 	flake8 .
 
 test:
-	pytest --cov=imimsui
+	pytest --cov=napari_1d
 
 retest:
-	pytest -v imimspy --lf
+	pytest -v napari_1d --lf
 
 untrack:
 	git rm -r --cached .

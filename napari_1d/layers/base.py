@@ -1,4 +1,6 @@
 """Napari-1d base layer"""
+from contextlib import contextmanager
+
 import numpy as np
 from napari.layers.base import Layer
 from napari.utils.events import Event
@@ -8,6 +10,9 @@ class BaseLayer(Layer):
     """Base layer that overrides certain napari Layer characteristics."""
 
     _label: str = ""
+
+    # Flag set to false to block thumbnail refresh
+    _allow_thumbnail_update = True
 
     def __init__(
         self,
@@ -78,3 +83,15 @@ class BaseLayer(Layer):
     def label(self, value: str):
         self._label = value
         self.events.label()
+
+    def _emit_new_data(self):
+        self._update_dims()
+        self.events.data(value=self.data)
+        self._set_editable()
+
+    @contextmanager
+    def block_thumbnail_update(self):
+        """Use this context manager to block thumbnail updates"""
+        self._allow_thumbnail_update = False
+        yield
+        self._allow_thumbnail_update = True
