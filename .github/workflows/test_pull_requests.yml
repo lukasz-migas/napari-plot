@@ -149,4 +149,4 @@ jobs:
       - name: Test
         uses: GabrielBB/xvfb-action@v1
         with:
-          run: pytest --pyargs napari_1d --color=yes
+          run: pytest --pyargs napari_plot --color=yes

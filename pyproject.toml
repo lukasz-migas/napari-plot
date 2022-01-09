@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 
 [tool.setuptools_scm]
-write_to = "napari_1d/_version.py"
+write_to = "napari_plot/_version.py"
 
 [tool.black]
 line-length = 120
@@ -52,7 +52,7 @@ ignore = [
   "tox.ini",
   ".deepsource.toml",
   "*.pyi",  # added by make typestubs
-  "napari_1d/_version.py",  # added during build by setuptools_scm
+  "napari_plot/_version.py",  # added during build by setuptools_scm
   "scripts/*.bat",  # scripts
   "renovate.json",
 ]
@@ -68,7 +68,7 @@ skip_glob = ["*examples/*"]
 addopts = "--maxfail=10 --durations=10"
 
 filterwarnings = [
-  "error:::napari_1d", # turn warnings from napari into errors
+  "error:::napari_plot", # turn warnings from napari into errors
   "ignore::DeprecationWarning:shibokensupport",
   "ignore::DeprecationWarning:ipykernel",
   "ignore::DeprecationWarning:pyreadline",

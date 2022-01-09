@@ -1,8 +1,8 @@
 """Multiple infinite lines in a single layer."""
-import napari_1d
+import napari_plot
 import numpy as np
 
-viewer1d = napari_1d.Viewer()
+viewer1d = napari_plot.Viewer()
 viewer1d.add_line(np.c_[np.arange(1000), np.random.randint(0, 1000, 1000)], name="line")
 
 # You can add infinite lines providing different orientations and colors
@@ -13,4 +13,4 @@ layer = viewer1d.add_inf_line(
     color=["red", "yellow", "green"],
     name="Infinite Line",
 )
-napari_1d.run()
+napari_plot.run()

@@ -1,11 +1,11 @@
 include LICENSE
 include README.md
-recursive-include napari_1d *.pyi
-recursive-include napari_1d _tests/*.py
-recursive-include napari_1d *.pyi
-recursive-include napari_1d *.png *.svg *.qss *.gif *.ico *.icns
-recursive-include napari_1d *.yaml
-exclude napari_1d/resources/_qt_resources*.py
+recursive-include napari_plot *.pyi
+recursive-include napari_plot _tests/*.py
+recursive-include napari_plot *.pyi
+recursive-include napari_plot *.png *.svg *.qss *.gif *.ico *.icns
+recursive-include napari_plot *.yaml
+exclude napari_plot/resources/_qt_resources*.py
 
 exclude requirements.txt
 
@@ -15,11 +15,11 @@ recursive-exclude tools *
 recursive-exclude docs *
 recursive-exclude examples *
 recursive-exclude misc *
-recursive-exclude napari_1d __pycache__
-recursive-exclude napari_1d *.pyc
-exclude napari_1d/benchmarks/*
+recursive-exclude napari_plot __pycache__
+recursive-exclude napari_plot *.pyc
+exclude napari_plot/benchmarks/*
 recursive-exclude binder *
 exclude bundle.py
 exclude dockerfile
-exclude napari_1d _version.py
+exclude napari_plot _version.py
 exclude mkdocs.yml

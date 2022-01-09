@@ -1,7 +1,7 @@
 """Display image and 1d plot."""
 import numpy as np
 
-import napari_1d
+import napari_plot
 
 N_POINTS = 1000
 N_MIN = 0
@@ -51,7 +51,7 @@ def add_infline():
     )
 
 
-viewer1d = napari_1d.Viewer()
+viewer1d = napari_plot.Viewer()
 
 add_line()
 add_centroids()
@@ -59,4 +59,4 @@ add_region()
 add_scatter()
 add_infline()
 
-napari_1d.run()
+napari_plot.run()

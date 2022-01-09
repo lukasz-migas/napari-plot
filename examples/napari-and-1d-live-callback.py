@@ -3,8 +3,8 @@ from skimage import data
 from skimage import measure
 import numpy as np
 import napari
-import napari_1d
-from napari_1d._qt.qt_viewer import QtViewer
+import napari_plot
+from napari_plot._qt.qt_viewer import QtViewer
 
 
 def _get_line_data(image, start, end):
@@ -23,7 +23,7 @@ shapes_layer = viewer.add_shapes(
 )
 shapes_layer.mode = "select"
 
-viewer1d = napari_1d.ViewerModel1D()
+viewer1d = napari_plot.ViewerModel1D()
 viewer1d.axis.y_label = "Intensity"
 viewer1d.axis.x_label = ""
 viewer1d.text_overlay.visible = True

@@ -24,10 +24,10 @@ flake:
 	flake8 .
 
 test:
-	pytest --cov=napari_1d
+	pytest --cov=napari_plot
 
 retest:
-	pytest -v napari_1d --lf
+	pytest -v napari_plot --lf
 
 untrack:
 	git rm -r --cached .

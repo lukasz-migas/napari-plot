@@ -1,16 +1,16 @@
 # See: .github/workflows/labeler.yml and https://github.com/marketplace/actions/labeler
 design:
-  - 'napari_1d/resources/**/*'
+  - 'napari_plot/resources/**/*'
 
 documentation:
   - 'docs/**/*'
   - 'docs/*'
 
 qt:
-  - 'napari_1d/_qt/**/*.py'
-  - 'napari_1d/_qt/**/*.py'
-  - 'napari_1d/qt/**/*.py'
-  - 'napari_1d/qt/**/*.py'
+  - 'napari_plot/_qt/**/*.py'
+  - 'napari_plot/_qt/**/*.py'
+  - 'napari_plot/qt/**/*.py'
+  - 'napari_plot/qt/**/*.py'
 
 task:
   - '.github/**/*'
@@ -19,4 +19,4 @@ tests:
   - '**/*/_tests/**/*.py'
 
 vispy:
-  - 'napari_1d/_vispy'
+  - 'napari_plot/_vispy'
