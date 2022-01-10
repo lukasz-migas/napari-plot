@@ -19,7 +19,10 @@ def add_centroids():
     """Centroids plot"""
     x = np.arange(N_POINTS)
     y = np.random.randint(N_MIN, N_MAX, N_POINTS)
-    viewer1d.add_centroids(np.c_[x, y], color=(1.0, 0.0, 1.0, 1.0), name="Centroids", visible=True)
+    viewer1d.add_centroids(np.c_[x, y], color=(1.0, 0.0, 1.0, 1.0), name="Centroids (x)", visible=True)
+    viewer1d.add_centroids(
+        np.c_[y, x], color=(1.0, 0.0, 1.0, 1.0), name="Centroids (y)", visible=True, orientation="horizontal"
+    )
 
 
 def add_scatter():

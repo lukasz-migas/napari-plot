@@ -1,28 +1,13 @@
 """Centroids layer"""
 import typing as ty
 
-import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from vispy.scene.visuals import Line as LineVisual
 
+from ...layers.centroids._centroids_utils import make_centroids, make_centroids_color
+
 if ty.TYPE_CHECKING:
     from ...layers import Centroids
-
-
-def make_centroids(data: np.ndarray, orientation: str) -> np.ndarray:
-    """Make centroids data in the format [[x, 0], [x, y]]"""
-    array = np.zeros((len(data) * 2, 2), dtype=data.dtype)
-    # in horizontal centroids, the three columns correspond to x-min, x-max, y
-    if orientation == "horizontal":
-        array[:, 1] = np.repeat(data[:, 0], 2)
-        array[1::2, 0] = data[:, 1]
-        array[0::2, 0] = data[:, 2]
-    # in vertical centroids, the three columns correspond to x, y-min, y-max
-    else:
-        array[:, 0] = np.repeat(data[:, 0], 2)
-        array[1::2, 1] = data[:, 1]
-        array[0::2, 1] = data[:, 2]
-    return array
 
 
 class VispyCentroidsLayer(VispyBaseLayer):
@@ -45,14 +30,16 @@ class VispyCentroidsLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node.set_data(color=self.layer.color, width=self.layer.width)
+        colors = make_centroids_color(self.layer.color)
+        self.node.set_data(color=colors, width=self.layer.width)
 
     def _on_data_change(self, _event=None):
         """Set data"""
+        pos, colors = make_centroids(self.layer.data, self.layer.color, self.layer.orientation)
         self.node.set_data(
-            make_centroids(self.layer.data, self.layer.orientation),
+            pos=pos,
             connect="segments",
-            color=self.layer.color,
+            color=colors,
             width=self.layer.width,
         )
 

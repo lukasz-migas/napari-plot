@@ -1,29 +1,30 @@
-"""MultiLine controls"""
+"""Centroids controls"""
 import typing as ty
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
+from ...layers.centroids._centroids_constants import COLORING_TRANSLATIONS
 from .. import helpers as hp
 from .qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from ...layers import MultiLine
+    from ...layers import Centroids
 
 
-class QtMultiLineControls(QtLayerControls):
+class QtCentroidControls(QtLayerControls):
     """Line controls
 
     Parameters
     ----------
-    layer : napari_plot.layers.MultiLine
-        An instance of a MultiLine layer.
+    layer : napari_plot.layers.Centroids
+        An instance of a Line layer.
 
     Attributes
     ----------
-    layer : napari_plot.layers.MultiLine
-        An instance of a MultiLine layer.
+    layer : napari_plot.layers.Centroids
+        An instance of a napari-plot Line layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
     editable_checkbox : qtpy.QtWidgets.QCheckBox
@@ -32,23 +33,21 @@ class QtMultiLineControls(QtLayerControls):
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
         Slider controlling opacity of the layer.
-    selection_spin : qtpy.QtWidgets.QSpinBox
-        Index selection spin box.
     width_slider : qtpy.QtWidgets.QSlider
         Slider controlling width of the layer.
     color_swatch : napari._qt.widgets.qt_color_swatch.QColorSwatch
         Color swatch controlling the line color.
     """
 
-    def __init__(self, layer: "MultiLine"):
+    def __init__(self, layer: "Centroids"):
         super().__init__(layer)
-        self.layer.events.data.connect(self._on_data_change)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
         self.layer.events.editable.connect(self._on_editable_change)
 
-        self.selection_spin = hp.make_int_spin(self, 0, 65536, value=0, tooltip="Specify current line index.")
+        self.selection_text = hp.make_label(self, "Index")
+        self.selection_spin = hp.make_int_spin(self, value=0, tooltip="Specify current index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider(
@@ -56,9 +55,14 @@ class QtMultiLineControls(QtLayerControls):
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
+        self.coloring_choice = hp.make_combobox(
+            self, COLORING_TRANSLATIONS, tooltip="Which centroids should be colored."
+        )
+        self.coloring_choice.currentTextChanged.connect(self._on_coloring_change)
+
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.current_color,
-            tooltip="Click to set new line color. The color corresponds to the current index.",
+            initial_color=self.layer.color,
+            tooltip="Click to set new line color",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)
 
@@ -66,7 +70,8 @@ class QtMultiLineControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout.addRow(hp.make_label(self, "Index"), self.selection_spin)
+        self.layout.addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
+        self.layout.addRow(self.selection_text, self.selection_spin)
         self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_change()
@@ -74,8 +79,13 @@ class QtMultiLineControls(QtLayerControls):
         self._on_color_change()
 
     def _on_data_change(self, event=None):
-        n_lines = self.layer._data_view.n_lines - 1
+        n_lines = len(self.layer.data) - 1
         self.selection_spin.setRange(0, n_lines)
+
+    def _on_coloring_change(self, event=None):
+        show_single = self.coloring_choice.currentText() == "single"
+        self.selection_text.setVisible(show_single)
+        self.selection_spin.setVisible(show_single)
 
     def on_change_width(self, value):
         """Change size of points on the layer model.
@@ -108,7 +118,11 @@ class QtMultiLineControls(QtLayerControls):
             Size of points.
         """
         index = self.selection_spin.value()
-        self.layer.update_color(index, self.color_swatch.color)
+        current = self.coloring_choice.currentText()
+        if current == "single":
+            self.layer.update_color(index, self.color_swatch.color)
+        elif current == "all":
+            self.layer.color = self.color_swatch.color
 
     def _on_color_change(self, event=None):
         """Receive layer.current_face_color() change event and update view."""
@@ -153,6 +167,7 @@ class QtMultiLineControls(QtLayerControls):
                 "opacity_slider",
                 "blending_combobox",
                 "selection_spin",
+                "coloring_choice",
             ],
             self.layer.editable,
         )
