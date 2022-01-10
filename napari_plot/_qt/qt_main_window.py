@@ -38,10 +38,10 @@ class _QtMainWindow(QMainWindow):
     # *no* active windows, so we want to track the most recently active windows
     _instances: ty.ClassVar[ty.List["_QtMainWindow"]] = []
 
-    def __init__(self, qt_viewer: QtViewer, parent=None) -> None:
+    def __init__(self, viewer: QtViewer, parent=None) -> None:
         super().__init__(parent)
         self._ev = None
-        self.qt_viewer = qt_viewer
+        self._qt_viewer = QtViewer(viewer, dock_controls=True, add_toolbars=False, disable_controls=True)
 
         self._quit_app = False
         # self.setWindowIcon(QIcon(self._window_icon))
@@ -49,10 +49,10 @@ class _QtMainWindow(QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
         center = QWidget(self)
         center.setLayout(QHBoxLayout())
-        center.layout().addWidget(qt_viewer)
+        center.layout().addWidget(self._qt_viewer)
         center.layout().setContentsMargins(4, 0, 4, 0)
         self.setCentralWidget(center)
-        self.setWindowTitle(qt_viewer.viewer.title)
+        self.setWindowTitle(self._qt_viewer.viewer.title)
         _QtMainWindow._instances.append(self)
 
         # this is required to notifications
@@ -145,7 +145,7 @@ class Window:
         Help menu.
     main_menu : qtpy.QtWidgets.QMainWindow.menuBar
         Main menubar.
-    qt_viewer : QtViewer
+    _qt_viewer : QtViewer
         Contained viewer widget.
     view_menu : qtpy.QtWidgets.QMenu
         View menu.
@@ -158,13 +158,12 @@ class Window:
         get_app()
 
         # Connect the Viewer and create the Main Window
-        self.qt_viewer = QtViewer(viewer, dock_controls=True, add_toolbars=False, disable_controls=True)
-        self._qt_window = _QtMainWindow(self.qt_viewer)
+        self._qt_window = _QtMainWindow(viewer)
         self._status_bar = self._qt_window.statusBar()
 
         # since we initialize canvas before window, we need to manually connect them again.
         if self._qt_window.windowHandle() is not None:
-            self._qt_window.windowHandle().screenChanged.connect(self.qt_viewer.canvas._backend.screen_changed)
+            self._qt_window.windowHandle().screenChanged.connect(self._qt_viewer.canvas._backend.screen_changed)
 
         self._add_menubar()
         self._add_file_menu()
@@ -173,8 +172,8 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
-        self._add_viewer_dock_widget(self.qt_viewer.dockLayerControls, tabify=False)
-        self._add_viewer_dock_widget(self.qt_viewer.dockLayerList, tabify=False)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerList, tabify=False)
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -187,6 +186,11 @@ class Window:
 
         if show:
             self.show()
+
+    @property
+    def _qt_viewer(self):
+        # this is starting to be "vestigial"... this property could be removed
+        return self._qt_window._qt_viewer
 
     def _add_viewer_dock_widget(self, dock_widget: QtViewerDockWidget, tabify=False):
         """Add a QtViewerDockWidget to the main window
@@ -243,7 +247,7 @@ class Window:
         screenshot = QAction("Save Screenshot...", self._qt_window)
         screenshot.setShortcut("Alt+S")
         screenshot.setStatusTip("Save screenshot of current display, default .png")
-        screenshot.triggered.connect(self.qt_viewer._screenshot_dialog)
+        screenshot.triggered.connect(self._qt_viewer._screenshot_dialog)
 
         screenshot_wv = QAction("Save Screenshot with Viewer...", self._qt_window)
         screenshot_wv.setShortcut("Alt+Shift+S")
@@ -252,7 +256,7 @@ class Window:
 
         clipboard = QAction("Copy Screenshot to Clipboard", self._qt_window)
         clipboard.setStatusTip("Copy screenshot of current display to the clipboard")
-        clipboard.triggered.connect(lambda: self.qt_viewer.clipboard())
+        clipboard.triggered.connect(lambda: self._qt_viewer.clipboard())
 
         clipboard_wv = QAction(
             "Copy Screenshot with Viewer to Clipboard",
@@ -304,21 +308,21 @@ class Window:
         self.view_tools = self.main_menu.addMenu("&Interaction")
         toggle_tool = QAction("Tool: Auto", self._qt_window)
         toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
+        toggle_tool.triggered.connect(lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
         toggle_tool.setChecked(True)
         actions.append(toggle_tool)
 
         self.view_tools.addAction(toggle_tool)
         toggle_tool = QAction("Tool: Box", self._qt_window)
         toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
+        toggle_tool.triggered.connect(lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
 
         toggle_tool = QAction("Tool: Horizontal span", self._qt_window)
         toggle_tool.setCheckable(True)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
         )
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
@@ -326,7 +330,7 @@ class Window:
         toggle_tool = QAction("Tool: Vertical span", self._qt_window)
         toggle_tool.setCheckable(True)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
         )
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
@@ -371,7 +375,7 @@ class Window:
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(True)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
+            lambda: setattr(self._qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
         )
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
@@ -379,7 +383,7 @@ class Window:
         toggle_tool = QAction("Extent mode: Restricted", self._qt_window)
         toggle_tool.setCheckable(True)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
+            lambda: setattr(self._qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
         )
         self.view_tools.addAction(toggle_tool)
         actions.append(toggle_tool)
@@ -415,7 +419,7 @@ class Window:
             Which of the menu options was triggered.
         """
         if which == CameraMode.ALL:
-            self.qt_viewer.viewer.camera.axis_mode = (CameraMode.ALL,)
+            self._qt_viewer.viewer.camera.axis_mode = (CameraMode.ALL,)
             for wdg in [
                 self._menu_camera_top,
                 self._menu_camera_bottom,
@@ -434,7 +438,7 @@ class Window:
                 camera_modes.append(CameraMode.LOCK_TO_LEFT)
             if self._menu_camera_right.isChecked():
                 camera_modes.append(CameraMode.LOCK_TO_RIGHT)
-            self.qt_viewer.viewer.camera.axis_mode = tuple(camera_modes)
+            self._qt_viewer.viewer.camera.axis_mode = tuple(camera_modes)
 
     def _toggle_menubar_visible(self):
         """Toggle visibility of app menubar.
@@ -462,9 +466,9 @@ class Window:
         try:
             if event:
                 value = event.value
-                self.qt_viewer.viewer.theme = value
+                self._qt_viewer.viewer.theme = value
             else:
-                value = self.qt_viewer.viewer.theme
+                value = self._qt_viewer.viewer.theme
 
             self._qt_window.setStyleSheet(get_stylesheet(value))
         except (AttributeError, RuntimeError):  # wrapped C/C++ object may have been deleted
@@ -505,7 +509,7 @@ class Window:
         # Someone is closing us twice? Only try to delete self._qt_window
         # if we still have one.
         if hasattr(self, "_qt_window"):
-            self.qt_viewer.close()
+            self._qt_viewer.close()
             self._qt_window.close()
             del self._qt_window
 
@@ -550,13 +554,13 @@ class Window:
 
     def _screenshot_dialog(self):
         """Save screenshot of current display with viewer, default .png"""
-        dial = ScreenshotDialog(self.screenshot, self.qt_viewer)
+        dial = ScreenshotDialog(self.screenshot, self._qt_viewer)
 
         if dial.exec_():
             pass
             # dial.selectedFiles()[0]
 
-    def _screenshot(self, flash=True):
+    def _screenshot(self, flash=True, canvas_only=False):
         """Capture screenshot of the currently displayed viewer.
 
         Parameters
@@ -564,15 +568,23 @@ class Window:
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
+        canvas_only : bool
+            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
+             the screenshot, By default, True.
         """
-        img = self._qt_window.grab().toImage()
-        if flash:
-            from napari._qt.utils import add_flash_animation
+        from napari._qt.utils import add_flash_animation
 
-            add_flash_animation(self._qt_window)
+        if canvas_only:
+            img = self._qt_viewer.canvas.native.grabFramebuffer()
+            if flash:
+                add_flash_animation(self._qt_viewer._canvas_overlay)
+        else:
+            img = self._qt_window.grab().toImage()
+            if flash:
+                add_flash_animation(self._qt_window)
         return img
 
-    def screenshot(self, path=None, flash=True):
+    def screenshot(self, path=None, flash=True, canvas_only=False):
         """Take currently displayed viewer and convert to an image array.
 
         Parameters
@@ -582,6 +594,9 @@ class Window:
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
+        canvas_only : bool
+            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
+             the screenshot, By default, True.
 
         Returns
         -------
@@ -591,10 +606,10 @@ class Window:
         """
         from napari.utils.io import imsave
 
-        img = self._screenshot(flash)
+        img = QImg2array(self._screenshot(flash, canvas_only))
         if path is not None:
-            imsave(path, QImg2array(img))  # scikit-image imsave method
-        return QImg2array(img)
+            imsave(path, img)  # scikit-image imsave method
+        return img
 
     def clipboard(self, flash=True):
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard.
