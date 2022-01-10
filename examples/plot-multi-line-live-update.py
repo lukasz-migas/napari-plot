@@ -40,7 +40,7 @@ def run_update(*_):
         time.sleep(0.01)
 
 
-n_lines = 100
+n_lines = 50
 n_pts = np.full(n_lines, fill_value=2000)
 data = make_data()
 colors = np.random.random((n_lines, 3))
@@ -48,6 +48,7 @@ colors = np.random.random((n_lines, 3))
 viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.color = "red"
+viewer1d.text_overlay.font_size = 25
 viewer1d.window.qt_viewer.canvas.measure_fps(callback=update_fps)
 layer = viewer1d.add_multi_line(data, color=colors, name="MultiLine")
 run_update()

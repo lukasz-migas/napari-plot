@@ -93,3 +93,12 @@ def test_multiline_add():
     data = {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3}
     layer.add(data)
     assert layer._data_view.n_lines == 5
+
+
+def test_multiline_stream():
+    data = {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3}
+    layer = MultiLine(data)
+    assert layer._data_view.n_lines == 3
+    new_data = {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3}
+    layer.stream(new_data)
+    assert layer._data_view.n_lines == 3
