@@ -3,16 +3,16 @@ from napari_plugin_engine import napari_hook_implementation
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from ._qt.qt_viewer import QtViewer
-from .components.viewer_model import ViewerModel as ViewerModel1D
+from .components.viewer_model import ViewerModel as ViewerModelPlot
 
 
-class Napari1dWidget(QWidget):
+class NapariPlotWidget(QWidget):
     """Create instance of 1d Viewer"""
 
     def __init__(self, napari_viewer):
         super().__init__()
         self.viewer = napari_viewer
-        self.viewer1d = ViewerModel1D()
+        self.viewer1d = ViewerModelPlot()
         self.qt_viewer = QtViewer(self.viewer1d)
 
         layout = QVBoxLayout()
@@ -25,4 +25,4 @@ class Napari1dWidget(QWidget):
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     """Return dock widget."""
-    return Napari1dWidget
+    return NapariPlotWidget

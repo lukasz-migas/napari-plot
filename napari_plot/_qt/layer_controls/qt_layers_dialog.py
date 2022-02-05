@@ -17,12 +17,13 @@ class Napari1dControls(QtFramelessTool):
 
     def make_panel(self) -> QVBoxLayout:
         """Make panel"""
+        qt_viewer = self._ref_qt_viewer()
         va = QVBoxLayout()
         va.addLayout(self._make_move_handle())  # noqa
-        va.addWidget(self.qt_viewer.controls)
-        va.addWidget(self.qt_viewer.layerButtons)
-        va.addWidget(self.qt_viewer.layers, stretch=True)
-        va.addWidget(self.qt_viewer.viewerButtons)
+        va.addWidget(qt_viewer.controls)
+        va.addWidget(qt_viewer.layerButtons)
+        va.addWidget(qt_viewer.layers, stretch=True)
+        va.addWidget(qt_viewer.viewerButtons)
         return va
 
     def keyPressEvent(self, event):

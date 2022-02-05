@@ -1,6 +1,7 @@
 """Region based on Rectangle."""
 from napari.layers.shapes._shapes_models.rectangle import Rectangle
 
+from ._region_constants import Orientation
 from ._region_utils import preprocess_box, preprocess_region
 
 
@@ -57,3 +58,6 @@ class Box(Rectangle):
         data = preprocess_box(data)
         super().__init__(data, edge_width=edge_width, z_index=z_index, dims_order=dims_order, ndisplay=ndisplay)
         self.name = "box"
+
+
+region_classes = {Orientation.HORIZONTAL: Horizontal, Orientation.VERTICAL: Vertical}

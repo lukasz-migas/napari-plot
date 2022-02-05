@@ -1,5 +1,5 @@
 """Scatter layer controls"""
-from typing import TYPE_CHECKING
+import typing as ty
 
 import numpy as np
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked
@@ -11,7 +11,7 @@ from qtpy.QtCore import Qt, Slot
 from .. import helpers as hp
 from .qt_layer_controls_base import QtLayerControls
 
-if TYPE_CHECKING:
+if ty.TYPE_CHECKING:
     from ...layers import Scatter
 
 

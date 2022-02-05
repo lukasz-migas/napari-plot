@@ -29,7 +29,7 @@ viewer1d.axis.x_label = ""
 viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.position = "top_right"
 
-qt_viewer = QtViewer(viewer1d, parent=viewer.window.qt_viewer.parent())
+qt_viewer = QtViewer(viewer1d)
 
 lines = []
 for i, line in enumerate(shapes_layer.data):
