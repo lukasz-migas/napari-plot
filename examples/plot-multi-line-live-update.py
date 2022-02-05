@@ -40,7 +40,7 @@ def run_update(*_):
         time.sleep(0.05)
 
 
-n_lines = 100
+n_lines = 50
 n_pts = np.full(n_lines, fill_value=2000)
 data = make_data()
 colors = np.random.random((n_lines, 3))

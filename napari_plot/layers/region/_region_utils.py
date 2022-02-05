@@ -3,16 +3,33 @@ import typing as ty
 
 import numpy as np
 
+from ._region_constants import Orientation
 
-def extract_region_orientation(data, orientation=None):
+
+def check_data(data):
+    """Check whether data is iterable of two elements."""
+    if not isinstance(data, ty.Iterable) or len(data) != 2:
+        raise ValueError("Expected two-element iterable.")
+
+
+def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
     """Separate orientation from data if present and return both."""
+    # Data is None so return empty lists
+    if data is None:
+        return [], []
     # Tuple for one shape or list of shapes with shape_type
-    if isinstance(data, ty.Tuple):
+    elif isinstance(data, ty.Tuple):
         data, orientation = data
+        data, orientation = [data], [orientation]
     # List of (windows, shape_type) tuples
     elif len(data) != 0 and all(isinstance(dat, ty.Tuple) for dat in data):
         orientation = [dat[1] for dat in data]
         data = [dat[0] for dat in data]
+    # Iterable of data without orientation
+    elif isinstance(data, ty.Iterable) and isinstance(orientation, (str, Orientation)):
+        orientation = [orientation] * len(data)
+    for dat in data:
+        check_data(dat)
     return data, orientation
 
 

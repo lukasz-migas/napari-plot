@@ -112,7 +112,7 @@ def make_napari_plot_viewer(qtbot, request: "FixtureRequest"):
 
     initial = QApplication.topLevelWidgets()
     prior_exception = getattr(sys, "last_value", None)
-    is_internal_test = request.module.__name__.startswith("napari.")
+    is_internal_test = request.module.__name__.startswith("napari.")  # this should use `napari_plot.`
 
     def actual_factory(
         *model_args,

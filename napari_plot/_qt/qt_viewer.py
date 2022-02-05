@@ -8,6 +8,7 @@ from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.interactions import (
     mouse_move_callbacks,
     mouse_press_callbacks,
@@ -27,7 +28,6 @@ from .._vispy.overlays.grid_lines import VispyGridLinesVisual
 from .._vispy.overlays.text import VispyTextVisual
 from .._vispy.tools.drag import VispyDragTool
 from .._vispy.utils.visual import create_vispy_visual
-from ..utils.vendored.interactions import ReadOnlyWrapper
 from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar

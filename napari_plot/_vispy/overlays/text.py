@@ -12,7 +12,7 @@ class VispyTextVisual(_VispyTextVisual):
         self._ref_qt_viewer = ref(qt_viewer)
         super().__init__(viewer, parent, order)
 
-    def _on_position_change(self, event):
+    def _on_position_change(self, event=None):
         """Change position of text visual.
 
         This is necessary to account for the offsets caused by the x/y-axis offsets.

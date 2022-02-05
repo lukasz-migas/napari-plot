@@ -83,8 +83,8 @@ class QtImagePushButton(QtaMixin, QPushButton):
 class QtViewerPushButton(QtaMixin, _QtViewerPushButton):
     """Overwritten class with added support for qtawesome icons."""
 
-    def __init__(self, viewer, button_name, tooltip=None, slot=None):
-        super().__init__(viewer, button_name=button_name, tooltip=tooltip, slot=slot)
+    def __init__(self, button_name, tooltip=None, slot=None):
+        super().__init__(button_name=button_name, tooltip=tooltip, slot=slot)
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
         _themes.events.connect(self._update_from_event)
         self.set_qta(button_name)

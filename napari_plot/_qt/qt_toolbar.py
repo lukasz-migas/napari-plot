@@ -28,7 +28,7 @@ class QtViewToolbar(QWidget):
         self.tools_zoomout_btn = toolbar_right.insert_qta_tool("zoom_out", tooltip="Zoom-out", func=self._reset_view)
         # view modifiers
         self.tools_clip_btn = toolbar_right.insert_qta_tool(
-            "clipboard", tooltip="Copy figure to clipboard", func=qt_viewer.clipboard
+            "clipboard", tooltip="Copy figure to clipboard", func=self._ref_qt_viewer().clipboard
         )
         self.tools_axis_btn = toolbar_right.insert_qta_tool(
             "axes",
@@ -57,7 +57,7 @@ class QtViewToolbar(QWidget):
             "layers",
             tooltip="Display layer controls",
             checkable=False,
-            func=qt_viewer.on_toggle_controls_dialog,
+            func=self._ref_qt_viewer().on_toggle_controls_dialog,
         )
 
     def _clear_canvas(self):

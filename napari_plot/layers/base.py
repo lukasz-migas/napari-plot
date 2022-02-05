@@ -95,3 +95,12 @@ class BaseLayer(Layer):
         self._allow_thumbnail_update = False
         yield
         self._allow_thumbnail_update = True
+
+    def update_attributes(self, throw_exception: bool = True, **kwargs):
+        """Update attributes on the layer."""
+        for attr, value in kwargs.items():
+            try:
+                setattr(self, attr, value)
+            except (AttributeError, ValueError) as err:
+                if throw_exception:
+                    raise err
