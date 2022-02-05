@@ -100,12 +100,12 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 self.viewer.drag_tool.tool.position = x0, x1, y0, y1
                 event.handled = True
             elif 2 in event.buttons and not modifiers:  # right-button click
-                # Zoom
-                p1c = np.array(event.last_event.pos)[:2]
-                p2c = np.array(event.pos)[:2]
-                scale = (1 + self.zoom_factor) ** ((p1c - p2c) * np.array([1, -1]))
-                center = self._transform.imap(event.press_event.pos[:2])
-                self.zoom(scale, center)
+                # Translate
+                p1 = np.array(event.last_event.pos)[:2]
+                p2 = np.array(event.pos)[:2]
+                p1s = self._transform.imap(p1)
+                p2s = self._transform.imap(p2)
+                self.pan(p1s - p2s)
                 event.handled = True
             else:
                 event.handled = False
@@ -113,7 +113,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             # accept the event if it is button 1 or 2.
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
-        elif event.type == "mouse_release":
+        elif event.type == "mouse_release" and 1 in event.buttons:
             # this is where we change the interaction and actually perform various checks to ensure user doesn't zoom
             # to someplace where they shouldn't
             modifiers = event.mouse_event.modifiers
