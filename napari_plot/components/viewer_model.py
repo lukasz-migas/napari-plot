@@ -335,10 +335,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
 
 for _layer in [
-    layers.Line,
-    layers.Scatter,
+    # napari layers
     layers.Points,
     layers.Shapes,
+    layers.Image,
+    # napari-plot layers
+    layers.Line,
+    layers.Scatter,
     layers.Region,
     layers.InfLine,
     layers.Centroids,
