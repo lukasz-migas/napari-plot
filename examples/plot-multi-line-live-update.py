@@ -48,7 +48,7 @@ colors = np.random.random((n_lines, 3))
 viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.color = "red"
-viewer1d.window.qt_viewer.canvas.measure_fps(callback=update_fps)
+viewer1d.window._qt_viewer.canvas.measure_fps(callback=update_fps)
 layer = viewer1d.add_multi_line(data, color=colors, name="MultiLine")
 run_update()
 napari_plot.run()

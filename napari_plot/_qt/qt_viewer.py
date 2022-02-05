@@ -1,6 +1,7 @@
 """Qt widget that embeds the canvas"""
 from contextlib import suppress
 from typing import Tuple
+from weakref import WeakSet
 
 import numpy as np
 from napari._qt.containers import QtLayerList
@@ -52,11 +53,13 @@ class QtViewer(QSplitter):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
+    _instances = WeakSet()
     _pos_offset = (0, 0)
     _pos_offset_set = False
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
+        self._instances.add(self)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAcceptDrops(False)
         QCoreApplication.setAttribute(Qt.AA_UseStyleSheetPropagationInWidgetStyles, True)
@@ -389,13 +392,15 @@ class QtViewer(QSplitter):
         if dialog.exec_():
             pass
 
-    def screenshot(self, path=None):
+    def screenshot(self, path=None, flash=True):
         """Take currently displayed screen and convert to an image array.
 
         Parameters
         ----------
         path : str
             Filename for saving screenshot image.
+        flash : bool
+            Flag to indicate whether flash animation should be shown after the screenshot was captured.
 
         Returns
         -------
@@ -437,7 +442,7 @@ class QtViewer(QSplitter):
 
         if cursor == "square":
             # make sure the square fits within the current canvas
-            if size < 8 or size > (min(*self.viewer.window.qt_viewer.canvas.size) - 4):
+            if size < 8 or size > (min(*self.canvas.size) - 4):
                 q_cursor = self._cursors["cross"]
             else:
                 q_cursor = QCursor(square_pixmap(size))

@@ -66,11 +66,7 @@ class Viewer(ViewerModel):
             Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
             upper-left corner of the rendered region.
         """
-        if canvas_only:
-            image = self.window.qt_viewer.screenshot(path=path, flash=flash)
-        else:
-            image = self.window.screenshot(path=path, flash=flash)
-        return image
+        return self.window.screenshot(path=path, flash=flash, canvas_only=canvas_only)
 
     def show(self, *, block=False):
         """Resize, show, and raise the viewer window."""
@@ -82,6 +78,7 @@ class Viewer(ViewerModel):
         self.layers.clear()
         # Close the main window
         self.window.close()
+        self._instances.discard(self)
 
     @classmethod
     def close_all(cls) -> int:
