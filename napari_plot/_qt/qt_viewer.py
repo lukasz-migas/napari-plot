@@ -58,6 +58,7 @@ class QtViewer(QSplitter):
     _pos_offset = (0, 0)
     _pos_offset_set = False
     _console = None
+    dockConsole = None
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
@@ -339,7 +340,7 @@ class QtViewer(QSplitter):
     @property
     def console(self):
         """QtConsole: iPython console terminal integrated into the napari GUI."""
-        if self._console is None:
+        if self._console is None and self.dockConsole is not None:
             try:
                 import napari
                 from napari_console import QtConsole
