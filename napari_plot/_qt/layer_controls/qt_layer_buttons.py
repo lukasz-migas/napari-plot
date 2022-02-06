@@ -75,7 +75,6 @@ class QtViewerButtons(QFrame):
 
     def __init__(self, viewer, parent=None):
         super().__init__()
-
         self.viewer = viewer
 
         self.resetViewButton = QtViewerPushButton(

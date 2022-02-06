@@ -41,7 +41,9 @@ class _QtMainWindow(QMainWindow):
     def __init__(self, viewer: QtViewer, parent=None) -> None:
         super().__init__(parent)
         self._ev = None
-        self._qt_viewer = QtViewer(viewer, dock_controls=True, add_toolbars=False, disable_controls=True)
+        self._qt_viewer = QtViewer(
+            viewer, dock_controls=True, add_toolbars=False, disable_controls=True, dock_console=True
+        )
 
         self._quit_app = False
         # self.setWindowIcon(QIcon(self._window_icon))

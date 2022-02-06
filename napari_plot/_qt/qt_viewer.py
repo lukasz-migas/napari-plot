@@ -1,4 +1,5 @@
 """Qt widget that embeds the canvas"""
+import warnings
 from contextlib import suppress
 from typing import Tuple
 from weakref import WeakSet
@@ -56,6 +57,7 @@ class QtViewer(QSplitter):
     _instances = WeakSet()
     _pos_offset = (0, 0)
     _pos_offset_set = False
+    _console = None
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
@@ -185,7 +187,7 @@ class QtViewer(QSplitter):
         # toolbar
         self.viewerToolbar = QtViewToolbar(self.viewer, self, **kwargs)
 
-    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, **kwargs):
+    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, dock_console=False, **kwargs):
         # set in main canvas
         canvas_layout = QHBoxLayout()
         canvas_layout.addWidget(self.canvas.native, stretch=True)
@@ -230,6 +232,19 @@ class QtViewer(QSplitter):
             self.dockLayerControls.visibilityChanged.connect(self._constrain_width)
             self.dockLayerList.setMaximumWidth(258)
             self.dockLayerList.setMinimumWidth(258)
+        if dock_console:
+            self.dockConsole = QtViewerDockWidget(
+                self,
+                QWidget(),
+                name="Console",
+                area="bottom",
+                allowed_areas=["top", "bottom"],
+                object_name="console",
+            )
+            self.dockConsole.setVisible(False)
+            # because the console is loaded lazily in the @getter, this line just
+            # gets (or creates) the console when the dock console is made visible.
+            self.dockConsole.visibilityChanged.connect(self._ensure_connect)
 
         main_widget = QWidget()
         main_layout = QVBoxLayout()
@@ -316,6 +331,36 @@ class QtViewer(QSplitter):
             self.controls.setMaximumWidth(700)
         else:
             self.controls.setMaximumWidth(220)
+
+    def _ensure_connect(self):
+        # lazy load console
+        id(self.console)
+
+    @property
+    def console(self):
+        """QtConsole: iPython console terminal integrated into the napari GUI."""
+        if self._console is None:
+            try:
+                import napari
+                from napari_console import QtConsole
+
+                import napari_plot
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore")
+                    self.console = QtConsole(self.viewer)
+                    self.console.push({"napari": napari, "napari_plot": napari_plot})
+            except ImportError:
+                warnings.warn("napari-console not found. It can be installed with" ' "pip install napari_console"')
+                self._console = None
+        return self._console
+
+    @console.setter
+    def console(self, console):
+        self._console = console
+        if console is not None:
+            self.dockConsole.setWidget(console)
+            console.setParent(self.dockConsole)
 
     def _on_active_change(self, _event=None):
         """When active layer changes change keymap handler.
@@ -476,6 +521,23 @@ class QtViewer(QSplitter):
             self.on_open_controls_dialog()
         else:
             self._layers_controls_dialog.setVisible(not self._layers_controls_dialog.isVisible())
+
+    def on_toggle_console_visibility(self, event=None):
+        """Toggle console visible and not visible.
+
+        Imports the console the first time it is requested.
+        """
+        # force instantiation of console if not already instantiated
+        _ = self.console
+
+        viz = not self.dockConsole.isVisible()
+        # modulate visibility at the dock widget level as console is dockable
+        self.dockConsole.setVisible(viz)
+        if self.dockConsole.isFloating():
+            self.dockConsole.setFloating(True)
+
+        if viz:
+            self.dockConsole.raise_()
 
     @property
     def _canvas_corners_in_world(self):
@@ -641,4 +703,7 @@ class QtViewer(QSplitter):
         """
         self.layers.close()
         self.canvas.native.deleteLater()
+        if self._console is not None:
+            self.console.close()
+        self.dockConsole.deleteLater()
         event.accept()
