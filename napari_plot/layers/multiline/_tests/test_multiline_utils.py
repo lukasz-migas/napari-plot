@@ -9,6 +9,7 @@ from napari_plot.layers.multiline._multiline_utils import (
     make_multiline_color,
     make_multiline_connect,
     make_multiline_line,
+    make_multiline_pos,
 )
 
 
@@ -60,6 +61,16 @@ def test_make_multiline_connect():
     connect = make_multiline_connect(ys)
     assert isinstance(connect, np.ndarray)
     assert connect.shape == (5, 2)  # excludes edges
+
+
+def test_make_multiline_pos():
+    xs, ys, color = make_data()
+
+    pos = make_multiline_pos(xs, ys)
+
+    # make sure pos is correct
+    assert isinstance(pos, np.ndarray)
+    assert pos.shape == (7, 2)  # each element
 
 
 def test_make_multiline_line():

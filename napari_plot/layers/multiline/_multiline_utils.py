@@ -89,6 +89,18 @@ def make_multiline_line(xs: ty.List, ys: ty.List, colors: np.ndarray):
     return pos, connect, colors
 
 
+def make_multiline_pos(xs: ty.List, ys: ty.List):
+    """Create array of how points should be connected."""
+    pos = []
+
+    if len(xs) == 1:
+        xs = [xs[0]] * len(ys)
+    for x, y in zip(xs, ys):
+        # data
+        pos.append(np.c_[x, y])
+    return np.vstack(pos)
+
+
 def make_multiline_connect(ys: ty.List):
     """Create array of how points should be connected."""
     connect = []
