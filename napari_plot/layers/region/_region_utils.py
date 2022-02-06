@@ -21,10 +21,18 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
     elif isinstance(data, ty.Tuple):
         data, orientation = data
         data, orientation = [data], [orientation]
-    # List of (windows, shape_type) tuples
+    # List of (windows, shape_type) or (window min, window max) tuples
     elif len(data) != 0 and all(isinstance(dat, ty.Tuple) for dat in data):
-        orientation = [dat[1] for dat in data]
-        data = [dat[0] for dat in data]
+        _data, _orientation = [], []
+        for el1, el2 in data:
+            if not isinstance(el2, (str, Orientation)):
+                _data.append((el1, el2))
+                _orientation.append(orientation)
+            else:
+                _data.append(el1)
+                _orientation.append(el2)
+        orientation = _orientation
+        data = _data
     # Iterable of data without orientation
     elif isinstance(data, ty.Iterable) and isinstance(orientation, (str, Orientation)):
         orientation = [orientation] * len(data)
