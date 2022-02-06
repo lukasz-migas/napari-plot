@@ -10,9 +10,15 @@ def boxzoom(viewer, event):
     """Enable box zoom."""
 
     def _get_shape():
-        if "Control" in event.modifiers:
+        if sx0 is None or "Alt" in event.modifiers:
+            return Shape.BOX
+        x0, x1, y0, y1 = viewer.drag_tool.tool.position
+        x, y = abs(x1 - x0), abs(y1 - y0)
+        # if there is minimum difference in y-position, lets show it as vertical span
+        if y < ey:
             return Shape.VERTICAL
-        elif "Shift" in event.modifiers:
+        # if there is minimum difference in x-position, lets show it as horizontal span
+        elif x < ex:
             return Shape.HORIZONTAL
         return Shape.BOX
 
@@ -21,6 +27,10 @@ def boxzoom(viewer, event):
         viewer.drag_tool.tool.visible = True
 
     # on press
+    sx0, sx1, sy0, sy1 = None, None, None, None
+    extent = viewer.camera.rect
+    ex = abs(extent[1] - extent[0]) * 0.07
+    ey = abs(extent[3] - extent[2]) * 0.07
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.shape = _get_shape()
     yield
@@ -29,6 +39,9 @@ def boxzoom(viewer, event):
     while event.type == "mouse_move":
         viewer.drag_tool.tool.shape = _get_shape()
         yield
+        if sx0 is None:
+            sx0, sx1, sy0, sy1 = viewer.drag_tool.tool.position
+            sx, sy = abs(sx1 - sx0), abs(sy1 - sy0)
 
     # on release
     viewer.drag_tool.tool.color = color
