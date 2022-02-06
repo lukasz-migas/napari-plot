@@ -14,6 +14,21 @@ class Method(StringEnum):
 METHOD_TRANSLATIONS = ["agg", "gl"]
 
 
+class ColoringType(StringEnum):
+    """Type of coloring."""
+
+    SINGLE = auto()
+    SELECTION = auto()
+    ALL = auto()
+
+
+COLORING_TRANSLATIONS = [
+    "single",
+    # "selection",
+    "all",
+]
+
+
 class Orientation(str, Enum):
     """Orientation"""
 

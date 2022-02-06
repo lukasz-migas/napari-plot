@@ -1,10 +1,11 @@
 """Line layer"""
 import numpy as np
+from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.utils.events import Event
 
 from ..base import BaseLayer
 from ._centroids_constants import Method, Orientation
-from ._centroids_utils import preprocess_centroids
+from ._centroids_utils import get_extents, parse_centroids_data
 
 
 class Centroids(BaseLayer):
@@ -12,7 +13,7 @@ class Centroids(BaseLayer):
 
     Parameters
     ----------
-    data : array
+    data : array, optional
         Coordinates for N points in 2 dimensions. If array has shape (N, 2) then its assume that its the position and
         upper value and the lower value is assumed to be zero. If array has shape (N, 3) then its assumed that its the
         position, lower value and upper value. X-axis and Y-axis values are inferred based on the orientation attribute.
@@ -78,10 +79,7 @@ class Centroids(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.empty((0, 3))
-        else:
-            data = np.asarray(data)
+        data = parse_centroids_data(data)
         super().__init__(
             data,
             label=label,
@@ -98,15 +96,56 @@ class Centroids(BaseLayer):
         )
         self.events.add(color=Event, width=Event, method=Event, highlight=Event)
 
-        self._data = preprocess_centroids(data)
-        self._color = color
+        self._data = data
+        self._color = self._initialize_color(color, len(self._data))
         self._width = width
         self._method = Method(method)
         self._orientation = Orientation(orientation)
 
         self.visible = visible
 
-    #
+    @staticmethod
+    def _initialize_color(color, n_lines: int):
+        """Get the face colors the Shapes layer will be initialized with
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        n_lines : int
+            Number of lines to be initialized.
+
+        Returns
+        -------
+        init_colors : (N, 4) array
+            The calculated values for setting edge or face_color
+        """
+        if n_lines > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=n_lines,
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            init_colors = normalize_and_broadcast_colors(n_lines, transformed_color)
+        else:
+            init_colors = np.empty((0, 4))
+        return init_colors
+
+    def update_color(self, index: int, color: np.ndarray):
+        """Update color of single line.
+
+        Parameters
+        ----------
+        index : int
+            Index of the line to update the color of.
+        color : str | tuple | np.ndarray
+            Color of the line.
+        """
+        self._color[index] = color
+        self.events.color()
+        self._update_thumbnail()
+
     # def _get_x_region_extent(self, x_min: float, x_max: float):
     #     """Return data extents in the (xmin, xmax, ymin, ymax) format."""
     #     from napari_plot.utils.utilities import find_nearest_index
@@ -168,10 +207,7 @@ class Centroids(BaseLayer):
     @data.setter
     def data(self, value: np.ndarray):
         self._data = value
-
-        self._update_dims()
-        self.events.data(value=self.data)
-        self._set_editable()
+        self._emit_new_data()
 
     @property
     def color(self):
@@ -180,7 +216,7 @@ class Centroids(BaseLayer):
 
     @color.setter
     def color(self, value):
-        self._color = value
+        self._color = self._initialize_color(value, len(self._data))
         self.events.color()
 
     @property
@@ -213,9 +249,5 @@ class Centroids(BaseLayer):
     @property
     def _extent_data(self) -> np.ndarray:
         if len(self.data) == 0:
-            extrema = np.full((2, 2), np.nan)
-        else:
-            maxs = np.max(self.data, axis=0)[::-1]
-            mins = np.min(self.data, axis=0)[::-1]
-            extrema = np.vstack([mins, maxs])
-        return extrema
+            return np.full((2, 2), np.nan)
+        return get_extents(self.data, self.orientation)

@@ -19,7 +19,7 @@ class MultiLine(BaseLayer):
 
     Parameters
     ----------
-    data : dict of xs and ys array (N, 1), (N, D)
+    data : dict of xs and ys array (N, 1), (N, D), optional
         Coordinates for N points in 2 dimensions.
     color : str, array-like
         If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
