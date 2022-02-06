@@ -246,6 +246,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layer.events.shear.connect(self._on_layers_change)
         layer.events.affine.connect(self._on_layers_change)
         layer.events.name.connect(self.layers._update_name)
+        layer.events.visible.connect(self._on_update_extent)
 
         # Update dims and grid model
         self._on_layers_change(None)
