@@ -6,7 +6,7 @@ from weakref import WeakSet
 import numpy as np
 from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
-from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
+from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, crosshair_pixmap, square_pixmap
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.interactions import (
@@ -448,6 +448,8 @@ class QtViewer(QSplitter):
                 q_cursor = QCursor(square_pixmap(size))
         elif cursor == "circle":
             q_cursor = QCursor(circle_pixmap(size))
+        elif cursor == "crosshair":
+            q_cursor = QCursor(crosshair_pixmap())
         else:
             q_cursor = self._cursors[cursor]
 
@@ -503,11 +505,19 @@ class QtViewer(QSplitter):
         if event.pos is None:
             return
 
+        # Add the view ray to the event
+        event.view_direction = None  # always None because we will display 2d data
+        event.up_direction = None  # always None because we will display 2d data
+
         # Update the cursor position
+        self.viewer.cursor._view_direction = event.view_direction
         self.viewer.cursor.position = self._map_canvas2world(event.pos)
 
         # Add the cursor position to the event
         event.position = self.viewer.cursor.position
+
+        # Add the displayed dimensions to the event
+        event.dims_displayed = [0, 1]
 
         # Put a read only wrapper on the event
         event = ReadOnlyWrapper(event)
