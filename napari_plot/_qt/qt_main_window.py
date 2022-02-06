@@ -38,10 +38,12 @@ class _QtMainWindow(QMainWindow):
     # *no* active windows, so we want to track the most recently active windows
     _instances: ty.ClassVar[ty.List["_QtMainWindow"]] = []
 
-    def __init__(self, qt_viewer: QtViewer, parent=None) -> None:
+    def __init__(self, viewer: QtViewer, parent=None) -> None:
         super().__init__(parent)
         self._ev = None
-        self.qt_viewer = qt_viewer
+        self._qt_viewer = QtViewer(
+            viewer, dock_controls=True, add_toolbars=False, disable_controls=True, dock_console=True
+        )
 
         self._quit_app = False
         # self.setWindowIcon(QIcon(self._window_icon))
@@ -49,10 +51,10 @@ class _QtMainWindow(QMainWindow):
         self.setUnifiedTitleAndToolBarOnMac(True)
         center = QWidget(self)
         center.setLayout(QHBoxLayout())
-        center.layout().addWidget(qt_viewer)
+        center.layout().addWidget(self._qt_viewer)
         center.layout().setContentsMargins(4, 0, 4, 0)
         self.setCentralWidget(center)
-        self.setWindowTitle(qt_viewer.viewer.title)
+        self.setWindowTitle(self._qt_viewer.viewer.title)
         _QtMainWindow._instances.append(self)
 
         # this is required to notifications
@@ -145,7 +147,7 @@ class Window:
         Help menu.
     main_menu : qtpy.QtWidgets.QMainWindow.menuBar
         Main menubar.
-    qt_viewer : QtViewer
+    _qt_viewer : QtViewer
         Contained viewer widget.
     view_menu : qtpy.QtWidgets.QMenu
         View menu.
@@ -158,13 +160,12 @@ class Window:
         get_app()
 
         # Connect the Viewer and create the Main Window
-        self.qt_viewer = QtViewer(viewer, dock_controls=True, add_toolbars=False, disable_controls=True)
-        self._qt_window = _QtMainWindow(self.qt_viewer)
+        self._qt_window = _QtMainWindow(viewer)
         self._status_bar = self._qt_window.statusBar()
 
         # since we initialize canvas before window, we need to manually connect them again.
         if self._qt_window.windowHandle() is not None:
-            self._qt_window.windowHandle().screenChanged.connect(self.qt_viewer.canvas._backend.screen_changed)
+            self._qt_window.windowHandle().screenChanged.connect(self._qt_viewer.canvas._backend.screen_changed)
 
         self._add_menubar()
         self._add_file_menu()
@@ -173,8 +174,8 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
-        self._add_viewer_dock_widget(self.qt_viewer.dockLayerControls, tabify=False)
-        self._add_viewer_dock_widget(self.qt_viewer.dockLayerList, tabify=False)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerList, tabify=False)
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -187,6 +188,11 @@ class Window:
 
         if show:
             self.show()
+
+    @property
+    def _qt_viewer(self):
+        # this is starting to be "vestigial"... this property could be removed
+        return self._qt_window._qt_viewer
 
     def _add_viewer_dock_widget(self, dock_widget: QtViewerDockWidget, tabify=False):
         """Add a QtViewerDockWidget to the main window
@@ -243,7 +249,7 @@ class Window:
         screenshot = QAction("Save Screenshot...", self._qt_window)
         screenshot.setShortcut("Alt+S")
         screenshot.setStatusTip("Save screenshot of current display, default .png")
-        screenshot.triggered.connect(self.qt_viewer._screenshot_dialog)
+        screenshot.triggered.connect(self._qt_viewer._screenshot_dialog)
 
         screenshot_wv = QAction("Save Screenshot with Viewer...", self._qt_window)
         screenshot_wv.setShortcut("Alt+Shift+S")
@@ -252,7 +258,7 @@ class Window:
 
         clipboard = QAction("Copy Screenshot to Clipboard", self._qt_window)
         clipboard.setStatusTip("Copy screenshot of current display to the clipboard")
-        clipboard.triggered.connect(lambda: self.qt_viewer.clipboard())
+        clipboard.triggered.connect(lambda: self._qt_viewer.clipboard())
 
         clipboard_wv = QAction(
             "Copy Screenshot with Viewer to Clipboard",
@@ -300,39 +306,38 @@ class Window:
     def _add_interaction_menu(self):
         """Add 'View' menu to app menubar."""
         # add DragMode
-        actions = []
         self.view_tools = self.main_menu.addMenu("&Interaction")
-        toggle_tool = QAction("Tool: Auto", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
-        toggle_tool.setChecked(True)
-        actions.append(toggle_tool)
-
-        self.view_tools.addAction(toggle_tool)
-        toggle_tool = QAction("Tool: Box", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
-        self.view_tools.addAction(toggle_tool)
-        actions.append(toggle_tool)
-
-        toggle_tool = QAction("Tool: Horizontal span", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
+        self._menu_tool_auto = QAction("Tool: Auto", self._qt_window)
+        self._menu_tool_auto.setCheckable(True)
+        self._menu_tool_auto.setChecked(True)
+        self._menu_tool_auto.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.AUTO)
         )
-        self.view_tools.addAction(toggle_tool)
-        actions.append(toggle_tool)
+        self.view_tools.addAction(self._menu_tool_auto)
 
-        toggle_tool = QAction("Tool: Vertical span", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+        self._menu_tool_box = QAction("Tool: Box", self._qt_window)
+        self._menu_tool_box.setCheckable(True)
+        self._menu_tool_box.triggered.connect(lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
+        self.view_tools.addAction(self._menu_tool_box)
+
+        self._menu_tool_h_span = QAction("Tool: Horizontal span", self._qt_window)
+        self._menu_tool_h_span.setCheckable(True)
+        self._menu_tool_h_span.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
         )
-        self.view_tools.addAction(toggle_tool)
-        actions.append(toggle_tool)
+        self.view_tools.addAction(self._menu_tool_h_span)
+
+        self._menu_tool_v_span = QAction("Tool: Vertical span", self._qt_window)
+        self._menu_tool_v_span.setCheckable(True)
+        self._menu_tool_v_span.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+        )
+        self.view_tools.addAction(self._menu_tool_v_span)
 
         # ensures that only single tool can be selected at at ime
-        hp.make_menu_group(self._qt_window, *actions)
+        hp.make_menu_group(
+            self._qt_window, self._menu_tool_auto, self._menu_tool_box, self._menu_tool_v_span, self._menu_tool_h_span
+        )
 
         # add CameraMode
         self.view_tools.addSeparator()
@@ -343,49 +348,46 @@ class Window:
         self._menu_camera_bottom = QAction("Camera mode: Lock to bottom", self._qt_window)
         self._menu_camera_bottom.setCheckable(True)
         self._menu_camera_bottom.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_BOTTOM))
-        # self._menu_camera_bottom.triggered.connect(self._set_camera_mode)
         self.view_tools.addAction(self._menu_camera_bottom)
 
         self._menu_camera_top = QAction("Camera mode: Lock to top", self._qt_window)
         self._menu_camera_top.setCheckable(True)
         self._menu_camera_top.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_TOP))
-        # self._menu_camera_top.triggered.connect(self._set_camera_mode)
         self.view_tools.addAction(self._menu_camera_top)
 
         self._menu_camera_left = QAction("Camera mode: Lock to left", self._qt_window)
         self._menu_camera_left.setCheckable(True)
         self._menu_camera_left.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_LEFT))
-        # self._menu_camera_left.triggered.connect(self._set_camera_mode)
         self.view_tools.addAction(self._menu_camera_left)
 
         self._menu_camera_right = QAction("Camera mode: Lock to right", self._qt_window)
         self._menu_camera_right.setCheckable(True)
         self._menu_camera_right.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_RIGHT))
-        # self._menu_camera_right.triggered.connect(self._set_camera_mode)
         self.view_tools.addAction(self._menu_camera_right)
 
         # add ExtentMode
         self.view_tools.addSeparator()
-        actions = []
-        toggle_tool = QAction("Extent mode: Unrestricted", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(True)
-        toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
+        self._menu_extent_unrestricted = QAction("Extent mode: Unrestricted", self._qt_window)
+        self._menu_extent_unrestricted.setCheckable(True)
+        self._menu_extent_unrestricted.setChecked(True)
+        self._menu_extent_unrestricted.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.camera, "extent_mode", ExtentMode.UNRESTRICTED)
         )
-        self.view_tools.addAction(toggle_tool)
-        actions.append(toggle_tool)
+        self.view_tools.addAction(self._menu_extent_unrestricted)
 
-        toggle_tool = QAction("Extent mode: Restricted", self._qt_window)
-        toggle_tool.setCheckable(True)
-        toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
+        self._menu_extent_restricted = QAction("Extent mode: Restricted", self._qt_window)
+        self._menu_extent_restricted.setCheckable(True)
+        self._menu_extent_restricted.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.camera, "extent_mode", ExtentMode.RESTRICTED)
         )
-        self.view_tools.addAction(toggle_tool)
-        actions.append(toggle_tool)
+        self.view_tools.addAction(self._menu_extent_restricted)
 
         # ensures that only single tool can be selected at at ime
-        hp.make_menu_group(self._qt_window, *actions)
+        hp.make_menu_group(self._qt_window, self._menu_extent_unrestricted, self._menu_extent_restricted)
+
+        self._qt_viewer.viewer.drag_tool.events.active.connect(self._on_tool_change)
+        self._qt_viewer.viewer.camera.events.extent_mode.connect(self._on_extent_change)
+        self._qt_viewer.viewer.camera.events.axis_mode.connect(self._on_axis_mode_change)
 
     def _add_window_menu(self):
         """Add 'Window' menu to app menubar."""
@@ -415,7 +417,7 @@ class Window:
             Which of the menu options was triggered.
         """
         if which == CameraMode.ALL:
-            self.qt_viewer.viewer.camera.axis_mode = (CameraMode.ALL,)
+            self._qt_viewer.viewer.camera.axis_mode = (CameraMode.ALL,)
             for wdg in [
                 self._menu_camera_top,
                 self._menu_camera_bottom,
@@ -434,7 +436,66 @@ class Window:
                 camera_modes.append(CameraMode.LOCK_TO_LEFT)
             if self._menu_camera_right.isChecked():
                 camera_modes.append(CameraMode.LOCK_TO_RIGHT)
-            self.qt_viewer.viewer.camera.axis_mode = tuple(camera_modes)
+            self._qt_viewer.viewer.camera.axis_mode = tuple(camera_modes)
+
+    def _on_extent_change(self, event=None):
+        """Update menu appropriately."""
+        state = self._qt_viewer.viewer.camera.extent_mode
+        if state == ExtentMode.RESTRICTED:
+            with hp.qt_signals_blocked(self._menu_extent_restricted):
+                self._menu_extent_restricted.setChecked(True)
+        else:
+            with hp.qt_signals_blocked(self._menu_extent_unrestricted):
+                self._menu_extent_unrestricted.setChecked(True)
+        for wdg in [
+            self._menu_camera_all,
+            self._menu_camera_top,
+            self._menu_camera_bottom,
+            self._menu_camera_left,
+            self._menu_camera_right,
+        ]:
+            wdg.setDisabled(state == ExtentMode.UNRESTRICTED)
+
+    def _on_tool_change(self, event=None):
+        """Update menu appropriately."""
+        state = self._qt_viewer.viewer.drag_tool.active
+        if state == DragMode.AUTO:
+            with hp.qt_signals_blocked(self._menu_tool_auto):
+                self._menu_tool_auto.setChecked(True)
+        elif state == DragMode.BOX:
+            with hp.qt_signals_blocked(self._menu_tool_box):
+                self._menu_tool_box.setChecked(True)
+        elif state == DragMode.VERTICAL_SPAN:
+            with hp.qt_signals_blocked(self._menu_tool_v_span):
+                self._menu_tool_v_span.setChecked(True)
+        else:
+            with hp.qt_signals_blocked(self._menu_tool_h_span):
+                self._menu_tool_h_span.setChecked(True)
+
+    def _on_axis_mode_change(self, event=None):
+        """Update camera menu."""
+        state = self._qt_viewer.viewer.camera.axis_mode
+        if CameraMode.ALL in state:
+            for wdg in [
+                self._menu_camera_top,
+                self._menu_camera_bottom,
+                self._menu_camera_left,
+                self._menu_camera_right,
+            ]:
+                with hp.qt_signals_blocked(wdg):
+                    wdg.setChecked(False)
+        elif CameraMode.LOCK_TO_TOP in state:
+            with hp.qt_signals_blocked(self._menu_camera_top):
+                self._menu_camera_top.setChecked(True)
+        elif CameraMode.LOCK_TO_LEFT in state:
+            with hp.qt_signals_blocked(self._menu_camera_left):
+                self._menu_camera_left.setChecked(True)
+        elif CameraMode.LOCK_TO_RIGHT in state:
+            with hp.qt_signals_blocked(self._menu_camera_right):
+                self._menu_camera_right.setChecked(True)
+        elif CameraMode.LOCK_TO_BOTTOM in state:
+            with hp.qt_signals_blocked(self._menu_camera_bottom):
+                self._menu_camera_bottom.setChecked(True)
 
     def _toggle_menubar_visible(self):
         """Toggle visibility of app menubar.
@@ -462,9 +523,9 @@ class Window:
         try:
             if event:
                 value = event.value
-                self.qt_viewer.viewer.theme = value
+                self._qt_viewer.viewer.theme = value
             else:
-                value = self.qt_viewer.viewer.theme
+                value = self._qt_viewer.viewer.theme
 
             self._qt_window.setStyleSheet(get_stylesheet(value))
         except (AttributeError, RuntimeError):  # wrapped C/C++ object may have been deleted
@@ -505,7 +566,7 @@ class Window:
         # Someone is closing us twice? Only try to delete self._qt_window
         # if we still have one.
         if hasattr(self, "_qt_window"):
-            self.qt_viewer.close()
+            self._qt_viewer.close()
             self._qt_window.close()
             del self._qt_window
 
@@ -550,13 +611,13 @@ class Window:
 
     def _screenshot_dialog(self):
         """Save screenshot of current display with viewer, default .png"""
-        dial = ScreenshotDialog(self.screenshot, self.qt_viewer)
+        dial = ScreenshotDialog(self.screenshot, self._qt_viewer)
 
         if dial.exec_():
             pass
             # dial.selectedFiles()[0]
 
-    def _screenshot(self, flash=True):
+    def _screenshot(self, flash=True, canvas_only=False):
         """Capture screenshot of the currently displayed viewer.
 
         Parameters
@@ -564,15 +625,23 @@ class Window:
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
+        canvas_only : bool
+            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
+             the screenshot, By default, True.
         """
-        img = self._qt_window.grab().toImage()
-        if flash:
-            from napari._qt.utils import add_flash_animation
+        from napari._qt.utils import add_flash_animation
 
-            add_flash_animation(self._qt_window)
+        if canvas_only:
+            img = self._qt_viewer.canvas.native.grabFramebuffer()
+            if flash:
+                add_flash_animation(self._qt_viewer._canvas_overlay)
+        else:
+            img = self._qt_window.grab().toImage()
+            if flash:
+                add_flash_animation(self._qt_window)
         return img
 
-    def screenshot(self, path=None, flash=True):
+    def screenshot(self, path=None, flash=True, canvas_only=False):
         """Take currently displayed viewer and convert to an image array.
 
         Parameters
@@ -582,6 +651,9 @@ class Window:
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
+        canvas_only : bool
+            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
+             the screenshot, By default, True.
 
         Returns
         -------
@@ -591,10 +663,10 @@ class Window:
         """
         from napari.utils.io import imsave
 
-        img = self._screenshot(flash)
+        img = QImg2array(self._screenshot(flash, canvas_only))
         if path is not None:
-            imsave(path, QImg2array(img))  # scikit-image imsave method
-        return QImg2array(img)
+            imsave(path, img)  # scikit-image imsave method
+        return img
 
     def clipboard(self, flash=True):
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard.

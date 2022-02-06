@@ -16,10 +16,11 @@ from napari.utils.events.containers import EventedSet
 from napari.utils.misc import ensure_iterable
 
 from ..base import BaseLayer
-from ._region_constants import Box, Mode, Orientation, region_classes
+from ._region import region_classes
+from ._region_constants import Box, Mode, Orientation
 from ._region_list import RegionList
 from ._region_mouse_bindings import add, edit, highlight, move, select
-from ._region_utils import extract_region_orientation, get_default_region_type, preprocess_region
+from ._region_utils import get_default_region_type, parse_region_data, preprocess_region
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},
@@ -127,10 +128,7 @@ class Region(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.asarray([])
-        else:
-            data, orientation = extract_region_orientation(data, orientation)
+        data, orientation = parse_region_data(data, orientation)
         super().__init__(
             data,
             label=label,
@@ -450,7 +448,7 @@ class Region(BaseLayer):
 
     @data.setter
     def data(self, data):
-        data, orientation = extract_region_orientation(data)
+        data, orientation = parse_region_data(data)
         n_new_regions = len(data)
         if orientation is None:
             orientation = self.orientation
@@ -523,7 +521,7 @@ class Region(BaseLayer):
             applied to each shape otherwise the same value will be used for all
             shapes.
         """
-        data, shape_type = extract_region_orientation(data, orientation)
+        data, shape_type = parse_region_data(data, orientation)
 
         n_new_shapes = len(data)
         if face_color is None:

@@ -1,12 +1,15 @@
 """Qt widget that embeds the canvas"""
+import warnings
 from contextlib import suppress
 from typing import Tuple
+from weakref import WeakSet
 
 import numpy as np
 from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
-from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, square_pixmap
+from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, crosshair_pixmap, square_pixmap
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.interactions import (
     mouse_move_callbacks,
     mouse_press_callbacks,
@@ -26,7 +29,6 @@ from .._vispy.overlays.grid_lines import VispyGridLinesVisual
 from .._vispy.overlays.text import VispyTextVisual
 from .._vispy.tools.drag import VispyDragTool
 from .._vispy.utils.visual import create_vispy_visual
-from ..utils.vendored.interactions import ReadOnlyWrapper
 from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from .qt_toolbar import QtViewToolbar
@@ -52,11 +54,15 @@ class QtViewer(QSplitter):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
+    _instances = WeakSet()
     _pos_offset = (0, 0)
     _pos_offset_set = False
+    _console = None
+    dockConsole = None
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
+        self._instances.add(self)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAcceptDrops(False)
         QCoreApplication.setAttribute(Qt.AA_UseStyleSheetPropagationInWidgetStyles, True)
@@ -182,7 +188,7 @@ class QtViewer(QSplitter):
         # toolbar
         self.viewerToolbar = QtViewToolbar(self.viewer, self, **kwargs)
 
-    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, **kwargs):
+    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, dock_console=False, **kwargs):
         # set in main canvas
         canvas_layout = QHBoxLayout()
         canvas_layout.addWidget(self.canvas.native, stretch=True)
@@ -227,6 +233,19 @@ class QtViewer(QSplitter):
             self.dockLayerControls.visibilityChanged.connect(self._constrain_width)
             self.dockLayerList.setMaximumWidth(258)
             self.dockLayerList.setMinimumWidth(258)
+        if dock_console:
+            self.dockConsole = QtViewerDockWidget(
+                self,
+                QWidget(),
+                name="Console",
+                area="bottom",
+                allowed_areas=["top", "bottom"],
+                object_name="console",
+            )
+            self.dockConsole.setVisible(False)
+            # because the console is loaded lazily in the @getter, this line just
+            # gets (or creates) the console when the dock console is made visible.
+            self.dockConsole.visibilityChanged.connect(self._ensure_connect)
 
         main_widget = QWidget()
         main_layout = QVBoxLayout()
@@ -314,6 +333,36 @@ class QtViewer(QSplitter):
         else:
             self.controls.setMaximumWidth(220)
 
+    def _ensure_connect(self):
+        # lazy load console
+        id(self.console)
+
+    @property
+    def console(self):
+        """QtConsole: iPython console terminal integrated into the napari GUI."""
+        if self._console is None and self.dockConsole is not None:
+            try:
+                import napari
+                from napari_console import QtConsole
+
+                import napari_plot
+
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore")
+                    self.console = QtConsole(self.viewer)
+                    self.console.push({"napari": napari, "napari_plot": napari_plot})
+            except ImportError:
+                warnings.warn("napari-console not found. It can be installed with" ' "pip install napari_console"')
+                self._console = None
+        return self._console
+
+    @console.setter
+    def console(self, console):
+        self._console = console
+        if console is not None:
+            self.dockConsole.setWidget(console)
+            console.setParent(self.dockConsole)
+
     def _on_active_change(self, _event=None):
         """When active layer changes change keymap handler.
 
@@ -389,13 +438,15 @@ class QtViewer(QSplitter):
         if dialog.exec_():
             pass
 
-    def screenshot(self, path=None):
+    def screenshot(self, path=None, flash=True):
         """Take currently displayed screen and convert to an image array.
 
         Parameters
         ----------
         path : str
             Filename for saving screenshot image.
+        flash : bool
+            Flag to indicate whether flash animation should be shown after the screenshot was captured.
 
         Returns
         -------
@@ -437,12 +488,14 @@ class QtViewer(QSplitter):
 
         if cursor == "square":
             # make sure the square fits within the current canvas
-            if size < 8 or size > (min(*self.viewer.window.qt_viewer.canvas.size) - 4):
+            if size < 8 or size > (min(*self.canvas.size) - 4):
                 q_cursor = self._cursors["cross"]
             else:
                 q_cursor = QCursor(square_pixmap(size))
         elif cursor == "circle":
             q_cursor = QCursor(circle_pixmap(size))
+        elif cursor == "crosshair":
+            q_cursor = QCursor(crosshair_pixmap())
         else:
             q_cursor = self._cursors[cursor]
 
@@ -472,6 +525,23 @@ class QtViewer(QSplitter):
         else:
             self._layers_controls_dialog.setVisible(not self._layers_controls_dialog.isVisible())
 
+    def on_toggle_console_visibility(self, event=None):
+        """Toggle console visible and not visible.
+
+        Imports the console the first time it is requested.
+        """
+        # force instantiation of console if not already instantiated
+        _ = self.console
+
+        viz = not self.dockConsole.isVisible()
+        # modulate visibility at the dock widget level as console is dockable
+        self.dockConsole.setVisible(viz)
+        if self.dockConsole.isFloating():
+            self.dockConsole.setFloating(True)
+
+        if viz:
+            self.dockConsole.raise_()
+
     @property
     def _canvas_corners_in_world(self):
         """Location of the corners of canvas in world coordinates.
@@ -498,11 +568,19 @@ class QtViewer(QSplitter):
         if event.pos is None:
             return
 
+        # Add the view ray to the event
+        event.view_direction = None  # always None because we will display 2d data
+        event.up_direction = None  # always None because we will display 2d data
+
         # Update the cursor position
+        self.viewer.cursor._view_direction = event.view_direction
         self.viewer.cursor.position = self._map_canvas2world(event.pos)
 
         # Add the cursor position to the event
         event.position = self.viewer.cursor.position
+
+        # Add the displayed dimensions to the event
+        event.dims_displayed = [0, 1]
 
         # Put a read only wrapper on the event
         event = ReadOnlyWrapper(event)
@@ -636,4 +714,7 @@ class QtViewer(QSplitter):
         """
         self.layers.close()
         self.canvas.native.deleteLater()
+        if self._console is not None:
+            self.console.close()
+        self.dockConsole.deleteLater()
         event.accept()

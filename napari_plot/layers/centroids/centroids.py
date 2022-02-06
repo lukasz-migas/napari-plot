@@ -141,12 +141,13 @@ class Centroids(BaseLayer):
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
-        h = self._thumbnail_shape[0]
-        colormapped = np.zeros(self._thumbnail_shape)
-        colormapped[..., 3] = 1
-        colormapped[h - 2 : h + 2, :] = 1  # horizontal strip
-        colormapped[..., 3] *= self.opacity
-        self.thumbnail = colormapped
+        if self._allow_thumbnail_update:
+            h = self._thumbnail_shape[0]
+            thumbnail = np.zeros(self._thumbnail_shape)
+            thumbnail[..., 3] = 1
+            thumbnail[h - 2 : h + 2, :] = 1  # horizontal strip
+            thumbnail[..., 3] *= self.opacity
+            self.thumbnail = thumbnail
 
     @property
     def _view_data(self) -> np.ndarray:

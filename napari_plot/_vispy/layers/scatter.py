@@ -10,6 +10,9 @@ if ty.TYPE_CHECKING:
     from ...layers import Scatter
 
 
+MARKERS_MAIN = 0
+
+
 class VispyScatterLayer(VispyBaseLayer):
     """Line layer"""
 
@@ -20,30 +23,37 @@ class VispyScatterLayer(VispyBaseLayer):
         node = Compound([Markers(), Text()])
         super().__init__(layer, node)
 
-        self.layer.events.symbol.connect(self._on_data_change)
         self.layer.events.size.connect(self._on_data_change)
         self.layer.events.edge_width.connect(self._on_data_change)
         self.layer.events.edge_color.connect(self._on_data_change)
         self.layer.events.face_color.connect(self._on_data_change)
-        self.layer.events.scaling.connect(self._on_data_change)
+        self.layer.events.symbol.connect(self._on_symbol_change)
+        self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.connect(self._on_text_change)
 
         self.reset()
         self._on_data_change()
 
+    def _on_scaling_change(self, event=None):
+        """Set data"""
+        self.node._subvisuals[MARKERS_MAIN].scaling = self.layer.scaling
+
+    def _on_symbol_change(self, event=None):
+        """Set data"""
+        self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol
+
     def _on_data_change(self, event=None):
         """Set data"""
-        set_data = self.node._subvisuals[0].set_data
-
-        set_data(
+        self.node._subvisuals[MARKERS_MAIN].set_data(
             self.layer.data[:, ::-1],
             size=self.layer.size,
             edge_width=self.layer.edge_width,
-            symbol=self.layer.symbol,
             edge_color=self.layer.edge_color,
             face_color=self.layer.face_color,
-            scaling=self.layer.scaling,
         )
+        self.node._subvisuals[MARKERS_MAIN].scaling = self.layer.scaling
+        self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol
+
         self._on_text_change(update_node=False)
         self.node.update()
 

@@ -28,7 +28,6 @@ class QtLayerButtons(QFrame):
         self.delete_btn.setParent(self)
 
         self.new_points_btn = QtViewerPushButton(
-            self.viewer,
             "new_points",
             "Add new points layer",
             slot=lambda: self.viewer.add_points(
@@ -38,7 +37,6 @@ class QtLayerButtons(QFrame):
         )
 
         self.new_shapes_btn = QtViewerPushButton(
-            self.viewer,
             "new_shapes",
             "Add new shapes layer",
             slot=lambda: self.viewer.add_shapes(
@@ -77,17 +75,15 @@ class QtViewerButtons(QFrame):
 
     def __init__(self, viewer, parent=None):
         super().__init__()
-
         self.viewer = viewer
 
         self.resetViewButton = QtViewerPushButton(
-            self.viewer,
             "home",
             "Reset view (Ctrl-R)",
             slot=lambda: self.viewer.reset_view(),
         )
 
-        self.hidePanelButton = QtViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
+        self.hidePanelButton = QtViewerPushButton("minimise", "Hide control panel (Ctrl-H)")
         if parent is not None:
             self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
 

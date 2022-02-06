@@ -6,18 +6,14 @@ from napari.utils._register import template
 from napari.utils.misc import camel_to_snake
 
 
-def create_func(cls, name=None, doc=None):
+def create_func(cls, name=None, doc=None, filename: str = "<string>"):
     cls_name = cls.__name__
 
     if name is None:
         name = camel_to_snake(cls_name)
 
     if "layer" in name:
-        raise ValueError(
-            "name {name} should not include 'layer'",
-            deferred=True,
-            name=name,
-        )
+        raise ValueError(f"name {name} should not include 'layer'")
 
     name = "add_" + name
 
@@ -50,8 +46,11 @@ def create_func(cls, name=None, doc=None):
         "napari": sys.modules.get("napari"),
         "napari_plot": sys.modules.get("napari_plot"),
     }
-    exec(src, execdict)
+    code = compile(src, filename=filename, mode="exec")
+    exec(code, execdict)
     func = execdict[name]
+
+    func.__doc__ = doc
 
     func.__doc__ = doc
 

@@ -1,4 +1,6 @@
 """Override text visual to fix label cropping"""
+from weakref import ref
+
 from napari._vispy.overlays.text import TextOverlayPosition
 from napari._vispy.overlays.text import VispyTextOverlay as _VispyTextVisual
 
@@ -7,10 +9,10 @@ class VispyTextVisual(_VispyTextVisual):
     """Overwrite text position"""
 
     def __init__(self, qt_viewer, viewer, parent=None, order=1e6):
-        self._qt_viewer = qt_viewer
+        self._ref_qt_viewer = ref(qt_viewer)
         super().__init__(viewer, parent, order)
 
-    def _on_position_change(self, event):
+    def _on_position_change(self, event=None):
         """Change position of text visual.
 
         This is necessary to account for the offsets caused by the x/y-axis offsets.
@@ -18,7 +20,7 @@ class VispyTextVisual(_VispyTextVisual):
         position = self._viewer.text_overlay.position
         x_offset, y_offset = 10, 5
         canvas_size = list(self.node.canvas.size)
-        canvas_offset = self._qt_viewer.pos_offset
+        canvas_offset = self._ref_qt_viewer().pos_offset
         if canvas_offset:
             canvas_size[0] -= canvas_offset[0] + 10
             canvas_size[1] -= canvas_offset[1]

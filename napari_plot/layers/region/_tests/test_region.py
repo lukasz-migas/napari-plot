@@ -65,6 +65,18 @@ def test_with_orientation():
     assert np.all([o == "horizontal" for o in layer.orientation])
 
 
+def test_with_tuples():
+    # add multiple regions
+    data = [(50, 100), (100, 150), (300, 321)]
+    layer = Region(data)
+    assert layer.n_regions == len(data)
+    assert np.all([o == "vertical" for o in layer.orientation])
+
+    layer = Region(data, orientation="horizontal")
+    assert layer.n_regions == len(data)
+    assert np.all([o == "horizontal" for o in layer.orientation])
+
+
 def test_adding_regions():
     data = [[25, 50], [50, 100]]
     layer = Region(data, orientation="vertical")

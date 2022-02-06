@@ -7,7 +7,8 @@ from napari.layers.shapes._shapes_models import Rectangle
 from napari.layers.shapes._shapes_utils import triangles_intersect_box
 from napari.utils.geometry import inside_triangles
 
-from ._region_constants import Orientation, region_classes
+from ._region import region_classes
+from ._region_constants import Orientation
 
 
 class RegionList:

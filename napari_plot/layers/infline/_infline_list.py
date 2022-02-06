@@ -173,7 +173,7 @@ class InfiniteLineList:
         """Updates the z order of the triangles given the z_index list"""
         self._z_order = np.argsort(self._z_index)
 
-    def inside(self, coord, max_dist: float = 5.0):
+    def inside(self, coord, max_dist: float = 0.1):
         """Determine if any line at given coord by looking at nearest line within defined limit."""
         pos = make_infinite_pos(self.data, self.orientations)
         indices = nearby_line(pos - coord[::-1], max_dist)

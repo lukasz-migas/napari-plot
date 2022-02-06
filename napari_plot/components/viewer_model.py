@@ -73,7 +73,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
         # Set current drag tool
         self.drag_tool.events.active.connect(self._on_update_tool)
-        self.drag_tool.active = "box"
+        self.drag_tool.active = "auto"
 
     def __hash__(self):
         return id(self)
@@ -208,6 +208,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin, xmax, _, _ = self.camera.rect
         self.camera.rect = (xmin, xmax, ymin, ymax)
 
+    def reset_current_y_view(self, _event=None):
+        """Reset y-axis for current selection."""
+        xmin, xmax, _, _ = self.camera.rect
+        self.set_x_view(xmin, xmax)
+
     def _update_layers(self, event=None, layers=None):
         """Updates the contained layers.
 
@@ -241,6 +246,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layer.events.shear.connect(self._on_layers_change)
         layer.events.affine.connect(self._on_layers_change)
         layer.events.name.connect(self.layers._update_name)
+        layer.events.visible.connect(self._on_update_extent)
 
         # Update dims and grid model
         self._on_layers_change(None)
@@ -335,10 +341,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
 
 for _layer in [
-    layers.Line,
-    layers.Scatter,
+    # napari layers
     layers.Points,
     layers.Shapes,
+    layers.Image,
+    # napari-plot layers
+    layers.Line,
+    layers.Scatter,
     layers.Region,
     layers.InfLine,
     layers.Centroids,

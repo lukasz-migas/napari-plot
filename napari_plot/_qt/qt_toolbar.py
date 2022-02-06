@@ -1,4 +1,6 @@
 """Toolbar"""
+from weakref import ref
+
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
@@ -16,7 +18,7 @@ class QtViewToolbar(QWidget):
     def __init__(self, viewer, qt_viewer, **kwargs):
         super().__init__(parent=qt_viewer)
         self.viewer = viewer
-        self.qt_viewer = qt_viewer
+        self._ref_qt_viewer = ref(qt_viewer)
 
         # create instance
         toolbar_right = QtMiniToolbar(qt_viewer, Qt.Vertical)
@@ -26,7 +28,7 @@ class QtViewToolbar(QWidget):
         self.tools_zoomout_btn = toolbar_right.insert_qta_tool("zoom_out", tooltip="Zoom-out", func=self._reset_view)
         # view modifiers
         self.tools_clip_btn = toolbar_right.insert_qta_tool(
-            "clipboard", tooltip="Copy figure to clipboard", func=self.qt_viewer.clipboard
+            "clipboard", tooltip="Copy figure to clipboard", func=self._ref_qt_viewer().clipboard
         )
         self.tools_axis_btn = toolbar_right.insert_qta_tool(
             "axes",
@@ -55,7 +57,7 @@ class QtViewToolbar(QWidget):
             "layers",
             tooltip="Display layer controls",
             checkable=False,
-            func=qt_viewer.on_toggle_controls_dialog,
+            func=self._ref_qt_viewer().on_toggle_controls_dialog,
         )
 
     def _clear_canvas(self):
@@ -65,13 +67,13 @@ class QtViewToolbar(QWidget):
         self.viewer.reset_view()
 
     def _toggle_grid_lines_visible(self, state):
-        self.qt_viewer.viewer.grid_lines.visible = state
+        self._ref_qt_viewer().viewer.grid_lines.visible = state
 
     def _toggle_text_visible(self, state):
-        self.qt_viewer.viewer.text_overlay.visible = state
+        self._ref_qt_viewer().viewer.text_overlay.visible = state
 
     def _toggle_axis_controls(self, _):
-        _dlg_axis = QtAxisControls(self.viewer, self.qt_viewer)
+        _dlg_axis = QtAxisControls(self.viewer, self._ref_qt_viewer())
         _dlg_axis.show_left_of_widget(self.tools_axis_btn)
 
     def _on_set_tools_menu(self):
@@ -82,32 +84,32 @@ class QtViewToolbar(QWidget):
         actions = []
         toggle_tool = QAction("Tool: Auto", self)
         toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.AUTO)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.AUTO))
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.AUTO)
+        toggle_tool.triggered.connect(lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.AUTO))
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
         toggle_tool = QAction("Tool: Box", self)
         toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.BOX)
-        toggle_tool.triggered.connect(lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX)
+        toggle_tool.triggered.connect(lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX))
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
         toggle_tool = QAction("Tool: Horizontal span", self)
         toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
+            lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
         )
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
         toggle_tool = QAction("Tool: Vertical span", self)
         toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(self.qt_viewer.viewer.drag_tool.active == DragMode.VERTICAL_SPAN)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.VERTICAL_SPAN)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
+            lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
         )
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)

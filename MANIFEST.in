@@ -2,7 +2,6 @@ include LICENSE
 include README.md
 recursive-include napari_plot *.pyi
 recursive-include napari_plot _tests/*.py
-recursive-include napari_plot *.pyi
 recursive-include napari_plot *.png *.svg *.qss *.gif *.ico *.icns
 recursive-include napari_plot *.yaml
 exclude napari_plot/resources/_qt_resources*.py

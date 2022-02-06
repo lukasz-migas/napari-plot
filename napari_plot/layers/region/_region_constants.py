@@ -3,8 +3,6 @@ from enum import Enum, auto
 
 from napari.utils.misc import StringEnum
 
-from ._region import Horizontal, Vertical
-
 
 class Mode(StringEnum):
     """
@@ -44,6 +42,3 @@ class Orientation(str, Enum):
 
     HORIZONTAL = "horizontal"
     VERTICAL = "vertical"
-
-
-region_classes = {Orientation.HORIZONTAL: Horizontal, Orientation.VERTICAL: Vertical}

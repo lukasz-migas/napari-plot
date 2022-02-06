@@ -6,11 +6,13 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QFont
 from qtpy.QtWidgets import (
     QActionGroup,
+    QApplication,
     QButtonGroup,
     QCheckBox,
     QComboBox,
     QLabel,
     QLineEdit,
+    QMainWindow,
     QPushButton,
     QSizePolicy,
     QSlider,
@@ -261,3 +263,15 @@ def qt_signals_blocked(obj):
     obj.blockSignals(True)
     yield
     obj.blockSignals(False)
+
+
+def get_parent(parent):
+    """Get top level parent"""
+    if parent is None:
+        app = QApplication.instance()
+        if app:
+            for i in app.topLevelWidgets():
+                if isinstance(i, QMainWindow):  # pragma: no cover
+                    parent = i
+                    break
+    return parent

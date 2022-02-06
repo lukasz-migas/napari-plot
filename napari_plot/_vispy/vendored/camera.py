@@ -100,12 +100,12 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 self.viewer.drag_tool.tool.position = x0, x1, y0, y1
                 event.handled = True
             elif 2 in event.buttons and not modifiers:  # right-button click
-                # Zoom
-                p1c = np.array(event.last_event.pos)[:2]
-                p2c = np.array(event.pos)[:2]
-                scale = (1 + self.zoom_factor) ** ((p1c - p2c) * np.array([1, -1]))
-                center = self._transform.imap(event.press_event.pos[:2])
-                self.zoom(scale, center)
+                # Translate
+                p1 = np.array(event.last_event.pos)[:2]
+                p2 = np.array(event.pos)[:2]
+                p1s = self._transform.imap(p1)
+                p2s = self._transform.imap(p2)
+                self.pan(p1s - p2s)
                 event.handled = True
             else:
                 event.handled = False
@@ -113,7 +113,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             # accept the event if it is button 1 or 2.
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
-        elif event.type == "mouse_release":
+        elif event.type == "mouse_release" and 1 in event.buttons:
             # this is where we change the interaction and actually perform various checks to ensure user doesn't zoom
             # to someplace where they shouldn't
             modifiers = event.mouse_event.modifiers
@@ -167,16 +167,18 @@ class LimitedPanZoomCamera(PanZoomCamera):
     def _check_mode_limit(self, rect: Rect) -> Rect:
         """Check whether there are any restrictions on the movement"""
         axis_mode = self.axis_mode
-        if CameraMode.ALL in axis_mode or self.extent is None:
+        limit_rect = self.extent
+        # no locking mechanism is enabled or extens have not been set yet
+        if CameraMode.ALL in axis_mode or limit_rect is None:
             return rect
         if CameraMode.LOCK_TO_BOTTOM in axis_mode:
-            rect.bottom = self.extent.bottom
+            rect.bottom = limit_rect.bottom
         if CameraMode.LOCK_TO_TOP in axis_mode:
-            rect.top = self.extent.top
+            rect.top = limit_rect.top
         if CameraMode.LOCK_TO_LEFT in axis_mode:
-            rect.left = self.extent.left
+            rect.left = limit_rect.left
         if CameraMode.LOCK_TO_RIGHT in axis_mode:
-            rect.right = self.extent.right
+            rect.right = limit_rect.right
         return rect
 
     def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:

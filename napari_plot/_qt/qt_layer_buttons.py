@@ -28,7 +28,6 @@ class QtLayerButtons(QFrame):
         self.delete_btn.setParent(self)
 
         self.new_points_btn = QtQtaViewerPushButton(
-            self.viewer,
             "new_points",
             "Add new points layer",
             slot=lambda: self.viewer.add_points(
@@ -38,7 +37,6 @@ class QtLayerButtons(QFrame):
         )
 
         self.new_shapes_btn = QtQtaViewerPushButton(
-            self.viewer,
             "new_shapes",
             "Add new shapes layer",
             slot=lambda: self.viewer.add_shapes(
@@ -81,19 +79,25 @@ class QtViewerButtons(QFrame):
         self.viewer = viewer
 
         self.resetViewButton = QtQtaViewerPushButton(
-            self.viewer,
             "home",
             "Reset view (Ctrl-R)",
             lambda: self.viewer.reset_view(),
         )
+        # only add console if its QtViewer
+        self.consoleButton = None
+        if parent is not None and hasattr(parent, "dockConsole"):
+            self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
+            self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
 
-        self.hidePanelButton = QtQtaViewerPushButton(self.viewer, "minimise", "Hide control panel (Ctrl-H)")
+        self.hidePanelButton = QtQtaViewerPushButton("minimise", "Hide control panel (Ctrl-H)")
         if parent is not None:
             self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.resetViewButton)
+        if self.consoleButton is not None:
+            layout.addWidget(self.consoleButton)
         layout.addStretch(0)
         layout.addWidget(self.hidePanelButton)
         self.setLayout(layout)
