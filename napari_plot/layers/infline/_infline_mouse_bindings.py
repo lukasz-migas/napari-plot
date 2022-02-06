@@ -51,9 +51,10 @@ def add(layer, event):
 def move(layer, event):
     """Move currently selected line to new location."""
     _select(layer, event, False)
-    # above, user should have selected single region and then can move it left-or-right or up-or-down
+    # above, user should have selected single line and then can move it left-or-right or up-or-down
     data, orientation = None, None
-    if len(layer.selected_data) > 0:
+    n = len(layer.selected_data)
+    if n > 0:
         index = list(layer.selected_data)[0]
         data, orientation = layer.data[index], layer.orientation[index]
         layer.selected_data = {index}
@@ -97,8 +98,7 @@ def select(layer, event):
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
         # Drag any selected shapes
-        if len(layer.selected_data) == 0:
-            _drag_selection_box(layer, coordinates)
+        _drag_selection_box(layer, coordinates)
         yield
 
     # on release
@@ -151,9 +151,6 @@ def _drag_selection_box(layer, coordinates):
         Position of mouse cursor in data coordinates.
     """
     # If something selected return
-    if len(layer.selected_data) > 0:
-        return
-
     coord = [coordinates[i] for i in layer._dims_displayed]
 
     # Create or extend a selection box
