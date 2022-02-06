@@ -73,7 +73,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
         # Set current drag tool
         self.drag_tool.events.active.connect(self._on_update_tool)
-        self.drag_tool.active = "box"
+        self.drag_tool.active = "auto"
 
     def __hash__(self):
         return id(self)

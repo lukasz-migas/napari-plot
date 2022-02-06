@@ -167,16 +167,18 @@ class LimitedPanZoomCamera(PanZoomCamera):
     def _check_mode_limit(self, rect: Rect) -> Rect:
         """Check whether there are any restrictions on the movement"""
         axis_mode = self.axis_mode
-        if CameraMode.ALL in axis_mode or self.extent is None:
+        limit_rect = self.extent
+        # no locking mechanism is enabled or extens have not been set yet
+        if CameraMode.ALL in axis_mode or limit_rect is None:
             return rect
         if CameraMode.LOCK_TO_BOTTOM in axis_mode:
-            rect.bottom = self.extent.bottom
+            rect.bottom = limit_rect.bottom
         if CameraMode.LOCK_TO_TOP in axis_mode:
-            rect.top = self.extent.top
+            rect.top = limit_rect.top
         if CameraMode.LOCK_TO_LEFT in axis_mode:
-            rect.left = self.extent.left
+            rect.left = limit_rect.left
         if CameraMode.LOCK_TO_RIGHT in axis_mode:
-            rect.right = self.extent.right
+            rect.right = limit_rect.right
         return rect
 
     def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
