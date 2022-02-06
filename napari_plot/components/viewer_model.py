@@ -208,6 +208,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin, xmax, _, _ = self.camera.rect
         self.camera.rect = (xmin, xmax, ymin, ymax)
 
+    def reset_current_y_view(self, _event=None):
+        """Reset y-axis for current selection."""
+        xmin, xmax, _, _ = self.camera.rect
+        self.set_x_view(xmin, xmax)
+
     def _update_layers(self, event=None, layers=None):
         """Updates the contained layers.
 
