@@ -58,7 +58,6 @@ class QtViewer(QSplitter):
     _pos_offset = (0, 0)
     _pos_offset_set = False
     _console = None
-    dockConsole = None
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
         super().__init__(parent=parent)  # noqa
@@ -184,7 +183,7 @@ class QtViewer(QSplitter):
         # widget showing layer buttons (e.g. add new shape)
         self.layerButtons = QtLayerButtons(self.viewer)
         # viewer buttons
-        self.viewerButtons = QtViewerButtons(self.viewer, self)
+        self.viewerButtons = QtViewerButtons(self.viewer, self, **kwargs)
         # toolbar
         self.viewerToolbar = QtViewToolbar(self.viewer, self, **kwargs)
 
@@ -531,16 +530,16 @@ class QtViewer(QSplitter):
         Imports the console the first time it is requested.
         """
         # force instantiation of console if not already instantiated
-        _ = self.console
+        console = self.console
+        if console:
+            viz = not self.dockConsole.isVisible()
+            # modulate visibility at the dock widget level as console is dockable
+            self.dockConsole.setVisible(viz)
+            if self.dockConsole.isFloating():
+                self.dockConsole.setFloating(True)
 
-        viz = not self.dockConsole.isVisible()
-        # modulate visibility at the dock widget level as console is dockable
-        self.dockConsole.setVisible(viz)
-        if self.dockConsole.isFloating():
-            self.dockConsole.setFloating(True)
-
-        if viz:
-            self.dockConsole.raise_()
+            if viz:
+                self.dockConsole.raise_()
 
     @property
     def _canvas_corners_in_world(self):
@@ -716,5 +715,5 @@ class QtViewer(QSplitter):
         self.canvas.native.deleteLater()
         if self._console is not None:
             self.console.close()
-        self.dockConsole.deleteLater()
+            self.dockConsole.deleteLater()
         event.accept()

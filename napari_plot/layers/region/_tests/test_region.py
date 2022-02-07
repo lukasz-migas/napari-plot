@@ -146,10 +146,18 @@ def test_thumbnail():
     assert layer.thumbnail.shape == layer._thumbnail_shape
 
 
+def test_region_trim():
+    data = np.random.random((20, 2))
+    layer = Region(data)
+    assert layer.n_regions == 20
+    data = np.random.random((10, 2))
+    layer.data = data
+    assert layer.n_regions == 10
+
+
 def test_z_index():
     """Test setting z-index during instantiation."""
     shape = (10, 2)
-    np.random.seed(0)
     data = 20 * np.random.random(shape)
     layer = Region(data)
     assert layer.z_index == [0] * shape[0]
@@ -193,7 +201,6 @@ def test_z_index():
 
 def test_move_to_front():
     """Test moving shapes to front."""
-    np.random.seed(0)
     data = 20 * np.random.random((10, 2))
     z_index_list = [2, 3] * 5
     layer = Region(data, z_index=z_index_list)

@@ -93,6 +93,15 @@ def test_infline_color_set(color):
     np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
 
+def test_infline_trim():
+    data = np.random.random(20)
+    layer = InfLine(data, orientation="vertical")
+    assert layer.n_inflines == 20
+    data = np.random.random(10)
+    layer.data = data
+    assert layer.n_inflines == 10
+
+
 def test_infline_color_current():
     data = np.random.random(20)
     layer = InfLine(data, orientation="vertical")

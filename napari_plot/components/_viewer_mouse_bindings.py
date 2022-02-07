@@ -15,10 +15,10 @@ def boxzoom(viewer, event):
         x0, x1, y0, y1 = viewer.drag_tool.tool.position
         x, y = abs(x1 - x0), abs(y1 - y0)
         # if there is minimum difference in y-position, lets show it as vertical span
-        if y < ey:
+        if abs(sy - y) < ey:
             return Shape.VERTICAL
         # if there is minimum difference in x-position, lets show it as horizontal span
-        elif x < ex:
+        elif abs(sx - x) < ex:
             return Shape.HORIZONTAL
         return Shape.BOX
 

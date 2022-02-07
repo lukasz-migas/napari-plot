@@ -73,7 +73,7 @@ class QtViewerButtons(QFrame):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
-    def __init__(self, viewer, parent=None):
+    def __init__(self, viewer, parent=None, **kwargs):
         super().__init__()
 
         self.viewer = viewer
@@ -85,7 +85,7 @@ class QtViewerButtons(QFrame):
         )
         # only add console if its QtViewer
         self.consoleButton = None
-        if parent is not None and hasattr(parent, "dockConsole"):
+        if kwargs.get("dock_console", False):
             self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
             self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
 

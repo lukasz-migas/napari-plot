@@ -485,7 +485,7 @@ class InfLine(BaseLayer):
     @data.setter
     def data(self, data):
         data, orientation = parse_infline_orientation(data)
-        n_new_regions = len(data)
+        n_new = len(data)
         if orientation is None:
             orientation = self.orientation
 
@@ -493,13 +493,13 @@ class InfLine(BaseLayer):
         z_indices = self._data_view.z_indices
 
         # fewer shapes, trim attributes
-        if self.n_regions > n_new_regions:
-            orientation = orientation[:n_new_regions]
-            z_indices = z_indices[:n_new_regions]
-            color = color[:n_new_regions]
+        if self.n_inflines > n_new:
+            orientation = orientation[:n_new]
+            z_indices = z_indices[:n_new]
+            color = color[:n_new]
         # more shapes, add attributes
-        elif self.n_regions < n_new_regions:
-            n_shapes_difference = n_new_regions - self.n_regions
+        elif self.n_inflines < n_new:
+            n_shapes_difference = n_new - self.n_regions
             orientation = orientation + [get_default_infline_type(orientation)] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
             color = np.concatenate((color, self._get_new_color(n_shapes_difference)))
