@@ -81,25 +81,10 @@ def test_memory_leaking(qtbot, make_napari_plot_viewer):
     viewer = make_napari_plot_viewer()
     image = weakref.ref(viewer.add_image(data))
     del viewer.layers[0]
-    del viewer.layers[0]
     qtbot.wait(100)
     gc.collect()
     gc.collect()
     assert image() is None
-
-
-@skip_local_popups
-def test_leaks_image(qtbot, make_napari_plot_viewer):
-    viewer = make_napari_plot_viewer(show=True)
-    lr = weakref.ref(viewer.add_image(np.random.rand(10, 10)))
-    dr = weakref.ref(lr().data)
-
-    viewer.layers.clear()
-    qtbot.wait(100)
-    gc.collect()
-    assert not gc.collect()
-    assert not lr()
-    assert not dr()
 
 
 def test_remove_image(make_napari_plot_viewer):
