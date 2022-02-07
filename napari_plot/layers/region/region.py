@@ -235,7 +235,6 @@ class Region(BaseLayer):
     @face_color.setter
     def face_color(self, face_color):
         self._set_color(face_color)
-        self.events.face_color()
         self._update_thumbnail()
 
     @property
@@ -272,9 +271,8 @@ class Region(BaseLayer):
         else:
             colors = np.empty((0, 4))
 
-        setattr(self._data_view, "face_color", colors)
-        color_event = getattr(self.events, "face_color")
-        color_event()
+        self._data_view.face_color = colors
+        self.events.face_color()
 
     @property
     def z_index(self) -> ty.List[int]:

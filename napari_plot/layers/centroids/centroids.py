@@ -146,15 +146,6 @@ class Centroids(BaseLayer):
         self.events.color()
         self._update_thumbnail()
 
-    # def _get_x_region_extent(self, x_min: float, x_max: float):
-    #     """Return data extents in the (xmin, xmax, ymin, ymax) format."""
-    #     from napari_plot.utils.utilities import find_nearest_index
-    #
-    #     if self.orientation == Orientation.VERTICAL:
-    #         idx_min, idx_max = find_nearest_index(self.data[:, 1], [x_min, x_max])
-    #         if idx_min == idx_max:
-    #             idx_max += 1
-
     @property
     def orientation(self):
         """Orientation of the centroids layer."""
@@ -164,19 +155,6 @@ class Centroids(BaseLayer):
     def orientation(self, value):
         self._orientation = Orientation(value)
         self.events.set_data()
-
-    def _get_state(self):
-        """Get dictionary of layer state"""
-        state = self._get_base_state()
-        state.update(
-            {
-                "data": self.data,
-                "color": self.color,
-                "width": self.width,
-                "method": self.method,
-            }
-        )
-        return state
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
@@ -201,12 +179,30 @@ class Centroids(BaseLayer):
 
     @property
     def data(self):
-        """Return data"""
+        """Return data."""
         return self._data
 
     @data.setter
     def data(self, value: np.ndarray):
-        self._data = value
+        """Update data.
+
+        If the number of centroids is smaller than what's currently set, colors will be trimmed.
+        If the number of centroids is larger than what's currently set, colors will be append
+        """
+        data = parse_centroids_data(value)
+        color = self.color
+        n = len(self._data)
+        n_new = len(data)
+        # fewer centroids, trim attributes
+        if n > n_new:
+            color = self.color[:n_new]
+        # more centroids, add attributes
+        elif n < n_new:
+            n_difference = n_new - n
+            new_color = self.color[-1]
+            color = np.concatenate([color, np.full((n_difference, 4), fill_value=new_color)])
+        self._data = data
+        self.color = color
         self._emit_new_data()
 
     @property
@@ -220,18 +216,18 @@ class Centroids(BaseLayer):
         self.events.color()
 
     @property
-    def width(self):
-        """Get width"""
+    def width(self) -> float:
+        """Get width."""
         return self._width
 
     @width.setter
-    def width(self, value):
+    def width(self, value: float):
         self._width = value
         self.events.width()
 
     @property
     def method(self):
-        """Get method"""
+        """Get method."""
         return self._method
 
     @method.setter
@@ -246,8 +242,30 @@ class Centroids(BaseLayer):
         """Value of the data at a position in data coordinates"""
         return position[1]
 
+    def _get_state(self):
+        """Get dictionary of layer state"""
+        state = self._get_base_state()
+        state.update(
+            {
+                "data": self.data,
+                "color": self.color,
+                "width": self.width,
+                "method": self.method,
+            }
+        )
+        return state
+
     @property
     def _extent_data(self) -> np.ndarray:
         if len(self.data) == 0:
             return np.full((2, 2), np.nan)
         return get_extents(self.data, self.orientation)
+
+    # def _get_x_region_extent(self, x_min: float, x_max: float):
+    #     """Return data extents in the (xmin, xmax, ymin, ymax) format."""
+    #     from napari_plot.utils.utilities import find_nearest_index
+    #
+    #     if self.orientation == Orientation.VERTICAL:
+    #         idx_min, idx_max = find_nearest_index(self.data[:, 1], [x_min, x_max])
+    #         if idx_min == idx_max:
+    #             idx_max += 1

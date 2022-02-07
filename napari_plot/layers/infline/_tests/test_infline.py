@@ -93,6 +93,16 @@ def test_infline_color_set(color):
     np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
 
+@pytest.mark.parametrize("color", ["red", "#FF0000", (1, 0, 0), (1, 0, 0, 1)])
+def test_infline_color_update(color):
+    data = np.random.random(20)
+    layer = InfLine(data, orientation="vertical", color="white")
+    assert layer.n_inflines == 20
+    layer.color = color
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[5], np.asarray([1.0, 0.0, 0.0, 1.0]))
+
+
 def test_infline_trim():
     data = np.random.random(20)
     layer = InfLine(data, orientation="vertical")

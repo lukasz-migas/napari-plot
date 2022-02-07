@@ -163,26 +163,6 @@ class Scatter(BaseLayer):
 
         self.visible = visible
 
-    def _get_ndim(self) -> int:
-        """Determine number of dimensions of the layer. It's always going to be 2."""
-        return 2
-
-    def _get_state(self):
-        state = self._get_base_state()
-        state.update(
-            {
-                "data": self.data,
-                "symbol": self.symbol,
-                "face_color": self.face_color,
-                "edge_width": self.edge_width,
-                "edge_color": self.edge_color,
-                "scaling": self.scaling,
-                "size": self.size,
-                "label": self.label,
-            }
-        )
-        return state
-
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
         colormapped = np.zeros(self._thumbnail_shape)
@@ -381,3 +361,19 @@ class Scatter(BaseLayer):
     def label(self, value):
         self._label = value
         self.events.label()
+
+    def _get_state(self):
+        state = self._get_base_state()
+        state.update(
+            {
+                "data": self.data,
+                "symbol": self.symbol,
+                "face_color": self.face_color,
+                "edge_width": self.edge_width,
+                "edge_color": self.edge_color,
+                "scaling": self.scaling,
+                "size": self.size,
+                "label": self.label,
+            }
+        )
+        return state

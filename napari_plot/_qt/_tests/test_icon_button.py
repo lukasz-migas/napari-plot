@@ -21,7 +21,6 @@ def test_radio_button(qtbot):
     assert layer.mode != Mode.ADD
 
     btn = QtModeRadioButton(layer, "new_points", Mode.ADD, tooltip="tooltip")
-    assert btn.property("mode") == "new_points"
     assert btn.toolTip() == "tooltip"
     assert btn.icon() is not None
 

@@ -17,8 +17,7 @@ def parse_centroids_data(data: np.ndarray):
     elif data.shape[1] == 2:
         data = np.insert(data, 1, np.zeros(data.shape[0]), axis=1)
         return data
-    else:
-        raise NotImplementedError("Cannot parse input data.")
+    raise NotImplementedError("Cannot parse input data.")
 
 
 def get_extents(data: np.ndarray, orientation: str) -> np.ndarray:
@@ -35,7 +34,6 @@ def get_extents(data: np.ndarray, orientation: str) -> np.ndarray:
 def make_centroids(data: np.ndarray, color: np.ndarray, orientation: str) -> ty.Tuple[np.ndarray, np.ndarray]:
     """Make centroids data in the format [[x, 0], [x, y]]"""
     pos = np.zeros((len(data) * 2, 2), dtype=data.dtype)
-    # colors = np.zeros_like(pos, dtype=np.float32)
     colors = np.repeat(color, 2, axis=0)
     # in horizontal centroids, the three columns correspond to x-min, x-max, y
     if orientation == "horizontal":

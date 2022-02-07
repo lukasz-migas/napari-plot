@@ -37,6 +37,17 @@ def test_centroids_inputs_multiple(data, orientation):
     assert layer.orientation == orientation
 
 
+def test_centroids_change_data():
+    data = np.random.random((10, 2))
+    layer = Centroids(data)
+    np.testing.assert_array_equal(layer.data.shape, (10, 3))
+    assert len(layer.color) == 10
+    data = np.random.random((15, 3))
+    layer.data = data
+    np.testing.assert_array_equal(layer.data.shape, (15, 3))
+    assert len(layer.color) == 15
+
+
 def test_centroids_color():
     data = np.random.random((10, 3))
     layer = Centroids(data, color="white")
