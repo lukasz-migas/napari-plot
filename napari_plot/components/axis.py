@@ -1,4 +1,6 @@
 """Axis model"""
+import typing as ty
+
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
@@ -21,6 +23,8 @@ class Axis(EventedModel):
     y_tick_margin: int = 10
     x_max_size: int = 60
     y_max_size: int = 120
+    x_tick_formatter: ty.Optional[ty.Callable] = None
+    y_tick_formatter: ty.Optional[ty.Callable] = None
 
     @validator("label_color", "tick_color", pre=True)
     def _coerce_color(cls, v):

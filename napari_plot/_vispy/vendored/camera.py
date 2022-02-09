@@ -111,6 +111,8 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 event.handled = False
         elif event.type == "mouse_press":
             # accept the event if it is button 1 or 2.
+            x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
+            self.viewer.drag_tool.tool.position = x1, x1, y1, y1
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
         elif event.type == "mouse_release" and 1 in event.buttons:

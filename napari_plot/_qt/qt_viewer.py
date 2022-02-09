@@ -1,7 +1,6 @@
 """Qt widget that embeds the canvas"""
 import warnings
 from contextlib import suppress
-from typing import Tuple
 from weakref import WeakSet
 
 import numpy as np
@@ -55,8 +54,6 @@ class QtViewer(QSplitter):
     """
 
     _instances = WeakSet()
-    _pos_offset = (0, 0)
-    _pos_offset_set = False
     _console = None
 
     def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
@@ -121,23 +118,8 @@ class QtViewer(QSplitter):
     def __getattr__(self, name):
         return object.__getattribute__(self, name)
 
-    @property
-    def pos_offset(self) -> Tuple[int, int]:
-        """Pixel offset"""
-        # because we've added y-axis to the canvas, the central view is slightly offset from the (0, 0) position,
-        # in which case when we try to do any fancy drawing, it draws points slightly away from the place its meant
-        # to. Subtracting the y-axis width is sufficient to correct for the error.
-        return self._pos_offset
-
     def on_resize(self, event):
         """Update cached x-axis offset"""
-        # the first time its being set, it happens too quickly for the canvas to be fully rendered, so instead its set
-        # from the model attribute rather than the rect width
-        if not self._pos_offset_set:
-            self._pos_offset = int(self.viewer.axis.y_max_size), 20
-            self._pos_offset_set = False
-        else:
-            self._pos_offset = int(self.y_axis.node.rect.width), 20
         self.viewer._canvas_size = tuple(self.canvas.size[::-1])
 
     def _create_canvas(self) -> None:
@@ -604,8 +586,8 @@ class QtViewer(QSplitter):
             of the viewer.
         """
         position = list(position)
-        position[0] -= self.pos_offset[0]
-        position[1] -= self.pos_offset[1]
+        position[0] -= self.view.pos[0]
+        position[1] -= self.view.pos[1]
         transform = self.view.camera.transform.inverse
         mapped_position = transform.map(position)[:2]
         position_world_slice = mapped_position[::-1]
