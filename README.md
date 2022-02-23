@@ -26,7 +26,7 @@ where you can adjust layer properties like you would do in `napari`.
 Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
 behaviour where layer controls are embedded in the main application.
 
-![standalone](https://github.com/lukasz-migas/napari-1d/blob/main/misc/standalone.png)
+![live-view](https://github.com/lukasz-migas/napari-1d/blob/main/misc/napariplot-live-line.gif)
 
 ## Roadmap:
 
@@ -44,7 +44,7 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Points Layer - `napari's` own `Points` layer
   - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
   - [ ] Bar - horizontal and vertical barchart (TODO)
-- [ ] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
+- [x] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
 - [ ] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
   We currently support three zoom modes and plan to add a couple other tools.
   - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
