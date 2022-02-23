@@ -46,7 +46,7 @@ class Region(BaseLayer):
     orientation : str or list of str or list of Orientation
         List of orientations for each provided region. If orientations are not provided, they will be inferred directly
         from `data` or using the default of `vertical`.
-    face_color : str, array-like
+    color : str, array-like
         If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
         be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length of
         `data` and each element will be applied to each region otherwise the same value will be used for all regions.
@@ -108,11 +108,11 @@ class Region(BaseLayer):
 
     def __init__(
         self,
-        data,
+        data=None,
         *,
         # napari-plot parameters
         orientation="vertical",
-        face_color=(1.0, 1.0, 1.0, 1.0),
+        color=(1.0, 1.0, 1.0, 1.0),
         z_index=0,
         label="",
         # napari parameters
@@ -144,8 +144,8 @@ class Region(BaseLayer):
             visible=visible,
         )
         self.events.add(
-            face_color=Event,
-            current_face_color=Event,
+            color=Event,
+            current_color=Event,
             highlight=Event,
             mode=Event,
             shifted=Event,
@@ -183,43 +183,43 @@ class Region(BaseLayer):
         self._init_regions(
             data,
             orientation=orientation,
-            face_color=face_color,
+            color=color,
             z_index=z_index,
         )
 
         # set the current_* properties
         if len(data) > 0:
-            self._current_face_color = self.face_color[-1]
+            self._current_color = self.color[-1]
         elif len(data) == 0:
-            self._current_face_color = transform_color_with_defaults(
+            self._current_color = transform_color_with_defaults(
                 num_entries=1,
-                colors=face_color,
-                elem_name="face_color",
+                colors=color,
+                elem_name="color",
                 default="black",
             )
         self.visible = visible
 
     # noinspection PyMethodMayBeStatic
     def _initialize_color(self, color, n_regions: int):
-        """Get the face colors the Shapes layer will be initialized with
+        """Get the colors the Region layer will be initialized with
 
         Parameters
         ----------
         color : (N, 4) array or str
-            The value for setting edge or face_color
+            The value for color
         n_regions : int
             Number of regions to be initialized.
 
         Returns
         -------
         init_colors : (N, 4) array or str
-            The calculated values for setting edge or face_color
+            The calculated values for setting color
         """
         if n_regions > 0:
             transformed_color = transform_color_with_defaults(
                 num_entries=n_regions,
                 colors=color,
-                elem_name="face_color",
+                elem_name="color",
                 default="white",
             )
             init_colors = normalize_and_broadcast_colors(n_regions, transformed_color)
@@ -228,51 +228,48 @@ class Region(BaseLayer):
         return init_colors
 
     @property
-    def face_color(self):
-        """(N x 4) np.ndarray: Array of RGBA face colors for each region."""
-        return self._data_view.face_color
+    def color(self):
+        """(N x 4) np.ndarray: Array of RGBA colors for each region."""
+        return self._data_view.color
 
-    @face_color.setter
-    def face_color(self, face_color):
-        self._set_color(face_color)
-        self._update_thumbnail()
-
-    @property
-    def current_face_color(self):
-        """Return current face color."""
-        return self._current_face_color
-
-    @current_face_color.setter
-    def current_face_color(self, face_color: ColorType):
-        self._current_face_color = transform_color(face_color)[0]
-        if self._update_properties:
-            for i in self.selected_data:
-                self._data_view.update_face_color(i, self._current_face_color)
-                self.events.face_color()
-            self._update_thumbnail()
-        self.events.current_face_color()
-
-    def _set_color(self, color):
-        """Set the face_color property
+    @color.setter
+    def color(self, color):
+        """Set the color property
 
         Parameters
         ----------
         color : (N, 4) array or str
-            The value for setting edge or face_color
+            The value for setting color
         """
         if len(self.data) > 0:
             transformed_color = transform_color_with_defaults(
                 num_entries=len(self.data),
                 colors=color,
-                elem_name="face_color",
+                elem_name="color",
                 default="white",
             )
             colors = normalize_and_broadcast_colors(len(self.data), transformed_color)
         else:
             colors = np.empty((0, 4))
 
-        self._data_view.face_color = colors
-        self.events.face_color()
+        self._data_view.color = colors
+        self.events.color()
+        self._update_thumbnail()
+
+    @property
+    def current_color(self):
+        """Return current color."""
+        return self._current_color
+
+    @current_color.setter
+    def current_color(self, color: ColorType):
+        self._current_color = transform_color(color)[0]
+        if self._update_properties:
+            for i in self.selected_data:
+                self._data_view.update_color(i, self._current_color)
+                self.events.color()
+            self._update_thumbnail()
+        self.events.current_color()
 
     @property
     def z_index(self) -> ty.List[int]:
@@ -359,11 +356,11 @@ class Region(BaseLayer):
         # Update properties based on selected shapes
         if len(selected_data) > 0:
             selected_data_indices = list(selected_data)
-            selected_face_colors = self._data_view._face_color[selected_data_indices]
-            face_colors = np.unique(selected_face_colors, axis=0)
-            if len(face_colors) == 1:
-                face_color = face_colors[0]
-                self.current_face_color = face_color
+            selected_colors = self._data_view._color[selected_data_indices]
+            colors = np.unique(selected_colors, axis=0)
+            if len(colors) == 1:
+                color = colors[0]
+                self.current_color = color
         self.events.selected()
 
     def remove_selected(self):
@@ -374,7 +371,7 @@ class Region(BaseLayer):
             self._data_view.remove(ind)
 
         if len(index) > 0:
-            self._data_view._face_color = np.delete(self._data_view._face_color, index, axis=0)
+            self._data_view._color = np.delete(self._data_view._color, index, axis=0)
         self.selected_data = set()
         self._finish_drawing()
         self.events.data(value=self.data)
@@ -397,7 +394,7 @@ class Region(BaseLayer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "face_color": self.face_color, "label": self.label})
+        state.update({"data": self.data, "color": self.color, "label": self.label})
         return state
 
     def _update_thumbnail(self):
@@ -451,34 +448,34 @@ class Region(BaseLayer):
         if orientation is None:
             orientation = self.orientation
 
-        face_color = self._data_view.face_color
+        colors = self._data_view.color
         z_indices = self._data_view.z_indices
 
         # fewer shapes, trim attributes
         if self.n_regions > n_new_regions:
             orientation = orientation[:n_new_regions]
             z_indices = z_indices[:n_new_regions]
-            face_color = face_color[:n_new_regions]
+            colors = colors[:n_new_regions]
         # more shapes, add attributes
         elif self.n_regions < n_new_regions:
             n_shapes_difference = n_new_regions - self.n_regions
             orientation = orientation + [get_default_region_type(orientation)] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
-            face_color = np.concatenate((face_color, self._get_new_region_color(n_shapes_difference, "face")))
+            colors = np.concatenate((colors, self._get_new_region_color(n_shapes_difference)))
 
         self._data_view = RegionList()
-        self.add(data, orientation=orientation, face_color=face_color, z_index=z_indices)
+        self.add(data, orientation=orientation, color=colors, z_index=z_indices)
 
         self._update_dims()
         self.events.data(value=self.data)
         self._set_editable()
 
-    def _add_creating(self, data, *, orientation="vertical", face_color=None, z_index=None) -> int:
+    def _add_creating(self, data, *, orientation="vertical", color=None, z_index=None) -> int:
         """Add region."""
         self.add(
             [data],
             orientation=[orientation],
-            face_color=[face_color] if face_color is not None else face_color,
+            color=[color] if color is not None else color,
             z_index=[z_index] if z_index is not None else z_index,
         )
         return self.n_regions - 1
@@ -488,7 +485,7 @@ class Region(BaseLayer):
         data,
         *,
         orientation="vertical",
-        face_color=None,
+        color=None,
         z_index=None,
     ):
         """Add shapes to the current layer.
@@ -506,7 +503,7 @@ class Region(BaseLayer):
             If list is supplied it must be the same length as the length of `data`
             and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
-        face_color : str | tuple | list
+        color : str | tuple | list
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements. If a list is supplied it must be the same length as
@@ -522,8 +519,8 @@ class Region(BaseLayer):
         data, shape_type = parse_region_data(data, orientation)
 
         n_new_shapes = len(data)
-        if face_color is None:
-            face_color = self._get_new_region_color(n_new_shapes, attribute="face")
+        if color is None:
+            color = self._get_new_region_color(n_new_shapes)
         if self._data_view is not None:
             z_index = z_index or max(self._data_view._z_index, default=-1) + 1
         else:
@@ -533,7 +530,7 @@ class Region(BaseLayer):
             self._add_regions(
                 data,
                 orientation=orientation,
-                face_color=face_color,
+                color=color,
                 z_index=z_index,
             )
             self.events.data(value=self.data)
@@ -543,7 +540,7 @@ class Region(BaseLayer):
         data,
         *,
         orientation="vertical",
-        face_color=None,
+        color=None,
         z_index=None,
         z_refresh=True,
     ):
@@ -562,7 +559,7 @@ class Region(BaseLayer):
             If list is supplied it must be the same length as the length of `data`
             and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
-        face_color : str | tuple | list
+        color : str | tuple | list
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements. If a list is supplied it must be the same length as
@@ -581,8 +578,8 @@ class Region(BaseLayer):
             When adding a batch of shapes, set to false  and then call
             ShapesList._update_z_order() once at the end.
         """
-        if face_color is None:
-            face_color = self._current_face_color
+        if color is None:
+            color = self._current_color
         if self._data_view is not None:
             z_index = z_index or max(self._data_view._z_index, default=-1) + 1
         else:
@@ -592,17 +589,17 @@ class Region(BaseLayer):
             # transform the colors
             transformed_fc = transform_color_with_defaults(
                 num_entries=len(data),
-                colors=face_color,
-                elem_name="face_color",
+                colors=color,
+                elem_name="color",
                 default="white",
             )
-            transformed_face_color = normalize_and_broadcast_colors(len(data), transformed_fc)
+            transformed_color = normalize_and_broadcast_colors(len(data), transformed_fc)
 
             # Turn input arguments into iterables
             region_inputs = zip(
                 data,
                 ensure_iterable(orientation),
-                transformed_face_color,
+                transformed_color,
                 ensure_iterable(z_index),
             )
             self._add_regions_to_view(region_inputs, self._data_view)
@@ -611,7 +608,7 @@ class Region(BaseLayer):
         self._ndisplay_stored = copy(self._ndisplay)
         self._update_dims()
 
-    def _get_new_region_color(self, adding: int, attribute: str):
+    def _get_new_region_color(self, adding: int):
         """Get the color for the shape(s) to be added.
 
         Parameters
@@ -619,28 +616,24 @@ class Region(BaseLayer):
         adding : int
             the number of shapes that were added
             (and thus the number of color entries to add)
-        attribute : str in {'edge', 'face'}
-            The name of the attribute to set the color of.
-            Should be 'edge' for edge_color_mode or 'face' for face_color_mode.
 
         Returns
         -------
         new_colors : (N, 4) array
             (Nx4) RGBA array of colors for the N new shapes
         """
-        current_face_color = getattr(self, f"_current_{attribute}_color")
-        new_colors = np.tile(current_face_color, (adding, 1))
+        new_colors = np.tile(self._current_color, (adding, 1))
         return new_colors
 
-    def _init_regions(self, data, *, orientation=None, face_color=None, z_index=None):
+    def _init_regions(self, data, *, orientation=None, color=None, z_index=None):
         """Add regions to the data view."""
         n_regions = len(data)
-        face_color = self._initialize_color(face_color, n_regions=n_regions)
+        color = self._initialize_color(color, n_regions=n_regions)
         with self.block_thumbnail_update():
             self._add_regions(
                 data,
                 orientation=orientation,
-                face_color=face_color,
+                color=color,
                 z_index=z_index,
                 z_refresh=False,
             )
@@ -654,7 +647,7 @@ class Region(BaseLayer):
             region = region_cls(d, z_index=z, dims_order=self._dims_order, ndisplay=self._ndisplay)
 
             # Add region
-            data_view.add(region, face_color=fc, z_refresh=False)
+            data_view.add(region, color=fc, z_refresh=False)
         data_view._update_z_order()
 
     @property
@@ -706,17 +699,11 @@ class Region(BaseLayer):
 
         Returns
         -------
-        vertices : np.ndarray
-            Nx2 array of any vertices to be rendered as Markers
-        face_color : str
-            String of the face color of the Markers
         edge_color : str
             String of the edge color of the Markers and Line for the box
         pos : np.ndarray
             Nx2 array of vertices of the box that will be rendered using a
             Vispy Line
-        width : float
-            Width of the box edge
         """
         if self._is_selecting:
             # If currently dragging a selection box just show an outline of

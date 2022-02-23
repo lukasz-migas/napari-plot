@@ -46,10 +46,30 @@ class QtLayerButtons(QFrame):
         )
         self.new_shapes_btn.setParent(self)
 
+        self.new_region_btn = QtQtaViewerPushButton(
+            "new_region",
+            "Add new region layer",
+            slot=lambda: self.viewer.add_region(
+                scale=self.viewer.layers.extent.step,
+            ),
+        )
+        self.new_region_btn.setParent(self)
+
+        self.new_infline_btn = QtQtaViewerPushButton(
+            "new_inf_line",
+            "Add new region layer",
+            slot=lambda: self.viewer.add_inf_line(
+                scale=self.viewer.layers.extent.step,
+            ),
+        )
+        self.new_region_btn.setParent(self)
+
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.new_shapes_btn)
         layout.addWidget(self.new_points_btn)
+        layout.addWidget(self.new_region_btn)
+        layout.addWidget(self.new_infline_btn)
         layout.addStretch(0)
         layout.addWidget(self.delete_btn)
         self.setLayout(layout)

@@ -139,7 +139,7 @@ class Line(BaseLayer):
 
     @property
     def data(self):
-        """Return data"""
+        """Return data."""
         return self._data
 
     @data.setter
@@ -152,7 +152,7 @@ class Line(BaseLayer):
 
     @property
     def color(self):
-        """Get color"""
+        """Get color."""
         return self._color
 
     @color.setter

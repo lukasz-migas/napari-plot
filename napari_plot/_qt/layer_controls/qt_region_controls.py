@@ -38,7 +38,7 @@ class QtRegionControls(QtLayerControls):
         Slider controlling opacity of the layer.
     edge_color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
-    face_color_swatch : qtpy.QtWidgets.QFrame
+    color_swatch : qtpy.QtWidgets.QFrame
         Color swatch showing the color of the region
     select_button : napari._qt.widgets.qt_mode_buttons.QtModeRadioButton
         Button to select region of interest.
@@ -51,16 +51,16 @@ class QtRegionControls(QtLayerControls):
     def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
-        self.layer.events.current_face_color.connect(self._on_current_face_color_change)
+        self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.editable.connect(self._on_editable_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
-        self.face_color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.current_face_color,
+        self.color_swatch = QColorSwatchEdit(
+            initial_color=self.layer.current_color,
             tooltip="Click to set current face color",
         )
-        self.face_color_swatch.color_changed.connect(self.on_change_current_face_color)  # noqa
-        self._on_current_face_color_change(None)
+        self.color_swatch.color_changed.connect(self.on_change_current_color)  # noqa
+        self._on_current_color_change(None)
 
         self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
         self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
@@ -119,7 +119,7 @@ class QtRegionControls(QtLayerControls):
         # add widgets to the layout
         self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
         self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
+        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row_1)
         self.layout.addRow(button_row_2)
@@ -167,14 +167,14 @@ class QtRegionControls(QtLayerControls):
             raise ValueError(f"Mode {mode} not recognized")
 
     @Slot(np.ndarray)  # noqa
-    def on_change_current_face_color(self, color: np.ndarray):
+    def on_change_current_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
-        self.layer.current_face_color = color
+        self.layer.current_color = color
 
-    def _on_current_face_color_change(self, _event):
-        """Receive layer.current_face_color() change event and update view."""
-        with qt_signals_blocked(self.face_color_swatch):
-            self.face_color_swatch.setColor(self.layer.current_face_color)
+    def _on_current_color_change(self, _event):
+        """Receive layer.current_color() change event and update view."""
+        with qt_signals_blocked(self.color_swatch):
+            self.color_swatch.setColor(self.layer.current_color)
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -189,7 +189,7 @@ class QtRegionControls(QtLayerControls):
             [
                 "opacity_slider",
                 "blending_combobox",
-                "face_color_swatch",
+                "color_swatch",
                 "move_button",
                 "select_button",
                 "delete_button",

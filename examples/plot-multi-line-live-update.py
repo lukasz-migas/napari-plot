@@ -11,11 +11,6 @@ from napari.qt import thread_worker
 import time
 
 
-def update_fps(fps):
-    """Update fps."""
-    viewer1d.text_overlay.text = f"{fps:1.1f} FPS"
-
-
 def make_data():
     """Return two sets of data"""
     xs, ys = [], []
@@ -30,9 +25,7 @@ def update_layer(data):
     layer.stream(data)
 
 
-@thread_worker(
-    connect={"yielded": update_layer},
-)
+@thread_worker(connect={"yielded": update_layer})
 def run_update(*_):
     """Function that will run for fair amount of time and try to update the canvas every 50ms."""
     for i in range(100_000):
@@ -49,7 +42,6 @@ viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
 viewer1d.text_overlay.color = "red"
 viewer1d.text_overlay.font_size = 25
-viewer1d.window.qt_viewer.canvas.measure_fps(callback=update_fps)
 layer = viewer1d.add_multi_line(data, color=colors, name="MultiLine")
 run_update()
 napari_plot.run()

@@ -276,7 +276,7 @@ class Scatter(BaseLayer):
     @face_color.setter
     def face_color(self, face_color):
         self._face_color = face_color
-        self.events.face_color()
+        self.events.color()
 
     @property
     def properties(self) -> ty.Dict[str, np.ndarray]:

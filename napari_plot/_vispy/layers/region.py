@@ -24,7 +24,7 @@ class VispyRegionLayer(VispyBaseLayer):
         node = Compound([Mesh(), Mesh(), Line()])
         super().__init__(layer, node)
 
-        self.layer.events.face_color.connect(self._on_data_change)
+        self.layer.events.color.connect(self._on_data_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
 
         self.reset()

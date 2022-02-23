@@ -11,7 +11,7 @@ viewer1d.add_line(np.c_[x, y], name="Sin", color="#FF0000")
 viewer1d.add_region(
     [(p - window, p + window) for p in pos_x],
     orientation="vertical",
-    face_color="#00FFFF",
+    color="#00FFFF",
     opacity=0.2,
     name="Apex windows",
 )

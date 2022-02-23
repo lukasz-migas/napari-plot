@@ -93,34 +93,34 @@ def test_region_color_default():
     layer = Region(data, orientation="vertical")
     assert layer.n_regions == len(data)
     assert layer.ndim == 2
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
 
 @pytest.mark.parametrize("color", ["red", "#FF0000", (1, 0, 0), (1, 0, 0, 1)])
 def test_region_color_set(color):
     data = [[25, 50], [50, 100]]
-    layer = Region(data, orientation="vertical", face_color=color)
+    layer = Region(data, orientation="vertical", color=color)
     assert layer.n_regions == len(data)
     assert layer.ndim == 2
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
 
 def test_region_color_current():
     data = 20 * [np.random.random((2, 1))]
     layer = Region(data, orientation="vertical")
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
     layer.selected_data = {0, 1}
     assert layer.selected_data == {0, 1}
-    layer.current_face_color = "red"
-    np.testing.assert_array_equal(layer.face_color[1], np.asarray([1.0, 0.0, 0.0, 1.0]))
-    np.testing.assert_array_equal(layer.face_color[2], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    layer.current_color = "red"
+    np.testing.assert_array_equal(layer.color[1], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[2], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
     layer.selected_data = {9}
     assert layer.selected_data == {9}
-    layer.current_face_color = "#00FF00"
-    np.testing.assert_array_equal(layer.face_color[5], np.asarray([1.0, 1.0, 1.0, 1.0]))
-    np.testing.assert_array_equal(layer.face_color[9], np.asarray([0.0, 1.0, 0.0, 1.0]))
+    layer.current_color = "#00FF00"
+    np.testing.assert_array_equal(layer.color[5], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[9], np.asarray([0.0, 1.0, 0.0, 1.0]))
 
 
 def test_region_selection():

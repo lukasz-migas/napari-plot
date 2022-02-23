@@ -92,7 +92,7 @@ class InfLine(BaseLayer):
 
     def __init__(
         self,
-        data,
+        data=None,
         *,
         orientation="vertical",
         color=(1.0, 1.0, 1.0, 1.0),

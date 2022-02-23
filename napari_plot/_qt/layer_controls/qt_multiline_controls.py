@@ -111,7 +111,7 @@ class QtMultiLineControls(QtLayerControls):
         self.layer.update_color(index, self.color_swatch.color)
 
     def _on_color_change(self, event=None):
-        """Receive layer.current_face_color() change event and update view."""
+        """Receive layer.current_color() change event and update view."""
         with qt_signals_blocked(self.color_swatch):
             index = self.selection_spin.value()
             self.color_swatch.setColor(self.layer.color[index])

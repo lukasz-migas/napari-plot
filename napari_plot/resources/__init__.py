@@ -38,4 +38,6 @@ QTA_MAPPING = {
     "move_front": "mdi6.arrange-bring-to-front",
     "draw": "mdi.draw",
     "tools": "fa5s.tools",
+    "vertical": "mdi.drag-vertical-variant",
+    "horizontal": "mdi.drag-horizontal-variant",
 }
