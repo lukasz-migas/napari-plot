@@ -11,7 +11,7 @@ STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss
 
 QTA_MAPPING = {
     "layers": "fa5s.layer-group",
-    "ipython": "mdi.console",
+    "ipython": "fa5s.terminal",
     "clipboard": "fa5s.clipboard-list",
     "axes": "mdi6.axis-arrow",
     "text": "mdi.format-text",
@@ -38,4 +38,6 @@ QTA_MAPPING = {
     "move_front": "mdi6.arrange-bring-to-front",
     "draw": "mdi.draw",
     "tools": "fa5s.tools",
+    "vertical": "mdi.drag-vertical-variant",
+    "horizontal": "mdi.drag-horizontal-variant",
 }

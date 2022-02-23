@@ -92,7 +92,7 @@ class InfLine(BaseLayer):
 
     def __init__(
         self,
-        data,
+        data=None,
         *,
         orientation="vertical",
         color=(1.0, 1.0, 1.0, 1.0),
@@ -485,7 +485,7 @@ class InfLine(BaseLayer):
     @data.setter
     def data(self, data):
         data, orientation = parse_infline_orientation(data)
-        n_new_regions = len(data)
+        n_new = len(data)
         if orientation is None:
             orientation = self.orientation
 
@@ -493,13 +493,13 @@ class InfLine(BaseLayer):
         z_indices = self._data_view.z_indices
 
         # fewer shapes, trim attributes
-        if self.n_regions > n_new_regions:
-            orientation = orientation[:n_new_regions]
-            z_indices = z_indices[:n_new_regions]
-            color = color[:n_new_regions]
+        if self.n_inflines > n_new:
+            orientation = orientation[:n_new]
+            z_indices = z_indices[:n_new]
+            color = color[:n_new]
         # more shapes, add attributes
-        elif self.n_regions < n_new_regions:
-            n_shapes_difference = n_new_regions - self.n_regions
+        elif self.n_inflines < n_new:
+            n_shapes_difference = n_new - self.n_inflines
             orientation = orientation + [get_default_infline_type(orientation)] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
             color = np.concatenate((color, self._get_new_color(n_shapes_difference)))
@@ -548,9 +548,30 @@ class InfLine(BaseLayer):
 
     @color.setter
     def color(self, color):
-        self._data_view.color = color
-        self.events.color()
+        self._set_color(color)
         self._update_thumbnail()
+
+    def _set_color(self, color):
+        """Set the face_color property
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        """
+        if len(self.data) > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=len(self.data),
+                colors=color,
+                elem_name="color",
+                default="white",
+            )
+            colors = normalize_and_broadcast_colors(len(self.data), transformed_color)
+        else:
+            colors = np.empty((0, 4))
+
+        self._data_view.color = colors
+        self.events.color()
 
     @property
     def width(self):

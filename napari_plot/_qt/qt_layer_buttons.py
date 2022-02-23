@@ -46,10 +46,30 @@ class QtLayerButtons(QFrame):
         )
         self.new_shapes_btn.setParent(self)
 
+        self.new_region_btn = QtQtaViewerPushButton(
+            "new_region",
+            "Add new region layer",
+            slot=lambda: self.viewer.add_region(
+                scale=self.viewer.layers.extent.step,
+            ),
+        )
+        self.new_region_btn.setParent(self)
+
+        self.new_infline_btn = QtQtaViewerPushButton(
+            "new_inf_line",
+            "Add new region layer",
+            slot=lambda: self.viewer.add_inf_line(
+                scale=self.viewer.layers.extent.step,
+            ),
+        )
+        self.new_region_btn.setParent(self)
+
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.new_shapes_btn)
         layout.addWidget(self.new_points_btn)
+        layout.addWidget(self.new_region_btn)
+        layout.addWidget(self.new_infline_btn)
         layout.addStretch(0)
         layout.addWidget(self.delete_btn)
         self.setLayout(layout)
@@ -73,7 +93,7 @@ class QtViewerButtons(QFrame):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
-    def __init__(self, viewer, parent=None):
+    def __init__(self, viewer, parent=None, **kwargs):
         super().__init__()
 
         self.viewer = viewer
@@ -85,7 +105,7 @@ class QtViewerButtons(QFrame):
         )
         # only add console if its QtViewer
         self.consoleButton = None
-        if parent is not None and hasattr(parent, "dockConsole"):
+        if kwargs.get("dock_console", False):
             self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
             self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
 

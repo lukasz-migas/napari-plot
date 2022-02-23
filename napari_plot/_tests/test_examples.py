@@ -13,6 +13,7 @@ from napari_plot._qt.qt_main_window import Window
 # not testing these examples
 skip = [
     "plot-multi-line-live-update.py",  # has very long-running thread which would take a lifetime
+    "plot-line-live-update.py",  # has very long-running thread which would take a lifetime
 ]
 
 

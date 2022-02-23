@@ -39,7 +39,7 @@ def add_region():
         ([50, 400], "horizontal"),
         ([80, 90], "vertical"),
     ]
-    viewer1d.add_region(regions, face_color=["red", "green", "cyan"], opacity=0.5, name="Spans", visible=True)
+    viewer1d.add_region(regions, color=["red", "green", "cyan"], opacity=0.5, name="Spans", visible=True)
 
 
 def add_infline():

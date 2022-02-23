@@ -13,7 +13,7 @@ regions = [
 
 layer = viewer1d.add_region(
     regions,
-    face_color=["red", "green", "yellow"],
+    color=["red", "green", "yellow"],
     opacity=0.5,
     name="Infinite Region",
 )

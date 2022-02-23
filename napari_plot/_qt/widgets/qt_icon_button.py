@@ -96,7 +96,6 @@ class QtModePushButton(QtaMixin, _QtModePushButton):
     def __init__(self, layer, button_name, *, slot=None, tooltip=None):
         super().__init__(layer, "", tooltip=tooltip, slot=slot)
         self.set_qta(button_name)
-        self.set_size((28, 28))
         self.set_size_name("default")
 
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
@@ -110,10 +109,8 @@ class QtModeRadioButton(QtImagePushButton):
         super().__init__()
         self.layer = layer
         self.setCheckable(True)
-        self.set_qta(button_name)
         self.setChecked(checked)
-        self.setProperty("mode", button_name)
-        self.set_size((28, 28))
+        self.set_qta(button_name)
         self.set_size_name("default")
         self.setToolTip(tooltip)
         self.mode = mode

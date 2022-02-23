@@ -58,8 +58,6 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     @extent.setter
     def extent(self, extent: ty.Tuple[float, float, float, float]):
-        if self.extent_mode == ExtentMode.UNRESTRICTED:
-            return
         rect = Rect()
         rect.left, rect.right, rect.bottom, rect.top = extent
         self._extent = rect
@@ -111,6 +109,8 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 event.handled = False
         elif event.type == "mouse_press":
             # accept the event if it is button 1 or 2.
+            x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
+            self.viewer.drag_tool.tool.position = x1, x1, y1, y1
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
         elif event.type == "mouse_release" and 1 in event.buttons:
@@ -143,7 +143,6 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 elif extent is not None:
                     y0, y1 = extent.bottom, extent.top
             elif self.viewer.drag_tool.tool.shape == Shape.HORIZONTAL:
-                # y0, y1 = self.viewer._get_y_range_extent_for_x(x0, x1)
                 if last is not None:
                     x0, x1 = last.left, last.right
                 elif extent is not None:
@@ -152,16 +151,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     def _check_zoom_limit(self, rect: Rect) -> Rect:
         """Check whether new range is outside of the allowed window"""
-        if isinstance(rect, Rect) and self.extent is not None:
-            limit_rect = self.extent
-            if rect.left < limit_rect.left:
-                rect.left = limit_rect.left
-            if rect.right > limit_rect.right:
-                rect.right = limit_rect.right
-            if rect.bottom < limit_rect.bottom:
-                rect.bottom = limit_rect.bottom
-            if rect.top > limit_rect.top:
-                rect.top = limit_rect.top
+        rect.left, rect.right, rect.bottom, rect.top = self._check_range(rect.left, rect.right, rect.bottom, rect.top)
         return rect
 
     def _check_mode_limit(self, rect: Rect) -> Rect:

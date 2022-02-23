@@ -20,10 +20,9 @@ class VispyTextVisual(_VispyTextVisual):
         position = self._viewer.text_overlay.position
         x_offset, y_offset = 10, 5
         canvas_size = list(self.node.canvas.size)
-        canvas_offset = self._ref_qt_viewer().pos_offset
-        if canvas_offset:
-            canvas_size[0] -= canvas_offset[0] + 10
-            canvas_size[1] -= canvas_offset[1]
+        canvas_offset = self._ref_qt_viewer().view.pos
+        canvas_size[1] -= canvas_offset[1]
+        canvas_size[0] -= canvas_offset[0] - 10
 
         if position == TextOverlayPosition.TOP_LEFT:
             transform = [x_offset, y_offset, 0, 0]

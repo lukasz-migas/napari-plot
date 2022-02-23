@@ -93,34 +93,34 @@ def test_region_color_default():
     layer = Region(data, orientation="vertical")
     assert layer.n_regions == len(data)
     assert layer.ndim == 2
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
 
 @pytest.mark.parametrize("color", ["red", "#FF0000", (1, 0, 0), (1, 0, 0, 1)])
 def test_region_color_set(color):
     data = [[25, 50], [50, 100]]
-    layer = Region(data, orientation="vertical", face_color=color)
+    layer = Region(data, orientation="vertical", color=color)
     assert layer.n_regions == len(data)
     assert layer.ndim == 2
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
 
 def test_region_color_current():
     data = 20 * [np.random.random((2, 1))]
     layer = Region(data, orientation="vertical")
-    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
     layer.selected_data = {0, 1}
     assert layer.selected_data == {0, 1}
-    layer.current_face_color = "red"
-    np.testing.assert_array_equal(layer.face_color[1], np.asarray([1.0, 0.0, 0.0, 1.0]))
-    np.testing.assert_array_equal(layer.face_color[2], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    layer.current_color = "red"
+    np.testing.assert_array_equal(layer.color[1], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[2], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
     layer.selected_data = {9}
     assert layer.selected_data == {9}
-    layer.current_face_color = "#00FF00"
-    np.testing.assert_array_equal(layer.face_color[5], np.asarray([1.0, 1.0, 1.0, 1.0]))
-    np.testing.assert_array_equal(layer.face_color[9], np.asarray([0.0, 1.0, 0.0, 1.0]))
+    layer.current_color = "#00FF00"
+    np.testing.assert_array_equal(layer.color[5], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.color[9], np.asarray([0.0, 1.0, 0.0, 1.0]))
 
 
 def test_region_selection():
@@ -146,10 +146,18 @@ def test_thumbnail():
     assert layer.thumbnail.shape == layer._thumbnail_shape
 
 
+def test_region_trim():
+    data = np.random.random((20, 2))
+    layer = Region(data)
+    assert layer.n_regions == 20
+    data = np.random.random((10, 2))
+    layer.data = data
+    assert layer.n_regions == 10
+
+
 def test_z_index():
     """Test setting z-index during instantiation."""
     shape = (10, 2)
-    np.random.seed(0)
     data = 20 * np.random.random(shape)
     layer = Region(data)
     assert layer.z_index == [0] * shape[0]
@@ -193,7 +201,6 @@ def test_z_index():
 
 def test_move_to_front():
     """Test moving shapes to front."""
-    np.random.seed(0)
     data = 20 * np.random.random((10, 2))
     z_index_list = [2, 3] * 5
     layer = Region(data, z_index=z_index_list)

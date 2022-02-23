@@ -7,7 +7,7 @@ import pytest
 from napari.utils.misc import camel_to_snake
 
 from napari_plot import Viewer
-from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Points, Region, Scatter, Shapes
+from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Points, Region, Scatter, Shapes
 
 # data to be used by pytest during various tests
 layer_test_data = [
@@ -28,12 +28,20 @@ layer_test_data = [
     (InfLine, [25, 50]),
     (Region, [[25, 50], [80, 90]]),
     (Region, [([25, 50], "vertical")]),
+    (Image, np.random.random((10, 15))),
+    (Image, np.array([[1.5, np.nan], [np.inf, 2.2]])),
 ]
 
 
-classes = [Centroids, Line, InfLine, MultiLine, Scatter, Shapes, Points, Region]
+classes = [Centroids, Line, InfLine, MultiLine, Scatter, Shapes, Points, Region, Image]
 names = [cls.__name__ for cls in classes]
 layer2addmethod = {cls: getattr(Viewer, "add_" + camel_to_snake(name)) for cls, name in zip(classes, names)}
+
+skip_local_popups = pytest.mark.skipif(
+    not os.getenv("CI") and os.getenv("NAPARI_PLOT_POPUP_TESTS", "0") == "0",
+    reason="Tests requiring GUI windows are skipped locally by default."
+    " Set NAPARI_PLOT_POPUP_TESTS=1 environment variable to enable.",
+)
 
 
 def add_layer_by_type(viewer, layer_type, data, visible=True):

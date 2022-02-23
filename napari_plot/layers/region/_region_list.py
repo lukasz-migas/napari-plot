@@ -31,7 +31,7 @@ class RegionList:
         Number of displayed dimensions.
     orientations : (N, ) list of str
         Name of shape type for each region.
-    face_color : (N x 4) np.ndarray
+    color : (N x 4) np.ndarray
         Array of RGBA face colors for each shape.
     z_indices : (N, ) list of int
         z-index for each shape.
@@ -66,8 +66,7 @@ class RegionList:
         self._z_order = np.empty(0, dtype=int)
 
         self._mesh = Mesh(ndisplay=self.ndisplay)
-
-        self._face_color = np.empty((0, 4))
+        self._color = np.empty((0, 4))
 
         for d in data:
             self.add(d)
@@ -109,36 +108,29 @@ class RegionList:
         return [s.name for s in self.regions]
 
     @property
-    def face_color(self):
+    def color(self):
         """(N x 4) np.ndarray: Array of RGBA face colors for each shape"""
-        return self._face_color
+        return self._color
 
-    @face_color.setter
-    def face_color(self, face_color):
-        self._set_color(face_color, "face")
+    @color.setter
+    def color(self, color):
+        self._set_color(color)
 
-    def _set_color(self, colors, attribute):
-        """Set the face_color or edge_color property
+    def _set_color(self, colors):
+        """Set the color or edge_color property
 
         Parameters
         ----------
         colors : (N, 4) np.ndarray
-            The value for setting edge or face_color. There must
+            The value for setting edge or color. There must
             be one color for each shape
-        attribute : str in {'edge', 'face'}
-            The name of the attribute to set the color of.
-            Should be 'edge' for edge_color or 'face' for face_color.
         """
         n_shapes = len(self.data)
         if not np.all(colors.shape == (n_shapes, 4)):
-            raise ValueError(
-                f"{attribute}_color must have shape ({n_shapes}, 4)",
-            )
-
-        update_method = getattr(self, f"update_{attribute}_color")
+            raise ValueError(f"color must have shape ({n_shapes}, 4)")
 
         for i, col in enumerate(colors):
-            update_method(i, col, update=False)
+            self.update_color(i, col, update=False)
         self._update_displayed()
 
     @property
@@ -185,7 +177,7 @@ class RegionList:
     def add(
         self,
         shape,
-        face_color=None,
+        color=None,
         shape_index=None,
         z_refresh=True,
     ):
@@ -195,7 +187,7 @@ class RegionList:
         ----------
         shape : subclass Orientation
             Must be a subclass of Orientation, one of "{'vertical', 'horizontal}"
-        face_color : str | tuple
+        color : str | tuple
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements.
@@ -218,18 +210,18 @@ class RegionList:
             self.regions.append(shape)
             self._z_index = np.append(self._z_index, shape.z_index)
 
-            if face_color is None:
-                face_color = np.array([1, 1, 1, 1])
-            self._face_color = np.vstack([self._face_color, face_color])
+            if color is None:
+                color = np.array([1, 1, 1, 1])
+            self._color = np.vstack([self._color, color])
         else:
             z_refresh = False
             self.regions[shape_index] = shape
             self._z_index[shape_index] = shape.z_index
 
-            if face_color is None:
-                face_color = self._face_color[shape_index]
+            if color is None:
+                color = self._color[shape_index]
             else:
-                self._face_color[shape_index, :] = face_color
+                self._color[shape_index, :] = color
 
         self._vertices = np.append(self._vertices, shape.data_displayed, axis=0)
         index = np.repeat(shape_index, len(shape.data))
@@ -250,7 +242,7 @@ class RegionList:
         self._mesh.triangles = np.append(self._mesh.triangles, triangles, axis=0)
         index = np.repeat([[shape_index, 0]], len(triangles), axis=0)
         self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
-        color_array = np.repeat([face_color], len(triangles), axis=0)
+        color_array = np.repeat([color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
         if z_refresh:
@@ -358,7 +350,7 @@ class RegionList:
             self._mesh.triangles_z_order = np.concatenate(triangles_z_order)
         self._update_displayed()
 
-    def edit(self, index, data, face_color=None, new_type=None):
+    def edit(self, index, data, color=None, new_type=None):
         """Updates the data of a single shape located at index. If
         `new_type` is not None then converts the shape type to the new type
 
@@ -368,7 +360,7 @@ class RegionList:
             Location in list of the shape to be changed.
         data : np.ndarray
             NxD array of vertices.
-        face_color : str | tuple
+        color : str | tuple
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements.
@@ -396,21 +388,21 @@ class RegionList:
             shape = self.regions[index]
             shape.data = data
 
-        if face_color is not None:
-            self._face_color[index] = face_color
+        if color is not None:
+            self._color[index] = color
 
         self.remove(index, renumber=False)
         self.add(shape, shape_index=index)
         self._update_z_order()
 
-    def update_face_color(self, index, face_color, update=True):
+    def update_color(self, index, color, update=True):
         """Updates the face color of a single shape located at index.
 
         Parameters
         ----------
         index : int
             Location in list of the shape to be changed.
-        face_color : str | tuple
+        color : str | tuple
             If string can be any color name recognized by vispy or hex value if
             starting with `#`. If array-like must be 1-dimensional array with 3
             or 4 elements.
@@ -418,9 +410,9 @@ class RegionList:
             If True, update the mesh with the new color property. Set to False to avoid
             repeated updates when modifying multiple shapes. Default is True.
         """
-        self._face_color[index] = face_color
+        self._color[index] = color
         indices = np.all(self._mesh.triangles_index == [index, 0], axis=1)
-        self._mesh.triangles_colors[indices] = self._face_color[index]
+        self._mesh.triangles_colors[indices] = self._color[index]
         if update:
             self._update_displayed()
 
@@ -685,6 +677,6 @@ class RegionList:
 
         for ind in z_order_in_view:
             mask = self.regions[ind].to_mask(colors_shape, zoom_factor=zoom_factor, offset=offset)
-            col = self._face_color[ind]
+            col = self._color[ind]
             colors[mask, :] = col
         return colors

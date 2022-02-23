@@ -232,18 +232,6 @@ class MultiLine(BaseLayer):
         new_colors = np.tile(self._current_color, (adding, 1))
         return new_colors
 
-    def _get_state(self):
-        """Get dictionary of layer state"""
-        state = self._get_base_state()
-        state.update(
-            {
-                "width": self.width,
-                "method": self.method,
-                "label": self.label,
-            }
-        )
-        return state
-
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
         if self._allow_thumbnail_update:
@@ -285,7 +273,6 @@ class MultiLine(BaseLayer):
 
         This method only triggers the `stream` event which will update the line data without updating line connections
         or colors.
-
         """
         xs, ys = parse_multiline_data(data)
         self._data_view.xs = xs
@@ -333,3 +320,15 @@ class MultiLine(BaseLayer):
     @property
     def _extent_data(self) -> np.ndarray:
         return self._data_view.extent_data
+
+    def _get_state(self):
+        """Get dictionary of layer state"""
+        state = self._get_base_state()
+        state.update(
+            {
+                "width": self.width,
+                "method": self.method,
+                "label": self.label,
+            }
+        )
+        return state
