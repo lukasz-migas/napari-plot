@@ -45,8 +45,9 @@ class Camera(EventedModel):
     rect : 4-tuple
         The Left, right, top and bottom corners the camera should be set to.
     extent : 4-tuple
-        The Left, right, top and bottom corner limits the camera should restrict the view to. See `restrict` value
-        for the available modes.
+        The Left, right, top and bottom corner limits the camera should restrict the view to. This value is only used to
+        restrict the view to specified x/y-axis range and will limit the allowable zoom range when the
+        ExtentMode.RESTRICTED mode is set. See below for more information.
     extent_mode : ExtentMode
         Specify whether the plot limits should be restricted using the `extent` value or not.
         ExtentMode.RESTRICTED
@@ -77,19 +78,49 @@ class Camera(EventedModel):
     extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
 
+    # private field
+    # this attribute is quite special and must be set alongside `extent` but only if e.g. layer is being added as it
+    # is used as a backup for resetting x/y-axis ranges.
+    _extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+
     # validators
     @validator("x_range", "y_range", pre=True)
-    def _ensure_2_tuple(v) -> ty.Optional[ty.Tuple[float, float]]:
+    def _ensure_2_tuple(cls, v) -> ty.Optional[ty.Tuple[float, float]]:
         if v is None:
             return v
         return ensure_n_tuple(v, n=2)
 
     @validator("rect", "extent", pre=True)
-    def _ensure_4_tuple(v) -> ty.Tuple[float, float, float, float]:
+    def _ensure_4_tuple(cls, v) -> ty.Tuple[float, float, float, float]:
         return ensure_n_tuple(v, n=4)
 
     @validator("axis_mode", pre=True)
-    def _ensure_axis_tuple(v: ty.Union[CameraMode, ty.Tuple[CameraMode]]) -> ty.Tuple[CameraMode]:
+    def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, ty.Tuple[CameraMode]]) -> ty.Tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
         return tuple(v)
+
+    def get_effective_extent(self) -> ty.Tuple[float, float, float, float]:
+        """This function returns extent based on current values of `x_range` and `y_range`."""
+        x0, x1, y0, y1 = self._extent
+        if self.x_range is not None:
+            x0, x1 = self.x_range
+        if self.y_range is not None:
+            y0, y1 = self.y_range
+        return x0, x1, y0, y1
+
+    def set_x_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+        """Set x-axis range."""
+        if min_val is None and max_val is None:
+            self.x_range = None
+        else:
+            x0, x1, _, _ = self._extent
+            self.x_range = min_val if min_val is not None else x0, max_val if max_val is not None else x1
+
+    def set_y_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+        """Set y-axis range."""
+        if min_val is None and max_val is None:
+            self.y_range = None
+        else:
+            _, _, y0, y1 = self._extent
+            self.y_range = min_val if min_val is not None else y0, max_val if max_val is not None else y1

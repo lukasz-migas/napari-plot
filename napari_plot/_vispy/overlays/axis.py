@@ -79,6 +79,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.x_label_margin.connect(self._on_margin_change)
         self._viewer.axis.events.x_tick_margin.connect(self._on_margin_change)
         self._viewer.axis.events.x_max_size.connect(self._on_max_size_change)
+        self._viewer.axis.events.x_tick_formatter.connect(self.on_tick_formatter_change)
 
     def _on_label_change(self, _evt=None):
         """Change label"""
@@ -112,6 +113,7 @@ class VispyYAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.y_label_margin.connect(self._on_margin_change)
         self._viewer.axis.events.y_tick_margin.connect(self._on_margin_change)
         self._viewer.axis.events.y_max_size.connect(self._on_max_size_change)
+        self._viewer.axis.events.y_tick_formatter.connect(self.on_tick_formatter_change)
 
     def _on_label_change(self, _evt=None):
         """Change label"""

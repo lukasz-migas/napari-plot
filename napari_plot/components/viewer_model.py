@@ -82,6 +82,32 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Simple string representation"""
         return f"napari_plot.Viewer: {self.title}"
 
+    def _on_update_extent(self, _event=None):
+        """Update data extent when there has been a change to the list of layers"""
+        extent = self._get_rect_extent()
+        self.camera.extent = extent
+        # Private extent that is always the same as extent of the data. It is essential that whenever extent is set
+        # on the camera, the value of `_extent` is also set as it will be used as a value for resetting axis values
+        # if e.g. user uses the `camera.x_range` or `camera.set_x_range`.
+        self.camera._extent = extent
+
+    def clear_canvas(self):
+        """Remove all layers from the canvas"""
+        self.layers.remove_all()
+        self.events.clear_canvas()
+
+    @property
+    def _sliced_extent_world(self) -> np.ndarray:
+        """Extent of layers in world coordinates after slicing.
+
+        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
+
+        Returns
+        -------
+        sliced_extent_world : array, shape (2, D)
+        """
+        return self.layers.extent.world[:, (0, 1)]
+
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
         from .dragtool import BOX_INTERACTIVE_TOOL, DragMode
@@ -123,27 +149,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if self.camera.x_range is not None:
             xmin, xmax = self.camera.x_range
         return xmin, xmax, ymin, ymax
-
-    def _on_update_extent(self, _event=None):
-        """Update data extent when there has been a change to the list of layers"""
-        self.camera.extent = self._get_rect_extent()
-
-    def clear_canvas(self):
-        """Remove all layers from the canvas"""
-        self.layers.remove_all()
-        self.events.clear_canvas()
-
-    @property
-    def _sliced_extent_world(self) -> np.ndarray:
-        """Extent of layers in world coordinates after slicing.
-
-        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
-
-        Returns
-        -------
-        sliced_extent_world : array, shape (2, D)
-        """
-        return self.layers.extent.world[:, (0, 1)]
 
     def _get_y_range_extent_for_x(
         self,

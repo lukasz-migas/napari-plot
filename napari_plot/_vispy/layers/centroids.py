@@ -2,9 +2,9 @@
 import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Line as LineVisual
 
 from ...layers.centroids._centroids_utils import make_centroids, make_centroids_color
+from ..visuals.centroids import CentroidsVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import Centroids
@@ -14,7 +14,7 @@ class VispyCentroidsLayer(VispyBaseLayer):
     """Centroids layer"""
 
     def __init__(self, layer: "Centroids"):
-        node = LineVisual()
+        node = CentroidsVisual()
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_appearance_change)

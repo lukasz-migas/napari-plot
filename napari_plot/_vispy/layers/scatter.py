@@ -4,23 +4,23 @@ import typing as ty
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 from napari._vispy.utils.text import update_text
-from vispy.scene.visuals import Compound, Markers, Text
+
+from ..visuals.scatter import ScatterVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import Scatter
 
 
 MARKERS_MAIN = 0
+MARKERS_HIGHLIGHT = 1
+TEXT = 2
 
 
 class VispyScatterLayer(VispyBaseLayer):
     """Line layer"""
 
     def __init__(self, layer: "Scatter"):
-        # Create a compound visual with the following two sub-visuals:
-        # Markers: The actual markers of each point
-        # Text: Text line for each point
-        node = Compound([Markers(), Text()])
+        node = ScatterVisual()
         super().__init__(layer, node)
 
         self.layer.events.size.connect(self._on_data_change)

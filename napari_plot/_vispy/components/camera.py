@@ -63,6 +63,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
         self._extent = rect
         self._default_state["rect"] = rect
 
+    def reset_view(self):
+        """Reset view."""
+        self.rect = self.extent
+
     def viewbox_mouse_event(self, event):
         """
         The SubScene received a mouse event; update transform

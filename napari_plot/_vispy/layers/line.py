@@ -2,7 +2,8 @@
 import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Line as LineVisual
+
+from ..visuals.line import LineVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import Line
