@@ -298,10 +298,25 @@ class Window:
         toggle_fullscreen.setStatusTip("Toggle full screen")
         toggle_fullscreen.triggered.connect(self._toggle_fullscreen)
 
+        # Change colors
+        toggle_dark = QAction("Use Dark canvas", self._qt_window)
+        toggle_dark.setStatusTip("Change background of the canvas to black with white axes.")
+        toggle_dark.triggered.connect(partial(self._toggle_background, "dark"))
+        toggle_dark.setCheckable(True)
+        toggle_dark.setChecked(True)
+        toggle_light = QAction("Use Light canvas", self._qt_window)
+        toggle_light.setStatusTip("Change background of the canvas to white with black axes.")
+        toggle_light.triggered.connect(partial(self._toggle_background, "light"))
+        toggle_light.setCheckable(True)
+
+        hp.make_menu_group(self._qt_window, toggle_dark, toggle_light)
+
         self.view_menu = self.main_menu.addMenu("&View")
         self.view_menu.addAction(toggle_fullscreen)
         self.view_menu.addAction(toggle_visible)
         self.view_menu.addSeparator()
+        self.view_menu.addAction(toggle_dark)
+        self.view_menu.addAction(toggle_light)
 
     def _add_interaction_menu(self):
         """Add 'View' menu to app menubar."""
@@ -504,6 +519,16 @@ class Window:
         else:
             self.main_menu.setVisible(True)
             self._main_menu_shortcut.setEnabled(False)
+
+    def _toggle_background(self, which: str):
+        """Toggle between dark and light backgrounds."""
+        if which == "dark":
+            background, labels = "black", "white"
+        else:
+            background, labels = "white", "black"
+        self._qt_viewer.canvas.bgcolor = background
+        self._qt_viewer.viewer.axis.label_color = labels
+        self._qt_viewer.viewer.axis.tick_color = labels
 
     def _toggle_fullscreen(self, event):
         """Toggle fullscreen mode."""
