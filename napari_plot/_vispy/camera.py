@@ -37,7 +37,7 @@ class VispyCamera:
         # connect events
         self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
-        self._camera.events.extent.connect(self._on_extent_change)
+        # self._camera.events.extent.connect(self._on_extent_change)
         self._camera.events.x_range.connect(self._on_extent_change)
         self._camera.events.y_range.connect(self._on_extent_change)
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
