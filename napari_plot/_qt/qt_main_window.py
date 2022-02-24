@@ -442,11 +442,9 @@ class Window:
         """Update menu appropriately."""
         state = self._qt_viewer.viewer.camera.extent_mode
         if state == ExtentMode.RESTRICTED:
-            with hp.qt_signals_blocked(self._menu_extent_restricted):
-                self._menu_extent_restricted.setChecked(True)
+            self._menu_extent_restricted.setChecked(True)
         else:
-            with hp.qt_signals_blocked(self._menu_extent_unrestricted):
-                self._menu_extent_unrestricted.setChecked(True)
+            self._menu_extent_unrestricted.setChecked(True)
         for wdg in [
             self._menu_camera_all,
             self._menu_camera_top,
@@ -460,17 +458,13 @@ class Window:
         """Update menu appropriately."""
         state = self._qt_viewer.viewer.drag_tool.active
         if state == DragMode.AUTO:
-            with hp.qt_signals_blocked(self._menu_tool_auto):
-                self._menu_tool_auto.setChecked(True)
+            self._menu_tool_auto.setChecked(True)
         elif state == DragMode.BOX:
-            with hp.qt_signals_blocked(self._menu_tool_box):
-                self._menu_tool_box.setChecked(True)
+            self._menu_tool_box.setChecked(True)
         elif state == DragMode.VERTICAL_SPAN:
-            with hp.qt_signals_blocked(self._menu_tool_v_span):
-                self._menu_tool_v_span.setChecked(True)
+            self._menu_tool_v_span.setChecked(True)
         else:
-            with hp.qt_signals_blocked(self._menu_tool_h_span):
-                self._menu_tool_h_span.setChecked(True)
+            self._menu_tool_h_span.setChecked(True)
 
     def _on_axis_mode_change(self, event=None):
         """Update camera menu."""

@@ -42,7 +42,7 @@ class VispyAxisVisual:
         """Change node color"""
         self.node.axis.axis_color = self._viewer.axis.tick_color
         self.node.axis.tick_color = self._viewer.axis.tick_color
-        # self.node.axis.label_color = self._viewer.axis.label_color
+        self.node.axis.text_color = self._viewer.axis.label_color
         self.node.axis.update()
 
     def _on_size_change(self, _evt=None):
