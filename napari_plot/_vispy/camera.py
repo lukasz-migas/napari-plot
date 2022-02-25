@@ -37,9 +37,9 @@ class VispyCamera:
         # connect events
         self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
-        # self._camera.events.extent.connect(self._on_extent_change)
-        self._camera.events.x_range.connect(self._on_extent_change)
-        self._camera.events.y_range.connect(self._on_extent_change)
+        self._camera.events.extent.connect(self._on_extent_change)
+        self._camera.events.x_range.connect(self._on_range_change)
+        self._camera.events.y_range.connect(self._on_range_change)
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
 
@@ -105,6 +105,9 @@ class VispyCamera:
 
     def _on_extent_change(self, event):
         self.extent = self._camera.get_effective_extent()
+
+    def _on_range_change(self, event):
+        self.extent = self._camera.get_effective_extent()
         self.camera.reset_view()
 
     def _on_axis_mode_change(self, event):
@@ -113,6 +116,7 @@ class VispyCamera:
     def _on_extent_mode_change(self, event):
         self.camera.extent_mode = self._camera.extent_mode
         self._on_extent_change(None)
+        self.camera.reset_view()
 
     def on_draw(self, event):
         """Called whenever the canvas is drawn.
