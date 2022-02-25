@@ -21,8 +21,8 @@ class VispyTextVisual(_VispyTextVisual):
         x_offset, y_offset = 10, 5
         canvas_size = list(self.node.canvas.size)
         canvas_offset = self._ref_qt_viewer().view.pos
-        canvas_size[1] -= canvas_offset[1]
-        canvas_size[0] -= canvas_offset[0] - 10
+        canvas_size[1] -= canvas_offset[1] + 50
+        canvas_size[0] -= canvas_offset[0]  # - 20
 
         if position == TextOverlayPosition.TOP_LEFT:
             transform = [x_offset, y_offset, 0, 0]
@@ -34,12 +34,7 @@ class VispyTextVisual(_VispyTextVisual):
             transform = [canvas_size[0] // 2, y_offset, 0, 0]
             anchors = ("center", "bottom")
         elif position == TextOverlayPosition.BOTTOM_RIGHT:
-            transform = [
-                canvas_size[0] - x_offset,
-                canvas_size[1] - y_offset,
-                0,
-                0,
-            ]
+            transform = [canvas_size[0] - x_offset, canvas_size[1] - y_offset, 0, 0]
             anchors = ("right", "top")
         elif position == TextOverlayPosition.BOTTOM_LEFT:
             transform = [x_offset, canvas_size[1] - y_offset, 0, 0]

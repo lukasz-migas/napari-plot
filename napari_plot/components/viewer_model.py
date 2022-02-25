@@ -12,7 +12,7 @@ from napari.utils.key_bindings import KeymapProvider
 from napari.utils.mouse_bindings import MousemapProvider
 from pydantic import Extra, Field
 
-from .. import layers
+from .. import layers as np_layers
 from ..utils.utilities import get_min_max
 from ._viewer_mouse_bindings import boxzoom, boxzoom_box, boxzoom_horizontal, boxzoom_vertical
 from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
@@ -82,6 +82,33 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Simple string representation"""
         return f"napari_plot.Viewer: {self.title}"
 
+    def _on_update_extent(self, _event=None):
+        """Update data extent when there has been a change to the list of layers"""
+        extent = self._get_rect_extent()
+        # Private extent that is always the same as extent of the data. It is essential that whenever extent is set
+        # on the camera, the value of `_extent` is also set as it will be used as a value for resetting axis values
+        # if e.g. user uses the `camera.x_range` or `camera.set_x_range`.
+        self.camera._extent = extent
+        # update extent - must be done after `_extent`
+        self.camera.extent = extent
+
+    def clear_canvas(self):
+        """Remove all layers from the canvas"""
+        self.layers.remove_all()
+        self.events.clear_canvas()
+
+    @property
+    def _sliced_extent_world(self) -> np.ndarray:
+        """Extent of layers in world coordinates after slicing.
+
+        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
+
+        Returns
+        -------
+        sliced_extent_world : array, shape (2, D)
+        """
+        return self.layers.extent.world[:, (0, 1)]
+
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
         from .dragtool import BOX_INTERACTIVE_TOOL, DragMode
@@ -123,27 +150,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if self.camera.x_range is not None:
             xmin, xmax = self.camera.x_range
         return xmin, xmax, ymin, ymax
-
-    def _on_update_extent(self, _event=None):
-        """Update data extent when there has been a change to the list of layers"""
-        self.camera.extent = self._get_rect_extent()
-
-    def clear_canvas(self):
-        """Remove all layers from the canvas"""
-        self.layers.remove_all()
-        self.events.clear_canvas()
-
-    @property
-    def _sliced_extent_world(self) -> np.ndarray:
-        """Extent of layers in world coordinates after slicing.
-
-        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
-
-        Returns
-        -------
-        sliced_extent_world : array, shape (2, D)
-        """
-        return self.layers.extent.world[:, (0, 1)]
 
     def _get_y_range_extent_for_x(
         self,
@@ -342,16 +348,16 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
 for _layer in [
     # napari layers
-    layers.Points,
-    layers.Shapes,
-    layers.Image,
+    np_layers.Points,
+    np_layers.Shapes,
+    np_layers.Image,
     # napari-plot layers
-    layers.Line,
-    layers.Scatter,
-    layers.Region,
-    layers.InfLine,
-    layers.Centroids,
-    layers.MultiLine,
+    np_layers.Line,
+    np_layers.Scatter,
+    np_layers.Region,
+    np_layers.InfLine,
+    np_layers.Centroids,
+    np_layers.MultiLine,
 ]:
     func = create_add_method(_layer)
     setattr(ViewerModel, func.__name__, func)

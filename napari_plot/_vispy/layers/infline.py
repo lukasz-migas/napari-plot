@@ -3,7 +3,8 @@ import typing as ty
 
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Compound, Line
+
+from ..visuals.infline import InfLineVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import InfLine
@@ -14,14 +15,10 @@ LINE_HIGHLIGHT = 2
 
 
 class VispyInfLineLayer(VispyBaseLayer):
-    """Infinite region layer"""
+    """Infinite lines layer"""
 
     def __init__(self, layer: "InfLine"):
-        # Create a compound visual with the following four sub-visuals:
-        # Line: The actual infinite lines
-        # Line: Used to draw selection box in the canvas.
-        # Line: Highlight of the selected infinite line using different color and width
-        node = Compound([Line(), Line(), Line()])
+        node = InfLineVisual()
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_appearance_change)

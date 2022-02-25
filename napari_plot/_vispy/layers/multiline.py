@@ -2,22 +2,22 @@
 import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Compound
-from vispy.scene.visuals import Line as LineVisual
+
+from ..visuals.multiline import MultiLineVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import MultiLine
 
 LINE_MAIN = 0
-LINE_BOX = 1
-LINE_HIGHLIGHT = 2
+LINE_HIGHLIGHT = 1
+LINE_BOX = 2
 
 
 class VispyMultiLineLayer(VispyBaseLayer):
     """MultiLine layer."""
 
     def __init__(self, layer: "MultiLine"):
-        node = Compound([LineVisual(), LineVisual(), LineVisual()])
+        node = MultiLineVisual()
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_appearance_change)

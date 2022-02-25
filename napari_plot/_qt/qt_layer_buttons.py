@@ -51,6 +51,7 @@ class QtLayerButtons(QFrame):
             "Add new region layer",
             slot=lambda: self.viewer.add_region(
                 scale=self.viewer.layers.extent.step,
+                opacity=0.75,
             ),
         )
         self.new_region_btn.setParent(self)
@@ -112,6 +113,8 @@ class QtViewerButtons(QFrame):
         self.hidePanelButton = QtQtaViewerPushButton("minimise", "Hide control panel (Ctrl-H)")
         if parent is not None:
             self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
+        if kwargs.get("dock_controls", False):
+            self.hidePanelButton.setVisible(False)
 
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)

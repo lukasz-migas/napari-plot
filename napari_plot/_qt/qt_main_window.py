@@ -298,10 +298,25 @@ class Window:
         toggle_fullscreen.setStatusTip("Toggle full screen")
         toggle_fullscreen.triggered.connect(self._toggle_fullscreen)
 
+        # Change colors
+        toggle_dark = QAction("Use Dark canvas", self._qt_window)
+        toggle_dark.setStatusTip("Change background of the canvas to black with white axes.")
+        toggle_dark.triggered.connect(partial(self._toggle_background, "dark"))
+        toggle_dark.setCheckable(True)
+        toggle_dark.setChecked(True)
+        toggle_light = QAction("Use Light canvas", self._qt_window)
+        toggle_light.setStatusTip("Change background of the canvas to white with black axes.")
+        toggle_light.triggered.connect(partial(self._toggle_background, "light"))
+        toggle_light.setCheckable(True)
+
+        hp.make_menu_group(self._qt_window, toggle_dark, toggle_light)
+
         self.view_menu = self.main_menu.addMenu("&View")
         self.view_menu.addAction(toggle_fullscreen)
         self.view_menu.addAction(toggle_visible)
         self.view_menu.addSeparator()
+        self.view_menu.addAction(toggle_dark)
+        self.view_menu.addAction(toggle_light)
 
     def _add_interaction_menu(self):
         """Add 'View' menu to app menubar."""
@@ -442,11 +457,9 @@ class Window:
         """Update menu appropriately."""
         state = self._qt_viewer.viewer.camera.extent_mode
         if state == ExtentMode.RESTRICTED:
-            with hp.qt_signals_blocked(self._menu_extent_restricted):
-                self._menu_extent_restricted.setChecked(True)
+            self._menu_extent_restricted.setChecked(True)
         else:
-            with hp.qt_signals_blocked(self._menu_extent_unrestricted):
-                self._menu_extent_unrestricted.setChecked(True)
+            self._menu_extent_unrestricted.setChecked(True)
         for wdg in [
             self._menu_camera_all,
             self._menu_camera_top,
@@ -460,17 +473,13 @@ class Window:
         """Update menu appropriately."""
         state = self._qt_viewer.viewer.drag_tool.active
         if state == DragMode.AUTO:
-            with hp.qt_signals_blocked(self._menu_tool_auto):
-                self._menu_tool_auto.setChecked(True)
+            self._menu_tool_auto.setChecked(True)
         elif state == DragMode.BOX:
-            with hp.qt_signals_blocked(self._menu_tool_box):
-                self._menu_tool_box.setChecked(True)
+            self._menu_tool_box.setChecked(True)
         elif state == DragMode.VERTICAL_SPAN:
-            with hp.qt_signals_blocked(self._menu_tool_v_span):
-                self._menu_tool_v_span.setChecked(True)
+            self._menu_tool_v_span.setChecked(True)
         else:
-            with hp.qt_signals_blocked(self._menu_tool_h_span):
-                self._menu_tool_h_span.setChecked(True)
+            self._menu_tool_h_span.setChecked(True)
 
     def _on_axis_mode_change(self, event=None):
         """Update camera menu."""
@@ -510,6 +519,16 @@ class Window:
         else:
             self.main_menu.setVisible(True)
             self._main_menu_shortcut.setEnabled(False)
+
+    def _toggle_background(self, which: str):
+        """Toggle between dark and light backgrounds."""
+        if which == "dark":
+            background, labels = "black", "white"
+        else:
+            background, labels = "white", "black"
+        self._qt_viewer.canvas.bgcolor = background
+        self._qt_viewer.viewer.axis.label_color = labels
+        self._qt_viewer.viewer.axis.tick_color = labels
 
     def _toggle_fullscreen(self, event):
         """Toggle fullscreen mode."""

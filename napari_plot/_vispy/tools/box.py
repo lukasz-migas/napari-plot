@@ -22,7 +22,6 @@ class VispyBoxVisual:
         if parent:
             parent.add(self.node)
 
-        # self._viewer.drag_tool.events.active.connect(self._on_tool_change)
         self._viewer.drag_tool.events.tool.connect(self._on_tool_change)
 
         self._on_tool_change(None)

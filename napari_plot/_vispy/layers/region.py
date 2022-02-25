@@ -3,25 +3,22 @@ import typing as ty
 
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Compound, Line, Mesh
+
+from ..visuals.region import RegionVisual
 
 if ty.TYPE_CHECKING:
     from ...layers import Region
 
 MESH_MAIN = 0
 MESH_HIGHLIGHT = 1
-LINE_HIGHLIGHT = 2
+LINE_BOX = 2
 
 
 class VispyRegionLayer(VispyBaseLayer):
     """Infinite region layer"""
 
     def __init__(self, layer: "Region"):
-        # Create a compound visual with the following four sub-visuals:
-        # Mesh: The actual meshes of the shape faces and edges
-        # Mesh: The mesh of the outlines for each shape used for highlights
-        # Lines: The lines of the interaction box used for highlights
-        node = Compound([Mesh(), Mesh(), Line()])
+        node = RegionVisual()
         super().__init__(layer, node)
 
         self.layer.events.color.connect(self._on_data_change)
@@ -75,4 +72,4 @@ class VispyRegionLayer(VispyBaseLayer):
         if pos is None or len(pos) == 0:
             pos = np.zeros((1, self.layer._ndisplay))
             width = 0
-        self.node._subvisuals[LINE_HIGHLIGHT].set_data(pos=pos, color=edge_color, width=width)
+        self.node._subvisuals[LINE_BOX].set_data(pos=pos, color=edge_color, width=width)

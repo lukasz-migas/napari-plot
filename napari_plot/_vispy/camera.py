@@ -1,9 +1,10 @@
 """Camera model"""
 import typing as ty
 
+import numpy as np
 from vispy.geometry import Rect
 
-from napari_plot._vispy.vendored.camera import LimitedPanZoomCamera
+from .components.camera import LimitedPanZoomCamera
 
 if ty.TYPE_CHECKING:
     from ..components.camera import Camera
@@ -34,9 +35,12 @@ class VispyCamera:
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
+        self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
-        self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent.connect(self._on_extent_change)
+        self._camera.events.x_range.connect(self._on_range_change)
+        self._camera.events.y_range.connect(self._on_range_change)
+        self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
 
         self._on_axis_mode_change(None)
@@ -47,6 +51,24 @@ class VispyCamera:
     def camera(self):
         """Return camera instance."""
         return self._view.camera
+
+    @property
+    def zoom(self):
+        """float: Scale from canvas pixels to world pixels."""
+        canvas_size = np.array(self._view.canvas.size)
+        scale = np.array([self._view.camera.rect.width, self._view.camera.rect.height])
+        scale[np.isclose(scale, 0)] = 1  # fix for #2875
+        zoom = np.min(canvas_size / scale)
+        return zoom
+
+    @zoom.setter
+    def zoom(self, zoom):
+        if self.zoom == zoom:
+            return
+        scale = np.array(self._view.canvas.size) / zoom
+        # Set view rectangle, as left, right, width, height
+        corner = np.subtract(self._view.camera.center[:2], scale / 2)
+        self.rect = tuple(corner) + tuple(scale)
 
     @property
     def rect(self) -> ty.Tuple[float, float, float, float]:
@@ -73,12 +95,20 @@ class VispyCamera:
             return
         self.camera.extent = extent
         self.camera.set_default_state()
+        self.camera.reset()
+
+    def _on_zoom_change(self):
+        self.zoom = self._camera.zoom
 
     def _on_rect_change(self, event):
         self.rect = self._camera.rect
 
     def _on_extent_change(self, event):
-        self.extent = self._camera.extent
+        self.extent = self._camera.get_effective_extent()
+
+    def _on_range_change(self, event):
+        self.extent = self._camera.get_effective_extent()
+        self.camera.reset_view()
 
     def _on_axis_mode_change(self, event):
         self.camera.axis_mode = self._camera.axis_mode
@@ -86,6 +116,7 @@ class VispyCamera:
     def _on_extent_mode_change(self, event):
         self.camera.extent_mode = self._camera.extent_mode
         self._on_extent_change(None)
+        self.camera.reset_view()
 
     def on_draw(self, event):
         """Called whenever the canvas is drawn.
@@ -94,6 +125,8 @@ class VispyCamera:
         """
         with self._camera.events.rect.blocker(self._on_rect_change):
             self._camera.rect = self.rect
+        with self._camera.events.zoom.blocker(self._on_zoom_change):
+            self._camera.zoom = self.zoom
 
 
 def viewbox_key_event(event):
