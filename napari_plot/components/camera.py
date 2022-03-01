@@ -32,6 +32,9 @@ class ExtentMode(str, Enum):
     UNRESTRICTED = "unrestricted"
 
 
+EXTENT_MODE_TRANSLATIONS = {ExtentMode.RESTRICTED: "restricted", ExtentMode.UNRESTRICTED: "unrestricted"}
+
+
 class Camera(EventedModel):
     """Camera object modeling position and view of the camera.
 

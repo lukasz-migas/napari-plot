@@ -178,10 +178,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
     def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
         """Check whether values are correct"""
         # check whether values are in correct order (low, high)
-        if y1 < y0:
-            y0, y1 = y1, y0
-        if x1 < x0:
-            x0, x1 = x1, x0
+        # if y1 < y0:
+        #     y0, y1 = y1, y0
+        # if x1 < x0:
+        #     x0, x1 = x1, x0
 
         # check whether extent values are set and if so, limit the values
         if self.extent_mode == ExtentMode.RESTRICTED and self.extent is not None:
