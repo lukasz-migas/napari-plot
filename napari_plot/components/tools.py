@@ -67,7 +67,10 @@ class BoxTool(BaseTool):
     @validator("position", pre=True)
     def _validate_position(cls, v):
         assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
-        return np.asarray(v)
+        x0, x1, y0, y1 = v
+        x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)
+        y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
+        return np.asarray([x0, x1, y0, y1])
 
     @property
     def mesh(self):

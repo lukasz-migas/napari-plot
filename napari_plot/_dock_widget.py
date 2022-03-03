@@ -11,7 +11,7 @@ class NapariPlotWidget(QWidget):
     """Create instance of 1d Viewer"""
 
     def __init__(self, napari_viewer):
-        parent = get_parent()
+        parent = get_parent(None)
         super().__init__(parent)
         self.viewer = napari_viewer
         self.viewer_plot = ViewerModelPlot()

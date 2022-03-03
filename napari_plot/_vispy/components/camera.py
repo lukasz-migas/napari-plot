@@ -93,14 +93,14 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 return
 
             modifiers = event.mouse_event.modifiers
-
-            # By default, the left-mouse pans the plot but it actually should be a box-zoom
+            # the left-button click on the mouse performs boxzoom (or whatever active tool is being used)
             if 1 in event.buttons:  # and not modifiers:
                 x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 self.viewer.drag_tool.tool.position = x0, x1, y0, y1
                 event.handled = True
+            # the right-button click moves the canvas in x/y direction
             elif 2 in event.buttons and not modifiers:  # right-button click
                 # Translate
                 p1 = np.array(event.last_event.pos)[:2]
@@ -118,16 +118,14 @@ class LimitedPanZoomCamera(PanZoomCamera):
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
         elif event.type == "mouse_release" and 1 in event.buttons:
-            # this is where we change the interaction and actually perform various checks to ensure user doesn't zoom
-            # to someplace where they shouldn't
             modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
-            # ensure that user selected broad enough range and they are not using ctrl/shift modifiers
+            # here we check that the different between values is not too small (might not work for plots with small
+            # values?) and whether the user is using modifiers.
             if abs(x1 - x0) > 1e-3 and not (self.viewer.drag_tool.selecting and modifiers):
+                # this call makes sure that various axis/extent checks are performed
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
-                # I don't like this because it adds dependency on a instance of the viewer, however, here we can check
-                # what is the most appropriate y-axis range for line plots.
                 self.rect = self._make_zoom_rect(x0, x1, y0, y1)
         else:
             event.handled = False
@@ -178,10 +176,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
     def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
         """Check whether values are correct"""
         # check whether values are in correct order (low, high)
-        # if y1 < y0:
-        #     y0, y1 = y1, y0
-        # if x1 < x0:
-        #     x0, x1 = x1, x0
+        if y1 < y0:
+            y0, y1 = y1, y0
+        if x1 < x0:
+            x0, x1 = x1, x0
 
         # check whether extent values are set and if so, limit the values
         if self.extent_mode == ExtentMode.RESTRICTED and self.extent is not None:
