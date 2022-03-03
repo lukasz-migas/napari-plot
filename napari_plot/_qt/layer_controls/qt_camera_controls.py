@@ -40,7 +40,7 @@ class QtCameraControls(QtFramelessPopup):
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Make panel"""
-        self.interactive_checkbox = hp.make_checkbox(self, "", "Enable/disable interaction")
+        self.interactive_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable interaction")
         self.interactive_checkbox.setChecked(self.viewer.camera.interactive)
         self.interactive_checkbox.stateChanged.connect(self.on_change_interactive)
 

@@ -108,7 +108,7 @@ class QtDialog(QDialog):
         rect = widget.rect()
         pos = widget.mapToGlobal(QPoint(rect.left(), rect.top()))
         sz_hint = self.size()
-        pos -= QPoint(sz_hint.width() + 14, sz_hint.height() / 4)
+        pos -= QPoint(sz_hint.width() + x_offset, sz_hint.height() / 4)
         self.move(pos)
         if show:
             self.show()

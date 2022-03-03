@@ -10,6 +10,7 @@ from qtpy.QtWidgets import (
     QButtonGroup,
     QCheckBox,
     QComboBox,
+    QDoubleSpinBox,
     QLabel,
     QLineEdit,
     QMainWindow,
@@ -117,8 +118,48 @@ def make_int_spin(
     widget.setRange(min_value, max_value)
     widget.setValue(value)
     widget.setFocusPolicy(focus_policy)
+    widget.setAlignment(Qt.AlignCenter)
     if tooltip:
         widget.setToolTip(tooltip)
+    return widget
+
+
+def make_double_spin_box(
+    parent,
+    minimum: float = 0,
+    maximum: float = 100,
+    step_size: float = 0.01,
+    default: float = 1,
+    n_decimals: int = 1,
+    tooltip: str = None,
+    value: ty.Optional[float] = None,
+    focus_policy: Qt.FocusPolicy = Qt.TabFocus,
+) -> QDoubleSpinBox:
+    """Make double spinbox"""
+    if value is None:
+        value = default
+    widget = QDoubleSpinBox(parent)
+    widget.setMinimum(minimum)
+    widget.setMaximum(maximum)
+    widget.setValue(value)
+    widget.setSingleStep(step_size)
+    widget.setDecimals(n_decimals)
+    widget.setAlignment(Qt.AlignCenter)
+    widget.setFocusPolicy(focus_policy)
+    if tooltip:
+        widget.setToolTip(tooltip)
+    return widget
+
+
+def make_btn(parent, text: str, tooltip: str = None, flat: bool = False, checkable=False) -> QPushButton:
+    """Make button"""
+    widget = QPushButton(parent=parent)
+    widget.setText(text)
+    widget.setCheckable(checkable)
+    if tooltip:
+        widget.setToolTip(tooltip)
+    if flat:
+        widget.setFlat(flat)
     return widget
 
 

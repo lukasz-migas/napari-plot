@@ -5,7 +5,6 @@ from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
 from . import helpers as hp
-from .layer_controls.qt_axis_controls import QtAxisControls
 from .widgets.qt_mini_toolbar import QtMiniToolbar
 
 
@@ -29,6 +28,12 @@ class QtViewToolbar(QWidget):
         # view modifiers
         self.tools_clip_btn = toolbar_right.insert_qta_tool(
             "clipboard", tooltip="Copy figure to clipboard", func=self._ref_qt_viewer().clipboard
+        )
+        self.tools_camera_btn = toolbar_right.insert_qta_tool(
+            "zoom",
+            tooltip="Show camera controls",
+            checkable=False,
+            func=self._toggle_camera_controls,
         )
         self.tools_axis_btn = toolbar_right.insert_qta_tool(
             "axes",
@@ -73,8 +78,16 @@ class QtViewToolbar(QWidget):
         self._ref_qt_viewer().viewer.text_overlay.visible = state
 
     def _toggle_axis_controls(self, _):
-        _dlg_axis = QtAxisControls(self.viewer, self._ref_qt_viewer())
-        _dlg_axis.show_left_of_widget(self.tools_axis_btn)
+        from .layer_controls.qt_axis_controls import QtAxisControls
+
+        dlg = QtAxisControls(self.viewer, self._ref_qt_viewer())
+        dlg.show_left_of_widget(self.tools_axis_btn, x_offset=dlg.width() * 2)
+
+    def _toggle_camera_controls(self, _):
+        from .layer_controls.qt_camera_controls import QtCameraControls
+
+        dlg = QtCameraControls(self.viewer, self._ref_qt_viewer())
+        dlg.show_left_of_widget(self.tools_camera_btn, x_offset=dlg.width() * 2)
 
     def _on_set_tools_menu(self):
         """Open menu of available tools."""
