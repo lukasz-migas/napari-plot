@@ -226,7 +226,7 @@ class Scatter(BaseLayer):
 
     @property
     def y(self):
-        """Return x-axis array."""
+        """Return y-axis array."""
         return self.data[:, 1]
 
     @y.setter
