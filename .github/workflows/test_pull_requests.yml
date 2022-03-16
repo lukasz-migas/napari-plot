@@ -140,7 +140,7 @@ jobs:
         run: |
           # pip install this git sha directly from github
           pip install --upgrade pip
-          pip install /napari-plot-from-github[all,testing]
+          pip install ./napari-plot-from-github[all,testing]
 
       - name: Test
         uses: GabrielBB/xvfb-action@v1
