@@ -1,12 +1,101 @@
 """Mouse bindings to the viewer"""
+import typing as ty
 from functools import partial
 
 from .tools import Shape
 
+if ty.TYPE_CHECKING:
+    from ..viewer import Viewer
+
 ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
 
 
-def boxzoom(viewer, event):
+def polygon_select(viewer: "Viewer", event):
+
+    """Enable polygon tool.
+
+    This tool gives the user an option to draw a polygon in the canvas that will be used to select data in currently
+    selected layer (or layers).
+
+    The action is as follow:
+        1. Left mouse click adds a point to the polygon.
+        2. Left mouse click + CTRL removes the last point
+        3. Left mouse click + SHIFT removes the nearest point
+        4. Right mouse click cancels polygon
+    """
+    # on press
+    if event.button == 1:  # left-click
+        if "Control" in event.modifiers:
+            viewer.drag_tool.tool.remove_point(-1)
+        elif "Shift" in event.modifiers:
+            viewer.drag_tool.tool.remove_nearby_point(event.position)
+        else:
+            viewer.drag_tool.tool.add_point(event.position)
+        viewer.drag_tool.tool.visible = True
+    elif event.button == 2:  # right-click
+        viewer.drag_tool.tool.clear()
+        viewer.drag_tool.tool.visible = False
+    yield
+
+    # on mouse move
+    while event.type == "mouse_move":
+        yield
+
+    # on release
+    viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+
+
+def lasso_select(viewer: "Viewer", event):
+
+    """Enable polygon tool.
+
+    This tool gives the user an option to draw a polygon in the canvas that will be used to select data in currently
+    selected layer (or layers).
+
+    The action is as follow:
+        1. Left mouse click creates starting point.
+        2. Left mouse drag keeps on adding points
+        3. Right mouse click cancels lasso.
+    """
+    # on press
+    if event.button == 1:  # left-click
+        viewer.drag_tool.tool.add_point(event.position)
+        viewer.drag_tool.tool.visible = True
+    elif event.button == 2:  # right-click
+        viewer.drag_tool.tool.clear()
+        viewer.drag_tool.tool.visible = False
+    yield
+
+    # on mouse move
+    while event.type == "mouse_move":
+        if event.button == 1:
+            viewer.drag_tool.tool.add_point(event.position)
+        yield
+
+    # on release
+    viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+
+
+def box_select(viewer, event):
+    """Enable box zoom."""
+    # on press
+    viewer.drag_tool.tool.visible = True
+    color = viewer.drag_tool.tool.color
+    viewer.drag_tool.tool.shape = Shape.BOX
+    yield
+
+    # on mouse move
+    while event.type == "mouse_move":
+        yield
+
+    # on release
+    viewer.drag_tool.tool.color = color
+    viewer.drag_tool.tool.visible = False
+    viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    viewer.drag_tool.tool.position = (0, 0, 0, 0)
+
+
+def box_zoom(viewer, event):
     """Enable box zoom."""
 
     def _get_shape():
@@ -51,7 +140,7 @@ def boxzoom(viewer, event):
     viewer.events.span(position=position)
 
 
-def boxzoom_shape(shape: Shape, viewer, event):
+def box_zoom_shape(shape: Shape, viewer, event):
     """Enable box zoom."""
 
     def _set_event_range():
@@ -88,6 +177,6 @@ def boxzoom_shape(shape: Shape, viewer, event):
     viewer.events.span(position=position)
 
 
-boxzoom_vertical = partial(boxzoom_shape, Shape.VERTICAL)
-boxzoom_horizontal = partial(boxzoom_shape, Shape.HORIZONTAL)
-boxzoom_box = partial(boxzoom_shape, Shape.BOX)
+box_zoom_vert = partial(box_zoom_shape, Shape.VERTICAL)
+box_zoom_horz = partial(box_zoom_shape, Shape.HORIZONTAL)
+box_zoom_box = partial(box_zoom_shape, Shape.BOX)

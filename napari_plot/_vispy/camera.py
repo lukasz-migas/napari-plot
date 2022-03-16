@@ -35,6 +35,7 @@ class VispyCamera:
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
+        self._camera.events.interactive.connect(self._on_interactive_change)
         self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
         self._camera.events.extent.connect(self._on_extent_change)
@@ -96,6 +97,10 @@ class VispyCamera:
         self.camera.extent = extent
         self.camera.set_default_state()
         self.camera.reset()
+
+    def _on_interactive_change(self):
+        self.camera.interactive = self._camera.interactive
+        print("set inter", self.camera.interactive)
 
     def _on_zoom_change(self):
         self.zoom = self._camera.zoom

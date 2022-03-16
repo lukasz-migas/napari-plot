@@ -4,13 +4,14 @@ import typing as ty
 import numpy as np
 from vispy.scene.visuals import Mesh
 
-from ...components.tools import BoxTool
+from ...components.dragtool import POLYGON_TOOLS
+from ...components.tools import PolygonTool
 
 if ty.TYPE_CHECKING:
     from ...components.viewer_model import ViewerModel
 
 
-class VispyBoxVisual:
+class VispyPolygonVisual:
     """Box visual user to select region of interest in 1d."""
 
     def __init__(self, viewer: "ViewerModel", parent=None, order=1e6):
@@ -26,12 +27,12 @@ class VispyBoxVisual:
         self._on_tool_change(None)
 
     def _on_tool_change(self, _evt=None):
-        if type(self._viewer.drag_tool.tool) != BoxTool:
+        if self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool:
             return
         self._viewer.drag_tool.tool.events.visible.connect(self._on_visible_change)
         self._viewer.drag_tool.tool.events.opacity.connect(self._on_opacity_change)
         self._viewer.drag_tool.tool.events.color.connect(self._on_data_change)
-        self._viewer.drag_tool.tool.events.position.connect(self._on_data_change)
+        self._viewer.drag_tool.tool.events.data.connect(self._on_data_change)
 
         self._on_visible_change()
         self._on_opacity_change()

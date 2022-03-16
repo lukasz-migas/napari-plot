@@ -102,14 +102,14 @@ class QtViewToolbar(QWidget):
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
-        toggle_tool = QAction("Tool: Box", self)
+        toggle_tool = QAction("Tool: Box (zoom)", self)
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX)
         toggle_tool.triggered.connect(lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX))
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
-        toggle_tool = QAction("Tool: Horizontal span", self)
+        toggle_tool = QAction("Tool: Horizontal span (zoom)", self)
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
         toggle_tool.triggered.connect(
@@ -118,12 +118,37 @@ class QtViewToolbar(QWidget):
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
-        toggle_tool = QAction("Tool: Vertical span", self)
+        toggle_tool = QAction("Tool: Box (select)", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX_SELECT)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX_SELECT)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Vertical span (zoom)", self)
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.VERTICAL_SPAN)
         toggle_tool.triggered.connect(
             lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
         )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Polygon (select)", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.POLYGON)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.POLYGON)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Lasso (select)", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.LASSO)
+        toggle_tool.triggered.connect(lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.LASSO))
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
