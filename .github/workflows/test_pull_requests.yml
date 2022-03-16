@@ -125,6 +125,10 @@ jobs:
     name: ubuntu-latest 3.8 pip install
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v2
+        with:
+          path: napari-plot-from-github
+
       - name: Set up Python 3.8
         uses: actions/setup-python@v2
         with:
@@ -136,7 +140,7 @@ jobs:
         run: |
           # pip install this git sha directly from github
           pip install --upgrade pip
-          pip install git+git://github.com/${{ github.repository }}.git@${{ github.sha }}#egg=napari_plot[all,testing]
+          pip install /napari-plot-from-github[all,testing]
 
       - name: Test
         uses: GabrielBB/xvfb-action@v1
