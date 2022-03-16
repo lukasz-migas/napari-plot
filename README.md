@@ -42,21 +42,25 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Region Layer - infinite horizontal or vertical rectangular boxes that span over very broad range. Useful for defining regions of interest.
   - [x] Shapes Layer - `napari's` own `Shapes` layer
   - [x] Points Layer - `napari's` own `Points` layer
-  - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary. (TODO)
+  - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary.
   - [ ] Bar - horizontal and vertical barchart (TODO)
 - [x] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
-- [ ] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data.
-  We currently support three zoom modes and plan to add a couple other tools.
+- [x] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data. We currently provide several `zoom` and `select` tools and hope to add few extras in the future.
   - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
   - [x] Horizontal span - zoom-in only in the y-axis by `Ctrl + left-mouse + drag/release` in the canvas.
   - [x] Vertical span - span-in only in the x-axis by `Shift + left-mouse + drag/release` in the canvas.
-  - [ ] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part. (TODO)
-  - [ ] Polygon select - polygon tool allowing sub-selection of data in the canvas. (TODO)
-  - [ ] Lasso select - lasso tool allowing sub-selection of data in the canvas. (TODO)
+  - [x] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part.
+  - [x] Polygon select - polygon tool allowing sub-selection of data in the canvas.
+  - [x] Lasso select - lasso tool allowing sub-selection of data in the canvas.
 - [ ] Interactive plot legend
 - [ ] Customizable axis visuals.
   - [x] Plot axis enabling customization of tick/label size and color
   - [ ] Support for non-linear scale
+- [ ] Add convenient plotting interface:
+  - [ ] Add `.plot` functionality
+  - [ ] Add `.scatter` functionality
+  - [ ] Add `.hbar` and `.vbar` functionality
+  - [ ] Add `.imshow` functionality
 
 ----------------------------------
 
