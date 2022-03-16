@@ -402,3 +402,11 @@ class Scatter(BaseLayer):
             }
         )
         return state
+
+    def _get_indices_from_path(self, vertices):
+        """Return data contained for specified vertices. Only certain layers implement this."""
+        from matplotlib.path import Path
+
+        path = Path(vertices)
+        indices = path.contains_points(self.data)
+        return indices

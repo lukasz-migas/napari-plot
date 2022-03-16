@@ -14,14 +14,14 @@ from pydantic import Extra, Field
 
 from .. import layers as np_layers
 from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import boxzoom, boxzoom_box, boxzoom_horizontal, boxzoom_vertical
+from ._viewer_mouse_bindings import boxzoom, boxzoom_box, boxzoom_horizontal, boxzoom_vertical, lasso, polygon
 from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
 from .axis import Axis
 from .camera import Camera
 from .dragtool import DragTool
 from .gridlines import GridLines
 from .layerlist import LayerList
-from .tools import BoxTool
+from .tools import BoxTool, PolygonTool
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -111,16 +111,18 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
-        from .dragtool import BOX_INTERACTIVE_TOOL, DragMode
+        from .dragtool import BOX_INTERACTIVE_TOOL, POLY_INTERACTIVE_TOOL, DragMode
         from .tools import Shape
 
-        if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
-            for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom]:
-                try:
-                    index = self.mouse_drag_callbacks.index(callback_func)
-                    self.mouse_drag_callbacks.pop(index)
-                except ValueError:
-                    pass
+        # if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
+        for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom, polygon]:
+            try:
+                index = self.mouse_drag_callbacks.index(callback_func)
+                self.mouse_drag_callbacks.pop(index)
+            except ValueError:
+                pass
+        tool = None
+        if self.drag_tool.active in BOX_INTERACTIVE_TOOL:
             if type(self.drag_tool.tool) == BoxTool:
                 tool = self.drag_tool.tool
             else:
@@ -138,7 +140,17 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             elif self.drag_tool.active == DragMode.AUTO:
                 tool.shape = Shape.BOX
                 self.mouse_drag_callbacks.append(boxzoom)
-            self.drag_tool.tool = tool
+        elif self.drag_tool.active in POLY_INTERACTIVE_TOOL:
+            if type(self.drag_tool.tool) == PolygonTool:
+                tool = self.drag_tool.tool
+            else:
+                tool = PolygonTool()
+
+            if self.drag_tool.active == DragMode.POLYGON:
+                self.mouse_drag_callbacks.append(polygon)
+            elif self.drag_tool.active == DragMode.LASSO:
+                self.mouse_drag_callbacks.append(lasso)
+        self.drag_tool.tool = tool
 
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:
         """Get data extent"""

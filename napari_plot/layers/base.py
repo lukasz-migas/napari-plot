@@ -104,3 +104,6 @@ class BaseLayer(Layer):
             except (AttributeError, ValueError) as err:
                 if throw_exception:
                     raise err
+
+    def _get_indices_from_path(self, vertices):
+        """Return data contained for specified vertices. Only certain layers implement this."""

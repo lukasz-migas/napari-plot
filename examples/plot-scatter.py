@@ -6,8 +6,20 @@ In the example below we are plotting several long lines with no noticeable perfo
 import napari_plot
 import numpy as np
 
-xy = np.random.random((500, 2))
 
+def select_data(event):
+    """Select data"""
+    mask = layer._get_indices_from_path(event.value)
+    indices = np.nonzero(mask)[0]
+    data = xy[indices, :]
+    sel_layer.data = data
+    print(f"Selected {len(data)} points.")
+
+
+xy = np.random.random((15000, 2))
 viewer1d = napari_plot.Viewer()
-viewer1d.add_scatter(xy, scaling=False)
+viewer1d.drag_tool.active = "lasso"
+viewer1d.drag_tool.events.vertices.connect(select_data)
+layer = viewer1d.add_scatter(xy, scaling=False)
+sel_layer = viewer1d.add_scatter(None, scaling=False, face_color="green", size=10)
 napari_plot.run()

@@ -126,7 +126,9 @@ class LimitedPanZoomCamera(PanZoomCamera):
             if abs(x1 - x0) > 1e-3 and not (self.viewer.drag_tool.selecting and modifiers):
                 # this call makes sure that various axis/extent checks are performed
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
-                self.rect = self._make_zoom_rect(x0, x1, y0, y1)
+                rect = self._make_zoom_rect(x0, x1, y0, y1)
+                if rect:
+                    self.rect = rect
         else:
             event.handled = False
 

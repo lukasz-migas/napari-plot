@@ -2,6 +2,7 @@
 import typing as ty
 from enum import Enum
 
+import numpy as np
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
@@ -34,16 +35,12 @@ class DragMode(str, Enum):
     HORIZONTAL_SPAN = "h_span"
     BOX = "box"  # default interaction
     LASSO = "lasso"  # TODO
-    POLYGON = "polygon"  # TODO
+    POLYGON = "polygon"
 
 
 # List of `modes` which utilize the `BoxTool` model
-BOX_INTERACTIVE_TOOL = [
-    DragMode.AUTO,
-    DragMode.BOX,
-    DragMode.VERTICAL_SPAN,
-    DragMode.HORIZONTAL_SPAN,
-]
+BOX_INTERACTIVE_TOOL = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
+POLY_INTERACTIVE_TOOL = [DragMode.POLYGON, DragMode.LASSO]
 
 
 class DragTool(EventedModel):
@@ -69,6 +66,7 @@ class DragTool(EventedModel):
     active: DragMode = DragMode.NONE
     tool: ty.Optional[BaseTool] = None
 
+    vertices: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     shift: Array[float, (4,)] = (0, 0, 0, 0)
     alt: Array[float, (4,)] = (0, 0, 0, 0)
     ctrl: Array[float, (4,)] = (0, 0, 0, 0)
