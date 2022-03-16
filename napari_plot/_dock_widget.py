@@ -27,4 +27,4 @@ class NapariPlotWidget(QWidget):
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     """Return dock widget."""
-    return NapariPlotWidget
+    return NapariPlotWidget, {"area": "bottom", "name": "Napari-Plot"}
