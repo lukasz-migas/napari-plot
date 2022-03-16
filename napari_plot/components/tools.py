@@ -95,6 +95,12 @@ class BoxTool(MeshBaseTool):
 
     shape: Shape = Shape.VERTICAL
 
+    @property
+    def data(self):
+        """Get vertices data."""
+        x0, x1, y0, y1 = self.position
+        return np.asarray([[y0, x0], [y1, x0], [y1, x1], [y0, x1]])
+
     @validator("color", pre=True)
     def _coerce_color(cls, v):
         return transform_color(v)[0]

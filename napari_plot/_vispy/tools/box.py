@@ -4,7 +4,6 @@ import typing as ty
 import numpy as np
 from vispy.scene.visuals import Mesh
 
-from ...components.dragtool import BOX_INTERACTIVE_TOOL
 from ...components.tools import BoxTool
 
 if ty.TYPE_CHECKING:
@@ -27,7 +26,7 @@ class VispyBoxVisual:
         self._on_tool_change(None)
 
     def _on_tool_change(self, _evt=None):
-        if self._viewer.drag_tool.active not in BOX_INTERACTIVE_TOOL or type(self._viewer.drag_tool.tool) != BoxTool:
+        if type(self._viewer.drag_tool.tool) != BoxTool:
             return
         self._viewer.drag_tool.tool.events.visible.connect(self._on_visible_change)
         self._viewer.drag_tool.tool.events.opacity.connect(self._on_opacity_change)

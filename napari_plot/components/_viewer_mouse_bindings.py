@@ -10,7 +10,7 @@ if ty.TYPE_CHECKING:
 ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
 
 
-def polygon(viewer: "Viewer", event):
+def polygon_select(viewer: "Viewer", event):
 
     """Enable polygon tool.
 
@@ -42,11 +42,10 @@ def polygon(viewer: "Viewer", event):
         yield
 
     # on release
-    print(len(viewer.drag_tool.tool.data))
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
 
 
-def lasso(viewer: "Viewer", event):
+def lasso_select(viewer: "Viewer", event):
 
     """Enable polygon tool.
 
@@ -77,7 +76,26 @@ def lasso(viewer: "Viewer", event):
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
 
 
-def boxzoom(viewer, event):
+def box_select(viewer, event):
+    """Enable box zoom."""
+    # on press
+    viewer.drag_tool.tool.visible = True
+    color = viewer.drag_tool.tool.color
+    viewer.drag_tool.tool.shape = Shape.BOX
+    yield
+
+    # on mouse move
+    while event.type == "mouse_move":
+        yield
+
+    # on release
+    viewer.drag_tool.tool.color = color
+    viewer.drag_tool.tool.visible = False
+    viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    viewer.drag_tool.tool.position = (0, 0, 0, 0)
+
+
+def box_zoom(viewer, event):
     """Enable box zoom."""
 
     def _get_shape():
@@ -122,7 +140,7 @@ def boxzoom(viewer, event):
     viewer.events.span(position=position)
 
 
-def boxzoom_shape(shape: Shape, viewer, event):
+def box_zoom_shape(shape: Shape, viewer, event):
     """Enable box zoom."""
 
     def _set_event_range():
@@ -159,6 +177,6 @@ def boxzoom_shape(shape: Shape, viewer, event):
     viewer.events.span(position=position)
 
 
-boxzoom_vertical = partial(boxzoom_shape, Shape.VERTICAL)
-boxzoom_horizontal = partial(boxzoom_shape, Shape.HORIZONTAL)
-boxzoom_box = partial(boxzoom_shape, Shape.BOX)
+box_zoom_vert = partial(box_zoom_shape, Shape.VERTICAL)
+box_zoom_horz = partial(box_zoom_shape, Shape.HORIZONTAL)
+box_zoom_box = partial(box_zoom_shape, Shape.BOX)

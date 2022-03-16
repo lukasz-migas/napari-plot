@@ -14,7 +14,15 @@ from pydantic import Extra, Field
 
 from .. import layers as np_layers
 from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import boxzoom, boxzoom_box, boxzoom_horizontal, boxzoom_vertical, lasso, polygon
+from ._viewer_mouse_bindings import (
+    box_select,
+    box_zoom,
+    box_zoom_box,
+    box_zoom_horz,
+    box_zoom_vert,
+    lasso_select,
+    polygon_select,
+)
 from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
 from .axis import Axis
 from .camera import Camera
@@ -111,45 +119,49 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
-        from .dragtool import BOX_INTERACTIVE_TOOL, POLY_INTERACTIVE_TOOL, DragMode
+        from .dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
         from .tools import Shape
 
-        # if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
-        for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom, polygon, lasso]:
+        # if self.drag_tool.tool not in BOX_ZOOM_TOOLS:
+        for callback_func in [
+            box_zoom_box,
+            box_zoom_vert,
+            box_zoom_horz,
+            box_zoom,
+            polygon_select,
+            lasso_select,
+            box_select,
+        ]:
             try:
                 index = self.mouse_drag_callbacks.index(callback_func)
                 self.mouse_drag_callbacks.pop(index)
             except ValueError:
                 pass
         tool = None
-        if self.drag_tool.active in BOX_INTERACTIVE_TOOL:
-            if type(self.drag_tool.tool) == BoxTool:
-                tool = self.drag_tool.tool
-            else:
-                tool = BoxTool()
-
+        if self.drag_tool.active in BOX_ZOOM_TOOLS:
+            tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else BoxTool()
             if self.drag_tool.active == DragMode.VERTICAL_SPAN:
                 tool.shape = Shape.VERTICAL
-                self.mouse_drag_callbacks.append(boxzoom_vertical)
+                self.mouse_drag_callbacks.append(box_zoom_vert)
             elif self.drag_tool.active == DragMode.HORIZONTAL_SPAN:
                 tool.shape = Shape.HORIZONTAL
-                self.mouse_drag_callbacks.append(boxzoom_horizontal)
+                self.mouse_drag_callbacks.append(box_zoom_horz)
             elif self.drag_tool.active == DragMode.BOX:
                 tool.shape = Shape.BOX
-                self.mouse_drag_callbacks.append(boxzoom_box)
+                self.mouse_drag_callbacks.append(box_zoom_box)
             elif self.drag_tool.active == DragMode.AUTO:
                 tool.shape = Shape.BOX
-                self.mouse_drag_callbacks.append(boxzoom)
-        elif self.drag_tool.active in POLY_INTERACTIVE_TOOL:
-            if type(self.drag_tool.tool) == PolygonTool:
-                tool = self.drag_tool.tool
-            else:
-                tool = PolygonTool()
-
+                self.mouse_drag_callbacks.append(box_zoom)
+        elif self.drag_tool.active in SELECT_TOOLS:
             if self.drag_tool.active == DragMode.POLYGON:
-                self.mouse_drag_callbacks.append(polygon)
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else PolygonTool()
+                self.mouse_drag_callbacks.append(polygon_select)
             elif self.drag_tool.active == DragMode.LASSO:
-                self.mouse_drag_callbacks.append(lasso)
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else PolygonTool()
+                self.mouse_drag_callbacks.append(lasso_select)
+            elif self.drag_tool.active == DragMode.BOX_SELECT:
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else BoxTool(shape=Shape.BOX)
+                self.mouse_drag_callbacks.append(box_select)
         self.drag_tool.tool = tool
 
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:

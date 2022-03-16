@@ -322,7 +322,7 @@ class Window:
         """Add 'View' menu to app menubar."""
         # add DragMode
         self.view_tools = self.main_menu.addMenu("&Interaction")
-        self._menu_tool_auto = QAction("Tool: Auto", self._qt_window)
+        self._menu_tool_auto = QAction("Tool: Auto (zoom)", self._qt_window)
         self._menu_tool_auto.setCheckable(True)
         self._menu_tool_auto.setChecked(True)
         self._menu_tool_auto.triggered.connect(
@@ -330,33 +330,40 @@ class Window:
         )
         self.view_tools.addAction(self._menu_tool_auto)
 
-        self._menu_tool_box = QAction("Tool: Box", self._qt_window)
+        self._menu_tool_box = QAction("Tool: Box (zoom)", self._qt_window)
         self._menu_tool_box.setCheckable(True)
         self._menu_tool_box.triggered.connect(lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.BOX))
         self.view_tools.addAction(self._menu_tool_box)
 
-        self._menu_tool_h_span = QAction("Tool: Horizontal span", self._qt_window)
+        self._menu_tool_h_span = QAction("Tool: Horizontal span (zoom)", self._qt_window)
         self._menu_tool_h_span.setCheckable(True)
         self._menu_tool_h_span.triggered.connect(
             lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
         )
         self.view_tools.addAction(self._menu_tool_h_span)
 
-        self._menu_tool_v_span = QAction("Tool: Vertical span", self._qt_window)
+        self._menu_tool_v_span = QAction("Tool: Vertical span (zoom)", self._qt_window)
         self._menu_tool_v_span.setCheckable(True)
         self._menu_tool_v_span.triggered.connect(
             lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.VERTICAL_SPAN)
         )
         self.view_tools.addAction(self._menu_tool_v_span)
 
-        self._menu_tool_polygon = QAction("Tool: Polygon", self._qt_window)
+        self._menu_tool_box_select = QAction("Tool: Box (select)", self._qt_window)
+        self._menu_tool_box_select.setCheckable(True)
+        self._menu_tool_box_select.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.BOX_SELECT)
+        )
+        self.view_tools.addAction(self._menu_tool_box_select)
+
+        self._menu_tool_polygon = QAction("Tool: Polygon (select)", self._qt_window)
         self._menu_tool_polygon.setCheckable(True)
         self._menu_tool_polygon.triggered.connect(
             lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.POLYGON)
         )
         self.view_tools.addAction(self._menu_tool_polygon)
 
-        self._menu_tool_lasso = QAction("Tool: Lasso", self._qt_window)
+        self._menu_tool_lasso = QAction("Tool: Lasso (select)", self._qt_window)
         self._menu_tool_lasso.setCheckable(True)
         self._menu_tool_lasso.triggered.connect(
             lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.LASSO)
@@ -365,7 +372,14 @@ class Window:
 
         # ensures that only single tool can be selected at at ime
         hp.make_menu_group(
-            self._qt_window, self._menu_tool_auto, self._menu_tool_box, self._menu_tool_v_span, self._menu_tool_h_span
+            self._qt_window,
+            self._menu_tool_auto,
+            self._menu_tool_box,
+            self._menu_tool_v_span,
+            self._menu_tool_h_span,
+            self._menu_tool_polygon,
+            self._menu_tool_lasso,
+            self._menu_tool_box_select,
         )
 
         # add CameraMode
@@ -494,6 +508,8 @@ class Window:
             self._menu_tool_v_span.setChecked(True)
         elif state == DragMode.LASSO:
             self._menu_tool_lasso.setChecked(True)
+        elif state == DragMode.BOX_SELECT:
+            self._menu_tool_box_select.setChecked(True)
         elif state == DragMode.POLYGON:
             self._menu_tool_polygon.setChecked(True)
         else:

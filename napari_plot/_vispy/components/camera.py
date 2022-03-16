@@ -6,7 +6,7 @@ from vispy.geometry import Rect
 from vispy.scene import BaseCamera, PanZoomCamera
 
 from ...components.camera import CameraMode, ExtentMode
-from ...components.dragtool import BOX_INTERACTIVE_TOOL
+from ...components.dragtool import BOX_ZOOM_TOOLS
 from ...components.tools import Shape
 
 if ty.TYPE_CHECKING:
@@ -139,7 +139,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
         x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
         extent = self.extent
         last = self.rect
-        if self.viewer.drag_tool.active in BOX_INTERACTIVE_TOOL:
+        if self.viewer.drag_tool.active in BOX_ZOOM_TOOLS:
             if self.viewer.drag_tool.tool.shape == Shape.VERTICAL:
                 # x0, x1 = self.viewer._get_x_range_extent_for_y(y0, y1)
                 if last is not None:

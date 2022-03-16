@@ -4,7 +4,7 @@ import typing as ty
 import numpy as np
 from vispy.scene.visuals import Mesh
 
-from ...components.dragtool import POLY_INTERACTIVE_TOOL
+from ...components.dragtool import POLYGON_TOOLS
 from ...components.tools import PolygonTool
 
 if ty.TYPE_CHECKING:
@@ -27,10 +27,7 @@ class VispyPolygonVisual:
         self._on_tool_change(None)
 
     def _on_tool_change(self, _evt=None):
-        if (
-            self._viewer.drag_tool.active not in POLY_INTERACTIVE_TOOL
-            or type(self._viewer.drag_tool.tool) != PolygonTool
-        ):
+        if self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool:
             return
         self._viewer.drag_tool.tool.events.visible.connect(self._on_visible_change)
         self._viewer.drag_tool.tool.events.opacity.connect(self._on_opacity_change)

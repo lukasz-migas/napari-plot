@@ -30,17 +30,22 @@ class DragMode(str, Enum):
     """
 
     NONE = "none"
+    # Zoom-tools
     AUTO = "auto"
     VERTICAL_SPAN = "v_span"
     HORIZONTAL_SPAN = "h_span"
     BOX = "box"  # default interaction
-    LASSO = "lasso"  # TODO
+    # Select-tools
+    BOX_SELECT = "box_select"
+    LASSO = "lasso"
     POLYGON = "polygon"
 
 
 # List of `modes` which utilize the `BoxTool` model
-BOX_INTERACTIVE_TOOL = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
-POLY_INTERACTIVE_TOOL = [DragMode.POLYGON, DragMode.LASSO]
+BOX_ZOOM_TOOLS = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
+POLYGON_TOOLS = [DragMode.POLYGON, DragMode.LASSO]
+BOX_SELECT_TOOLS = [DragMode.BOX_SELECT]
+SELECT_TOOLS = [DragMode.POLYGON, DragMode.LASSO, DragMode.BOX_SELECT]
 
 
 class DragTool(EventedModel):
