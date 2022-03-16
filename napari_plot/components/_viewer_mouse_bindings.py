@@ -23,32 +23,18 @@ def polygon(viewer: "Viewer", event):
         3. Left mouse click + SHIFT removes the nearest point
         4. Right mouse click cancels polygon
     """
-
-    def _add_point():
-        viewer.drag_tool.tool.add_point(point)
-
-    def _remove_point():
-        viewer.drag_tool.tool.remove_point(-1)
-
-    def _remove_nearby_point():
-        viewer.drag_tool.tool.remove_nearby_point(point)
-
-    def _clear():
-        viewer.drag_tool.tool.clear()
-
     # on press
-    point = event.position
-    # left-click
-    if event.button == 1:
+    if event.button == 1:  # left-click
         if "Control" in event.modifiers:
-            _remove_point()
+            viewer.drag_tool.tool.remove_point(-1)
         elif "Shift" in event.modifiers:
-            _remove_nearby_point()
+            viewer.drag_tool.tool.remove_nearby_point(event.position)
         else:
-            _add_point()
-    elif event.button == 2:
-        _clear()
-    viewer.drag_tool.tool.visible = True
+            viewer.drag_tool.tool.add_point(event.position)
+        viewer.drag_tool.tool.visible = True
+    elif event.button == 2:  # right-click
+        viewer.drag_tool.tool.clear()
+        viewer.drag_tool.tool.visible = False
     yield
 
     # on mouse move
@@ -56,6 +42,7 @@ def polygon(viewer: "Viewer", event):
         yield
 
     # on release
+    print(len(viewer.drag_tool.tool.data))
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
 
 
@@ -71,28 +58,19 @@ def lasso(viewer: "Viewer", event):
         2. Left mouse drag keeps on adding points
         3. Right mouse click cancels lasso.
     """
-
-    def _add_point():
-        viewer.drag_tool.tool.add_point(point)
-
-    def _clear():
-        viewer.drag_tool.tool.clear()
-
     # on press
-    point = event.position
-    # left-click
-    if event.button == 1:
-        _add_point()
-    elif event.button == 2:
-        _clear()
-    viewer.drag_tool.tool.visible = True
+    if event.button == 1:  # left-click
+        viewer.drag_tool.tool.add_point(event.position)
+        viewer.drag_tool.tool.visible = True
+    elif event.button == 2:  # right-click
+        viewer.drag_tool.tool.clear()
+        viewer.drag_tool.tool.visible = False
     yield
 
     # on mouse move
     while event.type == "mouse_move":
         if event.button == 1:
-            point = event.position
-            _add_point()
+            viewer.drag_tool.tool.add_point(event.position)
         yield
 
     # on release

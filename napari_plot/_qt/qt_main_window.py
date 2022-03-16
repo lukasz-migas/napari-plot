@@ -349,6 +349,20 @@ class Window:
         )
         self.view_tools.addAction(self._menu_tool_v_span)
 
+        self._menu_tool_polygon = QAction("Tool: Polygon", self._qt_window)
+        self._menu_tool_polygon.setCheckable(True)
+        self._menu_tool_polygon.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.POLYGON)
+        )
+        self.view_tools.addAction(self._menu_tool_polygon)
+
+        self._menu_tool_lasso = QAction("Tool: Lasso", self._qt_window)
+        self._menu_tool_lasso.setCheckable(True)
+        self._menu_tool_lasso.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.LASSO)
+        )
+        self.view_tools.addAction(self._menu_tool_lasso)
+
         # ensures that only single tool can be selected at at ime
         hp.make_menu_group(
             self._qt_window, self._menu_tool_auto, self._menu_tool_box, self._menu_tool_v_span, self._menu_tool_h_span
@@ -478,6 +492,10 @@ class Window:
             self._menu_tool_box.setChecked(True)
         elif state == DragMode.VERTICAL_SPAN:
             self._menu_tool_v_span.setChecked(True)
+        elif state == DragMode.LASSO:
+            self._menu_tool_lasso.setChecked(True)
+        elif state == DragMode.POLYGON:
+            self._menu_tool_polygon.setChecked(True)
         else:
             self._menu_tool_h_span.setChecked(True)
 

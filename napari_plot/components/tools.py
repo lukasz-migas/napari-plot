@@ -148,7 +148,8 @@ class PolygonTool(MeshBaseTool):
         """Remove point from the polygon."""
         if len(self.data) == 0:
             return
-        self.data = np.delete(self.data, index, axis=0)
+        data = np.delete(self.data, index, axis=0)
+        self.data = data
 
     def remove_nearby_point(self, point: ty.Tuple[float, float]):
         """Remove point that is nearby to the specified point."""

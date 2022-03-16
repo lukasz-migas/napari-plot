@@ -127,6 +127,22 @@ class QtViewToolbar(QWidget):
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
+        toggle_tool = QAction("Tool: Polygon", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.POLYGON)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.POLYGON)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Tool: Lasso", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self._ref_qt_viewer().viewer.drag_tool.active == DragMode.LASSO)
+        toggle_tool.triggered.connect(lambda: setattr(self._ref_qt_viewer().viewer.drag_tool, "active", DragMode.LASSO))
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
         self.tools_tool_btn.setMenu(menu)
 
         # ensures that only single tool can be selected at at ime

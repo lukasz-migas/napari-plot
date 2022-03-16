@@ -115,7 +115,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         from .tools import Shape
 
         # if self.drag_tool.tool not in BOX_INTERACTIVE_TOOL:
-        for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom, polygon]:
+        for callback_func in [boxzoom_box, boxzoom_vertical, boxzoom_horizontal, boxzoom, polygon, lasso]:
             try:
                 index = self.mouse_drag_callbacks.index(callback_func)
                 self.mouse_drag_callbacks.pop(index)
