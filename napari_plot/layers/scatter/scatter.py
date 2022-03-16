@@ -6,6 +6,7 @@ import numpy as np
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
 from napari.layers.utils.layer_utils import dataframe_to_properties
 from napari.layers.utils.text_manager import TextManager
+from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
 from ..base import BaseLayer
@@ -130,9 +131,9 @@ class Scatter(BaseLayer):
         # add data
         self._data = data
         self._symbol = symbol
-        self._face_color = face_color
+        self._face_color = transform_color(face_color)[0]
+        self._edge_color = transform_color(edge_color)[0]
         self._edge_width = edge_width
-        self._edge_color = edge_color
         self._size = size
         self._scaling = scaling
 
@@ -208,9 +209,33 @@ class Scatter(BaseLayer):
     @data.setter
     def data(self, value: np.ndarray):
         self._data = value
-        self._update_dims()
-        self.events.data(value=self.data)
-        self._set_editable()
+        self._emit_new_data()
+
+    @property
+    def x(self):
+        """Return x-axis array."""
+        return self.data[:, 0]
+
+    @x.setter
+    def x(self, value):
+        value = np.asarray(value)
+        if self.data.shape[0] != value.shape[0]:
+            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+        self.data[:, 0] = value
+        self._emit_new_data()
+
+    @property
+    def y(self):
+        """Return y-axis array."""
+        return self.data[:, 1]
+
+    @y.setter
+    def y(self, value):
+        value = np.asarray(value)
+        if self.data.shape[0] != value.shape[0]:
+            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+        self.data[:, 1] = value
+        self._emit_new_data()
 
     @property
     def symbol(self) -> str:
@@ -276,7 +301,7 @@ class Scatter(BaseLayer):
     @face_color.setter
     def face_color(self, face_color):
         self._face_color = face_color
-        self.events.color()
+        self.events.face_color()
 
     @property
     def properties(self) -> ty.Dict[str, np.ndarray]:

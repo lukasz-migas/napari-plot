@@ -145,10 +145,33 @@ class Line(BaseLayer):
     @data.setter
     def data(self, value: np.ndarray):
         self._data = value
+        self._emit_new_data()
 
-        self._update_dims()
-        self.events.data(value=self.data)
-        self._set_editable()
+    @property
+    def x(self):
+        """Return x-axis array."""
+        return self.data[:, 0]
+
+    @x.setter
+    def x(self, value):
+        value = np.asarray(value)
+        if self.data.shape[0] != value.shape[0]:
+            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+        self.data[:, 0] = value
+        self._emit_new_data()
+
+    @property
+    def y(self):
+        """Return y-axis array."""
+        return self.data[:, 1]
+
+    @y.setter
+    def y(self, value):
+        value = np.asarray(value)
+        if self.data.shape[0] != value.shape[0]:
+            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+        self.data[:, 1] = value
+        self._emit_new_data()
 
     @property
     def color(self):
