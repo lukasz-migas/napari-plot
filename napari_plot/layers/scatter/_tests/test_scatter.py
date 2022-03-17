@@ -32,14 +32,34 @@ def test_scatter_change_data():
         layer.y = new_data
 
 
-def test_centroids_color():
+def test_scatter_color():
     data = np.random.random((10, 2))
     layer = Scatter(data, face_color="white", edge_color="red")
-    np.testing.assert_array_equal(layer.face_color, np.asarray([1.0, 1.0, 1.0, 1.0]))
-    np.testing.assert_array_equal(layer.edge_color, np.asarray([1.0, 0.0, 0.0, 1.0]))
+    assert len(layer.face_color) == len(data)
+    assert len(layer.edge_color) == len(data)
+    np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    np.testing.assert_array_equal(layer.edge_color[5], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
     layer.edge_color = np.asarray([1.0, 1.0, 1.0, 1.0])
-    np.testing.assert_array_equal(layer.edge_color, np.asarray([1.0, 1.0, 1.0, 1.0]))
-
+    np.testing.assert_array_equal(layer.edge_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
     layer.face_color = np.asarray([1.0, 0.0, 0.0, 1.0])
-    np.testing.assert_array_equal(layer.face_color, np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.face_color[4], np.asarray([1.0, 0.0, 0.0, 1.0]))
+
+    # add new dataset with FEWER items
+    data = np.random.random((0, 2))
+    layer.data = data
+    assert len(layer.face_color) == len(data)
+    assert len(layer.edge_color) == len(data)
+
+    # add new dataset with MORE items
+    data = np.random.random((12, 2))
+    layer.data = data
+    assert len(layer.face_color) == len(data)
+    assert len(layer.edge_color) == len(data)
+
+    # set new colors
+    layer.face_color = np.random.random((12, 4))
+    assert len(layer.face_color) == len(data)
+    assert layer.face_color.shape == (12, 4)
+    layer.edge_color = "yellow"
+    assert len(layer.edge_color) == len(data)

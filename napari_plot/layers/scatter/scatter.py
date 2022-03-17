@@ -4,9 +4,9 @@ from copy import deepcopy
 
 import numpy as np
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
+from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.layers.utils.layer_utils import dataframe_to_properties
 from napari.layers.utils.text_manager import TextManager
-from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
 from ..base import BaseLayer
@@ -131,8 +131,8 @@ class Scatter(BaseLayer):
         # add data
         self._data = data
         self._symbol = symbol
-        self._face_color = transform_color(face_color)[0]
-        self._edge_color = transform_color(edge_color)[0]
+        self._face_color = self._initialize_color(face_color, "edge", len(self._data))
+        self._edge_color = self._initialize_color(edge_color, "face", len(self._data))
         self._edge_width = edge_width
         self._size = size
         self._scaling = scaling
@@ -163,6 +163,35 @@ class Scatter(BaseLayer):
             raise TypeError("text should be a string, array, or dict")
 
         self.visible = visible
+
+    @staticmethod
+    def _initialize_color(color, attribute: str, n_points: int):
+        """Get the face/edge colors the Shapes layer will be initialized with
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        attribute : str in {'edge', 'face'}
+            The name of the attribute to set the color of.
+            Should be 'edge' for edge_color or 'face' for face_color.
+
+        Returns
+        -------
+        init_colors : (N, 4) array or str
+            The calculated values for setting edge or face_color
+        """
+        if n_points > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=n_points,
+                colors=color,
+                elem_name=f"{attribute}_color",
+                default="red",
+            )
+            init_colors = normalize_and_broadcast_colors(n_points, transformed_color)
+        else:
+            init_colors = np.empty((0, 4))
+        return init_colors
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
@@ -208,7 +237,23 @@ class Scatter(BaseLayer):
 
     @data.setter
     def data(self, value: np.ndarray):
-        self._data = value
+        n = len(self._data)
+        face_color = self.face_color
+        edge_color = self.edge_color
+        n_new = len(value)
+        # fewer points, trim attributes
+        if n > n_new:
+            face_color = face_color[:n_new]
+            edge_color = edge_color[:n_new]
+        elif n < n_new:
+            n_difference = n_new - n
+            _new_face_color = face_color[-1] if len(face_color) > 0 else np.array((1.0, 1.0, 1.0, 1.0))
+            face_color = np.concatenate([face_color, np.full((n_difference, 4), fill_value=_new_face_color)])
+            _new_edge_color = edge_color[-1] if len(edge_color) > 0 else np.array((1.0, 0.0, 0.0, 1.0))
+            edge_color = np.concatenate([edge_color, np.full((n_difference, 4), fill_value=_new_edge_color)])
+        self._data = np.asarray(value)
+        self._edge_color = edge_color
+        self._face_color = face_color
         self._emit_new_data()
 
     @property
@@ -284,23 +329,23 @@ class Scatter(BaseLayer):
         self.events.edge_width()
 
     @property
-    def edge_color(self) -> str:
+    def edge_color(self) -> np.ndarray:
         """(N x 4) np.ndarray: Array of RGBA edge colors for each point"""
         return self._edge_color
 
     @edge_color.setter
     def edge_color(self, edge_color):
-        self._edge_color = edge_color
+        self._edge_color = self._initialize_color(edge_color, "edge", len(self._data))
         self.events.edge_color()
 
     @property
-    def face_color(self) -> str:
+    def face_color(self) -> np.ndarray:
         """(N x 4) np.ndarray: Array of RGBA face colors for each point"""
         return self._face_color
 
     @face_color.setter
     def face_color(self, face_color):
-        self._face_color = face_color
+        self._face_color = self._initialize_color(face_color, "face", len(self._data))
         self.events.face_color()
 
     @property

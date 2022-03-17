@@ -68,3 +68,11 @@ def test_centroids_color_change():
 
     layer.update_color(1, np.array((1.0, 0.0, 1.0, 1.0)))
     np.testing.assert_array_equal(layer.color[1], np.asarray([1.0, 0.0, 1.0, 1.0]))
+
+    data = np.random.random((0, 3))
+    layer.data = data
+    assert len(layer.color) == len(data)
+
+    data = np.random.random((5, 3))
+    layer.data = data
+    assert len(layer.color) == len(data)

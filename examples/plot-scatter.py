@@ -16,10 +16,11 @@ def select_data(event):
     print(f"Selected {len(data)} points.")
 
 
-xy = np.random.random((15000, 2))
+n = 150000
+xy = np.random.random((n, 2))
 viewer1d = napari_plot.Viewer()
 viewer1d.drag_tool.active = "lasso"
 viewer1d.drag_tool.events.vertices.connect(select_data)
-layer = viewer1d.add_scatter(xy, scaling=False)
-sel_layer = viewer1d.add_scatter(None, scaling=False, face_color="green", size=10)
+layer = viewer1d.add_scatter(xy, face_color=np.random.random((n, 4)), scaling=False)
+sel_layer = viewer1d.add_scatter(None, scaling=False, face_color="yellow", edge_color="green", size=10)
 napari_plot.run()
