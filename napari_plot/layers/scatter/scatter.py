@@ -28,10 +28,12 @@ class Scatter(BaseLayer):
         (e.g., '{property_1}, {float_property:.2f}). A dictionary can be provided with keyword arguments to set the
         text values and display properties. See TextManager.__init__() for the valid keyword arguments.
         For example usage, see /napari/examples/add_points_with_text.py.
-    face_color : str, array-like, dict
-        Color of the point marker body. Numeric color values should be RGB(A).
-    edge_color : str, array-like, dict
-        Color of the point marker border. Numeric color values should be RGB(A).
+    face_color : str, array-like
+        Color of the point marker body. Numeric color values should be RGB(A). Input will be broadcasted to (N, 4)
+        array.
+    edge_color : str, array-like
+        Color of the point marker border. Numeric color values should be RGB(A). Input will be broadcasted to (N, 4)
+        array.
     edge_width : float
         Width of the symbol edge in pixels.
     size : float, array
@@ -73,6 +75,9 @@ class Scatter(BaseLayer):
     # The max number of points that will ever be used to render the thumbnail
     # If more points are present then they are randomly sub-sampled
     _max_points_thumbnail = 1024
+
+    _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
+    _default_edge_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
 
     def __init__(
         self,
@@ -166,15 +171,14 @@ class Scatter(BaseLayer):
 
     @staticmethod
     def _initialize_color(color, attribute: str, n_points: int):
-        """Get the face/edge colors the Shapes layer will be initialized with
+        """Get the face/edge colors the Scatter layer will be initialized with
 
         Parameters
         ----------
         color : (N, 4) array or str
             The value for setting edge or face_color
         attribute : str in {'edge', 'face'}
-            The name of the attribute to set the color of.
-            Should be 'edge' for edge_color or 'face' for face_color.
+            The name of the attribute to set the color of. Should be 'edge' for edge_color or 'face' for face_color.
 
         Returns
         -------
@@ -247,9 +251,9 @@ class Scatter(BaseLayer):
             edge_color = edge_color[:n_new]
         elif n < n_new:
             n_difference = n_new - n
-            _new_face_color = face_color[-1] if len(face_color) > 0 else np.array((1.0, 1.0, 1.0, 1.0))
+            _new_face_color = face_color[-1] if len(face_color) > 0 else self._default_face_color
             face_color = np.concatenate([face_color, np.full((n_difference, 4), fill_value=_new_face_color)])
-            _new_edge_color = edge_color[-1] if len(edge_color) > 0 else np.array((1.0, 0.0, 0.0, 1.0))
+            _new_edge_color = edge_color[-1] if len(edge_color) > 0 else self._default_edge_color
             edge_color = np.concatenate([edge_color, np.full((n_difference, 4), fill_value=_new_edge_color)])
         self._data = np.asarray(value)
         self._edge_color = edge_color

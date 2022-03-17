@@ -66,13 +66,17 @@ class QtScatterControls(QtLayerControls):
         self.size_slider.valueChanged.connect(self.on_change_size)
 
         self.face_color_swatch = QColorSwatch(
-            initial_color=self.layer.face_color,
+            initial_color=self.layer.face_color[-1]
+            if self.layer.face_color.size > 0
+            else self.layer._default_face_color,
             tooltip="Click to set face color",
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
 
         self.edge_color_swatch = QColorSwatch(
-            initial_color=self.layer.edge_color,
+            initial_color=self.layer.edge_color[-1]
+            if self.layer.edge_color.size > 0
+            else self.layer._default_edge_color,
             tooltip="Click to set edge color",
         )
         self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
@@ -220,7 +224,9 @@ class QtScatterControls(QtLayerControls):
     def _on_face_color_change(self, _event):
         """Receive layer.current_face_color() change event and update view."""
         with qt_signals_blocked(self.face_color_swatch):
-            self.face_color_swatch.setColor(self.layer.face_color)
+            self.face_color_swatch.setColor(
+                self.layer.face_color[-1] if self.layer.face_color.size > 0 else self.layer._default_face_color
+            )
 
     @Slot(np.ndarray)  # noqa
     def on_change_edge_color(self, color: np.ndarray):
@@ -230,7 +236,9 @@ class QtScatterControls(QtLayerControls):
     def _on_edge_color_change(self, _event):
         """Receive layer.current_edge_color() change event and update view."""
         with qt_signals_blocked(self.edge_color_swatch):
-            self.edge_color_swatch.setColor(self.layer.edge_color)
+            self.edge_color_swatch.setColor(
+                self.layer.edge_color[-1] if self.layer.edge_color.size > 0 else self.layer._default_edge_color
+            )
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
