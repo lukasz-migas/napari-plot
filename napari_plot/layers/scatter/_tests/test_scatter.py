@@ -32,6 +32,56 @@ def test_scatter_change_data():
         layer.y = new_data
 
 
+def test_scatter_edge_width():
+    data = np.random.random((10, 2))
+    layer = Scatter(data, edge_width=4, edge_width_is_relative=False)
+    layer.edge_width = 3
+    assert np.all(layer.edge_width == 3)
+    layer.edge_width = np.arange(len(data))
+    assert layer.edge_width[0] == 0
+    assert layer.edge_width[3] == 3
+
+    new_data = np.random.random((0, 2))
+    layer.data = new_data
+    assert len(layer.edge_width) == len(new_data)
+
+    new_data = np.random.random((30, 2))
+    layer.data = new_data
+    assert len(layer.edge_width) == len(new_data)
+
+    # check with `edge_width_is_relative=True`
+    data = np.random.random((10, 2))
+    layer = Scatter(data)
+    layer.edge_width = 0.5
+    assert np.all(layer.edge_width == 0.5)
+
+    # raised because `edge_width_is_relative=True` which expects values between 0 and 1
+    with pytest.raises(ValueError):
+        layer.edge_width = 3
+
+    layer.edge_width_is_relative = False
+    layer.edge_width = 3
+    assert np.all(layer.edge_width == 3)
+
+
+def test_scatter_size():
+    data = np.random.random((10, 2))
+    layer = Scatter(data)
+    layer.size = 3
+    assert np.all(layer.size == 3)
+    layer.size = np.arange(len(data))
+    assert layer.size[0] == 0
+    assert layer.size[3] == 3
+
+    new_data = np.random.random((0, 2))
+    layer.data = new_data
+    assert len(layer.size) == len(new_data)
+
+    new_data = np.random.random((30, 2))
+    layer.data = new_data
+    assert len(layer.size) == len(new_data)
+
+
 def test_scatter_color():
     data = np.random.random((10, 2))
     layer = Scatter(data, face_color="white", edge_color="red")
