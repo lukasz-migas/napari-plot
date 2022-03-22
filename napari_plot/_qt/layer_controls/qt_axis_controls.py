@@ -59,7 +59,7 @@ class QtAxisWidget(QWidget):
         )
         self.label_color_swatch.color_changed.connect(self.on_change_label_color)
 
-        self.label_font_size = hp.make_slider(
+        self.label_font_size = hp.make_double_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.label_size
         )
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)
@@ -90,7 +90,7 @@ class QtAxisWidget(QWidget):
         )
         self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)
 
-        self.tick_font_size = hp.make_slider(
+        self.tick_font_size = hp.make_double_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.tick_size
         )
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)

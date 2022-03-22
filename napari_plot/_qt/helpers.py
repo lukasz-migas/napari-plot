@@ -108,10 +108,10 @@ def make_slider(
 
 def make_double_slider(
     parent: ty.Optional[QWidget],
-    min_value: int = 0,
-    max_value: int = 100,
-    step_size: int = 1,
-    value: int = 1,
+    min_value: float = 0,
+    max_value: float = 100,
+    step_size: float = 1,
+    value: float = 1,
     orientation="horizontal",
     tooltip: str = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
