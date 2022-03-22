@@ -169,7 +169,15 @@ class QtViewer(QSplitter):
         # toolbar
         self.viewerToolbar = QtViewToolbar(self.viewer, self, **kwargs)
 
-    def _set_layout(self, add_toolbars: bool = True, dock_controls: bool = False, dock_console=False, **kwargs):
+    def _set_layout(
+        self,
+        add_toolbars: bool = True,
+        dock_controls: bool = False,
+        dock_console=False,
+        dock_camera=False,
+        dock_axis=False,
+        **kwargs,
+    ):
         # set in main canvas
         canvas_layout = QHBoxLayout()
         canvas_layout.addWidget(self.canvas.native, stretch=True)
@@ -199,6 +207,7 @@ class QtViewer(QSplitter):
                 area="left",
                 allowed_areas=["left", "right"],
                 object_name="layer list",
+                close_btn=False,
             )
             self.dockLayerList.setVisible(True)
             self.dockLayerControls = QtViewerDockWidget(
@@ -208,6 +217,7 @@ class QtViewer(QSplitter):
                 area="left",
                 allowed_areas=["left", "right"],
                 object_name="layer controls",
+                close_btn=False,
             )
             self.dockLayerControls.setVisible(True)
 
@@ -222,11 +232,36 @@ class QtViewer(QSplitter):
                 area="bottom",
                 allowed_areas=["top", "bottom"],
                 object_name="console",
+                close_btn=False,
             )
             self.dockConsole.setVisible(False)
             # because the console is loaded lazily in the @getter, this line just
             # gets (or creates) the console when the dock console is made visible.
             self.dockConsole.visibilityChanged.connect(self._ensure_connect)
+        if dock_camera:
+            from .layer_controls.qt_camera_controls import QtCameraWidget
+
+            self.dockCamera = QtViewerDockWidget(
+                self,
+                QtCameraWidget(self.viewer, self),
+                name="Camera controls",
+                area="right",
+                object_name="camera",
+                close_btn=False,
+            )
+            self.dockCamera.setVisible(False)
+        if dock_axis:
+            from .layer_controls.qt_axis_controls import QtAxisWidget
+
+            self.dockAxis = QtViewerDockWidget(
+                self,
+                QtAxisWidget(self.viewer, self),
+                name="Axis controls",
+                area="right",
+                object_name="axis",
+                close_btn=False,
+            )
+            self.dockAxis.setVisible(False)
 
         main_widget = QWidget()
         main_layout = QVBoxLayout()

@@ -4,7 +4,7 @@ import typing as ty
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator
-from qtpy.QtWidgets import QFormLayout
+from qtpy.QtWidgets import QFormLayout, QWidget
 
 from ...components.camera import EXTENT_MODE_TRANSLATIONS, CameraMode
 from .. import helpers as hp
@@ -14,32 +14,18 @@ if ty.TYPE_CHECKING:
     from ...components.viewer_model import ViewerModel
 
 
-class QtCameraControls(QtFramelessPopup):
-    """Popup to control camera model"""
+class QtCameraWidget(QWidget):
+    """Popup to control camera model."""
 
-    def __init__(self, viewer: "ViewerModel", parent=None):
-        self.viewer = viewer
-
+    def __init__(self, viewer: "ViewerModel", parent):
         super().__init__(parent=parent)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setObjectName("camera")
-        self.setMouseTracking(True)
-
+        self.viewer = viewer
         self.viewer.camera.events.rect.connect(self._on_rect_change)
         self.viewer.camera.events.x_range.connect(self._on_x_range_change)
         self.viewer.camera.events.y_range.connect(self._on_y_range_change)
         self.viewer.camera.events.extent_mode.connect(self._on_extent_mode_change)
         self.viewer.camera.events.axis_mode.connect(self._on_axis_mode_change)
 
-        self._on_rect_change()
-        self._on_x_range_change()
-        self._on_y_range_change()
-        self._on_extent_mode_change()
-        self._on_axis_mode_change()
-
-    # noinspection PyAttributeOutsideInit
-    def make_panel(self) -> QFormLayout:
-        """Make panel"""
         self.interactive_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable interaction")
         self.interactive_checkbox.setChecked(self.viewer.camera.interactive)
         self.interactive_checkbox.stateChanged.connect(self.on_change_interactive)
@@ -107,7 +93,6 @@ class QtCameraControls(QtFramelessPopup):
         self.axis_mode_right.stateChanged.connect(self.on_change_axis_mode)
 
         layout = QFormLayout(self)
-        layout.addRow(self._make_move_handle())
         layout.addRow(hp.make_label(self, "Interactive"), self.interactive_checkbox)
         layout.addRow(hp.make_label(self, "Restriction mode"), self.extent_mode)
         layout.addRow(hp.make_label(self, "Current limits", alignment=Qt.AlignCenter, bold=True))
@@ -130,7 +115,13 @@ class QtCameraControls(QtFramelessPopup):
         layout.addRow(hp.make_label(self, "Limit to left"), self.axis_mode_left)
         layout.addRow(hp.make_label(self, "Limit to right"), self.axis_mode_right)
         layout.setSpacing(2)
-        return layout
+
+        # setup UI
+        self._on_rect_change()
+        self._on_x_range_change()
+        self._on_y_range_change()
+        self._on_extent_mode_change()
+        self._on_axis_mode_change()
 
     def on_change_interactive(self):
         """Update interactivity."""
@@ -230,6 +221,28 @@ class QtCameraControls(QtFramelessPopup):
         """Disconnect events when widget is closing."""
         disconnect_events(self.viewer.axis.events, self)
         super().close()
+
+
+class QtCameraControls(QtFramelessPopup):
+    """Popup to control camera model"""
+
+    def __init__(self, viewer: "ViewerModel", parent=None):
+        self.viewer = viewer
+
+        super().__init__(parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setObjectName("camera")
+        self.setMouseTracking(True)
+
+    # noinspection PyAttributeOutsideInit
+    def make_panel(self) -> QFormLayout:
+        """Make panel"""
+        widget = QtCameraWidget(self.viewer, self)
+        layout = QFormLayout()
+        layout.setSpacing(2)
+        layout.addRow(self._make_move_handle("Camera controls"))
+        layout.addRow(widget)
+        return layout
 
 
 def parse_widget_to_value(widget):

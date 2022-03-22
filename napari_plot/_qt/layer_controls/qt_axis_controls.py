@@ -5,7 +5,7 @@ from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QFormLayout
+from qtpy.QtWidgets import QFormLayout, QWidget
 
 from .. import helpers as hp
 from ..qt_dialog import QtFramelessPopup
@@ -14,15 +14,12 @@ if TYPE_CHECKING:
     from ...components.viewer_model import ViewerModel
 
 
-class QtAxisControls(QtFramelessPopup):
-    """Popup to control x/y-axis visual"""
+class QtAxisWidget(QWidget):
+    """Popup to control camera model."""
 
-    def __init__(self, viewer: "ViewerModel", parent=None):
-        self.viewer = viewer
-
+    def __init__(self, viewer: "ViewerModel", parent):
         super().__init__(parent=parent)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-
+        self.viewer = viewer
         self.viewer.axis.events.visible.connect(self._on_visible_change)
         self.viewer.axis.events.x_label.connect(self._on_label_change)
         self.viewer.axis.events.y_label.connect(self._on_label_change)
@@ -37,49 +34,41 @@ class QtAxisControls(QtFramelessPopup):
         self.viewer.axis.events.x_max_size.connect(self._on_max_size_change)
         self.viewer.axis.events.y_max_size.connect(self._on_max_size_change)
 
-        self.setObjectName("axis")
-        self.setMouseTracking(True)
-
-        disable_with_opacity(self, ["x_max_size_spin", "y_max_size_spin"], True)
-
-    # noinspection PyAttributeOutsideInit
-    def make_panel(self) -> QFormLayout:
-        """Make panel"""
         self.visible_checkbox = hp.make_checkbox(self, "", val=self.viewer.axis.visible, tooltip="Show/hide x/y-axes")
-        self.visible_checkbox.stateChanged.connect(self.on_change_visible)  # noqa
+        self.visible_checkbox.stateChanged.connect(self.on_change_visible)
 
         self.x_axis_edit = hp.make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
-        self.x_axis_edit.textChanged.connect(self.on_change_label)  # noqa
+        self.x_axis_edit.textChanged.connect(self.on_change_label)
 
         self.x_label_margin_spin = hp.make_slider(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.x_label_margin
         )
-        self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
+        self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 
         self.y_axis_edit = hp.make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
-        self.y_axis_edit.textChanged.connect(self.on_change_label)  # noqa
+        self.y_axis_edit.textChanged.connect(self.on_change_label)
 
         self.y_label_margin_spin = hp.make_slider(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.y_label_margin
         )
-        self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)  # noqa
+        self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 
         self.label_color_swatch = QColorSwatch(
             initial_color=self.viewer.axis.label_color,
             tooltip="Click to set label color",
         )
-        self.label_color_swatch.color_changed.connect(self.on_change_label_color)  # noqa
+        self.label_color_swatch.color_changed.connect(self.on_change_label_color)
 
-        self.label_font_size = hp.make_slider(
+        self.label_font_size = hp.make_double_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.label_size
         )
-        self.label_font_size.valueChanged.connect(self.on_change_label_font_size)  # noqa
+        self.label_font_size.valueChanged.connect(self.on_change_label_font_size)
 
         self.tick_color_swatch = QColorSwatch(
             initial_color=self.viewer.axis.tick_color,
             tooltip="Click to set tick color",
         )
-        self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)  # noqa
+        self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)
 
         self.x_max_size_spin = hp.make_slider(
             self,
@@ -89,7 +78,7 @@ class QtAxisControls(QtFramelessPopup):
             value=self.viewer.axis.x_max_size,
             tooltip="Maximum height (x-axis) of the axes visual.",
         )
-        self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
+        self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)
 
         self.y_max_size_spin = hp.make_slider(
             self,
@@ -99,12 +88,12 @@ class QtAxisControls(QtFramelessPopup):
             value=self.viewer.axis.y_max_size,
             tooltip="Maximum height width (y-axis) of the axes visual.",
         )
-        self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)  # noqa
+        self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)
 
-        self.tick_font_size = hp.make_slider(
+        self.tick_font_size = hp.make_double_slider(
             self, min_value=4, max_value=16, step_size=1, value=self.viewer.axis.tick_size
         )
-        self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)  # noqa
+        self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)
 
         self.x_tick_margin_spin = hp.make_slider(
             self,
@@ -114,7 +103,7 @@ class QtAxisControls(QtFramelessPopup):
             value=self.viewer.axis.x_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
-        self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
+        self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)
 
         self.y_tick_margin_spin = hp.make_slider(
             self,
@@ -124,10 +113,9 @@ class QtAxisControls(QtFramelessPopup):
             value=self.viewer.axis.y_tick_margin,
             tooltip="Distance between ticks and tick labels.",
         )
-        self.y_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)  # noqa
+        self.y_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)
 
         layout = QFormLayout(self)
-        layout.addRow(self._make_move_handle())  # noqa
         layout.addRow(hp.make_label(self, "Visible"), self.visible_checkbox)
         layout.addRow(hp.make_label(self, "X-axis label"), self.x_axis_edit)
         layout.addRow(hp.make_label(self, "Y-axis label"), self.y_axis_edit)
@@ -144,7 +132,8 @@ class QtAxisControls(QtFramelessPopup):
         layout.addRow(hp.make_label(self, "Max height"), self.x_max_size_spin)
         layout.addRow(hp.make_label(self, "Max width"), self.y_max_size_spin)
         layout.setSpacing(2)
-        return layout
+
+        disable_with_opacity(self, ["x_max_size_spin", "y_max_size_spin"], True)
 
     def on_change_visible(self):
         """Change visibility of the axes."""
@@ -238,6 +227,28 @@ class QtAxisControls(QtFramelessPopup):
         """Update color swatch of the label color."""
         with qt_signals_blocked(self.label_color_swatch):
             self.label_color_swatch.setColor(self.viewer.axis.label_color)
+
+
+class QtAxisControls(QtFramelessPopup):
+    """Popup to control x/y-axis visual"""
+
+    def __init__(self, viewer: "ViewerModel", parent=None):
+        self.viewer = viewer
+
+        super().__init__(parent=parent)
+        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setObjectName("axis")
+        self.setMouseTracking(True)
+
+    # noinspection PyAttributeOutsideInit
+    def make_panel(self) -> QFormLayout:
+        """Make panel"""
+        widget = QtAxisWidget(self.viewer, self)
+        layout = QFormLayout()
+        layout.setSpacing(2)
+        layout.addRow(self._make_move_handle("Axis controls"))
+        layout.addRow(widget)
+        return layout
 
     def close(self):
         """Disconnect events when widget is closing."""
