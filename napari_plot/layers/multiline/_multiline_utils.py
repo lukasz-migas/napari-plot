@@ -41,13 +41,17 @@ def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarra
                     " `ys` arrays."
                 )
         # Dict with `x` array and `ys` list of arrays
-        elif check_keys(data, ("x", "ys")) and all(
-            [isinstance(data["x"], np.ndarray), isinstance(data["ys"], ty.List)]
-        ):
-            xs = [data["x"]]
-            ys = data["ys"]
+        elif check_keys(data, ("x", "ys")):
+            if all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], ty.List)]):
+                xs = [data["x"]]
+                ys = data["ys"]
+            elif all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], np.ndarray)]):
+                xs = [data["x"]]
+                ys = np.atleast_2d(data["ys"])
+                if ys.shape[1] != xs[0].size:
+                    ys = ys.T
         # Dict with `ys` list of arrays
-        elif check_keys(data, ("ys",) and isinstance(data["ys"], ty.List)):
+        elif check_keys(data, ("ys",)) and isinstance(data["ys"], ty.List):
             ys = data["ys"]
     else:
         raise NotImplementedError("Could not parse provided data.")
