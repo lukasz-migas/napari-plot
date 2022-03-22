@@ -240,7 +240,7 @@ class QtCameraControls(QtFramelessPopup):
         widget = QtCameraWidget(self.viewer, self)
         layout = QFormLayout()
         layout.setSpacing(2)
-        layout.addRow(self._make_move_handle())
+        layout.addRow(self._make_move_handle("Camera controls"))
         layout.addRow(widget)
         return layout
 

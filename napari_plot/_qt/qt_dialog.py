@@ -143,8 +143,9 @@ class QtFramelessPopup(QtDialog):
         if position is not None:
             self.move(position)
 
-    def _make_move_handle(self) -> QHBoxLayout:
+    def _make_move_handle(self, title: str = "") -> QHBoxLayout:
         """Make handle button that helps move the window around"""
+        self._title_label = hp.make_label(self, title, bold=True)
         self._move_handle = hp.make_qta_label(
             self,
             "move",
@@ -152,7 +153,7 @@ class QtFramelessPopup(QtDialog):
         )
         self._move_handle.setCursor(Qt.PointingHandCursor)
         layout = QHBoxLayout()
-        layout.addStretch(1)
+        layout.addWidget(self._title_label, stretch=True)
         layout.addWidget(self._move_handle)
         return layout
 
