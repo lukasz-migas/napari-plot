@@ -199,7 +199,7 @@ class Centroids(BaseLayer):
         # more centroids, add attributes
         elif n < n_new:
             n_difference = n_new - n
-            new_color = self.color[-1]
+            new_color = color[-1] if len(color) > 0 else np.array((1.0, 1.0, 1.0, 1.0))
             color = np.concatenate([color, np.full((n_difference, 4), fill_value=new_color)])
         self._data = data
         self.color = color

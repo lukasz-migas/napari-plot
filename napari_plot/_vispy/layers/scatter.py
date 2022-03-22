@@ -25,6 +25,7 @@ class VispyScatterLayer(VispyBaseLayer):
 
         self.layer.events.size.connect(self._on_data_change)
         self.layer.events.edge_width.connect(self._on_data_change)
+        self.layer.events.edge_width_is_relative.connect(self._on_data_change)
         self.layer.events.edge_color.connect(self._on_data_change)
         self.layer.events.face_color.connect(self._on_data_change)
         self.layer.events.symbol.connect(self._on_symbol_change)
@@ -44,12 +45,28 @@ class VispyScatterLayer(VispyBaseLayer):
 
     def _on_data_change(self, event=None):
         """Set data"""
+        if len(self.layer.data) > 0:
+            edge_color = self.layer.edge_color
+            face_color = self.layer.face_color
+            edge_width = self.layer.edge_width
+        else:
+            edge_color = np.array([[0.0, 0.0, 0.0, 1.0]], dtype=np.float32)
+            face_color = np.array([[1.0, 1.0, 1.0, 1.0]], dtype=np.float32)
+            edge_width = [0]
+
+        if self.layer.edge_width_is_relative:
+            edge_kw = {
+                "edge_width": None,
+                "edge_width_rel": edge_width,
+            }
+        else:
+            edge_kw = {
+                "edge_width": edge_width,
+                "edge_width_rel": None,
+            }
+
         self.node._subvisuals[MARKERS_MAIN].set_data(
-            self.layer.data[:, ::-1],
-            size=self.layer.size,
-            edge_width=self.layer.edge_width,
-            edge_color=self.layer.edge_color,
-            face_color=self.layer.face_color,
+            self.layer.data[:, ::-1], size=self.layer.size, edge_color=edge_color, face_color=face_color, **edge_kw
         )
         self.node._subvisuals[MARKERS_MAIN].scaling = self.layer.scaling
         self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol

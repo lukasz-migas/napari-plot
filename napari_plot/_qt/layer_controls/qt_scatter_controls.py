@@ -61,24 +61,34 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.editable.connect(self._on_editable_change)
 
         self.size_slider = hp.make_slider(
-            self, 1, value=int(self.layer.size), tooltip="Scatter point size", focus_policy=Qt.NoFocus
+            self,
+            1,
+            tooltip="Scatter point size",
+            focus_policy=Qt.NoFocus,
         )
         self.size_slider.valueChanged.connect(self.on_change_size)
 
         self.face_color_swatch = QColorSwatch(
-            initial_color=self.layer.face_color,
+            initial_color=self.layer.face_color[-1]
+            if self.layer.face_color.size > 0
+            else self.layer._default_face_color,
             tooltip="Click to set face color",
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
 
         self.edge_color_swatch = QColorSwatch(
-            initial_color=self.layer.edge_color,
+            initial_color=self.layer.edge_color[-1]
+            if self.layer.edge_color.size > 0
+            else self.layer._default_edge_color,
             tooltip="Click to set edge color",
         )
         self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
 
         self.edge_width_slider = hp.make_slider(
-            self, 1, value=int(self.layer.edge_width), tooltip="Scatter edge width", focus_policy=Qt.NoFocus
+            self,
+            1,
+            tooltip="Scatter edge width",
+            focus_policy=Qt.NoFocus,
         )
         self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
 
@@ -105,6 +115,10 @@ class QtScatterControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
         self.layout.addRow(hp.make_label(self, "Display text"), self.text_display_checkbox)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
+
+        # initialize values
+        self._on_size_change(None)
+        self._on_edge_width_change(None)
         self._on_editable_change()
 
     def on_change_symbol(self, _text):
@@ -147,7 +161,12 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.size.blocker():
-            self.size_slider.setValue(int(self.layer.size))
+            size = (
+                self.layer.size[-1]
+                if len(self.layer.size) > 0
+                else (self.layer._default_size if self.layer.edge_width_is_relative else self.layer._default_rel_size)
+            )
+            self.size_slider.setValue(size)
 
     def on_change_edge_width(self, value):
         """Change size of points on the layer model.
@@ -168,7 +187,8 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.edge_width.blocker():
-            self.edge_width_slider.setValue(int(self.layer.edge_width))
+            edge_width = self.layer.edge_width[-1] if len(self.layer.edge_width) > 0 else self.layer._default_edge_width
+            self.edge_width_slider.setValue(int(edge_width))
 
     def on_change_text_visibility(self, state):
         """Toggle the visibility of the text.
@@ -220,7 +240,9 @@ class QtScatterControls(QtLayerControls):
     def _on_face_color_change(self, _event):
         """Receive layer.current_face_color() change event and update view."""
         with qt_signals_blocked(self.face_color_swatch):
-            self.face_color_swatch.setColor(self.layer.face_color)
+            self.face_color_swatch.setColor(
+                self.layer.face_color[-1] if self.layer.face_color.size > 0 else self.layer._default_face_color
+            )
 
     @Slot(np.ndarray)  # noqa
     def on_change_edge_color(self, color: np.ndarray):
@@ -230,7 +252,9 @@ class QtScatterControls(QtLayerControls):
     def _on_edge_color_change(self, _event):
         """Receive layer.current_edge_color() change event and update view."""
         with qt_signals_blocked(self.edge_color_swatch):
-            self.edge_color_swatch.setColor(self.layer.edge_color)
+            self.edge_color_swatch.setColor(
+                self.layer.edge_color[-1] if self.layer.edge_color.size > 0 else self.layer._default_edge_color
+            )
 
     def _on_editable_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
