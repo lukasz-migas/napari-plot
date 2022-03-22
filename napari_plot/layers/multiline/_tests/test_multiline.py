@@ -42,11 +42,13 @@ def test_multiline_inputs_single(data):
         {"xs": [np.random.random(10)], "ys": [np.random.random(10)] * 3},
         {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3},
         {"x": np.random.random(10), "ys": [np.random.random(10)] * 3},
+        {"x": np.random.random(10), "ys": np.random.random((10, 3))},
     ),
 )
 def test_multiline_inputs_multiple(data):
     layer = MultiLine(data)
     assert layer._data_view.n_lines == 3
+    assert layer.color.shape == (3, 4)
 
 
 def test_multiline_color():
