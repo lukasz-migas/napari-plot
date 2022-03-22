@@ -266,7 +266,6 @@ class QtScatterControls(QtLayerControls):
                 self.layer.edge_color[-1] if self.layer.edge_color.size > 0 else self.layer._default_edge_color
             )
 
-    @Slot(bool)  # noqa
     def on_change_edge_width_is_relative(self, state: bool):
         """Update edge color of layer model from color picker user input."""
         default_edge_width = self.layer._default_rel_size if state else self.layer._default_edge_width
