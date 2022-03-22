@@ -47,6 +47,7 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.selected.connect(self._on_edit_mode_active)
 
         self.width_slider = hp.make_slider(
             self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
@@ -103,6 +104,14 @@ class QtInfLineControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_change()
+        self._on_edit_mode_active()
+
+    def _on_edit_mode_active(self, event=None):
+        """Enable/disable `edit` mode when correct number of regions is selected."""
+        show = len(self.layer.selected_data) == 1
+        disable_with_opacity(self, ["move_button"], show)
+        if not show:
+            self.move_button.setChecked(False)
 
     def _on_mode_change(self, event):
         """Update ticks in checkbox widgets when points layer mode is changed.

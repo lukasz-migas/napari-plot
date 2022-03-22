@@ -79,7 +79,7 @@ class InfLine(BaseLayer):
     """
 
     _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.MOVE: no_op}
+    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.MOVE: highlight}
     _cursor_modes = {
         Mode.ADD: "standard",
         Mode.SELECT: "standard",
@@ -130,7 +130,9 @@ class InfLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event)
+        self.events.add(
+            color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event, selected=Event
+        )
 
         self._width = width
         self._data_view = InfiniteLineList()
@@ -426,11 +428,11 @@ class InfLine(BaseLayer):
         # Update properties based on selected shapes
         if len(selected_data) > 0:
             selected_data_indices = list(selected_data)
-            selected_face_colors = self.color[selected_data_indices]
-            face_colors = np.unique(selected_face_colors, axis=0)
-            if len(face_colors) == 1:
-                face_color = face_colors[0]
-                self.current_color = face_color
+            selected_colors = self.color[selected_data_indices]
+            colors = np.unique(selected_colors, axis=0)
+            if len(colors) == 1:
+                self.current_color = colors[0]
+        self.events.selected()
 
     @property
     def current_color(self):

@@ -50,9 +50,8 @@ def add(layer, event):
 
 def move(layer, event):
     """Move currently selected line to new location."""
-    _select(layer, event, False)
     # above, user should have selected single line and then can move it left-or-right or up-or-down
-    data, orientation = None, None
+    index, data, orientation = None, None, None
     n = len(layer.selected_data)
     if n > 0:
         index = list(layer.selected_data)[0]
@@ -66,11 +65,10 @@ def move(layer, event):
         if data is not None:
             coordinates = layer.world_to_data(event.position)
             layer._moving_coordinates = coordinates
-            layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0])
+            layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=False)
         yield
 
     # on release
-    layer.selected_data = set()  # clear selection
     if data is not None:
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
