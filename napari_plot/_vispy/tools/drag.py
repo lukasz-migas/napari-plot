@@ -2,7 +2,6 @@
 import typing as ty
 
 from ...components.dragtool import BOX_SELECT_TOOLS, BOX_ZOOM_TOOLS, DragMode
-from .box import VispyBoxVisual
 from .polygon import VispyPolygonVisual
 
 if ty.TYPE_CHECKING:
@@ -17,10 +16,8 @@ class VispyDragTool:
         self._viewer = viewer
 
         # initialize each Tool
-        self._box = VispyBoxVisual(viewer, parent=view, order=order)
         self._polygon = VispyPolygonVisual(viewer, parent=view, order=order)
-
-        self.tool = self._box
+        self.tool = self._polygon
 
         self._viewer.drag_tool.events.active.connect(self._on_tool_change)
         self._viewer.drag_tool.events.tool.connect(self._on_tool_change)
@@ -28,7 +25,7 @@ class VispyDragTool:
     def _on_tool_change(self, _evt=None):
         """Change currently selected tool."""
         if self._viewer.drag_tool.active in BOX_ZOOM_TOOLS or self._viewer.drag_tool.active in BOX_SELECT_TOOLS:
-            self.tool = self._box
+            self.tool = self._polygon
         elif self._viewer.drag_tool.active == DragMode.LASSO:
             self.tool = self._polygon
         elif self._viewer.drag_tool.active == DragMode.POLYGON:
