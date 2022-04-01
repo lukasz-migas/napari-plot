@@ -6,7 +6,7 @@ import numpy as np
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
-from .tools import BaseTool
+from .tools import BaseTool, BoxTool, PolygonTool
 
 
 class DragMode(str, Enum):
@@ -75,6 +75,10 @@ class DragTool(EventedModel):
     shift: Array[float, (4,)] = (0, 0, 0, 0)
     alt: Array[float, (4,)] = (0, 0, 0, 0)
     ctrl: Array[float, (4,)] = (0, 0, 0, 0)
+
+    # instances of the the tools that are kept around - these are not evented
+    _box = BoxTool()
+    _polygon = PolygonTool()
 
     @property
     def selecting(self) -> bool:

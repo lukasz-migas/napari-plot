@@ -5,13 +5,13 @@ import numpy as np
 from vispy.scene.visuals import Compound, Markers, Mesh
 
 from ...components.dragtool import POLYGON_TOOLS
-from ...components.tools import PolygonTool
+from ...components.tools import BoxTool, PolygonTool
 
 if ty.TYPE_CHECKING:
     from ...components.viewer_model import ViewerModel
 
-MARKERS = 0
-MESH = 1
+MESH = 0
+MARKERS = 1
 
 
 class VispyPolygonVisual:
@@ -20,22 +20,31 @@ class VispyPolygonVisual:
     def __init__(self, viewer: "ViewerModel", parent=None, order=1e6):
         self._viewer = viewer
 
-        self.node = Compound([Markers(), Mesh()])
+        self.node = Compound([Mesh(), Markers()])
         self.node.order = order
         if parent:
             parent.add(self.node)
 
         self._viewer.drag_tool.events.tool.connect(self._on_tool_change)
+        # polygon events
+        self._viewer.drag_tool._polygon.events.visible.connect(self._on_visible_change)
+        self._viewer.drag_tool._polygon.events.opacity.connect(self._on_opacity_change)
+        self._viewer.drag_tool._polygon.events.color.connect(self._on_data_change)
+        self._viewer.drag_tool._polygon.events.data.connect(self._on_data_change)
+        # box events
+        self._viewer.drag_tool._box.events.visible.connect(self._on_visible_change)
+        self._viewer.drag_tool._box.events.opacity.connect(self._on_opacity_change)
+        self._viewer.drag_tool._box.events.color.connect(self._on_data_change)
+        self._viewer.drag_tool._box.events.position.connect(self._on_data_change)
 
         self._on_tool_change(None)
 
     def _on_tool_change(self, _evt=None):
-        if self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool:
+        # only trigger an update if the tool is a polygon or boxtool
+        if (
+            self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool
+        ) and type(self._viewer.drag_tool.tool) != BoxTool:
             return
-        self._viewer.drag_tool.tool.events.visible.connect(self._on_visible_change)
-        self._viewer.drag_tool.tool.events.opacity.connect(self._on_opacity_change)
-        self._viewer.drag_tool.tool.events.color.connect(self._on_data_change)
-        self._viewer.drag_tool.tool.events.data.connect(self._on_data_change)
 
         self._on_visible_change()
         self._on_opacity_change()

@@ -16,6 +16,7 @@ class VispyDragTool:
         self._viewer = viewer
 
         # initialize each Tool
+        # Polygon can be used by both `BoxTool` and `PolygonTool`
         self._polygon = VispyPolygonVisual(viewer, parent=view, order=order)
         self.tool = self._polygon
 
