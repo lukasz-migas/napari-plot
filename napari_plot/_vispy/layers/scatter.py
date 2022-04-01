@@ -66,7 +66,7 @@ class VispyScatterLayer(VispyBaseLayer):
             }
 
         self.node._subvisuals[MARKERS_MAIN].set_data(
-            self.layer.data[:, ::-1], size=self.layer.size, edge_color=edge_color, face_color=face_color, **edge_kw
+            self.layer.data, size=self.layer.size, edge_color=edge_color, face_color=face_color, **edge_kw
         )
         self.node._subvisuals[MARKERS_MAIN].scaling = self.layer.scaling
         self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol

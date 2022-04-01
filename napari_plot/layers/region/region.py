@@ -280,7 +280,7 @@ class Region(BaseLayer):
     def z_index(self, z_index: ty.Union[int, ty.List[int]]):
         """Set z_index of shape using either int or list of int.
 
-        When list of int is provided, must be of equal length to n shapes.
+        When list of int is provided, must be of equal length to n regions.
 
         Parameters
         ----------
@@ -450,12 +450,12 @@ class Region(BaseLayer):
         colors = self._data_view.color
         z_indices = self._data_view.z_indices
 
-        # fewer shapes, trim attributes
+        # fewer regions, trim attributes
         if self.n_regions > n_new_regions:
             orientation = orientation[:n_new_regions]
             z_indices = z_indices[:n_new_regions]
             colors = colors[:n_new_regions]
-        # more shapes, add attributes
+        # more regions, add attributes
         elif self.n_regions < n_new_regions:
             n_shapes_difference = n_new_regions - self.n_regions
             orientation = orientation + [get_default_region_type(orientation)] * n_shapes_difference
@@ -487,33 +487,26 @@ class Region(BaseLayer):
         color=None,
         z_index=None,
     ):
-        """Add shapes to the current layer.
+        """Add regions to the current layer.
 
         Parameters
         ----------
-        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
-            List of shape data, where each element is either an (N, D) array of the
-            N vertices of a shape in D dimensions or a tuple containing an array of
-            the N vertices and the shape_type string. When a shape_type is present,
-            it overrides keyword arg shape_type. Can be an 3-dimensional array
-            if each shape has the same number of vertices.
+        data : list of array-like or list of tuple of array-like and str or list of tuple of array-like and Orientation
+            Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
+            array has two elements (start position, end position).
         orientation : string | list
-            String of orientation type, must be one of "{'vertical', 'horizontal'}.
-            If list is supplied it must be the same length as the length of `data`
-            and each element will be applied to each region otherwise the same
+            String of orientation type, must be one of "{'vertical', 'horizontal'}". If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
         color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            regions.
         z_index : int | list
-            Specifier of z order priority. Shapes with higher z order are
-            displayed on top of others. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
+            Specifier of z order priority. Shapes with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all regions.
         """
         data, shape_type = parse_region_data(data, orientation)
 
@@ -541,41 +534,27 @@ class Region(BaseLayer):
         orientation="vertical",
         color=None,
         z_index=None,
-        z_refresh=True,
     ):
         """Add shapes to the data view.
 
         Parameters
         ----------
-        data : Array | Tuple(Array,str) | List[Array | Tuple(Array, str)] | Tuple(List[Array], str)
-            List of shape data, where each element is either an (N, D) array of the
-            N vertices of a shape in D dimensions or a tuple containing an array of
-            the N vertices and the shape_type string. When a shape_type is present,
-            it overrides keyword arg shape_type. Can be an 3-dimensional array
-            if each shape has the same number of vertices.
+        data : list of array-like or list of tuple of array-like and str or list of tuple of array-like and Orientation
+            Layer can be initialized by providing list of arrays, list of arrays + orientation of region where each
+            array has two elements (start position, end position).
         orientation : string | list
-            String of orientation type, must be one of "{'vertical', 'horizontal'}.
-            If list is supplied it must be the same length as the length of `data`
-            and each element will be applied to each region otherwise the same
+            String of orientation type, must be one of "{'vertical', 'horizontal'}". If list is supplied it must be the
+            same length as the length of `data` and each element will be applied to each region otherwise the same
             value will be used for all regions. Override by data orientation, if present.
         color : str | tuple | list
-            If string can be any color name recognized by vispy or hex value if
-            starting with `#`. If array-like must be 1-dimensional array with 3
-            or 4 elements. If a list is supplied it must be the same length as
-            the length of `data` and each element will be applied to each shape
-            otherwise the same value will be used for all shapes.
+            If string can be any color name recognized by vispy or hex value if starting with `#`. If array-like must
+            be 1-dimensional array with 3 or 4 elements. If a list is supplied it must be the same length as the length
+            of `data` and each element will be applied to each shape otherwise the same value will be used for all
+            regions.
         z_index : int | list
-            Specifier of z order priority. Shapes with higher z order are
-            displayed on top of others. If a list is supplied it must be the
-            same length as the length of `data` and each element will be
-            applied to each shape otherwise the same value will be used for all
-            shapes.
-        z_refresh : bool
-            If set to true, the mesh elements are re-indexed with the new z order.
-            When shape_index is provided, z_refresh will be overwritten to false,
-            as the z indices will not change.
-            When adding a batch of shapes, set to false  and then call
-            ShapesList._update_z_order() once at the end.
+            Specifier of z order priority. Shapes with higher z order are displayed on top of others. If a list is
+            supplied it must be the same length as the length of `data` and each element will be applied to each shape
+            otherwise the same value will be used for all regions.
         """
         if color is None:
             color = self._current_color
@@ -613,13 +592,12 @@ class Region(BaseLayer):
         Parameters
         ----------
         adding : int
-            the number of shapes that were added
-            (and thus the number of color entries to add)
+            The number of regions that were added (and thus the number of color entries to add).
 
         Returns
         -------
         new_colors : (N, 4) array
-            (Nx4) RGBA array of colors for the N new shapes
+            (Nx4) RGBA array of colors for the N new regions
         """
         new_colors = np.tile(self._current_color, (adding, 1))
         return new_colors
@@ -634,7 +612,6 @@ class Region(BaseLayer):
                 orientation=orientation,
                 color=color,
                 z_index=z_index,
-                z_refresh=False,
             )
             self._data_view._update_z_order()
 
@@ -748,24 +725,20 @@ class Region(BaseLayer):
         self.refresh()
 
     def interaction_box(self, index):
-        """Create the interaction box around a shape or list of shapes.
-        If a single index is passed then the bounding box will be inherited
-        from that shapes interaction box. If list of indices is passed it will
-        be computed directly.
+        """Create the interaction box around a region or list of regions.
+        If a single index is passed then the bounding box will be inherited from that region interaction box.
+        If list of indices is passed it will be computed directly.
 
         Parameters
         ----------
         index : int | list | set | EventedSet
-            Index of a single shape, or a list of shapes around which to
-            construct the interaction box
+            Index of a single region, or a list of shapes around which to construct the interaction box.
 
         Returns
         -------
         box : np.ndarray
-            9x2 array of vertices of the interaction box. The first 8 points
-            are the corners and midpoints of the box in clockwise order
-            starting in the upper-left corner. The 9th point is the center of
-            the box.
+            9x2 array of vertices of the interaction box. The first 8 points are the corners and midpoints of the box
+            in clockwise order starting in the upper-left corner. The 9th point is the center of the box.
         """
         if isinstance(index, (list, np.ndarray, set, EventedSet)):
             if len(index) == 0:

@@ -96,7 +96,7 @@ class Scatter(BaseLayer):
         edge_width_is_relative=True,
         edge_color=(1.0, 0.0, 0.0, 1.0),
         size=1,
-        scaling=True,
+        scaling=False,
         properties=None,
         label="",
         # napari parameters
@@ -237,8 +237,8 @@ class Scatter(BaseLayer):
         if len(self.data) == 0:
             extrema = np.full((2, 2), np.nan)
         else:
-            maxs = np.max(self.data, axis=0)
-            mins = np.min(self.data, axis=0)
+            maxs = np.max(self.data, axis=0)[::-1]
+            mins = np.min(self.data, axis=0)[::-1]
             extrema = np.vstack([mins, maxs])
         return extrema
 
@@ -249,29 +249,31 @@ class Scatter(BaseLayer):
 
     @data.setter
     def data(self, value: np.ndarray):
-        n = len(self._data)
+        n_old = len(self._data)
         face_color = self.face_color
         edge_color = self.edge_color
         size = self.size
         edge_width = self.edge_width
         n_new = len(value)
         # fewer points, trim attributes
-        if n > n_new:
+        if n_old > n_new:
             face_color = face_color[:n_new]
             edge_color = edge_color[:n_new]
             size = size[:n_new]
             edge_width = edge_width[:n_new]
-        elif n < n_new:
-            n_difference = n_new - n
+        elif n_old < n_new:
+            n_difference = n_new - n_old
             _new_face_color = face_color[-1] if len(face_color) > 0 else self._default_face_color
             face_color = np.concatenate([face_color, np.full((n_difference, 4), fill_value=_new_face_color)])
             _new_edge_color = edge_color[-1] if len(edge_color) > 0 else self._default_edge_color
             edge_color = np.concatenate([edge_color, np.full((n_difference, 4), fill_value=_new_edge_color)])
             _new_size = size[-1] if len(size) > 0 else self._default_size
             size = np.concatenate([size, np.full(n_difference, fill_value=_new_size)])
-            _new_size = edge_width[-1] if len(edge_width) > 0 else self._default_edge_width
-            edge_width = np.concatenate([edge_width, np.full(n_difference, fill_value=_new_size)])
+            _new_edge_width = edge_width[-1] if len(edge_width) > 0 else self._default_edge_width
+            edge_width = np.concatenate([edge_width, np.full(n_difference, fill_value=_new_edge_width)])
         self._data = np.asarray(value)
+
+        # we disable events as values of these attributes will be updated with new data
         with self.events.blocker_all():
             self.edge_color = edge_color
             self.face_color = face_color
@@ -301,7 +303,7 @@ class Scatter(BaseLayer):
     def y(self, value):
         value = np.asarray(value)
         if self.data.shape[0] != value.shape[0]:
-            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+            raise ValueError("The shape of the `y-axis` array does not match the shape of the `data` array.")
         self.data[:, 1] = value
         self._emit_new_data()
 
@@ -503,5 +505,5 @@ class Scatter(BaseLayer):
         from matplotlib.path import Path
 
         path = Path(vertices)
-        indices = path.contains_points(self.data)
+        indices = path.contains_points(self.data[:, ::-1])
         return indices

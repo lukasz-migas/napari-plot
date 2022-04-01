@@ -2,13 +2,16 @@
 import typing as ty
 
 import numpy as np
-from vispy.scene.visuals import Mesh
+from vispy.scene.visuals import Compound, Markers, Mesh
 
 from ...components.dragtool import POLYGON_TOOLS
 from ...components.tools import PolygonTool
 
 if ty.TYPE_CHECKING:
     from ...components.viewer_model import ViewerModel
+
+MARKERS = 0
+MESH = 1
 
 
 class VispyPolygonVisual:
@@ -17,7 +20,7 @@ class VispyPolygonVisual:
     def __init__(self, viewer: "ViewerModel", parent=None, order=1e6):
         self._viewer = viewer
 
-        self.node = Mesh()
+        self.node = Compound([Markers(), Mesh()])
         self.node.order = order
         if parent:
             parent.add(self.node)
@@ -48,12 +51,15 @@ class VispyPolygonVisual:
 
     def _on_data_change(self, _event=None):
         """Set data"""
+        data = self._viewer.drag_tool.tool.data
         faces = self._viewer.drag_tool.tool.mesh.triangles
         colors = self._viewer.drag_tool.tool.mesh.triangles_colors
         vertices = self._viewer.drag_tool.tool.mesh.vertices
 
         # Note that the indices of the vertices need to be reversed to
         # go from numpy style to xyz
+        if data is not None:
+            data = data[:, ::-1]
         if vertices is not None:
             vertices = vertices[:, ::-1]
 
@@ -61,5 +67,5 @@ class VispyPolygonVisual:
             vertices = np.zeros((3, 2))
             faces = np.array([[0, 1, 2]])
             colors = np.array([[0, 0, 0, 0]])
-        self.node.set_data(vertices=vertices, faces=faces, face_colors=colors)
-        self.node.update()
+        self.node._subvisuals[MARKERS].set_data(data)
+        self.node._subvisuals[MESH].set_data(vertices=vertices, faces=faces, face_colors=colors)
