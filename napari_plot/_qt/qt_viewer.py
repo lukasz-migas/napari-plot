@@ -25,6 +25,7 @@ from .._vispy.camera import VispyCamera
 from .._vispy.canvas import VispyCanvas
 from .._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 from .._vispy.overlays.grid_lines import VispyGridLinesVisual
+from .._vispy.overlays.legend import VispyLegendOverlay
 from .._vispy.overlays.text import VispyTextVisual
 from .._vispy.tools.drag import VispyDragTool
 from .._vispy.utils.visual import create_vispy_visual
@@ -311,7 +312,10 @@ class QtViewer(QSplitter):
         self.y_axis.interactive = True
 
         # add label
-        self.text_overlay = VispyTextVisual(self, self.viewer, parent=self.view, order=1e6 + 2)
+        self.text_overlay = VispyTextVisual(self, self.viewer, parent=self.view, order=1e6 + 3)
+
+        # add legend
+        self.legend = VispyLegendOverlay(self, self.viewer, parent=self.view, order=1e6 + 3)
 
         with self.canvas.modify_context() as canvas:
             canvas.x_axis = self.x_axis

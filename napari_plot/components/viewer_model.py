@@ -29,6 +29,7 @@ from .camera import Camera
 from .dragtool import DragTool
 from .gridlines import GridLines
 from .layerlist import LayerList
+from .legend import Legend
 from .tools import BoxTool, PolygonTool
 
 
@@ -49,6 +50,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
     axis: Axis = Field(default_factory=Axis, allow_mutation=False)
     text_overlay: TextOverlay = Field(default_factory=TextOverlay, allow_mutation=False)
+    legend: Legend = Field(default_factory=Legend, allow_mutation=False)
     drag_tool: DragTool = Field(default_factory=DragTool, allow_mutation=False)
     grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
 
@@ -251,9 +253,12 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layers : list of napari.layers.Layer, optional
             List of layers to update. If none provided updates all.
         """
-        # layers = layers or self.layers
-        # for layer in layers:
-        #     layer._slice_dims(self.dims.point, self.dims.ndisplay, self.dims.order)
+        layers = self.layers
+        legend_handles = []
+        for layer in layers:
+            if hasattr(layer, "label") and layer.label:
+                legend_handles.append((layer.label, (1, 0, 0, 1)))
+        self.legend.handles = legend_handles
 
     def _on_add_layer(self, event):
         """Connect new layer events.
@@ -278,7 +283,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layer.events.name.connect(self.layers._update_name)
         layer.events.visible.connect(self._on_update_extent)
 
-        # Update dims and grid model
         self._on_layers_change(None)
         # Slice current layer based on dims
         self._update_layers(layers=[layer])

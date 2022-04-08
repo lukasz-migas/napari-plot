@@ -11,6 +11,7 @@ class VispyTextVisual(_VispyTextVisual):
     def __init__(self, qt_viewer, viewer, parent=None, order=1e6):
         self._ref_qt_viewer = ref(qt_viewer)
         super().__init__(viewer, parent, order)
+        self.node.face = "Arial"
 
     def _on_position_change(self, event=None):
         """Change position of text visual.
@@ -43,7 +44,7 @@ class VispyTextVisual(_VispyTextVisual):
             transform = [canvas_size[0] // 2, canvas_size[1] - y_offset, 0, 0]
             anchors = ("center", "top")
         else:
-            raise ValueError("Position {position} is not recognized.")
+            raise ValueError(f"Position {position} is not recognized.")
 
         self.node.transform.translate = transform
         if self.node.anchors != anchors:
