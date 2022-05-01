@@ -215,7 +215,7 @@ class Line(BaseLayer):
         if len(self.data) == 0:
             extrema = np.full((2, 2), np.nan)
         else:
-            maxs = np.max(self.data, axis=0)[::-1]
-            mins = np.min(self.data, axis=0)[::-1]
+            maxs = np.nanmax(self.data, axis=0)[::-1]
+            mins = np.nanmin(self.data, axis=0)[::-1]
             extrema = np.vstack([mins, maxs])
         return extrema

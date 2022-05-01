@@ -16,7 +16,7 @@ def select_data(event):
     print(f"Selected {len(data)} points.")
 
 
-n = 150000
+n = 150_000
 xy = np.random.random((n, 2))
 viewer1d = napari_plot.Viewer()
 viewer1d.drag_tool.active = "lasso"

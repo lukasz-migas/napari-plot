@@ -9,6 +9,10 @@ if ty.TYPE_CHECKING:
     from ...layers import Line
 
 
+LINE_MAIN = 0
+LINE_SCATTER = 1
+
+
 class VispyLineLayer(VispyBaseLayer):
     """Line layer."""
 
@@ -25,15 +29,15 @@ class VispyLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node.set_data(color=self.layer.color, width=self.layer.width)
+        self.node._subvisuals[LINE_MAIN].set_data(color=self.layer.color, width=self.layer.width)
 
     def _on_data_change(self, _event=None):
         """Set data"""
-        self.node.set_data(
+        self.node._subvisuals[LINE_MAIN].set_data(
             pos=self.layer.data,
             color=self.layer.color,
             width=self.layer.width,
         )
 
     def _on_method_change(self, _event=None):
-        self.node.method = self.layer.method
+        self.node._subvisuals[LINE_MAIN].method = self.layer.method

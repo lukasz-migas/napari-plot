@@ -24,12 +24,37 @@ def test_scatter_change_data():
     layer.x = new_data
     layer.y = new_data
 
-    data = np.random.random((20, 2))
-    layer.data = data
+    # try updating with wrongly shaped data
+    new_data = np.random.random(15)
     with pytest.raises(ValueError):
         layer.x = new_data
     with pytest.raises(ValueError):
         layer.y = new_data
+
+    data = np.random.random((20, 2))
+    layer.data = data
+
+    # try updating with 2d data when 1d data is expected
+    with pytest.raises(ValueError):
+        layer.x = new_data
+    with pytest.raises(ValueError):
+        layer.y = new_data
+
+    # set 0-sized array
+    data = np.zeros((0, 2))
+    layer.data = data
+    assert layer.edge_width.shape[0] == 0
+    assert layer.edge_color.shape[0] == 0
+    assert layer.face_color.shape[0] == 0
+    assert layer.size.shape[0] == 0
+
+    # and then N sized array
+    data = np.zeros((100, 2))
+    layer.data = data
+    assert layer.edge_width.shape[0] == 100
+    assert layer.edge_color.shape[0] == 100
+    assert layer.face_color.shape[0] == 100
+    assert layer.size.shape[0] == 100
 
 
 def test_scatter_edge_width():
@@ -62,6 +87,9 @@ def test_scatter_edge_width():
     layer.edge_width_is_relative = False
     layer.edge_width = 3
     assert np.all(layer.edge_width == 3)
+
+    with pytest.raises(ValueError):
+        layer.edge_width_is_relative = True
 
 
 def test_scatter_size():
