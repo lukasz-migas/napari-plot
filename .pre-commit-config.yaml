@@ -1,4 +1,9 @@
 repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
+    hooks:
+    - id: no-commit-to-branch
+      args: ['--branch', 'master', "--branch", "main"]
 -   repo: https://github.com/pycqa/isort
     rev: 5.10.1
     hooks:

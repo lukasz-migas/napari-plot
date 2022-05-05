@@ -7,7 +7,7 @@ from .components.viewer_model import ViewerModel as ViewerModelPlot
 
 
 class NapariPlotWidget(QWidget):
-    """Create instance of 1d Viewer"""
+    """Create instance of napari-plot Viewer."""
 
     def __init__(self, napari_viewer):
         parent = get_parent(None)
