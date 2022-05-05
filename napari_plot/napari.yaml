@@ -4,7 +4,12 @@ contributions:
   commands:
   - id: napari-plot.NapariPlotWidget
     title: Create Napari-Plot
-    python_name: napari_plot._dock_widget:NapariPlotWidget
+    python_name: napari_plot._plot_widget:NapariPlotWidget
+  - id: napari-plot.ScatterPlotWidget
+    python_name: napari_plot._scatter_widget:ScatterPlotWidget
+    title: Scatter plot of two layers
   widgets:
   - command: napari-plot.NapariPlotWidget
     display_name: Napari-Plot
+  - command: napari-plot.ScatterPlotWidget
+    display_name: Napari-Plot (Scatter)
