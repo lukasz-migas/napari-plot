@@ -83,5 +83,5 @@ def test_examples_with_napari(filename, monkeypatch):
         # we use sys.exit(0) to gracefully exit from examples
         if e.code != 0:
             raise
-    # finally:
-    #     napari.Viewer.close_all()  # TODO: change to `close_all`
+    finally:
+        napari.Viewer.close_all()  # TODO: change to `close_all`
