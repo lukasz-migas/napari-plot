@@ -139,7 +139,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 pass
         tool = None
         if self.drag_tool.active in BOX_ZOOM_TOOLS:
-            tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else BoxTool()
+            tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else self.drag_tool._box
             if self.drag_tool.active == DragMode.VERTICAL_SPAN:
                 tool.shape = Shape.VERTICAL
                 self.mouse_drag_callbacks.append(box_zoom_vert)
@@ -154,13 +154,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 self.mouse_drag_callbacks.append(box_zoom)
         elif self.drag_tool.active in SELECT_TOOLS:
             if self.drag_tool.active == DragMode.POLYGON:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else PolygonTool()
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else self.drag_tool._polygon
                 self.mouse_drag_callbacks.append(polygon_select)
             elif self.drag_tool.active == DragMode.LASSO:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else PolygonTool()
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else self.drag_tool._polygon
                 self.mouse_drag_callbacks.append(lasso_select)
             elif self.drag_tool.active == DragMode.BOX_SELECT:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else BoxTool(shape=Shape.BOX)
+                tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else self.drag_tool._box
                 self.mouse_drag_callbacks.append(box_select)
         self.drag_tool.tool = tool
 
