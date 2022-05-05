@@ -1,0 +1,10 @@
+name: napari-plot
+schema_version: 0.1.0
+contributions:
+  commands:
+  - id: napari-plot.NapariPlotWidget
+    title: Create Napari-Plot
+    python_name: napari_plot._dock_widget:NapariPlotWidget
+  widgets:
+  - command: napari-plot.NapariPlotWidget
+    display_name: Napari-Plot
