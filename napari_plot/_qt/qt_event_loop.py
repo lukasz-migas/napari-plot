@@ -16,6 +16,7 @@ from qtpy.QtWidgets import QApplication
 
 from .. import __version__
 
+NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
 
 
@@ -30,7 +31,7 @@ def set_app_id(app_id):
 _defaults = {
     "app_name": "napari_plot",
     "app_version": __version__,
-    # "icon": NAPARI_ICON_PATH,
+    "icon": NAPARI_PLOT_ICON_PATH,
     "org_name": "napari_plot",
     "org_domain": "",
     "app_id": NAPARI_APP_ID,

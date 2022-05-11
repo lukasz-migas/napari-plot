@@ -9,7 +9,7 @@ from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from qtpy.QtCore import QEvent, QEventLoop, Qt
-from qtpy.QtGui import QKeySequence
+from qtpy.QtGui import QIcon, QKeySequence
 from qtpy.QtWidgets import (
     QAction,
     QApplication,
@@ -26,12 +26,17 @@ from ..components.camera import CameraMode, ExtentMode
 from ..components.dragtool import DragMode
 from ..resources import get_stylesheet
 from . import helpers as hp
-from .qt_event_loop import get_app, quit_app
+from .qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
 from .qt_viewer import QtViewer
 
 
 class _QtMainWindow(QMainWindow):
     """Main window."""
+
+    # This was added so that someone can patch
+    # `napari._qt.qt_main_window._QtMainWindow._window_icon`
+    # to their desired window icon
+    _window_icon = NAPARI_PLOT_ICON_PATH
 
     # To track window instances and facilitate getting the "active" viewer...
     # We use this instead of QApplication.activeWindow for compatibility with
@@ -53,7 +58,7 @@ class _QtMainWindow(QMainWindow):
         )
 
         self._quit_app = False
-        # self.setWindowIcon(QIcon(self._window_icon))
+        self.setWindowIcon(QIcon(self._window_icon))
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setUnifiedTitleAndToolBarOnMac(True)
         center = QWidget(self)
