@@ -4,9 +4,9 @@ from copy import deepcopy
 
 import numpy as np
 from napari.layers.points._points_constants import SYMBOL_ALIAS, Symbol
+from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.layers.utils.layer_utils import dataframe_to_properties
 from napari.layers.utils.text_manager import TextManager
-from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
 from ..base import BaseLayer
@@ -28,12 +28,16 @@ class Scatter(BaseLayer):
         (e.g., '{property_1}, {float_property:.2f}). A dictionary can be provided with keyword arguments to set the
         text values and display properties. See TextManager.__init__() for the valid keyword arguments.
         For example usage, see /napari/examples/add_points_with_text.py.
-    face_color : str, array-like, dict
-        Color of the point marker body. Numeric color values should be RGB(A).
-    edge_color : str, array-like, dict
-        Color of the point marker border. Numeric color values should be RGB(A).
-    edge_width : float
+    face_color : str, array-like
+        Color of the point marker body. Numeric color values should be RGB(A). Input will be broadcasted to (N, 4)
+        array.
+    edge_color : str, array-like
+        Color of the point marker border. Numeric color values should be RGB(A). Input will be broadcasted to (N, 4)
+        array.
+    edge_width : int, float, array-like
         Width of the symbol edge in pixels.
+    edge_width_is_relative : bool
+        If enabled, edge_width is interpreted as a fraction of the point size.
     size : float, array
         Size of the point marker in data pixels. If given as a scalar, all points are made the same size. If given as
         an array, size must be the same or broadcastable to the same shape as the data.
@@ -74,6 +78,12 @@ class Scatter(BaseLayer):
     # If more points are present then they are randomly sub-sampled
     _max_points_thumbnail = 1024
 
+    _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
+    _default_edge_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
+    _default_edge_width = 1
+    _default_size = 1
+    _default_rel_size = 0.1
+
     def __init__(
         self,
         data,
@@ -82,7 +92,8 @@ class Scatter(BaseLayer):
         symbol="o",
         text=None,
         face_color=(1.0, 1.0, 1.0, 1.0),
-        edge_width=1,
+        edge_width=0.1,
+        edge_width_is_relative=True,
         edge_color=(1.0, 0.0, 0.0, 1.0),
         size=1,
         scaling=True,
@@ -124,6 +135,7 @@ class Scatter(BaseLayer):
             face_color=Event,
             edge_width=Event,
             edge_color=Event,
+            edge_width_is_relative=Event,
             properties=Event,
             scaling=Event,
         )
@@ -131,11 +143,10 @@ class Scatter(BaseLayer):
         # add data
         self._data = data
         self._symbol = symbol
-        self._face_color = transform_color(face_color)[0]
-        self._edge_color = transform_color(edge_color)[0]
-        self._edge_width = edge_width
-        self._size = size
+        self._face_color = self._initialize_color(face_color, "edge", len(self._data))
+        self._edge_color = self._initialize_color(edge_color, "face", len(self._data))
         self._scaling = scaling
+        self._edge_width_is_relative = edge_width_is_relative
 
         # Save the properties
         if properties is None:
@@ -161,8 +172,38 @@ class Scatter(BaseLayer):
             self._text = TextManager(**copied_text)
         else:
             raise TypeError("text should be a string, array, or dict")
-
+        with self.events.blocker_all():
+            self.edge_width = edge_width
+            self.size = size
         self.visible = visible
+
+    @staticmethod
+    def _initialize_color(color, attribute: str, n_points: int):
+        """Get the face/edge colors the Scatter layer will be initialized with
+
+        Parameters
+        ----------
+        color : (N, 4) array or str
+            The value for setting edge or face_color
+        attribute : str in {'edge', 'face'}
+            The name of the attribute to set the color of. Should be 'edge' for edge_color or 'face' for face_color.
+
+        Returns
+        -------
+        init_colors : (N, 4) array or str
+            The calculated values for setting edge or face_color
+        """
+        if n_points > 0:
+            transformed_color = transform_color_with_defaults(
+                num_entries=n_points,
+                colors=color,
+                elem_name=f"{attribute}_color",
+                default="red",
+            )
+            init_colors = normalize_and_broadcast_colors(n_points, transformed_color)
+        else:
+            init_colors = np.empty((0, 4))
+        return init_colors
 
     def _update_thumbnail(self):
         """Update thumbnail with current data"""
@@ -208,7 +249,34 @@ class Scatter(BaseLayer):
 
     @data.setter
     def data(self, value: np.ndarray):
-        self._data = value
+        n = len(self._data)
+        face_color = self.face_color
+        edge_color = self.edge_color
+        size = self.size
+        edge_width = self.edge_width
+        n_new = len(value)
+        # fewer points, trim attributes
+        if n > n_new:
+            face_color = face_color[:n_new]
+            edge_color = edge_color[:n_new]
+            size = size[:n_new]
+            edge_width = edge_width[:n_new]
+        elif n < n_new:
+            n_difference = n_new - n
+            _new_face_color = face_color[-1] if len(face_color) > 0 else self._default_face_color
+            face_color = np.concatenate([face_color, np.full((n_difference, 4), fill_value=_new_face_color)])
+            _new_edge_color = edge_color[-1] if len(edge_color) > 0 else self._default_edge_color
+            edge_color = np.concatenate([edge_color, np.full((n_difference, 4), fill_value=_new_edge_color)])
+            _new_size = size[-1] if len(size) > 0 else self._default_size
+            size = np.concatenate([size, np.full(n_difference, fill_value=_new_size)])
+            _new_size = edge_width[-1] if len(edge_width) > 0 else self._default_edge_width
+            edge_width = np.concatenate([edge_width, np.full(n_difference, fill_value=_new_size)])
+        self._data = np.asarray(value)
+        with self.events.blocker_all():
+            self.edge_color = edge_color
+            self.face_color = face_color
+            self.size = size
+            self.edge_width = edge_width
         self._emit_new_data()
 
     @property
@@ -255,12 +323,14 @@ class Scatter(BaseLayer):
 
     @property
     def size(self) -> ty.Union[int, float, np.ndarray, list]:
-        """(N, D) array: size of all N points in D dimensions."""
+        """(N, 1) array: size of all N points in D dimensions."""
         return self._size
 
     @size.setter
     def size(self, size: ty.Union[int, float, np.ndarray, list]) -> None:
-        self._size = size
+        self._size = np.broadcast_to(size, self.data.shape[0]).copy()
+        if len(self._size) > 0:
+            self._default_size = self._size[-1]
         self.refresh()
 
     @property
@@ -274,33 +344,58 @@ class Scatter(BaseLayer):
         self.events.scaling()
 
     @property
-    def edge_width(self) -> ty.Union[None, int, float]:
+    def edge_width(self) -> np.ndarray:
         """float: width used for all point markers."""
         return self._edge_width
 
     @edge_width.setter
-    def edge_width(self, edge_width: ty.Union[None, float]) -> None:
+    def edge_width(self, edge_width: ty.Union[float, np.ndarray]) -> None:
+        edge_width = np.broadcast_to(edge_width, self.data.shape[0]).copy()
+        if self.edge_width_is_relative and np.any((edge_width > 1) | (edge_width < 0)):
+            raise ValueError(
+                "edge_width must be between 0 and 1 if edge_width_is_relative is enabled",
+            )
         self._edge_width = edge_width
+        if len(self._edge_width) > 0:
+            self._default_edge_width = self._edge_width[-1]
         self.events.edge_width()
 
     @property
-    def edge_color(self) -> str:
+    def edge_width_is_relative(self) -> bool:
+        """bool: treat edge_width as a fraction of point size."""
+        return self._edge_width_is_relative
+
+    @edge_width_is_relative.setter
+    def edge_width_is_relative(self, edge_width_is_relative: bool) -> None:
+        if edge_width_is_relative and np.any((self.edge_width > 1) | (self.edge_width < 0)):
+            raise ValueError(
+                "edge_width_is_relative can only be enabled if edge_width is between 0 and 1",
+            )
+        self._edge_width_is_relative = edge_width_is_relative
+        self.events.edge_width_is_relative()
+
+    @property
+    def edge_color(self) -> np.ndarray:
         """(N x 4) np.ndarray: Array of RGBA edge colors for each point"""
         return self._edge_color
 
     @edge_color.setter
     def edge_color(self, edge_color):
-        self._edge_color = edge_color
+        self._edge_color = self._initialize_color(edge_color, "edge", len(self._data))
+        if len(self._edge_color) > 0:
+            self._default_edge_color = self._edge_color[-1]
         self.events.edge_color()
 
     @property
-    def face_color(self) -> str:
+    def face_color(self) -> np.ndarray:
         """(N x 4) np.ndarray: Array of RGBA face colors for each point"""
         return self._face_color
 
     @face_color.setter
     def face_color(self, face_color):
-        self._face_color = face_color
+        self._face_color = self._initialize_color(face_color, "face", len(self._data))
+        if len(self._face_color) > 0:
+            self._default_face_color = self._face_color[-1]
         self.events.face_color()
 
     @property
@@ -403,7 +498,7 @@ class Scatter(BaseLayer):
         )
         return state
 
-    def _get_indices_from_path(self, vertices):
+    def _get_mask_from_path(self, vertices):
         """Return data contained for specified vertices. Only certain layers implement this."""
         from matplotlib.path import Path
 

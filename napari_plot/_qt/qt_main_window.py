@@ -2,13 +2,14 @@
 import time
 import typing as ty
 from functools import partial
+from weakref import WeakValueDictionary
 
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from qtpy.QtCore import QEvent, QEventLoop, Qt
-from qtpy.QtGui import QKeySequence
+from qtpy.QtGui import QIcon, QKeySequence
 from qtpy.QtWidgets import (
     QAction,
     QApplication,
@@ -25,12 +26,17 @@ from ..components.camera import CameraMode, ExtentMode
 from ..components.dragtool import DragMode
 from ..resources import get_stylesheet
 from . import helpers as hp
-from .qt_event_loop import get_app, quit_app
+from .qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
 from .qt_viewer import QtViewer
 
 
 class _QtMainWindow(QMainWindow):
     """Main window."""
+
+    # This was added so that someone can patch
+    # `napari._qt.qt_main_window._QtMainWindow._window_icon`
+    # to their desired window icon
+    _window_icon = NAPARI_PLOT_ICON_PATH
 
     # To track window instances and facilitate getting the "active" viewer...
     # We use this instead of QApplication.activeWindow for compatibility with
@@ -42,11 +48,17 @@ class _QtMainWindow(QMainWindow):
         super().__init__(parent)
         self._ev = None
         self._qt_viewer = QtViewer(
-            viewer, dock_controls=True, add_toolbars=False, disable_controls=True, dock_console=True
+            viewer,
+            dock_controls=True,
+            add_toolbars=False,
+            disable_controls=True,
+            dock_console=True,
+            dock_axis=True,
+            dock_camera=True,
         )
 
         self._quit_app = False
-        # self.setWindowIcon(QIcon(self._window_icon))
+        self.setWindowIcon(QIcon(self._window_icon))
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setUnifiedTitleAndToolBarOnMac(True)
         center = QWidget(self)
@@ -159,6 +171,10 @@ class Window:
         # create QApplication if it doesn't already exist
         get_app()
 
+        # Dictionary holding dock widgets
+        self._dock_widgets: ty.Dict[str, QtViewerDockWidget] = WeakValueDictionary()
+        self._unnamed_dockwidget_count = 1
+
         # Connect the Viewer and create the Main Window
         self._qt_window = _QtMainWindow(viewer)
         self._status_bar = self._qt_window.statusBar()
@@ -174,8 +190,14 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
-        self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False)
-        self._add_viewer_dock_widget(self._qt_viewer.dockLayerList, tabify=False)
+        if hasattr(self._qt_viewer, "dockConsole"):
+            self._add_viewer_dock_widget(self._qt_viewer.dockConsole, tabify=False, menu=self.window_menu)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False, menu=self.window_menu)
+        self._add_viewer_dock_widget(self._qt_viewer.dockLayerList, tabify=False, menu=self.window_menu)
+        if hasattr(self._qt_viewer, "dockCamera"):
+            self._add_viewer_dock_widget(self._qt_viewer.dockCamera, tabify=False, menu=self.window_menu)
+        if hasattr(self._qt_viewer, "dockAxis"):
+            self._add_viewer_dock_widget(self._qt_viewer.dockAxis, tabify=False, menu=self.window_menu)
 
         self._status_bar.showMessage("Ready")
         self._help = QLabel("")
@@ -194,7 +216,7 @@ class Window:
         # this is starting to be "vestigial"... this property could be removed
         return self._qt_window._qt_viewer
 
-    def _add_viewer_dock_widget(self, dock_widget: QtViewerDockWidget, tabify=False):
+    def _add_viewer_dock_widget(self, dock_widget: QtViewerDockWidget, tabify=False, menu=None):
         """Add a QtViewerDockWidget to the main window
 
         If other widgets already present in area then will tabify.
@@ -226,10 +248,63 @@ class Window:
                 sizes = list(range(1, len(_wdg) * 4, 4))
                 self._qt_window.resizeDocks(_wdg, sizes, Qt.Vertical)
 
-        action = dock_widget.toggleViewAction()
-        action.setStatusTip(dock_widget.name)
-        action.setText(dock_widget.name)
-        self.window_menu.addAction(action)
+        if menu:
+            action = dock_widget.toggleViewAction()
+            action.setStatusTip(dock_widget.name)
+            action.setText(dock_widget.name)
+            menu.addAction(action)
+
+    def _remove_dock_widget(self, event=None):
+        names = list(self._dock_widgets.keys())
+        for widget_name in names:
+            if event.value in widget_name:
+                # remove this widget
+                widget = self._dock_widgets[widget_name]
+                self.remove_dock_widget(widget)
+
+    def remove_dock_widget(self, widget: QWidget, menu=None):
+        """Removes specified dock widget.
+
+        If a QDockWidget is not provided, the existing QDockWidgets will be
+        searched for one whose inner widget (``.widget()``) is the provided
+        ``widget``.
+
+        Parameters
+        ----------
+        widget : QWidget | str
+            If widget == 'all', all docked widgets will be removed.
+        """
+        if widget == "all":
+            for dw in list(self._dock_widgets.values()):
+                self.remove_dock_widget(dw)
+            return
+
+        if not isinstance(widget, QDockWidget):
+            for dw in self._qt_window.findChildren(QDockWidget):
+                if dw.widget() is widget:
+                    _dw: QDockWidget = dw
+                    break
+            else:
+                raise LookupError(
+                    "Could not find a dock widget containing: {widget}",
+                )
+        else:
+            _dw = widget
+
+        if _dw.widget():
+            _dw.widget().setParent(None)
+        self._qt_window.removeDockWidget(_dw)
+        if menu is not None:
+            menu.removeAction(_dw.toggleViewAction())
+
+        # Remove dock widget from dictionary
+        self._dock_widgets.pop(_dw.name, None)
+
+        # Deleting the dock widget means any references to it will no longer
+        # work but it's not really useful anyway, since the inner widget has
+        # been removed. and anyway: people should be using add_dock_widget
+        # rather than directly using _add_viewer_dock_widget
+        _dw.deleteLater()
 
     def _add_menubar(self):
         """Add menubar to napari app."""
@@ -388,15 +463,15 @@ class Window:
         self._menu_camera_all.triggered.connect(partial(self._set_camera_mode, which=CameraMode.ALL))
         self.view_tools.addAction(self._menu_camera_all)
 
-        self._menu_camera_bottom = QAction("Camera mode: Lock to bottom", self._qt_window)
-        self._menu_camera_bottom.setCheckable(True)
-        self._menu_camera_bottom.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_BOTTOM))
-        self.view_tools.addAction(self._menu_camera_bottom)
-
         self._menu_camera_top = QAction("Camera mode: Lock to top", self._qt_window)
         self._menu_camera_top.setCheckable(True)
         self._menu_camera_top.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_TOP))
         self.view_tools.addAction(self._menu_camera_top)
+
+        self._menu_camera_bottom = QAction("Camera mode: Lock to bottom", self._qt_window)
+        self._menu_camera_bottom.setCheckable(True)
+        self._menu_camera_bottom.triggered.connect(partial(self._set_camera_mode, which=CameraMode.LOCK_TO_BOTTOM))
+        self.view_tools.addAction(self._menu_camera_bottom)
 
         self._menu_camera_left = QAction("Camera mode: Lock to left", self._qt_window)
         self._menu_camera_left.setCheckable(True)
@@ -527,18 +602,15 @@ class Window:
             ]:
                 with hp.qt_signals_blocked(wdg):
                     wdg.setChecked(False)
-        elif CameraMode.LOCK_TO_TOP in state:
+        else:
             with hp.qt_signals_blocked(self._menu_camera_top):
-                self._menu_camera_top.setChecked(True)
-        elif CameraMode.LOCK_TO_LEFT in state:
+                self._menu_camera_top.setChecked(CameraMode.LOCK_TO_TOP in state)
             with hp.qt_signals_blocked(self._menu_camera_left):
-                self._menu_camera_left.setChecked(True)
-        elif CameraMode.LOCK_TO_RIGHT in state:
+                self._menu_camera_left.setChecked(CameraMode.LOCK_TO_LEFT in state)
             with hp.qt_signals_blocked(self._menu_camera_right):
-                self._menu_camera_right.setChecked(True)
-        elif CameraMode.LOCK_TO_BOTTOM in state:
+                self._menu_camera_right.setChecked(CameraMode.LOCK_TO_RIGHT in state)
             with hp.qt_signals_blocked(self._menu_camera_bottom):
-                self._menu_camera_bottom.setChecked(True)
+                self._menu_camera_bottom.setChecked(CameraMode.LOCK_TO_BOTTOM in state)
 
     def _toggle_menubar_visible(self):
         """Toggle visibility of app menubar.

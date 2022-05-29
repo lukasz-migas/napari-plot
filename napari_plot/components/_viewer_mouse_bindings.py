@@ -74,6 +74,7 @@ def lasso_select(viewer: "Viewer", event):
 
     # on release
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    viewer.drag_tool.tool.visible = False
 
 
 def box_select(viewer, event):

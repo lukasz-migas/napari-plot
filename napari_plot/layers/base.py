@@ -105,5 +105,5 @@ class BaseLayer(Layer):
                 if throw_exception:
                     raise err
 
-    def _get_indices_from_path(self, vertices):
+    def _get_mask_from_path(self, vertices):
         """Return data contained for specified vertices. Only certain layers implement this."""

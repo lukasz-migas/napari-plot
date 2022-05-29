@@ -126,8 +126,6 @@ class QtRegionControls(QtLayerControls):
         self._on_editable_change()
         self._on_edit_mode_active()
 
-        disable_with_opacity(self, ["move_button", "select_button", "delete_button"], True)
-
     def _on_edit_mode_active(self, event=None):
         """Enable/disable `edit` mode when correct number of regions is selected."""
         show = len(self.layer.selected_data) == 1

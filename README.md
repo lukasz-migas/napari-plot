@@ -2,31 +2,34 @@
 
 [![License](https://img.shields.io/pypi/l/napari-plot.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-plot.svg?color=green)](https://pypi.org/project/napari-plot)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/napari-plot/badges/version.svg)](https://anaconda.org/conda-forge/napari-plot)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-plot.svg?color=green)](https://python.org)
 [![tests](https://github.com/lukasz-migas/napari-1d/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
 [![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
+[![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
+[![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
+[![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-plot)](https://www.napari-hub.org/plugins/napari-plot)
 
-Plugin providing support for 1d plotting in napari.
+## Plugin providing support for 1d plotting in napari.
 
 This plugin is in very early stages of development and many things are still in a state of disarray. New features and bug fixes
 will be coming over the coming months. 
 
-## Note
-
-`napari-plot` provides several custom icons and stylesheets to take advantage of the `Qt` backend. Since it would be a bit busy to add multiple layer lists,
-I opted to include a toolbar that quickly pulls the layer list whenever requested. Simple use the toolbar to access several commonly accessed elements.
-
 ## Usage
 
-You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to toolbar
+You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to a toolbar
 where you can adjust layer properties like you would do in `napari`.
 
-![embedded](https://github.com/lukasz-migas/napari-1d/blob/main/misc/embedded.png)
+![embedded](https://github.com/lukasz-migas/napari-1d/raw/main/misc/embedded.png)
 
 Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
 behaviour where layer controls are embedded in the main application.
 
-![live-view](https://github.com/lukasz-migas/napari-1d/blob/main/misc/napariplot-live-line.gif)
+![live-view](https://github.com/lukasz-migas/napari-1d/raw/main/misc/napariplot-live-line.gif)
+
+Data selection is also permitted by enabling one of the available selection tools.
+
+![scatter-select](https://github.com/lukasz-migas/napari-1d/raw/main/misc/napariplot-scatter-select.gif)
 
 ## Roadmap:
 
@@ -103,6 +106,10 @@ Distributed under the terms of the [BSD-3] license,
 ## Issues
 
 If you encounter any problems, please [file an issue] along with a detailed description.
+
+## Support
+
+This project is supported by a Chan-Zuckerberg Initiative [napari](https://chanzuckerberg.com/science/programs-resources/imaging/napari/maintain-1d-visualization-plugin/) grant.
 
 [napari]: https://github.com/napari/napari
 [Cookiecutter]: https://github.com/audreyr/cookiecutter

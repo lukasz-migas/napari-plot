@@ -15,9 +15,9 @@ jobs:
       matrix:
         task: [flake8, black, isort, import-lint]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - name: Install dependencies
@@ -32,9 +32,9 @@ jobs:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: 3.8
       - name: Install dependencies
@@ -70,10 +70,10 @@ jobs:
 #            MIN_REQ: 1
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python }}
 
@@ -119,18 +119,18 @@ jobs:
 
       - name: Coverage
         if: runner.os == 'Linux' && matrix.python == '3.9'
-        uses: codecov/codecov-action@v1
+        uses: codecov/codecov-action@v2
 
   test_pip_install:
     name: ubuntu-latest 3.8 pip install
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           path: napari-plot-from-github
 
       - name: Set up Python 3.8
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v3
         with:
           python-version: 3.8
 

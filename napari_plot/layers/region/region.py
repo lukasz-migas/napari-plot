@@ -359,8 +359,7 @@ class Region(BaseLayer):
             selected_colors = self._data_view._color[selected_data_indices]
             colors = np.unique(selected_colors, axis=0)
             if len(colors) == 1:
-                color = colors[0]
-                self.current_color = color
+                self.current_color = colors[0]
         self.events.selected()
 
     def remove_selected(self):

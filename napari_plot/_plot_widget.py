@@ -1,5 +1,4 @@
 """Dock widget"""
-from napari_plugin_engine import napari_hook_implementation
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from ._qt.helpers import get_parent
@@ -8,7 +7,7 @@ from .components.viewer_model import ViewerModel as ViewerModelPlot
 
 
 class NapariPlotWidget(QWidget):
-    """Create instance of 1d Viewer"""
+    """Create instance of napari-plot Viewer."""
 
     def __init__(self, napari_viewer):
         parent = get_parent(None)
@@ -17,14 +16,7 @@ class NapariPlotWidget(QWidget):
         self.viewer_plot = ViewerModelPlot()
         self.qt_viewer = QtViewer(self.viewer_plot, parent=parent)
 
-        layout = QVBoxLayout()
+        layout = QVBoxLayout(self)
         layout.addWidget(self.qt_viewer, stretch=True)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
-        self.setLayout(layout)
-
-
-@napari_hook_implementation
-def napari_experimental_provide_dock_widget():
-    """Return dock widget."""
-    return NapariPlotWidget, {"area": "bottom", "name": "Napari-Plot"}

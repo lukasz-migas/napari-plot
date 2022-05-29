@@ -9,17 +9,20 @@ import numpy as np
 
 def select_data(event):
     """Select data"""
-    mask = layer._get_indices_from_path(event.value)
+    mask = layer._get_mask_from_path(event.value)
     indices = np.nonzero(mask)[0]
     data = xy[indices, :]
     sel_layer.data = data
     print(f"Selected {len(data)} points.")
 
 
-xy = np.random.random((15000, 2))
+n = 150000
+xy = np.random.random((n, 2))
 viewer1d = napari_plot.Viewer()
 viewer1d.drag_tool.active = "lasso"
 viewer1d.drag_tool.events.vertices.connect(select_data)
-layer = viewer1d.add_scatter(xy, scaling=False)
-sel_layer = viewer1d.add_scatter(None, scaling=False, face_color="green", size=10)
+layer = viewer1d.add_scatter(xy, face_color=np.random.random((n, 4)), scaling=False, name="Your data")
+sel_layer = viewer1d.add_scatter(
+    None, scaling=False, face_color="yellow", edge_color="green", size=10, name="Selected points"
+)
 napari_plot.run()
