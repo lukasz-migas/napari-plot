@@ -22,3 +22,4 @@ exclude bundle.py
 exclude dockerfile
 exclude napari_plot _version.py
 exclude mkdocs.yml
+exclude .readthedocs.yaml
