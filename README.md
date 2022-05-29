@@ -9,6 +9,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-plot)](https://www.napari-hub.org/plugins/napari-plot)
+[![Documentation Status](https://readthedocs.org/projects/napari-plot/badge/?version=latest)](https://napari-plot.readthedocs.io/en/latest/?badge=latest)
 
 ## Plugin providing support for 1d plotting in napari.
 
