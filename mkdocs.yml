@@ -1,10 +1,85 @@
-site_name: napari-1d
-site_description: Plugion providing support for 1d plotting in napari.
+site_name: napari-plot
+site_url: https://github.com/lukasz-migas/napari-1d
 site_author: Lukasz Migas
+site_description: >-
+  Vispy-based plotting library alongside napari.
 
-theme: readthedocs
-
+# Repository
+repo_name: lukasz-migas/napari-1d
 repo_url: https://github.com/lukasz-migas/napari-1d
 
-pages:
-- Home: index.md
+# Copyright
+copyright: Copyright &copy; 2021 - present Lukasz Migas
+
+extra_css:
+  - assets/css/extra.css
+
+theme:
+  icon:
+    logo: material/chart-scatter-plot
+  name: material
+  palette:
+    - scheme: default
+      primary: black
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: amber
+      accent: yellow
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.top
+    - navigation.tabs
+    # - navigation.tracking
+    - search.highlight
+    - search.suggest
+    # - toc.follow
+    # - content.code.annotate
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - changelog
+
+plugins:
+  - search
+  - autorefs
+  - minify:
+      minify_html: true
+  # - mkdocstrings:
+  #     watch:
+  #       - napari_plot
+  #     handlers:
+  #       python:
+  #         import:
+  #           - https://docs.python.org/3/objects.inv
+  #         selection:
+  #           docstring_style: numpy
+  #           filters: ["!^_"]
+  #         rendering:
+  #           show_root_heading: true
+  #           # show_root_toc_entry: true
+  #           show_root_full_path: true
+  #           # show_object_full_path: false
+  #           # show_root_members_full_path: false
+  #           # show_category_heading: false
+  #           # show_if_no_docstring: false
+  #           # show_signature: true
+  #           # show_signature_annotations: false
+  #           show_source: true
+  #           # show_bases: true
+  #           # group_by_category: true
+  #           # heading_level: 2
+  #           members_order: alphabetical  # alphabetical/source
+
+  #           ## experimental
+  #           # separate_signature: false
+  #           # line_length: 60
+  #           # show_submodules: true
+  #           docstring_section_style: list  # or table/list/spacy
