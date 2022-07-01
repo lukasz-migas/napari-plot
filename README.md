@@ -1,10 +1,10 @@
 # napari-plot
 
-[![License](https://img.shields.io/pypi/l/napari-plot.svg?color=green)](https://github.com/lukasz-migas/napari-1d/raw/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/napari-plot.svg?color=green)](https://github.com/lukasz-migas/napari-plot/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-plot.svg?color=green)](https://pypi.org/project/napari-plot)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/napari-plot/badges/version.svg)](https://anaconda.org/conda-forge/napari-plot)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-plot.svg?color=green)](https://python.org)
-[![tests](https://github.com/lukasz-migas/napari-1d/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
+[![tests](https://github.com/lukasz-migas/napari-plot/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
 [![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
@@ -21,22 +21,22 @@ will be coming over the coming months.
 You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to a toolbar
 where you can adjust layer properties like you would do in `napari`.
 
-![embedded](https://github.com/lukasz-migas/napari-1d/raw/main/misc/embedded.png)
+![embedded](https://github.com/lukasz-migas/napari-plot/raw/main/misc/embedded.png)
 
 Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
 behaviour where layer controls are embedded in the main application.
 
-![live-view](https://github.com/lukasz-migas/napari-1d/raw/main/misc/napariplot-live-line.gif)
+![live-view](https://github.com/lukasz-migas/napari-plot/raw/main/misc/napariplot-live-line.gif)
 
 Data selection is also permitted by enabling one of the available selection tools.
 
-![scatter-select](https://github.com/lukasz-migas/napari-1d/raw/main/misc/napariplot-scatter-select.gif)
+![scatter-select](https://github.com/lukasz-migas/napari-plot/raw/main/misc/napariplot-scatter-select.gif)
 
 ## Roadmap:
 
 This is only provisional list of features that I would like to see implemented. It barely scratches the surface of what plotting tool should cover so as soon as the basics are covered,
 focus will be put towards adding more exotic features. If there are features that you certainly wish to be included,
-please modify the list below or create a [new issue](https://github.com/lukasz-migas/napari-1d/issues/new)
+please modify the list below or create a [new issue](https://github.com/lukasz-migas/napari-plot/issues/new)
 
 - [ ] Support for new layer types. Layers are based on `napari's` `Layer`, albeit in a two-dimensional setting. Supported and planned layers:
   - [x] Line Layer - simple line plot.
