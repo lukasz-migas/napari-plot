@@ -1,4 +1,6 @@
 """Viewer model"""
+from __future__ import annotations
+
 import typing as ty
 import warnings
 
@@ -13,6 +15,7 @@ from napari.utils.mouse_bindings import MousemapProvider
 from pydantic import Extra, Field
 
 from .. import layers as np_layers
+from ..utils import plot_api as api
 from ..utils.utilities import get_min_max
 from ._viewer_mouse_bindings import (
     box_select,
@@ -368,6 +371,176 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if active is not None:
             self.status = active.get_status(self.cursor.position, world=True)
             self.help = active.help
+
+    def plot(
+        self, y, x: np.ndarray | None = None, fmt: str | None = None, **kwargs
+    ) -> np_layers.Line | np_layers.Scatter:
+        """Plot y versus x as lines and/or markers.
+
+        Example calls:
+            plot(y)
+            plot(x, y)
+            plot(x, y, [fmt], *, **kwargs)
+
+        Notes
+        -----
+        Unlike matplotlib, this function only accepts single input so in order to create more than one layer you will
+        have to make multiple calls to this function.
+        """
+        layer_type, layer_kwargs = api.parse_plot(x=x, y=y, fmt=fmt, **kwargs)
+        if layer_type == "line":
+            return self.add_line(**layer_kwargs)
+        return self.add_scatter(**layer_kwargs)
+
+    def scatter(
+        self,
+        x: np.ndarray,
+        y: np.ndarray,
+        s: float | np.ndarray = None,
+        c=None,
+        marker: str = None,
+        alpha: float = 1.0,
+        scaling: bool = False,
+        **kwargs,
+    ) -> np_layers.Scatter:
+        """A scatter plot of y vs x with varying marker size and/or color."""
+        layer_kwargs = api.parse_scatter(x, y, s, c, marker, alpha, **kwargs)
+        return self.add_scatter(**layer_kwargs, scaling=scaling)
+
+    def bar(
+        self,
+        x: float | np.ndarray,
+        height: float | np.ndarray,
+        width: float | np.ndarray = 0.8,
+        bottom: float | np.ndarray | None = None,
+        *,
+        align: ty.Literal["center", "edge"] = "center",
+        **kwargs,
+    ) -> ty.Tuple[np_layers.Shapes, np_layers.Centroids | None]:
+        """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.bar.html"""
+        bar_kwargs, error_kwargs = api.parse_bar(x, height, width, bottom, align, **kwargs)
+        bar_layer = self.add_shapes(**bar_kwargs)
+        # if error_kwargs:
+        #     error_layer = self.add_centroids(**error_kwargs)
+        return bar_layer
+
+    def barh(
+        self,
+        y: float | np.ndarray,
+        width: float | np.ndarray,
+        height: float | np.ndarray = 0.8,
+        left: float | np.ndarray | None = None,
+        *,
+        align: ty.Literal["center", "edge"] = "center",
+        **kwargs,
+    ) -> ty.Tuple[np_layers.Shapes, np_layers.Centroids | None]:
+        """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.barh.html"""
+        bar_kwargs, error_kwargs = api.parse_bar(
+            x=left, height=height, width=width, bottom=y, align=align, orientation="horizontal", **kwargs
+        )
+        bar_layer = self.add_shapes(**bar_kwargs)
+        # if error_kwargs:
+        #     error_layer = self.add_centroids(**error_kwargs)
+        return bar_layer
+
+    # def hist(
+    #     self,
+    #     x,
+    #     bins=None,
+    #     range=None,
+    #     density=False,
+    #     weights=None,
+    #     cumulative=False,
+    #     bottom=None,
+    #     histtype="bar",
+    #     align="mid",
+    #     orientation="vertical",
+    #     rwidth=None,
+    #     log=False,
+    #     color=None,
+    #     label=None,
+    #     stacked=False,
+    #     *,
+    #     data=None,
+    #     **kwargs,
+    # ):
+    #     """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist.html"""
+    #     raise NotImplementedError("Must implement method")
+    #
+    # def hist2d(
+    #     self, x, y, bins=10, range=None, density=False, weights=None, cmin=None, cmax=None, *, data=None, **kwargs
+    # ):
+    #     """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist2d.html"""
+    #     raise NotImplementedError("Must implement method")
+
+    def axvspan(self, xmin, xmax, ymin=0, ymax=1, **kwargs):
+        """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.axvspan.html"""
+        layer_kwargs = api.parse_span(xmin, xmax, ymin, ymax, orientation="vertical", **kwargs)
+        layer = self.add_region(**layer_kwargs)
+        return layer
+
+    def axhspan(self, ymin, ymax, xmin=0, xmax=1, **kwargs):
+        """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axhspan.html"""
+        layer_kwargs = api.parse_span(xmin, xmax, ymin, ymax, orientation="horizontal", **kwargs)
+        layer = self.add_region(**layer_kwargs)
+        return layer
+
+    def axline(self, x=0, xmin=0, xmax=1, **kwargs):
+        """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axline.html"""
+        raise NotImplementedError("Must implement method")
+
+    def axvline(self, x=0, xmin=0, xmax=1, **kwargs):
+        """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axvline.html"""
+        layer_kwargs = api.parse_axline(x, xmin, xmax, orientation="vertical", **kwargs)
+        layer = self.add_inf_line(**layer_kwargs)
+        return layer
+
+    def axhline(self, y=0, xmin=0, xmax=1, **kwargs):
+        """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axhline.html"""
+        layer_kwargs = api.parse_axline(y, xmin, xmax, orientation="horizontal", **kwargs)
+        layer = self.add_inf_line(**layer_kwargs)
+        return layer
+
+    # def errorbar(
+    #     self,
+    #     x,
+    #     y,
+    #     yerr=None,
+    #     xerr=None,
+    #     fmt="",
+    #     ecolor=None,
+    #     elinewidth=None,
+    #     capsize=None,
+    #     barsabove=False,
+    #     lolims=False,
+    #     uplims=False,
+    #     xlolims=False,
+    #     xuplims=False,
+    #     errorevery=1,
+    #     capthick=None,
+    #     *,
+    #     data=None,
+    #     **kwargs,
+    # ):
+    #     """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.errorbar.html"""
+    #     raise NotImplementedError("Must implement method")
+
+
+def _parse_input_args_for_line(*args) -> ty.Tuple[np.ndarray, np.ndarray]:
+    """Parse input arguments for Line plot."""
+    if len(args) == 0:
+        raise ValueError("You must provide at least input array.")
+    elif len(args) == 1:
+        y = args[0]
+        return np.arange(len(y)), y
+    elif len(args) == 2:
+        return args[0], args[1]
+    else:
+        raise ValueError("Expected either one or two arrays.")
+
+
+def _parse_input_args_for_scatter(*args):
+    """Parse input arguments for Scatter plot."""
 
 
 for _layer in [
