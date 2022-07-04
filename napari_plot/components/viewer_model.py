@@ -422,7 +422,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         bar_layer = self.add_shapes(**bar_kwargs)
         # if error_kwargs:
         #     error_layer = self.add_centroids(**error_kwargs)
-        return bar_layer
+        return bar_layer, None
 
     def barh(
         self,
@@ -441,47 +441,71 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         bar_layer = self.add_shapes(**bar_kwargs)
         # if error_kwargs:
         #     error_layer = self.add_centroids(**error_kwargs)
-        return bar_layer
+        return bar_layer, None
 
-    # def hist(
-    #     self,
-    #     x,
-    #     bins=None,
-    #     range=None,
-    #     density=False,
-    #     weights=None,
-    #     cumulative=False,
-    #     bottom=None,
-    #     histtype="bar",
-    #     align="mid",
-    #     orientation="vertical",
-    #     rwidth=None,
-    #     log=False,
-    #     color=None,
-    #     label=None,
-    #     stacked=False,
-    #     *,
-    #     data=None,
-    #     **kwargs,
-    # ):
-    #     """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist.html"""
-    #     raise NotImplementedError("Must implement method")
-    #
-    # def hist2d(
-    #     self, x, y, bins=10, range=None, density=False, weights=None, cmin=None, cmax=None, *, data=None, **kwargs
-    # ):
-    #     """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist2d.html"""
-    #     raise NotImplementedError("Must implement method")
+    def hist(
+        self,
+        x,
+        bins=None,
+        bin_range=None,
+        density=False,
+        weights=None,
+        cumulative=False,
+        bottom=None,
+        histtype="bar",
+        align="mid",
+        orientation="vertical",
+        rwidth=None,
+        log=False,
+        color=None,
+        label=None,
+        stacked=False,
+        **kwargs,
+    ):
+        """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist.html"""
+        tops, bins, layer_type, layer_kwargs = api.parse_hist(
+            x,
+            bins,
+            bin_range,
+            density,
+            weights,
+            cumulative,
+            bottom,
+            histtype,
+            align,
+            orientation,
+            rwidth,
+            log,
+            color,
+            label,
+            stacked,
+            **kwargs,
+        )
+        layers = []
+        for _layer_args, _layer_kwargs in layer_kwargs:
+            if layer_type == "bar":
+                layers.append(self.bar(*_layer_args, **_layer_kwargs)[0])
+            elif layer_type == "barh":
+                layers.append(self.barh(*_layer_args, **_layer_kwargs)[0])
+        return tops, bins, layers
 
-    def axvspan(self, xmin, xmax, ymin=0, ymax=1, **kwargs):
+    def hist2d(self, x, y, bins=10, bin_range=None, density=False, weights=None, cmin=None, cmax=None, **kwargs):
+        """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.hist2d.html"""
+        layer_kwargs, xedges, yedges = api.parse_hist2d(x, y, bins, bin_range, density, weights, cmin, cmax, **kwargs)
+        layer = self.add_image(**layer_kwargs)
+        self.camera.x_range = xedges[0], xedges[-1]
+        self.camera.y_range = yedges[0], yedges[-1]
+        return layer
+
+    def axvspan(self, xmin, xmax, ymin=0, ymax=1, **kwargs) -> np_layers.Region:
         """See: https://matplotlib.org/3.5.0/api/_as_gen/matplotlib.pyplot.axvspan.html"""
         layer_kwargs = api.parse_span(xmin, xmax, ymin, ymax, orientation="vertical", **kwargs)
         layer = self.add_region(**layer_kwargs)
         return layer
 
-    def axhspan(self, ymin, ymax, xmin=0, xmax=1, **kwargs):
+    def axhspan(self, ymin, ymax, xmin=0, xmax=1, **kwargs) -> np_layers.Region:
         """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axhspan.html"""
-        layer_kwargs = api.parse_span(xmin, xmax, ymin, ymax, orientation="horizontal", **kwargs)
+        layer_kwargs = api.parse_span(ymin, ymax, xmin, xmax, orientation="horizontal", **kwargs)
         layer = self.add_region(**layer_kwargs)
         return layer
 
@@ -489,13 +513,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axline.html"""
         raise NotImplementedError("Must implement method")
 
-    def axvline(self, x=0, xmin=0, xmax=1, **kwargs):
+    def axvline(self, x=0, xmin=0, xmax=1, **kwargs) -> np_layers.InfLine:
         """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axvline.html"""
         layer_kwargs = api.parse_axline(x, xmin, xmax, orientation="vertical", **kwargs)
         layer = self.add_inf_line(**layer_kwargs)
         return layer
 
-    def axhline(self, y=0, xmin=0, xmax=1, **kwargs):
+    def axhline(self, y=0, xmin=0, xmax=1, **kwargs) -> np_layers.InfLine:
         """See: https://matplotlib.org/stable/api/_as_gen/matplotlib.pyplot.axhline.html"""
         layer_kwargs = api.parse_axline(y, xmin, xmax, orientation="horizontal", **kwargs)
         layer = self.add_inf_line(**layer_kwargs)
