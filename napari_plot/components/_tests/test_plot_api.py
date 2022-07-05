@@ -124,4 +124,4 @@ def test_hist2d():
     y = x * 3 + np.random.normal(size=500)
 
     viewer = ViewerModel()
-    viewer.hist2d(x)
+    viewer.hist2d(x, y, (20, 20))
