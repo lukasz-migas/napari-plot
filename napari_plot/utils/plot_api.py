@@ -82,7 +82,7 @@ def parse_scatter(x, y, s, c, marker, alpha, **kwargs) -> ty.Dict:
     alpha = kwargs.pop("opacity", alpha)
     alpha = alpha if not None else 1.0
 
-    kwargs.update(data=np.c_[x, y], size=s, face_color=c, symbol=marker, opacity=alpha)
+    kwargs.update(data=np.c_[y, x], size=s, face_color=c, symbol=marker, opacity=alpha)
     return kwargs
 
 
