@@ -9,7 +9,7 @@ visualisation environment for Python that is compatible with napari but can also
 
 `napari-plot` is developed in the open and as you can imagine, there are many rough edges that need sanding! We are hoping
 to add essential functionality first and focus on fixing what we break along the way. Contributions to the project
-are absolutely, definitely welcome! Please see our [GitHub repository](https://github/lukasz-migas/napari-1d)
+are absolutely, definitely welcome! Please see our [GitHub repository](https://github/lukasz-migas/napari-plot)
 
 ## Installation
 
@@ -32,7 +32,7 @@ conda install -c conda-forge napari-plot
 To install the current `main` branch on `GitHub` (which will be ahead of the latest release on PyPI)
 
 ```
-pip install "git+https://github.com/lukasz-migas/napari-1d.git#egg=napari_plot[all]"
+pip install "git+https://github.com/lukasz-migas/napari-plot.git#egg=napari_plot[all]"
 ```
 
 ## Getting started

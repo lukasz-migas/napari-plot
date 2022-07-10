@@ -1,12 +1,12 @@
 site_name: napari-plot
-site_url: https://github.com/lukasz-migas/napari-1d
+site_url: https://github.com/lukasz-migas/napari-plot
 site_author: Lukasz Migas
 site_description: >-
   Vispy-based plotting library alongside napari.
 
 # Repository
-repo_name: lukasz-migas/napari-1d
-repo_url: https://github.com/lukasz-migas/napari-1d
+repo_name: lukasz-migas/napari-plot
+repo_url: https://github.com/lukasz-migas/napari-plot
 
 # Copyright
 copyright: Copyright &copy; 2021 - present Lukasz Migas

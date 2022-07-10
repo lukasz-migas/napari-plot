@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/napari-plot.svg?color=green)](https://pypi.org/project/napari-plot)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/napari-plot/badges/version.svg)](https://anaconda.org/conda-forge/napari-plot)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-plot.svg?color=green)](https://python.org)
-[![tests](https://github.com/lukasz-migas/napari-plot/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-1d/actions)
+[![tests](https://github.com/lukasz-migas/napari-plot/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-plot/actions)
 [![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-1d)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
@@ -89,8 +89,8 @@ pip install napari-plot
 or from the git repo:
 
 ```python
-git clone https://github.com/lukasz-migas/napari-1d.git
-cd napari-1d
+git clone https://github.com/lukasz-migas/napari-plot.git
+cd napari-plot
 pip install -e '.[all]'
 ```
 
@@ -118,7 +118,7 @@ This project is supported by a Chan-Zuckerberg Initiative [napari](https://chanz
 [BSD-3]: http://opensource.org/licenses/BSD-3-Clause
 [Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
-[file an issue]: https://github.com/lukasz-migas/napari-1d/issues
+[file an issue]: https://github.com/lukasz-migas/napari-plot/issues
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
