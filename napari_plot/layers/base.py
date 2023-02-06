@@ -3,52 +3,17 @@ from contextlib import contextmanager
 
 import numpy as np
 from napari.layers.base import Layer
-from napari.utils.events import Event
+from napari.utils.events import Event, EmitterGroup
 
 
-class BaseLayer(Layer):
-    """Base layer that overrides certain napari Layer characteristics."""
+class LayerMixin:
+    """Mixin class."""
 
     _label: str = ""
 
-    # Flag set to false to block thumbnail refresh
+    # Set flag to 'False' to disable thumbnail update
     _allow_thumbnail_update = True
-
-    def __init__(
-        self,
-        data,
-        *,
-        # napari-plot parameters
-        label="",
-        # napari parameters
-        name=None,
-        metadata=None,
-        scale=None,
-        translate=None,
-        rotate=None,
-        shear=None,
-        affine=None,
-        opacity=1.0,
-        blending="translucent",
-        visible=True,
-    ):
-        super().__init__(
-            data,
-            ndim=2,
-            name=name,
-            metadata=metadata,
-            scale=scale,
-            translate=translate,
-            rotate=rotate,
-            shear=shear,
-            affine=affine,
-            opacity=opacity,
-            blending=blending,
-            visible=visible,
-        )
-
-        self.events.add(label=Event)
-        self._label = label
+    events: EmitterGroup
 
     @property
     def data(self):
@@ -107,3 +72,43 @@ class BaseLayer(Layer):
 
     def _get_mask_from_path(self, vertices):
         """Return data contained for specified vertices. Only certain layers implement this."""
+
+
+class BaseLayer(LayerMixin, Layer):
+    """Base layer that overrides certain napari Layer characteristics."""
+
+    def __init__(
+        self,
+        data,
+        *,
+        # napari-plot parameters
+        label="",
+        # napari parameters
+        name=None,
+        metadata=None,
+        scale=None,
+        translate=None,
+        rotate=None,
+        shear=None,
+        affine=None,
+        opacity=1.0,
+        blending="translucent",
+        visible=True,
+    ):
+        Layer.__init__(
+            self,
+            data,
+            ndim=2,
+            name=name,
+            metadata=metadata,
+            scale=scale,
+            translate=translate,
+            rotate=rotate,
+            shear=shear,
+            affine=affine,
+            opacity=opacity,
+            blending=blending,
+            visible=visible,
+        )
+        self.events.add(label=Event)
+        self._label = label

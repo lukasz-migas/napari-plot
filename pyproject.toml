@@ -72,4 +72,7 @@ filterwarnings = [
   "ignore::DeprecationWarning:shibokensupport",
   "ignore::DeprecationWarning:ipykernel",
   "ignore::DeprecationWarning:pyreadline",
+  "ignore::UserWarning",
+  "ignore::DeprecationWarning",
+  "ignore::RuntimeWarning",
 ]

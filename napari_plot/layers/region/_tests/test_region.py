@@ -106,7 +106,7 @@ def test_region_color_set(color):
 
 
 def test_region_color_current():
-    data = 20 * [np.random.random((2, 1))]
+    data = np.random.random((20, 2))
     layer = Region(data, orientation="vertical")
     np.testing.assert_array_equal(layer.color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
 
@@ -124,7 +124,7 @@ def test_region_color_current():
 
 
 def test_region_selection():
-    data = 20 * [np.random.random((2, 1))]
+    data = np.random.random((20, 2))
     layer = Region(data, orientation="vertical")
     layer.selected_data = {0, 1}
     assert layer.selected_data == {0, 1}

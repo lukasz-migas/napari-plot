@@ -5,7 +5,6 @@ from warnings import warn
 
 from napari._qt.dialogs.qt_notification import NapariQtNotification
 from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop  # noqa
-from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.plugins import plugin_manager
@@ -143,7 +142,6 @@ def get_app(
             plugin_manager.discover_qss()
         except AttributeError:
             pass
-        _register_napari_resources()
 
     _app_ref = app  # prevent garbage collection
 

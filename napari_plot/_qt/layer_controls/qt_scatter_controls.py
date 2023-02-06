@@ -160,7 +160,7 @@ class QtScatterControls(QtLayerControls):
         value : float
             Size of points.
         """
-        self.layer.size = value
+        self.layer.current_size = value
 
     def _on_size_change(self, _event):
         """Receive layer model size change event and update point size slider.
@@ -171,12 +171,18 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.size.blocker():
-            size = (
-                self.layer.size[-1]
-                if len(self.layer.size) > 0
-                else (self.layer._default_size if self.layer.edge_width_is_relative else self.layer._default_rel_size)
-            )
-            self.size_slider.setValue(size)
+            with self.layer.events.size.blocker():
+                value = self.layer.current_size
+                min_val = min(value) if isinstance(value, list) else value
+                max_val = max(value) if isinstance(value, list) else value
+                if min_val < self.size_slider.minimum():
+                    self.size_slider.setMinimum(max(1, int(min_val - 1)))
+                if max_val > self.size_slider.maximum():
+                    self.size_slider.setMaximum(int(max_val + 1))
+                try:
+                    self.size_slider.setValue(int(value))
+                except TypeError:
+                    pass
 
     def on_change_edge_width(self, value):
         """Change size of points on the layer model.
