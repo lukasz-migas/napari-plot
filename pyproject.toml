@@ -33,7 +33,8 @@ exclude = '''
     | linux
     | dist
     | build
-    | _qt_resources_*.py
+    | vendored
+    | _vendor
   )/
   | scripts/minreq.py
 )
@@ -60,7 +61,14 @@ ignore = [
 [tool.isort]
 line_length = 120
 profile = "black"
-skip_glob = ["*examples/*"]
+skip_glob = ["*examples/*", "*vendored*", "*_vendor*"]
+
+[tool.ruff]
+line-length = 120
+ignore = ["E501"]
+per-file-ignores = {"napari/_vispy/__init__.py" = ["E402"]}
+target-version = "py38"
+
 
 [tool.pytest.ini_options]
 # These follow standard library warnings filters syntax.  See more here:
@@ -76,3 +84,19 @@ filterwarnings = [
   "ignore::DeprecationWarning",
   "ignore::RuntimeWarning",
 ]
+
+[tool.mypy]
+files = "napari"
+ignore_missing_imports = true
+exclude = [
+  "_tests",
+]
+show_error_codes = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+# # maybe someday :)
+# disallow_any_generics = true
+# no_implicit_reexport = true
+# disallow_untyped_defs = true

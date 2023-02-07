@@ -8,8 +8,10 @@ from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventl
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.plugins import plugin_manager
+from napari.resources._icons import _theme_path
 from napari.utils.notifications import notification_manager, show_console_notification
-from qtpy.QtCore import Qt
+from napari.utils.theme import _themes
+from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
@@ -135,6 +137,10 @@ def get_app(
         # see docstring of `wait_for_workers_to_quit` for caveats on killing
         # workers at shutdown.
         app.aboutToQuit.connect(wait_for_workers_to_quit)
+
+        # Setup search paths for currently installed themes.
+        for name in _themes:
+            QDir.addSearchPath(f"theme_{name}", str(_theme_path(name)))
 
         try:
             # this will register all of our resources (icons) with Qt, so that they

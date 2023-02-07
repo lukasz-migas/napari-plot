@@ -78,8 +78,18 @@ class InfLine(BaseLayer):
         Whether the layer visual is currently being displayed.
     """
 
-    _drag_modes = {Mode.ADD: add, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.MOVE: move}
-    _move_modes = {Mode.ADD: no_op, Mode.SELECT: highlight, Mode.PAN_ZOOM: no_op, Mode.MOVE: highlight}
+    _drag_modes = {
+        Mode.ADD: add,
+        Mode.SELECT: select,
+        Mode.PAN_ZOOM: no_op,
+        Mode.MOVE: move,
+    }
+    _move_modes = {
+        Mode.ADD: no_op,
+        Mode.SELECT: highlight,
+        Mode.PAN_ZOOM: no_op,
+        Mode.MOVE: highlight,
+    }
     _cursor_modes = {
         Mode.ADD: "standard",
         Mode.SELECT: "standard",

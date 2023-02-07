@@ -52,6 +52,7 @@ class QtLayerButtons(QFrame):
             slot=lambda: self.viewer.add_region(
                 scale=self.viewer.layers.extent.step,
                 opacity=0.75,
+                name="Region",
             ),
         )
         self.new_region_btn.setParent(self)
@@ -59,9 +60,7 @@ class QtLayerButtons(QFrame):
         self.new_infline_btn = QtQtaViewerPushButton(
             "new_inf_line",
             "Add new region layer",
-            slot=lambda: self.viewer.add_inf_line(
-                scale=self.viewer.layers.extent.step,
-            ),
+            slot=lambda: self.viewer.add_inf_line(scale=self.viewer.layers.extent.step, name="InfLine"),
         )
         self.new_region_btn.setParent(self)
 

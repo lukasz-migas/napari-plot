@@ -100,7 +100,6 @@ class VispyCamera:
 
     def _on_interactive_change(self):
         self.camera.interactive = self._camera.interactive
-        print("set inter", self.camera.interactive)
 
     def _on_zoom_change(self):
         self.zoom = self._camera.zoom
