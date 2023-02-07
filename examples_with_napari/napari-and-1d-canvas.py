@@ -36,5 +36,5 @@ viewer1d.camera.extent = (-0.1, 4.1, 1.0, -0.3)
 viewer1d.axis.x_label = ""
 viewer1d.axis.y_label = ""
 viewer1d.reset_view()
-
-napari.run()
+if __name__ == "__main__":
+    napari.run()

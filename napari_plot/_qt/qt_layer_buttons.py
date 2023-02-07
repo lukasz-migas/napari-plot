@@ -109,17 +109,10 @@ class QtViewerButtons(QFrame):
             self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
             self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
 
-        self.hidePanelButton = QtQtaViewerPushButton("minimise", "Hide control panel (Ctrl-H)")
-        if parent is not None:
-            self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
-        if kwargs.get("dock_controls", False):
-            self.hidePanelButton.setVisible(False)
-
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.resetViewButton)
         if self.consoleButton is not None:
             layout.addWidget(self.consoleButton)
         layout.addStretch(0)
-        layout.addWidget(self.hidePanelButton)
         self.setLayout(layout)

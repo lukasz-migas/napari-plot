@@ -62,4 +62,5 @@ add_region()
 add_scatter()
 add_infline()
 
-napari_plot.run()
+if __name__ == "__main__":
+    napari_plot.run()

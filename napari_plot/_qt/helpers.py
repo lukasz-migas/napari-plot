@@ -69,7 +69,6 @@ def make_qta_btn(
     """Make QPushButton with QtAwesome icon."""
     widget = QtImagePushButton(parent=parent)
     widget.set_qta(icon_name, **kwargs)
-    widget.set_size_name(size_name)
     if size_name:
         widget.set_size_name(size_name)
     if size and len(size) == 2:

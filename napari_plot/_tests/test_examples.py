@@ -12,23 +12,29 @@ from napari_plot._qt.qt_main_window import Window
 
 # not testing these examples
 skip = [
-    "plot-multi-line-live-update.py",  # has very long-running thread which would take a lifetime
-    "plot-line-live-update.py",  # has very long-running thread which would take a lifetime
+    "live_update_multiple_lines.py",  # has very long-running thread which would take a lifetime
+    "live_update_lines.py",  # has very long-running thread which would take a lifetime
 ]
 
 
 EXAMPLE_DIR = Path(napari_plot.__file__).parent.parent / "examples"
 # using f.name here and re-joining at `run_path()` for test key presentation
 # (works even if the examples list is empty, as opposed to using an ids lambda)
-examples, examples_with_napari = [], []
+examples = []
 for f in EXAMPLE_DIR.glob("*.py"):
     if f.name in skip:
         continue
+    examples.append(f.name)
 
-    if f.name.startswith("napari-and"):
-        examples_with_napari.append(f.name)
-    else:
-        examples.append(f.name)
+EXAMPLE_WITH_NAPARI_DIR = Path(napari_plot.__file__).parent.parent / "examples_with_napari"
+# using f.name here and re-joining at `run_path()` for test key presentation
+# (works even if the examples list is empty, as opposed to using an ids lambda)
+examples_with_napari = []
+for f in EXAMPLE_WITH_NAPARI_DIR.glob("*.py"):
+    if f.name in skip:
+        continue
+    examples_with_napari.append(f.name)
+
 
 # still some CI segfaults, but only on windows with pyqt5
 if os.getenv("CI") and os.name == "nt" and API_NAME == "PyQt5":
@@ -78,7 +84,7 @@ def test_examples_with_napari(filename, monkeypatch):
 
     # run the example!
     try:
-        runpy.run_path(str(EXAMPLE_DIR / filename))
+        runpy.run_path(str(EXAMPLE_WITH_NAPARI_DIR / filename))
     except SystemExit as e:
         # we use sys.exit(0) to gracefully exit from examples
         if e.code != 0:

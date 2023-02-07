@@ -41,4 +41,5 @@ QTA_MAPPING = {
     "tools": "fa5s.tools",
     "vertical": "mdi.drag-vertical-variant",
     "horizontal": "mdi.drag-horizontal-variant",
+    "close": "fa5s.times",
 }

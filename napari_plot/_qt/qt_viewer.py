@@ -519,13 +519,13 @@ class QtViewer(QSplitter):
 
     def on_open_controls_dialog(self, event=None):
         """Open dialog responsible for layer settings"""
-        from napari_plot._qt.layer_controls.qt_layers_dialog import Napari1dControls
+        from napari_plot._qt.layer_controls.qt_layers_dialog import NapariPlotControls
 
         if self._disable_controls:
             return
 
         if self._layers_controls_dialog is None:
-            self._layers_controls_dialog = Napari1dControls(self)
+            self._layers_controls_dialog = NapariPlotControls(self)
         # make sure the dialog is shown
         self._layers_controls_dialog.show()
         # make sure the the dialog gets focus

@@ -11,4 +11,6 @@ viewer1d.add_centroids(np.c_[bins[1::], counts])
 viewer1d.add_inf_line([0], orientation="vertical", color="cyan")
 viewer1d.text_overlay.text = "Distribution"
 viewer1d.text_overlay.visible = True
-napari_plot.run()
+
+if __name__ == "__main__":
+    napari_plot.run()

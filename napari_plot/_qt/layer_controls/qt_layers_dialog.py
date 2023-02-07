@@ -3,10 +3,11 @@ from weakref import ref
 
 from qtpy.QtWidgets import QVBoxLayout
 
+import napari_plot._qt.helpers as hp
 from napari_plot._qt.qt_dialog import QtFramelessTool
 
 
-class Napari1dControls(QtFramelessTool):
+class NapariPlotControls(QtFramelessTool):
     """Controls display"""
 
     def __init__(self, qt_viewer):
@@ -15,11 +16,22 @@ class Napari1dControls(QtFramelessTool):
 
         self.setMinimumHeight(600)
 
+    def hide_dialog(self):
+        """Hide dialog"""
+        self.setVisible(False)
+
     def make_panel(self) -> QVBoxLayout:
         """Make panel"""
+        move_layout = self._make_move_handle()
+
+        # this button will only appear if the viewer is not docked and not when it's the main window
+        hide_btn = hp.make_qta_btn(self, "close", "Hide control panel.")
+        hide_btn.clicked.connect(self.hide_dialog)
+        move_layout.addWidget(hide_btn)
+
         qt_viewer = self._ref_qt_viewer()
         va = QVBoxLayout()
-        va.addLayout(self._make_move_handle())  # noqa
+        va.addLayout(move_layout)
         va.addWidget(qt_viewer.controls)
         va.addWidget(qt_viewer.layerButtons)
         va.addWidget(qt_viewer.layers, stretch=True)

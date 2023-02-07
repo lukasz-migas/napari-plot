@@ -17,4 +17,6 @@ viewer1d.add_region(
 )
 viewer1d.axis.x_label = "time (s)"
 viewer1d.axis.y_label = "voltage (mV)"
-napari_plot.run()
+
+if __name__ == "__main__":
+    napari_plot.run()

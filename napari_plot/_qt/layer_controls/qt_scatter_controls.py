@@ -160,7 +160,7 @@ class QtScatterControls(QtLayerControls):
         value : float
             Size of points.
         """
-        self.layer.current_size = value
+        self.layer.size = value
 
     def _on_size_change(self, _event):
         """Receive layer model size change event and update point size slider.
