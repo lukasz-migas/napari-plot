@@ -1,2 +1,2 @@
 """Init"""
-from .centroids import Centroids  # noqa: F401
+from napari_plot.layers.centroids.centroids import Centroids  # noqa: F401

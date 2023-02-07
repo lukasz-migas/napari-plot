@@ -3,8 +3,8 @@ import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
-from ..base import BaseLayer
-from ._line_constants import Method
+from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.line._line_constants import Method
 
 
 class Line(BaseLayer):

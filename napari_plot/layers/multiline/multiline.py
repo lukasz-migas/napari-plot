@@ -8,10 +8,10 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
-from ..base import BaseLayer
-from ._multiline_constants import Method
-from ._multiline_list import MultiLineList
-from ._multiline_utils import parse_multiline_data
+from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.multiline._multiline_constants import Method
+from napari_plot.layers.multiline._multiline_list import MultiLineList
+from napari_plot.layers.multiline._multiline_utils import parse_multiline_data
 
 
 class MultiLine(BaseLayer):

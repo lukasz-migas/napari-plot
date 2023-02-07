@@ -10,8 +10,8 @@ import napari
 import numpy as np
 from napari.layers import Image
 
-from ._plot_widget import NapariPlotWidget
-from .utils.utilities import connect
+from napari_plot._plot_widget import NapariPlotWidget
+from napari_plot.utils.utilities import connect
 
 __all__ = ["ScatterPlotWidget"]
 

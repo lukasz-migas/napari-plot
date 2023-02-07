@@ -2,10 +2,10 @@
 import typing as ty
 from functools import partial
 
-from .tools import Shape
+from napari_plot.components.tools import Shape
 
 if ty.TYPE_CHECKING:
-    from ..viewer import Viewer
+    from napari_plot.viewer import Viewer
 
 ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
 

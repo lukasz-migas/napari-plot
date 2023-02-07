@@ -6,8 +6,8 @@ from qtpy.QtCore import QFileSystemWatcher
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QWidget
 from superqt.utils import qthrottled
 
-from ...utils.utilities import get_module_path
-from ...utils.vendored.pydevd_reload import xreload
+from napari_plot.utils.utilities import get_module_path
+from napari_plot.utils.vendored.pydevd_reload import xreload
 
 
 def path_to_module(path: str) -> str:

@@ -4,7 +4,7 @@ from napari.layers import Points
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 
-from ..base import LayerMixin
+from napari_plot.layers.base import LayerMixin
 
 
 class Scatter(Points, LayerMixin):

@@ -8,11 +8,11 @@ from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
-from .. import helpers as hp
-from .qt_layer_controls_base import QtLayerControls
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from ...layers import Scatter
+    from napari_plot.layers import Scatter
 
 
 class QtScatterControls(QtLayerControls):

@@ -10,7 +10,7 @@ from napari.utils.theme import _themes, get_theme
 from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtWidgets import QPushButton
 
-from ...resources import QTA_MAPPING
+from napari_plot.resources import QTA_MAPPING
 
 SIZES = {
     "small": (20, 20),

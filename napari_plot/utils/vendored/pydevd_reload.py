@@ -108,8 +108,10 @@ LEVEL2 = 2
 
 DEBUG = NO_DEBUG
 
+
 # We must redefine it in Py3k if it's not already there
 def execfile(file, glob=None, loc=None):
+    """Execute a file in a given namespace."""
     if glob is None:
         import sys
 
@@ -135,7 +137,7 @@ def write_err(*args):
             new_lst.append(str(a))
 
         msg = " ".join(new_lst)
-        s = "code reload: %s\n" % (msg,)
+        s = f"code reload: {msg}\n"
         cmd = py_db.cmd_factory.make_io_message(s, 2)
         if py_db.writer is not None:
             py_db.writer.add_command(cmd)
@@ -281,12 +283,12 @@ class Reload:
             xreload_after_update = getattr(namespace, "__xreload_after_reload_update__", None)
             if xreload_after_update is not None:
                 self.found_change = True
-                on_finish = lambda: xreload_after_update()
+                on_finish = lambda: xreload_after_update()  # noqa
 
         elif "__xreload_after_reload_update__" in namespace:
             xreload_after_update = namespace["__xreload_after_reload_update__"]
             self.found_change = True
-            on_finish = lambda: xreload_after_update(namespace)
+            on_finish = lambda: xreload_after_update(namespace)  # noqa
 
         if on_finish is not None:
             # If a client wants to know about it, give him a chance.
@@ -310,9 +312,7 @@ class Reload:
             if type(oldobj) is not type(newobj):
                 # Cop-out: if the type changed, give up
                 if name not in ("__builtins__",):
-                    notify_error(
-                        "Type of: %s (old: %s != new: %s) changed... Skipping." % (name, type(oldobj), type(newobj))
-                    )
+                    notify_error(f"Type of: {name} (old: {type(oldobj)} != new: {type(newobj)}) changed... Skipping.")
                 return
 
             if isinstance(newobj, types.FunctionType):
@@ -364,12 +364,8 @@ class Reload:
                     xreload_old_new(namespace, name, oldobj, newobj)
                     self.found_change = True
 
-                # Too much information to the user...
-                # else:
-                #     notify_info0('%s NOT updated. Create __xreload_old_new__(name, old, new) for custom reload' % (name,))
-
         except Exception as e:
-            notify_error("Exception found when updating %s. Proceeding for other items." % (name,))
+            notify_error(f"Exception found when updating {name}. Proceeding for other items.")
             print(f"Exception found when updating {name}. Proceeding for other items.. Error: {e}")
 
     # All of the following functions have the same signature as _update()
@@ -427,13 +423,13 @@ class Reload:
         #    notify_info('Removed:', name, 'from', oldclass)
         #    delattr(oldclass, name)
 
-        for name in (oldnames & newnames) - set(["__dict__", "__doc__"]):
+        for name in (oldnames & newnames) - {"__dict__", "__doc__"}:
             self._update(oldclass, name, olddict[name], newdict[name], is_class_namespace=True)
 
         old_bases = getattr(oldclass, "__bases__", None)
         new_bases = getattr(newclass, "__bases__", None)
         if str(old_bases) != str(new_bases):
-            notify_error("Changing the hierarchy of a class is not supported. %s may be inconsistent." % (oldclass,))
+            notify_error(f"Changing the hierarchy of a class is not supported. {oldclass} may be inconsistent.")
 
         self._handle_namespace(oldclass, is_class_namespace=True)
 

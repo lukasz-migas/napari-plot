@@ -3,8 +3,8 @@ from copy import copy
 
 import numpy as np
 
-from ._region_constants import Orientation
-from ._region_utils import preprocess_region
+from napari_plot.layers.region._region_constants import Orientation
+from napari_plot.layers.region._region_utils import preprocess_region
 
 
 def highlight(layer, event):

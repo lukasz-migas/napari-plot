@@ -1,5 +1,5 @@
 """Keyboard shortcuts"""
-from .viewer_model import ViewerModel
+from napari_plot.components.viewer_model import ViewerModel
 
 
 @ViewerModel.bind_key("Control-Backspace")

@@ -1,8 +1,8 @@
 """Region based on Rectangle."""
 from napari.layers.shapes._shapes_models.rectangle import Rectangle
 
-from ._region_constants import Orientation
-from ._region_utils import preprocess_box, preprocess_region
+from napari_plot.layers.region._region_constants import Orientation
+from napari_plot.layers.region._region_utils import preprocess_box, preprocess_region
 
 
 class Vertical(Rectangle):

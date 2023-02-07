@@ -10,7 +10,7 @@ from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 from pydantic import validator
 
-from ..layers.region._region import Box, Horizontal, Vertical
+from napari_plot.layers.region._region import Box, Horizontal, Vertical
 
 
 class Shape(str, Enum):

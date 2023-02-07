@@ -1,11 +1,11 @@
 """Interaction tool."""
 import typing as ty
 
-from ...components.dragtool import BOX_SELECT_TOOLS, BOX_ZOOM_TOOLS, DragMode
-from .polygon import VispyPolygonVisual
+from napari_plot._vispy.tools.polygon import VispyPolygonVisual
+from napari_plot.components.dragtool import BOX_SELECT_TOOLS, BOX_ZOOM_TOOLS, DragMode
 
 if ty.TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class VispyDragTool:

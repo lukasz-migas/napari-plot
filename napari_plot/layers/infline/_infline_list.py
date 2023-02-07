@@ -3,9 +3,15 @@ import typing as ty
 
 import numpy as np
 
-from ._infline import InfiniteLine, infline_classes
-from ._infline_constants import Orientation
-from ._infline_utils import lines_intersect_box, make_infinite_color, make_infinite_line, make_infinite_pos, nearby_line
+from napari_plot.layers.infline._infline import InfiniteLine, infline_classes
+from napari_plot.layers.infline._infline_constants import Orientation
+from napari_plot.layers.infline._infline_utils import (
+    lines_intersect_box,
+    make_infinite_color,
+    make_infinite_line,
+    make_infinite_pos,
+    nearby_line,
+)
 
 
 class InfiniteLineList:

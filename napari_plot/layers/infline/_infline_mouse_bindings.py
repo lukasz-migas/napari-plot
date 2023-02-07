@@ -3,7 +3,7 @@ from copy import copy
 
 import numpy as np
 
-from ._infline_constants import Orientation
+from napari_plot.layers.infline._infline_constants import Orientation
 
 
 def highlight(layer, event):

@@ -4,10 +4,10 @@ import typing as ty
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 
-from ..visuals.region import RegionVisual
+from napari_plot._vispy.visuals.region import RegionVisual
 
 if ty.TYPE_CHECKING:
-    from ...layers import Region
+    from napari_plot.layers import Region
 
 MESH_MAIN = 0
 MESH_HIGHLIGHT = 1

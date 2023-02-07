@@ -16,12 +16,12 @@ from napari.utils.events import Event
 from napari.utils.events.containers import EventedSet
 from napari.utils.misc import ensure_iterable
 
-from ..base import BaseLayer
-from ._region import region_classes
-from ._region_constants import Box, Mode, Orientation
-from ._region_list import RegionList
-from ._region_mouse_bindings import add, edit, highlight, move, select
-from ._region_utils import get_default_region_type, parse_region_data, preprocess_region
+from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.region._region import region_classes
+from napari_plot.layers.region._region_constants import Box, Mode, Orientation
+from napari_plot.layers.region._region_list import RegionList
+from napari_plot.layers.region._region_mouse_bindings import add, edit, highlight, move, select
+from napari_plot.layers.region._region_utils import get_default_region_type, parse_region_data, preprocess_region
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},

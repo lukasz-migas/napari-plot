@@ -4,8 +4,8 @@ from weakref import ref
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
-from . import helpers as hp
-from .widgets.qt_mini_toolbar import QtMiniToolbar
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.widgets.qt_mini_toolbar import QtMiniToolbar
 
 
 class QtViewToolbar(QWidget):
@@ -91,7 +91,7 @@ class QtViewToolbar(QWidget):
 
     def _on_set_tools_menu(self):
         """Open menu of available tools."""
-        from ..components.dragtool import DragMode
+        from napari_plot.components.dragtool import DragMode
 
         menu = QMenu(self)
         actions = []

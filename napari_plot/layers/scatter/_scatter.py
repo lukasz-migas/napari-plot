@@ -6,7 +6,7 @@ from copy import copy, deepcopy
 from itertools import cycle
 
 import numpy as np
-from napari.layers.points._points_constants import ColorMode, Symbol
+from napari.layers.points._points_constants import ColorMode
 from napari.layers.points._points_utils import fix_data_points
 from napari.layers.utils.color_manager import ColorManager
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
@@ -18,8 +18,8 @@ from napari.utils.colormaps.colormap_utils import ColorType
 from napari.utils.colormaps.standardize_color import hex_to_name, rgb_to_hex
 from napari.utils.events import Event
 
-from ..base import BaseLayer
-from ._utilities import coerce_symbols
+from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.scatter._utilities import coerce_symbols
 
 if ty.TYPE_CHECKING:
     import pandas as pd

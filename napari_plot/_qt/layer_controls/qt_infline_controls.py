@@ -6,13 +6,13 @@ from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
-from ...layers.infline._infline_constants import Mode
-from .. import helpers as hp
-from ..widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
-from .qt_layer_controls_base import QtLayerControls
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari_plot._qt.widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
+from napari_plot.layers.infline._infline_constants import Mode
 
 if ty.TYPE_CHECKING:
-    from ...layers import InfLine
+    from napari_plot.layers import InfLine
 
 
 class QtInfLineControls(QtLayerControls):

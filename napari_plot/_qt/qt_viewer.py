@@ -21,16 +21,16 @@ from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
-from .._vispy.camera import VispyCamera
-from .._vispy.canvas import VispyCanvas
-from .._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
-from .._vispy.overlays.grid_lines import VispyGridLinesVisual
-from .._vispy.overlays.text import VispyTextVisual
-from .._vispy.tools.drag import VispyDragTool
-from .._vispy.utils.visual import create_vispy_visual
-from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
-from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
-from .qt_toolbar import QtViewToolbar
+from napari_plot._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
+from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
+from napari_plot._qt.qt_toolbar import QtViewToolbar
+from napari_plot._vispy.camera import VispyCamera
+from napari_plot._vispy.canvas import VispyCanvas
+from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
+from napari_plot._vispy.overlays.grid_lines import VispyGridLinesVisual
+from napari_plot._vispy.overlays.text import VispyTextVisual
+from napari_plot._vispy.tools.drag import VispyDragTool
+from napari_plot._vispy.utils.visual import create_vispy_visual
 
 
 class QtViewer(QSplitter):
@@ -519,7 +519,7 @@ class QtViewer(QSplitter):
 
     def on_open_controls_dialog(self, event=None):
         """Open dialog responsible for layer settings"""
-        from .layer_controls.qt_layers_dialog import Napari1dControls
+        from napari_plot._qt.layer_controls.qt_layers_dialog import Napari1dControls
 
         if self._disable_controls:
             return

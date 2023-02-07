@@ -13,12 +13,12 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.events import Event
 from napari.utils.misc import ensure_iterable
 
-from ..base import BaseLayer
-from ._infline import infline_classes
-from ._infline_constants import Box, Mode, Orientation
-from ._infline_list import InfiniteLineList
-from ._infline_mouse_bindings import add, highlight, move, select
-from ._infline_utils import get_default_infline_type, parse_infline_orientation
+from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.infline._infline import infline_classes
+from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
+from napari_plot.layers.infline._infline_list import InfiniteLineList
+from napari_plot.layers.infline._infline_mouse_bindings import add, highlight, move, select
+from napari_plot.layers.infline._infline_utils import get_default_infline_type, parse_infline_orientation
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},

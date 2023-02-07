@@ -3,7 +3,7 @@ from weakref import ref
 
 from qtpy.QtWidgets import QVBoxLayout
 
-from ..qt_dialog import QtFramelessTool
+from napari_plot._qt.qt_dialog import QtFramelessTool
 
 
 class Napari1dControls(QtFramelessTool):

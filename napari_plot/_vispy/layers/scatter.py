@@ -8,10 +8,10 @@ from napari._vispy.utils.text import update_text
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import disconnect_events
 
-from ..visuals.scatter import ScatterVisual
+from napari_plot._vispy.visuals.scatter import ScatterVisual
 
 if ty.TYPE_CHECKING:
-    from ...layers import Scatter
+    from napari_plot.layers import Scatter
 
 
 MARKERS_MAIN = 0
@@ -68,11 +68,6 @@ class VispyScatterLayer(VispyBaseLayer):
 
     def _on_canvas_size_limits_change(self):
         self.node.canvas_size_limits = self.layer.canvas_size_limits
-
-    def _on_symbol_change(self, event=None):
-        """Set data"""
-        self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol
-        self.node._subvisuals[MARKERS_MAIN].symbol = self.layer.symbol
 
     def _on_data_change(self):
         if len(self.layer._indices_view) > 0:

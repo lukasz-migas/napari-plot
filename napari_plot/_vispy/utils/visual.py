@@ -5,13 +5,13 @@ from napari._vispy.layers.points import VispyPointsLayer
 from napari._vispy.layers.shapes import VispyShapesLayer
 from napari.layers import Points, Shapes
 
-from ...layers import Centroids, Image, InfLine, Line, MultiLine, Region, Scatter
-from ..layers.centroids import VispyCentroidsLayer
-from ..layers.infline import VispyInfLineLayer
-from ..layers.line import VispyLineLayer
-from ..layers.multiline import VispyMultiLineLayer
-from ..layers.region import VispyRegionLayer
-from ..layers.scatter import VispyScatterLayer
+from napari_plot._vispy.layers.centroids import VispyCentroidsLayer
+from napari_plot._vispy.layers.infline import VispyInfLineLayer
+from napari_plot._vispy.layers.line import VispyLineLayer
+from napari_plot._vispy.layers.multiline import VispyMultiLineLayer
+from napari_plot._vispy.layers.region import VispyRegionLayer
+from napari_plot._vispy.layers.scatter import VispyScatterLayer
+from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Region, Scatter
 
 layer_to_visual = {
     # napari-plot layers

@@ -1,6 +1,6 @@
 """Add keybindings to the layer"""
-from ._region_constants import Mode
-from .region import Region
+from napari_plot.layers.region._region_constants import Mode
+from napari_plot.layers.region.region import Region
 
 
 @Region.bind_key("Space")

@@ -1,5 +1,5 @@
 """Infinite line."""
-from ._infline_constants import Orientation
+from napari_plot.layers.infline._infline_constants import Orientation
 
 
 class InfiniteLine:

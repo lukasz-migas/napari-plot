@@ -2,7 +2,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QPixmap
 from qtpy.QtWidgets import QSplashScreen
 
-from ..qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app
+from napari_plot._qt.qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app
 
 
 class QtSplashScreen(QSplashScreen):

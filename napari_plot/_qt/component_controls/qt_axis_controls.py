@@ -7,7 +7,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QWidget
 
-from napari_plot._qt import helpers as hp
+import napari_plot._qt.helpers as hp
 from napari_plot._qt.qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:

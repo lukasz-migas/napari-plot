@@ -3,7 +3,7 @@ import typing as ty
 
 import numpy as np
 
-from ._region_constants import Orientation
+from napari_plot.layers.region._region_constants import Orientation
 
 
 def check_data(data):

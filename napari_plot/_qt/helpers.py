@@ -23,10 +23,10 @@ from qtpy.QtWidgets import (
 )
 from superqt.sliders import QDoubleSlider
 
-from ..utils.system import IS_WIN
-from .widgets.qt_icon_button import QtImagePushButton
-from .widgets.qt_icon_label import QtQtaLabel
-from .widgets.qt_line import QtHorzLine, QtVertLine
+from napari_plot._qt.widgets.qt_icon_button import QtImagePushButton
+from napari_plot._qt.widgets.qt_icon_label import QtQtaLabel
+from napari_plot._qt.widgets.qt_line import QtHorzLine, QtVertLine
+from napari_plot.utils.system import IS_WIN
 
 
 def make_v_spacer() -> QSpacerItem:

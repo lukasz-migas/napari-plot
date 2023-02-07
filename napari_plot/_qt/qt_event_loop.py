@@ -13,7 +13,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
-from .. import __version__
+from napari_plot import __version__
 
 NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"

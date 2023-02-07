@@ -22,12 +22,12 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ..components.camera import CameraMode, ExtentMode
-from ..components.dragtool import DragMode
-from ..resources import get_stylesheet
-from . import helpers as hp
-from .qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
-from .qt_viewer import QtViewer
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
+from napari_plot._qt.qt_viewer import QtViewer
+from napari_plot.components.camera import CameraMode, ExtentMode
+from napari_plot.components.dragtool import DragMode
+from napari_plot.resources import get_stylesheet
 
 
 class _QtMainWindow(QMainWindow):
@@ -223,7 +223,7 @@ class Window:
 
         try:
             if os.getenv("NAPARI_PLOT_DEV_MODE", "1") and self._dev is None:
-                from .widgets.qt_dev import QtReload
+                from napari_plot._qt.widgets.qt_dev import QtReload
 
                 self._dev = QtReload()
                 print("Installed development tools.")

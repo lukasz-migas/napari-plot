@@ -4,7 +4,7 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QFrame
 
-from .. import helpers as hp
+import napari_plot._qt.helpers as hp
 
 
 class QtLayerControls(QFrame):

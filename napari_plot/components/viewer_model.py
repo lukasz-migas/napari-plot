@@ -14,9 +14,8 @@ from napari.utils.key_bindings import KeymapProvider
 from napari.utils.mouse_bindings import MousemapProvider
 from pydantic import Extra, Field
 
-from .. import layers as np_layers
-from ..utils.utilities import get_min_max
-from ._viewer_mouse_bindings import (
+from napari_plot import layers as np_layers
+from napari_plot.components._viewer_mouse_bindings import (
     box_select,
     box_zoom,
     box_zoom_box,
@@ -25,13 +24,18 @@ from ._viewer_mouse_bindings import (
     lasso_select,
     polygon_select,
 )
-from ._viewer_utils import get_layers_x_region_extent, get_layers_y_region_extent, get_range_extent
-from .axis import Axis
-from .camera import Camera
-from .dragtool import DragTool
-from .gridlines import GridLines
-from .layerlist import LayerList
-from .tools import BoxTool, PolygonTool
+from napari_plot.components._viewer_utils import (
+    get_layers_x_region_extent,
+    get_layers_y_region_extent,
+    get_range_extent,
+)
+from napari_plot.components.axis import Axis
+from napari_plot.components.camera import Camera
+from napari_plot.components.dragtool import DragTool
+from napari_plot.components.gridlines import GridLines
+from napari_plot.components.layerlist import LayerList
+from napari_plot.components.tools import BoxTool, PolygonTool
+from napari_plot.utils.utilities import get_min_max
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -121,8 +125,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
-        from .dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
-        from .tools import Shape
+        from napari_plot.components.dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
+        from napari_plot.components.tools import Shape
 
         # if self.drag_tool.tool not in BOX_ZOOM_TOOLS:
         for callback_func in [
