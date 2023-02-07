@@ -107,7 +107,6 @@ def get_app(
     if app:
         set_values.discard("ipy_interactive")
         if set_values:
-
             warn(
                 f"QApplication already existed, these arguments to to 'get_app' were ignored: {set_values}",
             )

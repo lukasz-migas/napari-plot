@@ -11,7 +11,6 @@ ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
 
 
 def polygon_select(viewer: "Viewer", event):
-
     """Enable polygon tool.
 
     This tool gives the user an option to draw a polygon in the canvas that will be used to select data in currently
@@ -46,7 +45,6 @@ def polygon_select(viewer: "Viewer", event):
 
 
 def lasso_select(viewer: "Viewer", event):
-
     """Enable polygon tool.
 
     This tool gives the user an option to draw a polygon in the canvas that will be used to select data in currently
