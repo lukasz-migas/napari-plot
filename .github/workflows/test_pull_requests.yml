@@ -5,6 +5,11 @@ on:
   pull_request:
     branches:
       - main
+      - "v*x"
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   code:
@@ -52,30 +57,57 @@ jobs:
       fail-fast: false
       matrix:
         platform: [ubuntu-latest]
-        python: [3.7, 3.8, 3.9]
+        python: ["3.8", "3.9", "3.10"]
+        backend: [pyqt5, pyside2]
         include:
-          # Windows py37
-          - python: 3.7
-            platform: windows-latest
           # Windows py38
           - python: 3.8
             platform: windows-latest
-          # macOS py38
+            backend: pyqt5
           - python: 3.8
+            platform: windows-latest
+            backend: pyside2
+          - python: 3.9
             platform: macos-latest
-            backend: pyqt # (only testing pyqt on mac in the interest of speed)
-#          # minimum specified requirements
-#          - python: 3.7
-#            platform: ubuntu-18.04
-#            MIN_REQ: 1
+            backend: pyqt5
+          # minimum specified requirements
+          - python: 3.8
+            platform: ubuntu-18.04
+            backend: pyqt5
+            MIN_REQ: 1
+          # test with --async_only
+          - python: 3.8
+            platform: ubuntu-18.04
+            toxenv: async-pyqt5-py38-linux
+          # test without any Qt backends
+          - python: 3.8
+            platform: ubuntu-18.04
+            toxenv: headless-py38-linux
+          - python: 3.9
+            platform: ubuntu-latest
+            backend: pyqt6
+          - python: 3.9
+            platform: ubuntu-latest
+            backend: pyside6
+          - python: '3.10'
+            platform: ubuntu-latest
+            backend: pyside6
 
     steps:
+
+      - name: Cancel Previous Runs
+        uses: styfle/cancel-workflow-action@0.11.0
+        with:
+          access_token: ${{ github.token }}
+
       - uses: actions/checkout@v3
 
       - name: Set up Python ${{ matrix.python }}
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python }}
+          cache: "pip"
+          cache-dependency-path: setup.cfg
 
       - uses: tlambert03/setup-qt-libs@v1
 
@@ -106,7 +138,7 @@ jobs:
       # `tox -e py38-linux-pyqt,py38-linux-pyside`
       # see tox.ini for more
       - name: Test with tox
-        uses: GabrielBB/xvfb-action@v1
+        uses: aganders3/headless-gui@v1
         with:
           run: python -m tox
         env:
@@ -116,10 +148,14 @@ jobs:
           NUMPY_EXPERIMENTAL_ARRAY_FUNCTION: ${{ matrix.MIN_REQ || 1 }}
           PYVISTA_OFF_SCREEN: True
           MIN_REQ: ${{ matrix.MIN_REQ }}
+      - uses: actions/upload-artifact@v3
+        with:
+          name: upload pytest timing reports as json
+          path: |
+            ./report-*.json
 
       - name: Coverage
-        if: runner.os == 'Linux' && matrix.python == '3.9'
-        uses: codecov/codecov-action@v2
+        uses: codecov/codecov-action@v3
 
   test_pip_install:
     name: ubuntu-latest 3.8 pip install
@@ -129,10 +165,12 @@ jobs:
         with:
           path: napari-plot-from-github
 
-      - name: Set up Python 3.8
+      - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.9
+          cache: "pip"
+          cache-dependency-path: napari-plot-from-github/setup.cfg
 
       - uses: tlambert03/setup-qt-libs@v1
 
@@ -146,3 +184,24 @@ jobs:
         uses: GabrielBB/xvfb-action@v1
         with:
           run: pytest --pyargs napari_plot --color=yes
+
+
+  test_examples:
+    name: test examples
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: 3.9
+          cache-dependency-path: setup.cfg
+      - uses: tlambert03/setup-qt-libs@v1
+      - name: Install this commit
+        run: |
+          pip install --upgrade pip
+          pip install setuptools tox tox-gh-actions
+
+      - name: Test
+        uses: aganders3/headless-gui@v1
+        with:
+          run: tox -e py39-linux-pyside2-examples
