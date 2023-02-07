@@ -239,7 +239,7 @@ class QtViewer(QSplitter):
             # gets (or creates) the console when the dock console is made visible.
             self.dockConsole.visibilityChanged.connect(self._ensure_connect)
         if dock_camera:
-            from .layer_controls.qt_camera_controls import QtCameraWidget
+            from napari_plot._qt.component_controls.qt_camera_controls import QtCameraWidget
 
             self.dockCamera = QtViewerDockWidget(
                 self,
@@ -251,7 +251,7 @@ class QtViewer(QSplitter):
             )
             self.dockCamera.setVisible(False)
         if dock_axis:
-            from .layer_controls.qt_axis_controls import QtAxisWidget
+            from napari_plot._qt.component_controls.qt_axis_controls import QtAxisWidget
 
             self.dockAxis = QtViewerDockWidget(
                 self,

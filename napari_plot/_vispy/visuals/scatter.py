@@ -1,5 +1,5 @@
 """Scatter visual."""
-from vispy.scene.visuals import Compound, Markers, Text, Line
+from vispy.scene.visuals import Compound, Line, Markers, Text
 
 
 class ScatterVisual(Compound):

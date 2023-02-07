@@ -1,8 +1,9 @@
 """Test scatter layer."""
-import numpy as np
-import pytest
 from itertools import cycle, islice
+
+import numpy as np
 import pandas as pd
+import pytest
 
 from napari_plot.layers import Scatter
 

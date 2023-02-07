@@ -6,12 +6,12 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator
 from qtpy.QtWidgets import QFormLayout, QWidget
 
-from ...components.camera import EXTENT_MODE_TRANSLATIONS, CameraMode
-from .. import helpers as hp
-from ..qt_dialog import QtFramelessPopup
+from napari_plot.components.camera import EXTENT_MODE_TRANSLATIONS, CameraMode
+from napari_plot._qt import helpers as hp
+from napari_plot._qt.qt_dialog import QtFramelessPopup
 
 if ty.TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class QtCameraWidget(QWidget):

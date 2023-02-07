@@ -112,7 +112,8 @@ def get_app(
     else:
         # automatically determine monitor DPI.
         # Note: this MUST be set before the QApplication is instantiated
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
         app = QApplication(sys.argv)
 
         # if this is the first time the Qt app is being instantiated, we set
@@ -164,7 +165,7 @@ def quit_app():
         QApplication.setWindowIcon(QIcon())
 
 
-def run(*, force=False, gui_exceptions=False, max_loop_level=1, _func_name="run"):
+def run(*, force=False, max_loop_level=1, _func_name="run"):
     """Start the Qt Event Loop
 
     Parameters
@@ -172,9 +173,6 @@ def run(*, force=False, gui_exceptions=False, max_loop_level=1, _func_name="run"
     force : bool, optional
         Force the application event_loop to start, even if there are no top
         level widgets to show.
-    gui_exceptions : bool, optional
-        Whether to show uncaught exceptions in the GUI. By default they will be
-        shown in the console that launched the event loop.
     max_loop_level : int, optional
         The maximum allowable "loop level" for the execution thread.  Every
         time `QApplication.exec_()` is called, Qt enters the event loop,

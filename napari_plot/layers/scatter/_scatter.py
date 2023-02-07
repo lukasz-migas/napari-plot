@@ -10,13 +10,13 @@ from napari.layers.points._points_constants import ColorMode, Symbol
 from napari.layers.points._points_utils import fix_data_points
 from napari.layers.utils.color_manager import ColorManager
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
+from napari.layers.utils.layer_utils import _FeatureTable
 from napari.layers.utils.text_manager import TextManager
 from napari.utils import Colormap
 from napari.utils.colormaps import ValidColormapArg
 from napari.utils.colormaps.colormap_utils import ColorType
 from napari.utils.colormaps.standardize_color import hex_to_name, rgb_to_hex
 from napari.utils.events import Event
-from napari.layers.utils.layer_utils import _FeatureTable
 
 from ..base import BaseLayer
 from ._utilities import coerce_symbols

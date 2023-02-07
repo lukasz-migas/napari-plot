@@ -1,6 +1,8 @@
 """Viewer model"""
+import inspect
 import typing as ty
 import warnings
+from functools import lru_cache
 
 import numpy as np
 from napari.components.cursor import Cursor
@@ -368,6 +370,18 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if active is not None:
             # self.status = active.get_status(self.cursor.position, world=True)
             self.help = active.help
+
+
+@lru_cache(maxsize=1)
+def valid_add_kwargs() -> ty.Dict[str, ty.Set[str]]:
+    """Return a dict where keys are layer types & values are valid kwargs."""
+    valid = dict()
+    for meth in dir(ViewerModel):
+        if not meth.startswith("add_") or meth[4:] == "layer":
+            continue
+        params = inspect.signature(getattr(ViewerModel, meth)).parameters
+        valid[meth[4:]] = set(params) - {"self", "kwargs"}
+    return valid
 
 
 for _layer in [

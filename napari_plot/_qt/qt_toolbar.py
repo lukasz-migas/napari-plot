@@ -78,13 +78,13 @@ class QtViewToolbar(QWidget):
         self._ref_qt_viewer().viewer.text_overlay.visible = state
 
     def _toggle_axis_controls(self, _):
-        from .layer_controls.qt_axis_controls import QtAxisControls
+        from napari_plot._qt.component_controls.qt_axis_controls import QtAxisControls
 
         dlg = QtAxisControls(self.viewer, self._ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_axis_btn, x_offset=dlg.width() * 2)
 
     def _toggle_camera_controls(self, _):
-        from .layer_controls.qt_camera_controls import QtCameraControls
+        from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls
 
         dlg = QtCameraControls(self.viewer, self._ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_camera_btn, x_offset=dlg.width() * 2)

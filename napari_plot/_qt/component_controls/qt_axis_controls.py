@@ -7,11 +7,11 @@ from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QWidget
 
-from .. import helpers as hp
-from ..qt_dialog import QtFramelessPopup
+from napari_plot._qt import helpers as hp
+from napari_plot._qt.qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class QtAxisWidget(QWidget):

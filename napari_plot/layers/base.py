@@ -1,9 +1,10 @@
 """Napari-plot base layer"""
+import warnings
 from contextlib import contextmanager
 
 import numpy as np
 from napari.layers.base import Layer
-from napari.utils.events import Event, EmitterGroup
+from napari.utils.events import EmitterGroup, Event
 
 
 class LayerMixin:
@@ -112,3 +113,9 @@ class BaseLayer(LayerMixin, Layer):
         )
         self.events.add(label=Event)
         self._label = label
+
+    def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold):
+        """Update draw."""
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value encountered in cast")
+            super()._update_draw(scale_factor, corner_pixels_displayed, shape_threshold)
