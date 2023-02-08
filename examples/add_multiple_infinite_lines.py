@@ -13,4 +13,5 @@ layer = viewer1d.add_inf_line(
     color=["red", "yellow", "green"],
     name="Infinite Line",
 )
-napari_plot.run()
+if __name__ == "__main__":
+    napari_plot.run()

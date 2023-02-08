@@ -10,8 +10,8 @@ import napari
 import numpy as np
 from napari.layers import Image
 
-from ._plot_widget import NapariPlotWidget
-from .utils.utilities import connect
+from napari_plot._plot_widget import NapariPlotWidget
+from napari_plot.utils.utilities import connect
 
 __all__ = ["ScatterPlotWidget"]
 
@@ -72,7 +72,7 @@ class ScatterPlotWidget(NapariPlotWidget):
                 data = [d[:min_size] for d in data]
                 warn("napari-plot(Scatter): The two input arrays were of different size and shape.")
 
-            self.scatter_layer.data = np.c_[data[0], data[1]]
+            self.scatter_layer.data = np.c_[data[1], data[0]]
             self.viewer_plot.axis.x_label = self.layers[0].name
             self.viewer_plot.axis.y_label = self.layers[1].name
             self.viewer_plot.text_overlay.text = f"z={z}"

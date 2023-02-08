@@ -5,12 +5,12 @@ import numpy as np
 from vispy.geometry import Rect
 from vispy.scene import BaseCamera, PanZoomCamera
 
-from ...components.camera import CameraMode, ExtentMode
-from ...components.dragtool import BOX_ZOOM_TOOLS
-from ...components.tools import Shape
+from napari_plot.components.camera import CameraMode, ExtentMode
+from napari_plot.components.dragtool import BOX_ZOOM_TOOLS
+from napari_plot.components.tools import Shape
 
 if ty.TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 def make_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> Rect:

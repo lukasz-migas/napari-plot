@@ -5,6 +5,18 @@ from contextlib import suppress
 import numpy as np
 
 
+def get_module_path(module: str, filename: str) -> str:
+    """Get module path."""
+    import importlib.resources
+
+    if not filename.endswith(".py"):
+        filename += ".py"
+
+    with importlib.resources.path(module, filename) as f:
+        path = str(f)
+    return path
+
+
 def find_nearest_index(data: np.ndarray, value: ty.Union[int, float, np.ndarray, ty.Iterable]):
     """Find nearest index of asked value
 

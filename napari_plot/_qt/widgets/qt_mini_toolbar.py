@@ -4,7 +4,7 @@ import typing as ty
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout
 
-from .. import helpers as hp
+import napari_plot._qt.helpers as hp
 
 
 class QtMiniToolbar(QFrame):

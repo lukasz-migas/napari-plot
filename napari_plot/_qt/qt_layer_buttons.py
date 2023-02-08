@@ -2,7 +2,7 @@
 from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton
 from qtpy.QtWidgets import QFrame, QHBoxLayout
 
-from .widgets.qt_icon_button import QtViewerPushButton as QtQtaViewerPushButton
+from napari_plot._qt.widgets.qt_icon_button import QtViewerPushButton as QtQtaViewerPushButton
 
 
 class QtLayerButtons(QFrame):
@@ -52,6 +52,7 @@ class QtLayerButtons(QFrame):
             slot=lambda: self.viewer.add_region(
                 scale=self.viewer.layers.extent.step,
                 opacity=0.75,
+                name="Region",
             ),
         )
         self.new_region_btn.setParent(self)
@@ -59,9 +60,7 @@ class QtLayerButtons(QFrame):
         self.new_infline_btn = QtQtaViewerPushButton(
             "new_inf_line",
             "Add new region layer",
-            slot=lambda: self.viewer.add_inf_line(
-                scale=self.viewer.layers.extent.step,
-            ),
+            slot=lambda: self.viewer.add_inf_line(scale=self.viewer.layers.extent.step, name="InfLine"),
         )
         self.new_region_btn.setParent(self)
 
@@ -110,17 +109,10 @@ class QtViewerButtons(QFrame):
             self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
             self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
 
-        self.hidePanelButton = QtQtaViewerPushButton("minimise", "Hide control panel (Ctrl-H)")
-        if parent is not None:
-            self.hidePanelButton.clicked.connect(lambda: parent.on_toggle_controls_dialog())  # noqa
-        if kwargs.get("dock_controls", False):
-            self.hidePanelButton.setVisible(False)
-
         layout = QHBoxLayout()
         layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.resetViewButton)
         if self.consoleButton is not None:
             layout.addWidget(self.consoleButton)
         layout.addStretch(0)
-        layout.addWidget(self.hidePanelButton)
         self.setLayout(layout)

@@ -3,7 +3,7 @@ import typing as ty
 
 import numpy as np
 
-from ._region_constants import Orientation
+from napari_plot.layers.region._region_constants import Orientation
 
 
 def check_data(data):
@@ -36,20 +36,19 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
     # Iterable of data without orientation
     elif isinstance(data, ty.Iterable) and isinstance(orientation, (str, Orientation)):
         orientation = [orientation] * len(data)
+    # check size and shape of each element
     for dat in data:
         check_data(dat)
     return data, orientation
 
 
-def preprocess_region(data, orientation):
+def preprocess_region(data, orientation) -> ty.List:
     """Pre-process data to proper format."""
     min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
-    start, end = data
+    start, end = np.asarray(data)
     if orientation == "vertical":
-        region = [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]
-    else:
-        region = [[start, min_val], [start, max_val], [end, max_val], [end, min_val]]
-    return region
+        return [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]
+    return [[start, min_val], [start, max_val], [end, max_val], [end, min_val]]
 
 
 def preprocess_box(data):

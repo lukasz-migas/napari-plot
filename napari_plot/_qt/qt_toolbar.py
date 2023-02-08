@@ -4,8 +4,8 @@ from weakref import ref
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
-from . import helpers as hp
-from .widgets.qt_mini_toolbar import QtMiniToolbar
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.widgets.qt_mini_toolbar import QtMiniToolbar
 
 
 class QtViewToolbar(QWidget):
@@ -78,20 +78,20 @@ class QtViewToolbar(QWidget):
         self._ref_qt_viewer().viewer.text_overlay.visible = state
 
     def _toggle_axis_controls(self, _):
-        from .layer_controls.qt_axis_controls import QtAxisControls
+        from napari_plot._qt.component_controls.qt_axis_controls import QtAxisControls
 
         dlg = QtAxisControls(self.viewer, self._ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_axis_btn, x_offset=dlg.width() * 2)
 
     def _toggle_camera_controls(self, _):
-        from .layer_controls.qt_camera_controls import QtCameraControls
+        from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls
 
         dlg = QtCameraControls(self.viewer, self._ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_camera_btn, x_offset=dlg.width() * 2)
 
     def _on_set_tools_menu(self):
         """Open menu of available tools."""
-        from ..components.dragtool import DragMode
+        from napari_plot.components.dragtool import DragMode
 
         menu = QMenu(self)
         actions = []

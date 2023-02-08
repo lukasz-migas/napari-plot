@@ -17,4 +17,5 @@ layer = viewer1d.add_region(
     opacity=0.5,
     name="Infinite Region",
 )
-napari_plot.run()
+if __name__ == "__main__":
+    napari_plot.run()

@@ -9,7 +9,7 @@ to server as a graphical user interface for napari.
 __all__ = ["Window"]
 
 try:
-    from ._qt.qt_main_window import Window
+    from napari_plot._qt.qt_main_window import Window
 
 except ImportError:
 

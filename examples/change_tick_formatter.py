@@ -22,4 +22,5 @@ x, y = r * np.cos(t), r * np.sin(t)
 viewer1d.add_line(np.c_[x, y], color="orange")
 viewer1d.camera.x_range = (-0.25, 1.75)
 viewer1d.camera.y_range = (-1, 1)
-napari_plot.run()
+if __name__ == "__main__":
+    napari_plot.run()

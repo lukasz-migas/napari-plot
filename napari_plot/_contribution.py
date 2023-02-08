@@ -1,8 +1,8 @@
 """Napari contributions in old npe1 style."""
 from napari_plugin_engine import napari_hook_implementation
 
-from ._plot_widget import NapariPlotWidget
-from ._scatter_widget import ScatterPlotWidget
+from napari_plot._plot_widget import NapariPlotWidget
+from napari_plot._scatter_widget import ScatterPlotWidget
 
 
 @napari_hook_implementation

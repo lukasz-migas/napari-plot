@@ -21,16 +21,16 @@ from qtpy.QtCore import QCoreApplication, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 
-from .._vispy.camera import VispyCamera
-from .._vispy.canvas import VispyCanvas
-from .._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
-from .._vispy.overlays.grid_lines import VispyGridLinesVisual
-from .._vispy.overlays.text import VispyTextVisual
-from .._vispy.tools.drag import VispyDragTool
-from .._vispy.utils.visual import create_vispy_visual
-from .layer_controls.qt_layer_controls_container import QtLayerControlsContainer
-from .qt_layer_buttons import QtLayerButtons, QtViewerButtons
-from .qt_toolbar import QtViewToolbar
+from napari_plot._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
+from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
+from napari_plot._qt.qt_toolbar import QtViewToolbar
+from napari_plot._vispy.camera import VispyCamera
+from napari_plot._vispy.canvas import VispyCanvas
+from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
+from napari_plot._vispy.overlays.grid_lines import VispyGridLinesVisual
+from napari_plot._vispy.overlays.text import VispyTextVisual
+from napari_plot._vispy.tools.drag import VispyDragTool
+from napari_plot._vispy.utils.visual import create_vispy_visual
 
 
 class QtViewer(QSplitter):
@@ -239,7 +239,7 @@ class QtViewer(QSplitter):
             # gets (or creates) the console when the dock console is made visible.
             self.dockConsole.visibilityChanged.connect(self._ensure_connect)
         if dock_camera:
-            from .layer_controls.qt_camera_controls import QtCameraWidget
+            from napari_plot._qt.component_controls.qt_camera_controls import QtCameraWidget
 
             self.dockCamera = QtViewerDockWidget(
                 self,
@@ -251,7 +251,7 @@ class QtViewer(QSplitter):
             )
             self.dockCamera.setVisible(False)
         if dock_axis:
-            from .layer_controls.qt_axis_controls import QtAxisWidget
+            from napari_plot._qt.component_controls.qt_axis_controls import QtAxisWidget
 
             self.dockAxis = QtViewerDockWidget(
                 self,
@@ -519,13 +519,13 @@ class QtViewer(QSplitter):
 
     def on_open_controls_dialog(self, event=None):
         """Open dialog responsible for layer settings"""
-        from .layer_controls.qt_layers_dialog import Napari1dControls
+        from napari_plot._qt.layer_controls.qt_layers_dialog import NapariPlotControls
 
         if self._disable_controls:
             return
 
         if self._layers_controls_dialog is None:
-            self._layers_controls_dialog = Napari1dControls(self)
+            self._layers_controls_dialog = NapariPlotControls(self)
         # make sure the dialog is shown
         self._layers_controls_dialog.show()
         # make sure the the dialog gets focus
@@ -648,7 +648,7 @@ class QtViewer(QSplitter):
 
     def _screenshot_dialog(self):
         """Save screenshot of current display, default .png"""
-        dial = ScreenshotDialog(self.screenshot, self)
+        ScreenshotDialog(self.screenshot, self)
 
     def clipboard(self):
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard."""

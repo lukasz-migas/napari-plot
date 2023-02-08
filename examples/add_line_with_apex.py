@@ -1,4 +1,4 @@
-"""Example showing how to plot multiple line sand adjust axis labels."""
+"""Example showing simple line and 'infinite' line to show the apex"""
 import napari_plot
 import numpy as np
 
@@ -12,4 +12,6 @@ peaks_x = x[np.where(y == -1.0)]
 viewer1d.add_inf_line(peaks_x, orientation="vertical", color="#FFFF00", opacity=0.5, name="Min")
 viewer1d.axis.x_label = "time (s)"
 viewer1d.axis.y_label = "voltage (mV)"
-napari_plot.run()
+
+if __name__ == "__main__":
+    napari_plot.run()

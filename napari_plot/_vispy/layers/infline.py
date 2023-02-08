@@ -4,10 +4,10 @@ import typing as ty
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 
-from ..visuals.infline import InfLineVisual
+from napari_plot._vispy.visuals.infline import InfLineVisual
 
 if ty.TYPE_CHECKING:
-    from ...layers import InfLine
+    from napari_plot.layers import InfLine
 
 LINE_MAIN = 0
 LINE_BOX = 1

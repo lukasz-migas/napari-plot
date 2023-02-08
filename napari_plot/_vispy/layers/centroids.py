@@ -3,11 +3,11 @@ import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
 
-from ...layers.centroids._centroids_utils import make_centroids, make_centroids_color
-from ..visuals.centroids import CentroidsVisual
+from napari_plot._vispy.visuals.centroids import CentroidsVisual
+from napari_plot.layers.centroids._centroids_utils import make_centroids, make_centroids_color
 
 if ty.TYPE_CHECKING:
-    from ...layers import Centroids
+    from napari_plot.layers import Centroids
 
 
 class VispyCentroidsLayer(VispyBaseLayer):

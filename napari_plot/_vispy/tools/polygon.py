@@ -4,11 +4,11 @@ import typing as ty
 import numpy as np
 from vispy.scene.visuals import Compound, Markers, Mesh
 
-from ...components.dragtool import POLYGON_TOOLS
-from ...components.tools import BoxTool, PolygonTool
+from napari_plot.components.dragtool import POLYGON_TOOLS
+from napari_plot.components.tools import BoxTool, PolygonTool
 
 if ty.TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 MESH = 0
 MARKERS = 1

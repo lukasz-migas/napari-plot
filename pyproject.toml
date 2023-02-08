@@ -12,7 +12,7 @@ write_to = "napari_plot/_version.py"
 
 [tool.black]
 line-length = 120
-target-version = ['py36', 'py37', 'py38']
+target-version = ['py37', 'py38', 'py39', 'py310']
 include = '\.pyi?$'
 exclude = '''
 (
@@ -33,7 +33,8 @@ exclude = '''
     | linux
     | dist
     | build
-    | _qt_resources_*.py
+    | vendored
+    | _vendor
   )/
   | scripts/minreq.py
 )
@@ -60,7 +61,41 @@ ignore = [
 [tool.isort]
 line_length = 120
 profile = "black"
-skip_glob = ["*examples/*"]
+skip_glob = ["*examples/*", "*vendored*", "*_vendor*"]
+
+[tool.ruff]
+line-length = 120
+ignore = ["E501", "UP006", "UP007", "TCH001", "TCH002", "TCH003"]
+target-version = "py38"
+fix = true
+exclude = [
+  ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".mypy_cache",
+    ".pants.d",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+    "*vendored*",
+    "*_vendor*",
+]
+
+[tool.ruff.per-file-ignores]
+"napari/_vispy/__init__.py" = ["E402"]
+#
+#[tool.ruff.isort]
+#known-first-party = ["napari_plot"]
+
 
 [tool.pytest.ini_options]
 # These follow standard library warnings filters syntax.  See more here:
@@ -72,4 +107,30 @@ filterwarnings = [
   "ignore::DeprecationWarning:shibokensupport",
   "ignore::DeprecationWarning:ipykernel",
   "ignore::DeprecationWarning:pyreadline",
+  "ignore::UserWarning",
+  "ignore::DeprecationWarning",
+  "ignore::RuntimeWarning",
 ]
+markers = [
+    "examples: Test of examples",
+    "disable_qthread_start: Disable thread start in this Test",
+    "disable_qthread_pool_start: Disable strarting QRunnable using QThreadPool start in this Test",
+    "disable_qtimer_start: Disable timer start in this Test",
+    "disable_qanimation_start: Disable animation start in this Test",
+]
+
+[tool.mypy]
+files = "napari"
+ignore_missing_imports = true
+exclude = [
+  "_tests",
+]
+show_error_codes = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+# # maybe someday :)
+# disallow_any_generics = true
+# no_implicit_reexport = true
+# disallow_untyped_defs = true

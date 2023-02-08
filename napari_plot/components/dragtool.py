@@ -6,7 +6,7 @@ import numpy as np
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
-from .tools import BaseTool, BoxTool, PolygonTool
+from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 
 
 class DragMode(str, Enum):

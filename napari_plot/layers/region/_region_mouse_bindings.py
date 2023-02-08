@@ -3,8 +3,8 @@ from copy import copy
 
 import numpy as np
 
-from ._region_constants import Orientation
-from ._region_utils import preprocess_region
+from napari_plot.layers.region._region_constants import Orientation
+from napari_plot.layers.region._region_utils import preprocess_region
 
 
 def highlight(layer, event):
@@ -58,7 +58,7 @@ def edit(layer, event):
         position_start = event.position
         coord_start = layer.world_to_data(position_start)
         index = list(layer.selected_data)[0]
-        data, orientation = layer.data[index], layer.orientation[index]
+        orientation = layer.orientation[index]
         yield
         # on move
         while event.type == "mouse_move":

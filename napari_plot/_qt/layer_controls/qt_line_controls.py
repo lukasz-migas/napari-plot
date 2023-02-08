@@ -5,11 +5,11 @@ from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
-from .. import helpers as hp
-from .qt_layer_controls_base import QtLayerControls
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from ...layers import Line
+    from napari_plot.layers import Line
 
 
 class QtLineControls(QtLayerControls):

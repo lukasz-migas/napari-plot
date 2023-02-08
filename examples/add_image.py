@@ -10,4 +10,6 @@ image = np.random.randint(0, 255, (100, 100))
 
 viewer1d = napari_plot.Viewer()
 viewer1d.add_image(image)
-napari_plot.run()
+
+if __name__ == "__main__":
+    napari_plot.run()

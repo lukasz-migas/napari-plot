@@ -5,6 +5,7 @@ from napari._qt.qt_resources import STYLES, get_stylesheet  # noqa
 
 ICON_PATH = (Path(__file__).parent / "icons").resolve()
 ICONS = {x.stem: str(x) for x in ICON_PATH.iterdir() if x.suffix == ".svg"}
+
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
 STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
 
@@ -40,4 +41,5 @@ QTA_MAPPING = {
     "tools": "fa5s.tools",
     "vertical": "mdi.drag-vertical-variant",
     "horizontal": "mdi.drag-horizontal-variant",
+    "close": "fa5s.times",
 }

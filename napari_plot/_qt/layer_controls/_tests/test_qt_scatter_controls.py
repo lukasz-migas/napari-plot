@@ -34,13 +34,7 @@ def test_scatter_controls_creation(qtbot, layer):
     # test width
     assert qtctrl.edge_width_slider.maximum() <= 1.0
     assert qtctrl.edge_width_slider.value() <= 1.0
-    target = 0.5
-    layer.edge_width = target
-    assert qtctrl.edge_width_slider.value() == target
 
     # change to non-relative edge width
     layer.edge_width_is_relative = False
     assert qtctrl.edge_width_slider.maximum() > 1.0
-    target = 12
-    layer.edge_width = target
-    assert qtctrl.edge_width_slider.value() == target

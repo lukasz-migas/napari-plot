@@ -2,11 +2,11 @@
 import typing as ty
 from weakref import WeakSet
 
-from .components.viewer_model import ViewerModel
+from napari_plot.components.viewer_model import ViewerModel
 
 if ty.TYPE_CHECKING:
     # helpful for IDE support
-    from ._qt.qt_main_window import Window
+    from napari_plot._qt.qt_main_window import Window
 
 
 class Viewer(ViewerModel):
@@ -33,7 +33,7 @@ class Viewer(ViewerModel):
         super().__init__(title=title)
         # having this import here makes all of Qt imported lazily, upon
         # instantiating the first Viewer.
-        from .window import Window
+        from napari_plot.window import Window
 
         self._window = Window(self, show=show)
         self._instances.add(self)

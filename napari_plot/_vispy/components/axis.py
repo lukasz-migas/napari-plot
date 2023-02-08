@@ -46,7 +46,7 @@ class Ticker(_Ticker):
             major_frac = major_frac[::-1] if flip else major_frac
             use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
             major_frac = major_frac[use_mask]
-            labels = [l for li, l in enumerate(labels) if use_mask[li]]
+            labels = [label for index, label in enumerate(labels) if use_mask[index]]
             minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
         elif self.axis.scale_type == "logarithmic":
             return NotImplementedError

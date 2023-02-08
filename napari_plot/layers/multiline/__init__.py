@@ -1,2 +1,2 @@
 """Init"""
-from .multiline import MultiLine  # noqa: F401
+from napari_plot.layers.multiline.multiline import MultiLine  # noqa: F401

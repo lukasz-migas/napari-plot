@@ -5,12 +5,12 @@ from napari._qt.utils import disable_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
-from ...layers.centroids._centroids_constants import COLORING_TRANSLATIONS
-from .. import helpers as hp
-from .qt_layer_controls_base import QtLayerControls
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari_plot.layers.centroids._centroids_constants import COLORING_TRANSLATIONS
 
 if ty.TYPE_CHECKING:
-    from ...layers import Centroids
+    from napari_plot.layers import Centroids
 
 
 class QtCentroidControls(QtLayerControls):

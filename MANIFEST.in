@@ -13,6 +13,7 @@ exclude requirements.txt
 recursive-exclude tools *
 recursive-exclude docs *
 recursive-exclude examples *
+recursive-exclude examples_with_napari *
 recursive-exclude misc *
 recursive-exclude napari_plot __pycache__
 recursive-exclude napari_plot *.pyc

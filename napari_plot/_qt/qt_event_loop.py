@@ -5,16 +5,17 @@ from warnings import warn
 
 from napari._qt.dialogs.qt_notification import NapariQtNotification
 from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop  # noqa
-from napari._qt.qt_resources import _register_napari_resources
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.plugins import plugin_manager
+from napari.resources._icons import _theme_path
 from napari.utils.notifications import notification_manager, show_console_notification
-from qtpy.QtCore import Qt
+from napari.utils.theme import _themes
+from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
-from .. import __version__
+from napari_plot import __version__
 
 NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
@@ -112,7 +113,8 @@ def get_app(
     else:
         # automatically determine monitor DPI.
         # Note: this MUST be set before the QApplication is instantiated
-        QApplication.setAttribute(Qt.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
         app = QApplication(sys.argv)
 
         # if this is the first time the Qt app is being instantiated, we set
@@ -135,6 +137,10 @@ def get_app(
         # workers at shutdown.
         app.aboutToQuit.connect(wait_for_workers_to_quit)
 
+        # Setup search paths for currently installed themes.
+        for name in _themes:
+            QDir.addSearchPath(f"theme_{name}", str(_theme_path(name)))
+
         try:
             # this will register all of our resources (icons) with Qt, so that they
             # can be used in qss files and elsewhere.
@@ -142,7 +148,6 @@ def get_app(
             plugin_manager.discover_qss()
         except AttributeError:
             pass
-        _register_napari_resources()
 
     _app_ref = app  # prevent garbage collection
 
@@ -165,7 +170,7 @@ def quit_app():
         QApplication.setWindowIcon(QIcon())
 
 
-def run(*, force=False, gui_exceptions=False, max_loop_level=1, _func_name="run"):
+def run(*, force=False, max_loop_level=1, _func_name="run"):
     """Start the Qt Event Loop
 
     Parameters
@@ -173,9 +178,6 @@ def run(*, force=False, gui_exceptions=False, max_loop_level=1, _func_name="run"
     force : bool, optional
         Force the application event_loop to start, even if there are no top
         level widgets to show.
-    gui_exceptions : bool, optional
-        Whether to show uncaught exceptions in the GUI. By default they will be
-        shown in the console that launched the event loop.
     max_loop_level : int, optional
         The maximum allowable "loop level" for the execution thread.  Every
         time `QApplication.exec_()` is called, Qt enters the event loop,

@@ -3,10 +3,10 @@ import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
 
-from ..visuals.multiline import MultiLineVisual
+from napari_plot._vispy.visuals.multiline import MultiLineVisual
 
 if ty.TYPE_CHECKING:
-    from ...layers import MultiLine
+    from napari_plot.layers import MultiLine
 
 LINE_MAIN = 0
 LINE_HIGHLIGHT = 1

@@ -23,10 +23,10 @@ from qtpy.QtWidgets import (
 )
 from superqt.sliders import QDoubleSlider
 
-from ..utils.system import IS_WIN
-from .widgets.qt_icon_button import QtImagePushButton
-from .widgets.qt_icon_label import QtQtaLabel
-from .widgets.qt_line import QtHorzLine, QtVertLine
+from napari_plot._qt.widgets.qt_icon_button import QtImagePushButton
+from napari_plot._qt.widgets.qt_icon_label import QtQtaLabel
+from napari_plot._qt.widgets.qt_line import QtHorzLine, QtVertLine
+from napari_plot.utils.system import IS_WIN
 
 
 def make_v_spacer() -> QSpacerItem:
@@ -69,7 +69,6 @@ def make_qta_btn(
     """Make QPushButton with QtAwesome icon."""
     widget = QtImagePushButton(parent=parent)
     widget.set_qta(icon_name, **kwargs)
-    widget.set_size_name(size_name)
     if size_name:
         widget.set_size_name(size_name)
     if size and len(size) == 2:

@@ -2,7 +2,7 @@ from qtpy.QtCore import QPoint, Qt
 from qtpy.QtGui import QCursor
 from qtpy.QtWidgets import QApplication, QDialog, QHBoxLayout, QLayout, QWidget
 
-from . import helpers as hp
+import napari_plot._qt.helpers as hp
 
 
 class QtDialog(QDialog):

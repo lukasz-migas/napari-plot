@@ -4,7 +4,7 @@ import typing as ty
 from vispy.scene.visuals import GridLines
 
 if ty.TYPE_CHECKING:
-    from ...components.viewer_model import ViewerModel
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class VispyGridLinesVisual:

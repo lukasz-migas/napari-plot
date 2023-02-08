@@ -8,8 +8,8 @@ from napari.qt import thread_worker
 def update_layer(res):
     """Update layer data."""
     y1, y2 = res
-    layer_sin.data = np.c_[x, y1]
-    layer_cos.data = np.c_[x, y2]
+    layer_sin.y = y1
+    layer_cos.y = y2
 
 
 @thread_worker(connect={"yielded": update_layer})
@@ -26,4 +26,5 @@ window = 0.2
 layer_sin = viewer1d.add_line(np.c_[x, np.sin(2 * np.pi * x)], name="Sin", color="magenta")
 layer_cos = viewer1d.add_line(np.c_[x, np.cos(2 * np.pi * x)], name="Cos", color="springgreen")
 run_update()
-napari_plot.run()
+if __name__ == "__main__":
+    napari_plot.run()

@@ -3,10 +3,10 @@ import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer
 
-from ..visuals.line import LineVisual
+from napari_plot._vispy.visuals.line import LineVisual
 
 if ty.TYPE_CHECKING:
-    from ...layers import Line
+    from napari_plot.layers import Line
 
 
 class VispyLineLayer(VispyBaseLayer):

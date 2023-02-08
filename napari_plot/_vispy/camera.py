@@ -4,11 +4,11 @@ import typing as ty
 import numpy as np
 from vispy.geometry import Rect
 
-from .components.camera import LimitedPanZoomCamera
+from napari_plot._vispy.components.camera import LimitedPanZoomCamera
 
 if ty.TYPE_CHECKING:
-    from ..components.camera import Camera
-    from ..components.viewer_model import ViewerModel
+    from napari_plot.components.camera import Camera
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class VispyCamera:
@@ -100,7 +100,6 @@ class VispyCamera:
 
     def _on_interactive_change(self):
         self.camera.interactive = self._camera.interactive
-        print("set inter", self.camera.interactive)
 
     def _on_zoom_change(self):
         self.zoom = self._camera.zoom

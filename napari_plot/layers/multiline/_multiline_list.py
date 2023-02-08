@@ -3,7 +3,12 @@ import typing as ty
 
 import numpy as np
 
-from ._multiline_utils import get_data_limits, make_multiline_color, make_multiline_line, make_multiline_pos
+from napari_plot.layers.multiline._multiline_utils import (
+    get_data_limits,
+    make_multiline_color,
+    make_multiline_line,
+    make_multiline_pos,
+)
 
 
 class MultiLineList:

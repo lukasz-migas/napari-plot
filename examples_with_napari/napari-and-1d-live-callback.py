@@ -1,8 +1,8 @@
 """Create simple callback that modifies the line visual."""
-from skimage import data
-from skimage import measure
-import numpy as np
 import napari
+import numpy as np
+from skimage import data, measure
+
 import napari_plot
 from napari_plot._qt.qt_viewer import QtViewer
 
@@ -56,4 +56,6 @@ def _profile_lines_drag(layer, event):
 
 
 viewer.window.add_dock_widget(qt_viewer, area="bottom", name="Line Widget")
-napari.run()
+
+if __name__ == "__main__":
+    napari.run()

@@ -8,11 +8,11 @@ from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
-from .. import helpers as hp
-from .qt_layer_controls_base import QtLayerControls
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
-    from ...layers import Scatter
+    from napari_plot.layers import Scatter
 
 
 class QtScatterControls(QtLayerControls):
@@ -100,7 +100,7 @@ class QtScatterControls(QtLayerControls):
 
         self.symbol_combobox = hp.make_combobox(self, tooltip="Marker symbol")
         hp.set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
-        self.symbol_combobox.activated[str].connect(self.on_change_symbol)
+        self.symbol_combobox.currentTextChanged.connect(self.on_change_symbol)
 
         self.scaling_checkbox = hp.make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")
         self.scaling_checkbox.stateChanged.connect(self.on_change_scaling)
@@ -171,12 +171,18 @@ class QtScatterControls(QtLayerControls):
             The napari event that triggered this method.
         """
         with self.layer.events.size.blocker():
-            size = (
-                self.layer.size[-1]
-                if len(self.layer.size) > 0
-                else (self.layer._default_size if self.layer.edge_width_is_relative else self.layer._default_rel_size)
-            )
-            self.size_slider.setValue(size)
+            with self.layer.events.size.blocker():
+                value = self.layer.current_size
+                min_val = min(value) if isinstance(value, list) else value
+                max_val = max(value) if isinstance(value, list) else value
+                if min_val < self.size_slider.minimum():
+                    self.size_slider.setMinimum(max(1, int(min_val - 1)))
+                if max_val > self.size_slider.maximum():
+                    self.size_slider.setMaximum(int(max_val + 1))
+                try:
+                    self.size_slider.setValue(int(value))
+                except TypeError:
+                    pass
 
     def on_change_edge_width(self, value):
         """Change size of points on the layer model.

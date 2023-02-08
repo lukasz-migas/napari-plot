@@ -23,4 +23,6 @@ viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
 viewer1d.window._qt_viewer.canvas.measure_fps(callback=update_fps)
 viewer1d.add_multi_line({"xs": xs, "ys": ys})
-napari_plot.run()
+
+if __name__ == "__main__":
+    napari_plot.run()

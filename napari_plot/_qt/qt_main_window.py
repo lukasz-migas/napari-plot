@@ -22,12 +22,12 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-from ..components.camera import CameraMode, ExtentMode
-from ..components.dragtool import DragMode
-from ..resources import get_stylesheet
-from . import helpers as hp
-from .qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
-from .qt_viewer import QtViewer
+import napari_plot._qt.helpers as hp
+from napari_plot._qt.qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
+from napari_plot._qt.qt_viewer import QtViewer
+from napari_plot.components.camera import CameraMode, ExtentMode
+from napari_plot.components.dragtool import DragMode
+from napari_plot.resources import get_stylesheet
 
 
 class _QtMainWindow(QMainWindow):
@@ -67,9 +67,10 @@ class _QtMainWindow(QMainWindow):
         center.layout().setContentsMargins(4, 0, 4, 0)
         self.setCentralWidget(center)
         self.setWindowTitle(self._qt_viewer.viewer.title)
+        # Keep track of current instance
         _QtMainWindow._instances.append(self)
 
-        # this is required to notifications
+        # This is required for notifications to work properly
         Napari_QtMainWindow._instances.append(self)
 
     @classmethod
@@ -167,6 +168,8 @@ class Window:
         Window menu.
     """
 
+    _dev = None
+
     def __init__(self, viewer, *, show: bool = True):
         # create QApplication if it doesn't already exist
         get_app()
@@ -190,6 +193,9 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
+        # Setup development tools
+        self._setup_dev_tools()
+
         if hasattr(self._qt_viewer, "dockConsole"):
             self._add_viewer_dock_widget(self._qt_viewer.dockConsole, tabify=False, menu=self.window_menu)
         self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False, menu=self.window_menu)
@@ -210,6 +216,19 @@ class Window:
 
         if show:
             self.show()
+
+    def _setup_dev_tools(self):
+        """Setup development tools."""
+        import os
+
+        try:
+            if os.getenv("NAPARI_PLOT_DEV_MODE", "0") and self._dev is None:
+                from napari_plot._qt.widgets.qt_dev import QtReload
+
+                self._dev = QtReload()
+                print("Installed development tools.")
+        except Exception as e:  # noqa
+            print(f"Failed to install development tools. Error={e}")
 
     @property
     def _qt_viewer(self):
