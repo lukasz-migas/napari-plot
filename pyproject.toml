@@ -112,8 +112,6 @@ filterwarnings = [
   "ignore::RuntimeWarning",
 ]
 markers = [
-    "sync_only: Test should only be run synchronously",
-    "async_only: Test should only be run asynchronously",
     "examples: Test of examples",
     "disable_qthread_start: Disable thread start in this Test",
     "disable_qthread_pool_start: Disable strarting QRunnable using QThreadPool start in this Test",
