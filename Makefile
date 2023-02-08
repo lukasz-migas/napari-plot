@@ -37,3 +37,11 @@ untrack:
 docs:
 	mkdocs build
 	xcopy site src\docs /E/H/Y/D
+
+check-manifest:
+	pip install -U check-manifest
+	check-manifest
+
+dist: check-manifest
+	pip install -U build
+	python -m build
