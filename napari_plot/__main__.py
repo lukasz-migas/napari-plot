@@ -151,7 +151,7 @@ def _run():
     # but in the meantime if the garbage collector runs;
     # it will collect it and hang napari at start time.
     # in a way that is machine, os, time (and likely weather dependant).
-    viewer = Viewer()
+    _viewer = Viewer()
 
     # viewer._window._qt_viewer._qt_open(
     #     args.paths,

@@ -648,7 +648,7 @@ class QtViewer(QSplitter):
 
     def _screenshot_dialog(self):
         """Save screenshot of current display, default .png"""
-        dial = ScreenshotDialog(self.screenshot, self)
+        ScreenshotDialog(self.screenshot, self)
 
     def clipboard(self):
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard."""
