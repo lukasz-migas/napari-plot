@@ -177,7 +177,7 @@ jobs:
           pip install ./napari-plot-from-github[all,testing]
 
       - name: Test
-        uses: GabrielBB/xvfb-action@v1
+        uses: aganders3/headless-gui@v1
         with:
           run: pytest --pyargs napari_plot --color=yes
 

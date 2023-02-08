@@ -14,6 +14,7 @@ from napari_plot._qt.qt_main_window import Window
 skip = [
     "live_update_multiple_lines.py",  # has very long-running thread which would take a lifetime
     "live_update_lines.py",  # has very long-running thread which would take a lifetime
+    "live_update_scatter.py",  # has very long-running thread which would take a lifetime
 ]
 
 

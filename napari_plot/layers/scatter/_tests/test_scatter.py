@@ -37,6 +37,14 @@ def test_scatter_empty():
 def test_scatter_data(data):
     layer = Scatter(data)
     assert isinstance(layer.data, np.ndarray)
+    with pytest.raises(ValueError):
+        layer.data = np.random.random((10, 3))
+
+
+@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3], [0, 1, 2]], np.random.random((10, 3))))
+def test_scatter_data_fail(data):
+    with pytest.raises(ValueError):
+        Scatter(data)
 
 
 def test_scatter_change_data():

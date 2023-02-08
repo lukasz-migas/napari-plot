@@ -56,10 +56,9 @@ class Scatter(Points, LayerMixin):
         scaling=True,
         label="",
     ):
-        if data is None:
-            data = np.empty((0, 2))
-        else:
-            data = np.asarray(data)
+        data, ndim = fix_data_points(data, ndim)
+        if ndim > 2:
+            raise ValueError("Scatter layer only supports 2D data.")
         Points.__init__(
             self,
             data=data,
@@ -124,8 +123,7 @@ class Scatter(Points, LayerMixin):
     def data(self, data):
         data, _ = fix_data_points(data, self.ndim)
         if data.ndim > 2:
-            raise ValueError("Data array should be 2D")
-        # data = data[:, ::-1]
+            raise ValueError("Scatter layer only supports 2D data.")
         super(Scatter, self.__class__).data.fset(self, data)
 
     @property
@@ -154,28 +152,10 @@ class Scatter(Points, LayerMixin):
         self.data[:, 0] = value
         self._emit_new_data()
 
-    @property
-    def _view_text_color(self) -> np.ndarray:
-        """Get the colors of the text elements at the given indices."""
-        self.text.color._apply(self.features)
-        return self.text._view_color(self._indices_view)
-
-    #
-    # @property
-    # def _view_symbol(self) -> np.ndarray:
-    #     """Get the symbols of the points in view
-    #
-    #     Returns
-    #     -------
-    #     symbol : (N,) np.ndarray
-    #         Array of symbol strings for the N points in view
-    #     """
-    #     return self.symbol[self._indices_view]
-
     def _get_mask_from_path(self, vertices):
         """Return data contained for specified vertices. Only certain layers implement this."""
         from matplotlib.path import Path
 
         path = Path(vertices)
-        indices = path.contains_points(self.data)
+        indices = path.contains_points(self.data[:, ::-1])  # expect data in x, y format
         return indices
