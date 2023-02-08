@@ -1,6 +1,9 @@
 # Our minimal suite of tests that run on each pull request
 name: PR Test
 
+env:
+  COLUMNS: 120
+
 on:
   pull_request:
     branches:

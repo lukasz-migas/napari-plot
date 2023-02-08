@@ -33,7 +33,7 @@ def test_scatter_empty():
     assert layer.data.shape == (0, 2)
 
 
-@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3]], np.random.random((10, 2))))
+@pytest.mark.parametrize("data", ([[0, 1], [1, 2], [3, 3]], np.random.random((10, 2))))
 def test_scatter_data(data):
     layer = Scatter(data)
     assert isinstance(layer.data, np.ndarray)
@@ -41,7 +41,7 @@ def test_scatter_data(data):
         layer.data = np.random.random((10, 3))
 
 
-@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3], [0, 1, 2]], np.random.random((10, 3))))
+@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3]], np.random.random((10, 3))))
 def test_scatter_data_fail(data):
     with pytest.raises(ValueError):
         Scatter(data)

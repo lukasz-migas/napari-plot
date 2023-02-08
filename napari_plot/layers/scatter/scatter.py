@@ -98,7 +98,6 @@ class Scatter(Points, LayerMixin):
             # canvas_size_limits=canvas_size_limits,
             # antialiasing=antialiasing,
         )
-        # LayerMixin.__init__(self, label=label)
         self._label = label
         self.events.add(scaling=Event, label=Event)
         with self.events.blocker_all():
