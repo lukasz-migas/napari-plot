@@ -77,6 +77,17 @@ def test_with_tuples():
     assert np.all([o == "horizontal" for o in layer.orientation])
 
 
+def test_adding_by_data():
+    data = [[25, 50], [50, 100]]
+    layer = Region(data, orientation="vertical")
+    assert layer.n_regions == len(data)
+    assert layer.ndim == 2
+
+    new_data = np.random.random((20, 2))
+    layer.data = new_data
+    assert layer.n_regions == len(new_data)
+
+
 def test_adding_regions():
     data = [[25, 50], [50, 100]]
     layer = Region(data, orientation="vertical")
@@ -225,3 +236,16 @@ def test_move_to_back():
     layer.selected_data = {0, 2}
     layer.move_to_back()
     assert layer.z_index == [1] + [z_index_list[1]] + [1] + z_index_list[3:]
+
+
+def test_move():
+    shape = (10, 2)
+    np.random.seed(0)
+    data = 20 * np.random.random(shape)
+    layer = Region(data, orientation="vertical")
+    layer.move(0, (2, 4), "vertical")
+    np.testing.assert_array_equal(layer.data[0][:, 1], [2, 4, 4, 2])
+
+    layer = Region(data, orientation="horizontal")
+    layer.move(0, (2, 4), "horizontal")
+    np.testing.assert_array_equal(layer.data[0][:, 0], [2, 2, 4, 4])

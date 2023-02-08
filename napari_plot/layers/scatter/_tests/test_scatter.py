@@ -33,6 +33,25 @@ def test_scatter_empty():
     assert layer.data.shape == (0, 2)
 
 
+def test_scatter_update_attrs():
+    layer = Scatter()
+    # normally update attributes
+    layer.update_attributes(name="test", metadata={"test": "test"})
+    assert layer.name == "test"
+    assert layer.metadata == {"test": "test"}
+
+    # test bad attributes
+    with pytest.raises(AttributeError):
+        layer.update_attributes(not_real_attr="test")
+    layer.update_attributes(not_real_attr="test", throw_exception=False)
+    assert not hasattr(layer, "not_real_attr")
+
+    # test bad values
+    with pytest.raises(ValueError):
+        layer.update_attributes(face_color=1)
+    layer.update_attributes(face_color=1, throw_exception=False)
+
+
 @pytest.mark.parametrize("data", ([[0, 1], [1, 2], [3, 3]], np.random.random((10, 2))))
 def test_scatter_data(data):
     layer = Scatter(data)
@@ -56,6 +75,12 @@ def test_scatter_change_data():
     new_data = np.random.random(10)
     layer.x = new_data
     layer.y = new_data
+
+    new_data = np.random.random((10, 2))
+    with pytest.raises(ValueError):
+        layer.x = new_data
+    with pytest.raises(ValueError):
+        layer.y = new_data
 
     data = np.random.random((20, 2))
     layer.data = data
@@ -217,3 +242,19 @@ def test_properties_dataframe():
     properties_df = properties_df.astype(properties["point_type"].dtype)
     layer = Scatter(data, properties=properties_df)
     np.testing.assert_equal(layer.properties, properties)
+
+
+def test_point_selection_by_path():
+    """Test which indices are being selected by a path."""
+    x = np.arange(0.0, 10.0, 0.1)
+    yx = np.c_[np.sin(2 * np.pi * x), x]
+    layer = Scatter(yx)
+    vertices = [[-0.2, -1.4], [0.29, -1.42], [0.29, 11.55], [-0.21, 11.55]]
+    expected = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]
+    indices = layer._get_mask_from_path(vertices, as_indices=True)
+    assert indices.ndim == 1
+    assert indices.size == 20
+    np.testing.assert_equal(indices, expected)
+
+    mask = layer._get_mask_from_path(vertices)
+    assert np.sum(mask) == 20

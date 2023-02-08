@@ -229,6 +229,8 @@ class Scatter(Points, LayerMixin):
     @x.setter
     def x(self, value):
         value = np.asarray(value)
+        if value.ndim > 1:
+            raise ValueError("The `x-axis` array must be 1D.")
         if self.data.shape[0] != value.shape[0]:
             raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
         self.data[:, 1] = value
@@ -242,15 +244,19 @@ class Scatter(Points, LayerMixin):
     @y.setter
     def y(self, value):
         value = np.asarray(value)
+        if value.ndim > 1:
+            raise ValueError("The `y-axis` array must be 1D.")
         if self.data.shape[0] != value.shape[0]:
             raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
         self.data[:, 0] = value
         self._emit_new_data()
 
-    def _get_mask_from_path(self, vertices):
+    def _get_mask_from_path(self, vertices, as_indices: bool = False) -> np.ndarray:
         """Return data contained for specified vertices. Only certain layers implement this."""
         from matplotlib.path import Path
 
         path = Path(vertices)
-        indices = path.contains_points(self.data[:, ::-1])  # expect data in x, y format
-        return indices
+        mask = path.contains_points(self.data)
+        if as_indices:
+            return np.nonzero(mask)[0]
+        return mask
