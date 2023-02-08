@@ -29,7 +29,7 @@ def add_scatter():
     """Centroids plot"""
     x = np.random.randint(N_MIN, N_MAX, N_POINTS // 2)
     y = np.random.randint(N_MIN, N_POINTS, N_POINTS // 2)
-    viewer1d.add_scatter(np.c_[x, y], size=5, name="Scatter", visible=True)
+    viewer1d.add_scatter(np.c_[y, x], size=5, name="Scatter", visible=True)
 
 
 def add_region():
