@@ -222,7 +222,7 @@ class Window:
         import os
 
         try:
-            if os.getenv("NAPARI_PLOT_DEV_MODE", "1") and self._dev is None:
+            if os.getenv("NAPARI_PLOT_DEV_MODE", "0") and self._dev is None:
                 from napari_plot._qt.widgets.qt_dev import QtReload
 
                 self._dev = QtReload()
