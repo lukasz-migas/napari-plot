@@ -60,8 +60,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/napari-${{ env.tag }}.tar.gz
-          asset_name: napari-${{ env.tag }}.tar.gz
+          asset_path: ./dist/napari-plot-${{ env.tag }}.tar.gz
+          asset_name: napari-plot-${{ env.tag }}.tar.gz
           asset_content_type: application/gzip
 
       - name: Publish to Test PyPI
