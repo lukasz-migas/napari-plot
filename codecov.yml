@@ -1,2 +1,15 @@
+ignore:
+  - napari_plot/_version.py
+coverage:
+  status:
+    patch:
+      default:
+        threshold: 1%
+        target: 0%
 codecov:
   token: 3b19d135-753d-46f6-a7f7-1271bf107724
+  notify:
+      after_n_builds: 10
+comment:
+  require_changes: true  # if true: only post the PR comment if coverage changes
+  after_n_builds: 10
