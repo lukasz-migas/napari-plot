@@ -65,13 +65,18 @@ class LayerMixin:
     def update_attributes(self, throw_exception: bool = True, **kwargs):
         """Update attributes on the layer."""
         for attr, value in kwargs.items():
+            if not hasattr(self, attr):
+                if throw_exception:
+                    raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{attr}'")
+                else:
+                    continue
             try:
                 setattr(self, attr, value)
             except (AttributeError, ValueError) as err:
                 if throw_exception:
                     raise err
 
-    def _get_mask_from_path(self, vertices):
+    def _get_mask_from_path(self, vertices, as_indices: bool = False):
         """Return data contained for specified vertices. Only certain layers implement this."""
 
 

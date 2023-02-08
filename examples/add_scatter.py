@@ -9,8 +9,7 @@ import numpy as np
 
 def select_data(event):
     """Select data"""
-    mask = layer._get_mask_from_path(event.value)
-    indices = np.nonzero(mask)[0]
+    indices = layer._get_mask_from_path(event.value, as_indices=True)
     data = yx[indices, :]
     sel_layer.data = data
     print(f"Selected {len(data)} points.")
