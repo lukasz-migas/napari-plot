@@ -1,13 +1,22 @@
 """Development widgets."""
 import importlib
+import pkgutil
 from pathlib import Path
 
 from qtpy.QtCore import QFileSystemWatcher
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QWidget
 from superqt.utils import qthrottled
 
-from napari_plot.utils.utilities import get_module_path
 from napari_plot.utils.vendored.pydevd_reload import xreload
+
+
+def get_import_path(module: str) -> Path:
+    """Get module path."""
+    module = pkgutil.get_loader(module)
+    if module is None:
+        return None
+    path = Path(module.get_filename())
+    return path.parent
 
 
 def path_to_module(path: str) -> str:
@@ -24,7 +33,7 @@ def get_parent_module(module: str):
 class QtReload(QWidget):
     """Reload Widget"""
 
-    def __init__(self, parent=None, path=None):
+    def __init__(self, parent=None, module: str = "napari_plot", auto_connect: bool = True):
         super().__init__(parent=parent)
         self._watcher = QFileSystemWatcher()
 
@@ -34,7 +43,12 @@ class QtReload(QWidget):
         layout.addWidget(self._info, stretch=True)
         self.setLayout(layout)
 
-        self._path = Path(get_module_path("napari_plot", "__init__.py")).parent if path is None else Path(path)
+        self._path = get_import_path(module)
+        if self._path and auto_connect:
+            self.setup_paths()
+
+    def setup_paths(self):
+        """Setup paths.""" ""
         self._add_filenames()
         self._watcher.fileChanged.connect(self.on_reload_file)
         # self._add_directories()
@@ -88,11 +102,5 @@ class QtReload(QWidget):
     def on_reload_directory(self, path: str):
         """Reload all modules in directory."""
         paths = self._get_paths(Path(path))
-        for path in paths:
-            self._reload(path)
-
-    def reload(self):
-        """Reload all modules."""
-        paths = self._get_paths(self._path)
         for path in paths:
             self._reload(path)
