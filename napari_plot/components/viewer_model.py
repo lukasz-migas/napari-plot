@@ -59,6 +59,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     # 2-tuple indicating height and width
     _canvas_size: ty.Tuple[int, int] = (400, 400)
+    # To check if mouse is over canvas to avoid race conditions between
+    # different events systems
+    mouse_over_canvas: bool = False
 
     def __init__(self, title="napari_plot"):
         # allow extra attributes during model initialization, useful for mixins
@@ -70,7 +73,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
-        self.cursor.events.position.connect(self._on_cursor_position_change)
+        self.cursor.events.position.connect(self._update_status_bar_from_cursor)
         self.layers.events.inserted.connect(self._on_add_layer)
         self.layers.events.removed.connect(self._on_remove_layer)
         self.layers.events.reordered.connect(self._on_layers_change)
@@ -355,19 +358,33 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Set the viewer cursor_size with the `event.cursor_size` int."""
         self.cursor.size = event.cursor_size
 
-    def _on_cursor_position_change(self, _event=None):
-        """Set the layer cursor position."""
-        with warnings.catch_warnings():
-            # Catch the deprecation warning on layer.position
-            warnings.filterwarnings("ignore", message="layer.position is deprecated")
-            for layer in self.layers:
-                layer.position = self.cursor.position
+    def _update_status_bar_from_cursor(self, event=None):
+        """Update the status bar based on the current cursor position.
 
+        This is generally used as a callback when cursor.position is updated.
+        """
         # Update status and help bar based on active layer
+        if not self.mouse_over_canvas:
+            return
         active = self.layers.selection.active
         if active is not None:
-            self.status = active.get_status(self.cursor.position, world=True)
+            self.status = active.get_status(
+                self.cursor.position,
+                view_direction=self.cursor._view_direction,
+                dims_displayed=list(self.dims.displayed),
+                world=True,
+            )
+
             self.help = active.help
+            if self.tooltip.visible:
+                self.tooltip.text = active._get_tooltip_text(
+                    self.cursor.position,
+                    view_direction=self.cursor._view_direction,
+                    dims_displayed=list(self.dims.displayed),
+                    world=True,
+                )
+        else:
+            self.status = 'Ready'
 
 
 for _layer in [

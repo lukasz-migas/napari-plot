@@ -33,7 +33,7 @@ class VispyCanvas(SceneCanvas):
         # connect events
         self.events.mouse_double_click.connect(self._on_mouse_double_click)
 
-        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event)
+        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event, leave=Event, enter=Event)
 
     @property
     def destroyed(self):

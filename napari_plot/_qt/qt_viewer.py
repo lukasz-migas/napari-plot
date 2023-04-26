@@ -133,6 +133,8 @@ class QtViewer(QSplitter):
         self.canvas.events.reset_view.connect(self.viewer.reset_view)
         self.canvas.events.reset_x.connect(self.viewer.reset_x_view)
         self.canvas.events.reset_y.connect(self.viewer.reset_y_view)
+        self.canvas.events.leave.connect(self._leave_canvas)
+        self.canvas.events.enter.connect(self._enter_canvas)
 
         self.canvas.connect(self.on_mouse_move)
         self.canvas.connect(self.on_mouse_press)
@@ -332,6 +334,16 @@ class QtViewer(QSplitter):
         with self.canvas.modify_context() as canvas:
             canvas.grid = self.grid
             canvas.view = self.view
+
+    def _leave_canvas(self):
+        """disable status on canvas leave"""
+        self.viewer.status = ""
+        self.viewer.mouse_over_canvas = False
+
+    def _enter_canvas(self):
+        """enable status on canvas enter"""
+        self.viewer.status = ""
+        self.viewer.mouse_over_canvas = True
 
     def _post_init(self):
         """Complete initialization with post-init events"""

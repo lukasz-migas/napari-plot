@@ -15,4 +15,4 @@ from .components.viewer_model import ViewerModel as ViewerModel1D  # noqa: F401
 from .resources import STYLES  # noqa: F401
 from .viewer import Viewer  # noqa: F401
 
-del _register
+del _register, STYLES

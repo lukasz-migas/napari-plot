@@ -48,7 +48,7 @@ class QtLayerControls(QFrame):
 
         self.blending_combobox = hp.make_combobox(self)
         hp.set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
-        self.blending_combobox.activated[str].connect(self.on_change_blending)
+        self.blending_combobox.currentTextChanged.connect(self.on_change_blending)
 
         self.editable_checkbox = hp.make_checkbox(self, "")
         self.editable_checkbox.stateChanged.connect(self.on_change_editable)

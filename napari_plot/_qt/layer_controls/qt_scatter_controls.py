@@ -100,7 +100,7 @@ class QtScatterControls(QtLayerControls):
 
         self.symbol_combobox = hp.make_combobox(self, tooltip="Marker symbol")
         hp.set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, self.layer.symbol)
-        self.symbol_combobox.activated[str].connect(self.on_change_symbol)
+        self.symbol_combobox.currentTextChanged.connect(self.on_change_symbol)
 
         self.scaling_checkbox = hp.make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")
         self.scaling_checkbox.stateChanged.connect(self.on_change_scaling)
