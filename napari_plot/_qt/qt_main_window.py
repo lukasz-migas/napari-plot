@@ -1,7 +1,13 @@
 """Native window."""
+import contextlib
+
 import time
 import typing as ty
 from functools import partial
+from napari._qt.dialogs.qt_activity_dialog import QtActivityDialog
+from superqt.utils import QSignalThrottler
+
+from napari._qt.widgets.qt_viewer_status_bar import ViewerStatusBar
 from weakref import WeakValueDictionary
 
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
@@ -28,6 +34,9 @@ from napari_plot._qt.qt_viewer import QtViewer
 from napari_plot.components.camera import CameraMode, ExtentMode
 from napari_plot.components.dragtool import DragMode
 from napari_plot.resources import get_stylesheet
+
+if ty.TYPE_CHECKING:
+    from napari_plot.viewer import Viewer
 
 
 class _QtMainWindow(QMainWindow):
@@ -67,11 +76,41 @@ class _QtMainWindow(QMainWindow):
         center.layout().setContentsMargins(4, 0, 4, 0)
         self.setCentralWidget(center)
         self.setWindowTitle(self._qt_viewer.viewer.title)
+
+        act_dlg = QtActivityDialog(self._qt_viewer._welcome_widget)
+        self._qt_viewer._welcome_widget.resized.connect(act_dlg.move_to_bottom_right)
+        act_dlg.hide()
+        self._activity_dialog = act_dlg
+
+        self.setStatusBar(ViewerStatusBar(self))
+
         # Keep track of current instance
         _QtMainWindow._instances.append(self)
 
         # This is required for notifications to work properly
         Napari_QtMainWindow._instances.append(self)
+
+        # Prevent QLineEdit based widgets to keep focus even when clicks are
+        # done outside the widget. See #1571
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
+
+        # since we initialize canvas before window,
+        # we need to manually connect them again.
+        handle = self.windowHandle()
+        if handle is not None:
+            handle.screenChanged.connect(self._qt_viewer.canvas._backend.screen_changed)
+
+        self.status_throttler = QSignalThrottler(parent=self)
+        self.status_throttler.setTimeout(50)
+        self._throttle_cursor_to_status_connection(viewer)
+
+    def _throttle_cursor_to_status_connection(self, viewer: "Viewer"):
+        # In the GUI we expect lots of changes to the cursor position, so
+        # replace the direct connection with a throttled one.
+        with contextlib.suppress(IndexError):
+            viewer.cursor.events.position.disconnect(viewer._update_status_bar_from_cursor)
+        viewer.cursor.events.position.connect(self.status_throttler.throttle)
+        self.status_throttler.triggered.connect(viewer._update_status_bar_from_cursor)
 
     @classmethod
     def current(cls):
@@ -223,9 +262,9 @@ class Window:
 
         try:
             if os.getenv("NAPARI_PLOT_DEV_MODE", "0") and self._dev is None:
-                from napari_plot._qt.widgets.qt_dev import QtReload
+                from napari_plot._qt.widgets.qt_dev import qdev
 
-                self._dev = QtReload()
+                self._dev = qdev()
                 print("Installed development tools.")
         except Exception as e:  # noqa
             print(f"Failed to install development tools. Error={e}")
@@ -683,7 +722,16 @@ class Window:
         event : napari.utils.event.Event
             The napari event that triggered this method.
         """
-        self._status_bar.showMessage(event.value)
+        if isinstance(event.value, str):
+            self._status_bar.setStatusText(event.value)
+        else:
+            status_info = event.value
+            self._status_bar.setStatusText(
+                layer_base=status_info["layer_base"],
+                source_type=status_info["source_type"],
+                plugin=status_info["plugin"],
+                coordinates=status_info["coordinates"],
+            )
 
     def _title_changed(self, event):
         """Update window title.

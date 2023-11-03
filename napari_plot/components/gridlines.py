@@ -1,8 +1,6 @@
 """Gridlines"""
-from napari.utils.events import EventedModel
+from napari.components.overlays.base import CanvasOverlay
 
 
-class GridLines(EventedModel):
+class GridLinesOverlay(CanvasOverlay):
     """Gridlines object"""
-
-    visible: bool = False

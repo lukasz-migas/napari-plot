@@ -164,8 +164,6 @@ def _run():
     # only necessary in bundled app, but see #3596
     from napari.utils.misc import install_certifi_opener, running_as_bundled_app
 
-    if running_as_bundled_app():
-        install_certifi_opener()
     run()
 
 
@@ -191,7 +189,7 @@ def _maybe_rerun_with_macos_fixes():
     if sys.platform != "darwin":
         return
 
-    if "_NAPARI_RERUN_WITH_FIXES" in os.environ:
+    if "_NAPARI_PLOT_RERUN_WITH_FIXES" in os.environ:
         # This function already ran, do not recurse!
         # We also restore sys.executable to its initial value,
         # if we used a symlink
@@ -276,6 +274,10 @@ def _maybe_rerun_with_macos_fixes():
             cmd = [executable, sys.argv[0]]
         else:  # we assume it must have been launched via '-m' syntax
             cmd = [executable, "-m", "napari_plot"]
+
+        # this fixes issues running from a venv/virtualenv based virtual
+        # environment with certain python distributions (e.g. pyenv, asdf)
+        env["PYTHONEXECUTABLE"] = sys.executable
 
         # Append original command line arguments.
         if len(sys.argv) > 1:

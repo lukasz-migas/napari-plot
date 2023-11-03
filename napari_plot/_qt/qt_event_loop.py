@@ -2,7 +2,7 @@
 import os
 import sys
 from warnings import warn
-
+from qtpy import PYQT5, PYSIDE2
 from napari._qt.dialogs.qt_notification import NapariQtNotification
 from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop  # noqa
 from napari._qt.qthreading import wait_for_workers_to_quit
@@ -112,9 +112,14 @@ def get_app(
             )
     else:
         # automatically determine monitor DPI.
-        # Note: this MUST be set before the QApplication is instantiated
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-        QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
+        # Note: this MUST be set before the QApplication is instantiated. Also, this
+        # attributes need to be applied only to Qt5 bindings (PyQt5 and PySide2)
+        # since the High DPI scaling attributes are deactivated by default while on Qt6
+        # they are deprecated and activated by default. For more info see:
+        # https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html#class-function-deprecations
+        if PYQT5 or PYSIDE2:
+            QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
+            QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
         app = QApplication(sys.argv)
 
         # if this is the first time the Qt app is being instantiated, we set

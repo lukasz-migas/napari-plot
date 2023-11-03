@@ -11,6 +11,7 @@ STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss
 
 
 QTA_MAPPING = {
+    "delete": "fa5s.trash",
     "layers": "fa5s.layer-group",
     "ipython": "fa5s.terminal",
     "clipboard": "fa5s.clipboard-list",

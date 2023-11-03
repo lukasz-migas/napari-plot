@@ -2,7 +2,7 @@
 import typing as ty
 
 import numpy as np
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Slot
 from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
@@ -52,8 +52,9 @@ class QtRegionControls(QtLayerControls):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
-        self.layer.events.editable.connect(self._on_editable_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
+        self.layer.events.editable.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.current_color,
@@ -123,13 +124,13 @@ class QtRegionControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self.layout.addRow(button_row_1)
         self.layout.addRow(button_row_2)
-        self._on_editable_change()
+        self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 
     def _on_edit_mode_active(self, event=None):
         """Enable/disable `edit` mode when correct number of regions is selected."""
         show = len(self.layer.selected_data) == 1
-        disable_with_opacity(self, ["edit_button"], show)
+        set_widgets_enabled_with_opacity(self, [self.edit_button], show)
         if not show:
             self.edit_button.setChecked(False)
 
@@ -174,7 +175,7 @@ class QtRegionControls(QtLayerControls):
         with qt_signals_blocked(self.color_swatch):
             self.color_swatch.setColor(self.layer.current_color)
 
-    def _on_editable_change(self, event=None):
+    def _on_editable_or_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters
@@ -182,19 +183,19 @@ class QtRegionControls(QtLayerControls):
         event : napari.utils.event.Event, optional
             The napari event that triggered this method, by default None.
         """
-        disable_with_opacity(
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "opacity_slider",
-                "blending_combobox",
-                "color_swatch",
-                "move_button",
-                "select_button",
-                "delete_button",
-                "panzoom_button",
-                "add_button",
+                self.opacity_slider,
+                self.blending_combobox,
+                self.color_swatch,
+                self.move_button,
+                self.select_button,
+                self.delete_button,
+                self.panzoom_button,
+                self.add_button,
                 # "edit_button",
             ],
             self.layer.editable and self.layer.visible,
         )
-        super()._on_editable_change(event)
+        super()._on_editable_or_visible_change(event)

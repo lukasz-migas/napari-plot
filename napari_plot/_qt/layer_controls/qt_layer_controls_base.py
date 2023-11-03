@@ -40,7 +40,7 @@ class QtLayerControls(QFrame):
         self.layer = layer
         self.layer.events.blending.connect(self._on_blending_change)
         self.layer.events.opacity.connect(self._on_opacity_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.editable.connect(self._on_editable_or_visible_change)
 
         self.opacity_slider = hp.make_slider(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
         self.opacity_slider.valueChanged.connect(self.on_change_opacity)
@@ -64,10 +64,10 @@ class QtLayerControls(QFrame):
         ----------
         state : bool
         """
-        with self.layer.events.blocker(self._on_editable_change):
+        with self.layer.events.blocker(self._on_editable_or_visible_change):
             self.layer.editable = state
 
-    def _on_editable_change(self, _event=None):
+    def _on_editable_or_visible_change(self, _event=None):
         """Receive layer model opacity change event and update opacity slider.
 
         Parameters

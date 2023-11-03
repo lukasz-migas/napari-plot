@@ -1,9 +1,12 @@
 """Qt widget that embeds the canvas"""
+import typing as ty
 import warnings
-from contextlib import suppress
 from weakref import WeakSet
 
 import numpy as np
+
+from napari._vispy import create_vispy_overlay
+from napari.components.overlays import CanvasOverlay, Overlay, SceneOverlay
 from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.utils import QImg2array, add_flash_animation, circle_pixmap, crosshair_pixmap, square_pixmap
@@ -14,6 +17,7 @@ from napari.utils.interactions import (
     mouse_press_callbacks,
     mouse_release_callbacks,
     mouse_wheel_callbacks,
+    mouse_double_click_callbacks,
 )
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.theme import get_theme
@@ -27,10 +31,12 @@ from napari_plot._qt.qt_toolbar import QtViewToolbar
 from napari_plot._vispy.camera import VispyCamera
 from napari_plot._vispy.canvas import VispyCanvas
 from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
-from napari_plot._vispy.overlays.grid_lines import VispyGridLinesVisual
-from napari_plot._vispy.overlays.text import VispyTextVisual
 from napari_plot._vispy.tools.drag import VispyDragTool
-from napari_plot._vispy.utils.visual import create_vispy_visual
+from napari_plot._vispy.utils.visual import create_vispy_layer
+from napari_plot._qt.qt_welcome import QtWidgetOverlay
+
+if ty.TYPE_CHECKING:
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class QtViewer(QSplitter):
@@ -56,12 +62,21 @@ class QtViewer(QSplitter):
     _instances = WeakSet()
     _console = None
 
-    def __init__(self, viewer, parent=None, disable_controls: bool = False, **kwargs):
+    def __init__(
+        self,
+        viewer: "ViewerModel",
+        parent=None,
+        disable_controls: bool = False,
+        show_welcome_screen: bool = False,
+        **kwargs,
+    ):
         super().__init__(parent=parent)  # noqa
         self._instances.add(self)
         self.setAttribute(Qt.WA_DeleteOnClose)
         self.setAcceptDrops(False)
         QCoreApplication.setAttribute(Qt.AA_UseStyleSheetPropagationInWidgetStyles, True)
+
+        self._show_welcome_screen = show_welcome_screen
 
         # handle to the viewer instance
         self.viewer = viewer
@@ -69,11 +84,15 @@ class QtViewer(QSplitter):
         # keyboard handler
         self._key_map_handler = KeymapHandler()
         self._key_map_handler.keymap_providers = [self.viewer]
+        self._console_backlog = []
+        self._console = None
+
         self._disable_controls = disable_controls
         self._layers_controls_dialog = None
 
         # This dictionary holds the corresponding vispy visual for each layer
         self.layer_to_visual = {}
+        self.overlay_to_visual = {}
 
         self._cursors = {
             "cross": Qt.CrossCursor,
@@ -122,6 +141,16 @@ class QtViewer(QSplitter):
         """Update cached x-axis offset"""
         self.viewer._canvas_size = tuple(self.canvas.size[::-1])
 
+    def _add_overlay(self, overlay: Overlay) -> None:
+        vispy_overlay = create_vispy_overlay(overlay, viewer=self.viewer)
+
+        if isinstance(overlay, CanvasOverlay):
+            vispy_overlay.node.parent = self.view
+        elif isinstance(overlay, SceneOverlay):
+            vispy_overlay.node.parent = self.view.scene
+
+        self.overlay_to_visual[overlay] = vispy_overlay
+
     def _create_canvas(self) -> None:
         """Create the canvas and hook up events."""
         self.canvas = VispyCanvas(
@@ -134,27 +163,34 @@ class QtViewer(QSplitter):
         self.canvas.events.reset_x.connect(self.viewer.reset_x_view)
         self.canvas.events.reset_y.connect(self.viewer.reset_y_view)
 
-        self.canvas.connect(self.on_mouse_move)
-        self.canvas.connect(self.on_mouse_press)
-        self.canvas.connect(self.on_mouse_release)
-        self.canvas.connect(self._key_map_handler.on_key_press)
-        self.canvas.connect(self._key_map_handler.on_key_release)
-        self.canvas.connect(self.on_mouse_wheel)
-        self.canvas.connect(self.on_draw)
-        self.canvas.connect(self.on_resize)
+        self.canvas.events.mouse_double_click.connect(self.on_mouse_double_click)
+        self.canvas.events.mouse_move.connect(self.on_mouse_move)
+        self.canvas.events.mouse_press.connect(self.on_mouse_press)
+        self.canvas.events.mouse_release.connect(self.on_mouse_release)
+        self.canvas.events.key_press.connect(self._key_map_handler.on_key_press)
+        self.canvas.events.key_release.connect(self._key_map_handler.on_key_release)
+        self.canvas.events.mouse_wheel.connect(self.on_mouse_wheel)
+        self.canvas.events.draw.connect(self.on_draw)
+        self.canvas.events.resize.connect(self.on_resize)
+
+        # self.canvas.connect(self.on_mouse_move)
+        # self.canvas.connect(self.on_mouse_press)
+        # self.canvas.connect(self.on_mouse_release)
+        # self.canvas.connect(self._key_map_handler.on_key_press)
+        # self.canvas.connect(self._key_map_handler.on_key_release)
+        # self.canvas.connect(self.on_mouse_wheel)
+        # self.canvas.connect(self.on_draw)
+        # self.canvas.connect(self.on_resize)
         self.canvas.bgcolor = get_theme(self.viewer.theme, False).canvas.as_rgb_tuple()
         theme = self.viewer.events.theme
 
         on_theme_change = self.canvas._on_theme_change
         theme.connect(on_theme_change)
 
-        def _disconnect():
-            # strange EventEmitter has no attribute _callbacks errors sometimes
-            # maybe some sort of cleanup race condition?
-            with suppress(AttributeError):
-                theme.disconnect(on_theme_change)
+        self.canvas.destroyed.connect(self._disconnect_theme)
 
-        self.canvas.destroyed.connect(_disconnect)
+    def _disconnect_theme(self):
+        self.viewer.events.theme.disconnect(self.canvas._on_theme_change)
 
     def _create_widgets(self, **kwargs):
         """Create ui widgets"""
@@ -179,8 +215,16 @@ class QtViewer(QSplitter):
         **kwargs,
     ):
         # set in main canvas
-        canvas_layout = QHBoxLayout()
+        widget = QWidget()
+        canvas_layout = QHBoxLayout(widget)
         canvas_layout.addWidget(self.canvas.native, stretch=True)
+
+        # Stacked widget to provide a welcome page
+        self._welcome_widget = QtWidgetOverlay(self, widget)
+        self._welcome_widget.set_welcome_visible(self._show_welcome_screen)
+        self._welcome_widget.sig_dropped.connect(self.dropEvent)
+        self._welcome_widget.leave.connect(self._leave_canvas)
+        self._welcome_widget.enter.connect(self._enter_canvas)
 
         if add_toolbars:
             canvas_layout.addWidget(self.viewerToolbar.toolbar_right)
@@ -266,7 +310,7 @@ class QtViewer(QSplitter):
         main_widget = QWidget()
         main_layout = QVBoxLayout()
         main_layout.setContentsMargins(5, 5, 5, 2)
-        main_layout.addLayout(canvas_layout)
+        main_layout.addWidget(self._welcome_widget)
         main_layout.setSpacing(3)
         main_widget.setLayout(main_layout)
 
@@ -294,7 +338,7 @@ class QtViewer(QSplitter):
         self.tool = VispyDragTool(self.viewer, view=self.view, order=1e5)
 
         # add gridlines
-        self.grid_lines = VispyGridLinesVisual(self.viewer, parent=self.view, order=1e6)
+        # self.grid_lines = VispyGridLinesOverlay(self.viewer, parent=self.view, order=1e6)
 
         # add x-axis widget
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
@@ -310,8 +354,11 @@ class QtViewer(QSplitter):
         self.y_axis.node.width_max = self.viewer.axis.y_max_size
         self.y_axis.interactive = True
 
-        # add label
-        self.text_overlay = VispyTextVisual(self, self.viewer, parent=self.view, order=1e6 + 2)
+        for overlay in self.viewer._overlays.values():
+            self._add_overlay(overlay)
+
+        # # add label
+        # self.text_overlay = VispyTextVisual(self, self.viewer, parent=self.view)
 
         with self.canvas.modify_context() as canvas:
             canvas.x_axis = self.x_axis
@@ -335,6 +382,16 @@ class QtViewer(QSplitter):
 
     def _post_init(self):
         """Complete initialization with post-init events"""
+
+    def _leave_canvas(self):
+        """disable status on canvas leave"""
+        self.viewer.status = ""
+        self.viewer.mouse_over_canvas = False
+
+    def _enter_canvas(self):
+        """enable status on canvas enter"""
+        self.viewer.status = "Ready"
+        self.viewer.mouse_over_canvas = True
 
     def _constrain_width(self, _event):
         """Allow the layer controls to be wider, only if floated.
@@ -379,72 +436,62 @@ class QtViewer(QSplitter):
             self.dockConsole.setWidget(console)
             console.setParent(self.dockConsole)
 
-    def _on_active_change(self, _event=None):
-        """When active layer changes change keymap handler.
-
-        Parameters
-        ----------
-        _event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        active_layer = self.viewer.layers.selection.active
-        if active_layer in self._key_map_handler.keymap_providers:
-            self._key_map_handler.keymap_providers.remove(active_layer)
-
-        if active_layer is not None:
-            self._key_map_handler.keymap_providers.insert(0, active_layer)
+    def _on_active_change(self):
+        """When active layer changes, change keymap handler."""
+        self._key_map_handler.keymap_providers = (
+            [self.viewer]
+            if self.viewer.layers.selection.active is None
+            else [self.viewer.layers.selection.active, self.viewer]
+        )
 
     def _on_add_layer_change(self, event):
-        """When a layer is added, set its parent and order.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
+        """When a layer is added, set its parent and order."""
         layer = event.value
         self._add_layer(layer)
 
     def _add_layer(self, layer):
-        """When a layer is added, set its parent and order.
-
-        Parameters
-        ----------
-        layer : napari.layers.Layer
-            Layer to be added.
-        """
-        vispy_layer = create_vispy_visual(layer)
+        """When a layer is added, set its parent and order."""
+        vispy_layer = create_vispy_layer(layer)
         vispy_layer.node.parent = self.view.scene
         vispy_layer.order = len(self.viewer.layers) - 1
         self.layer_to_visual[layer] = vispy_layer
 
     def _remove_layer(self, event):
-        """When a layer is removed, remove its parent.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
+        """When a layer is removed, remove its parent."""
         layer = event.value
         vispy_layer = self.layer_to_visual[layer]
         vispy_layer.close()
         del vispy_layer
-        self._reorder_layers(None)
+        del self.layer_to_visual[layer]
+        self._reorder_layers()
 
-    def _reorder_layers(self, _event):
-        """When the list is reordered, propagate changes to draw order.
-
-        Parameters
-        ----------
-        _event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
+    def _reorder_layers(self):
+        """When the list is reordered, propagate changes to draw order."""
+        first_visible_found = False
         for i, layer in enumerate(self.viewer.layers):
             vispy_layer = self.layer_to_visual[layer]
             vispy_layer.order = i
+
+            # the bottommost visible layer needs special treatment for blending
+            if layer.visible and not first_visible_found:
+                vispy_layer.first_visible = True
+                first_visible_found = True
+            else:
+                vispy_layer.first_visible = False
+            vispy_layer._on_blending_change()
+
         self.canvas._draw_order.clear()
         self.canvas.update()
+
+    def _update_welcome_screen(self):
+        """Update welcome screen display based on layer count."""
+        if self._show_welcome_screen:
+            self._welcome_widget.set_welcome_visible(not self.viewer.layers)
+
+    def set_welcome_visible(self, visible):
+        """Show welcome screen widget."""
+        self._show_welcome_screen = visible
+        self._welcome_widget.set_welcome_visible(visible)
 
     def on_save_figure(self, path=None):
         """Export figure"""
@@ -668,6 +715,27 @@ class QtViewer(QSplitter):
         """
         self._process_mouse_event(mouse_wheel_callbacks, event)
 
+    def on_mouse_double_click(self, event):
+        """Called whenever a mouse double-click happen on the canvas
+
+        Parameters
+        ----------
+        event : vispy.event.Event
+            The vispy event that triggered this method. The `event.type` will always be `mouse_double_click`
+
+        Notes
+        -----
+
+        Note that this triggers in addition to the usual mouse press and mouse release.
+        Therefore a double click from the user will likely triggers the following event in sequence:
+
+             - mouse_press
+             - mouse_release
+             - mouse_double_click
+             - mouse_release
+        """
+        self._process_mouse_event(mouse_double_click_callbacks, event)
+
     def on_mouse_press(self, event):
         """Called whenever mouse pressed in canvas.
 
@@ -719,6 +787,59 @@ class QtViewer(QSplitter):
         """
         self.canvas._backend._keyEvent(self.canvas.events.key_release, event)
         event.accept()
+
+    def dragEnterEvent(self, event):
+        """Ignore event if not dragging & dropping a file or URL to open.
+
+        Using event.ignore() here allows the event to pass through the
+        parent widget to its child widget, otherwise the parent widget
+        would catch the event and not pass it on to the child widget.
+
+        Parameters
+        ----------
+        event : qtpy.QtCore.QDragEvent
+            Event from the Qt context.
+        """
+        if event.mimeData().hasUrls():
+            self._set_drag_status()
+            event.accept()
+        else:
+            event.ignore()
+
+    def _set_drag_status(self):
+        """Set dedicated status message when dragging files into viewer"""
+        self.viewer.status = trans._("Hold <Alt> key to open plugin selection. Hold <Shift> to open files as stack.")
+
+    def dropEvent(self, event):
+        """Add local files and web URLS with drag and drop.
+
+        For each file, attempt to open with existing associated reader
+        (if available). If no reader is associated or opening fails,
+        and more than one reader is available, open dialog and ask
+        user to choose among available readers. User can choose to persist
+        this choice.
+
+        Parameters
+        ----------
+        event : qtpy.QtCore.QDropEvent
+            Event from the Qt context.
+        """
+        shift_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier
+        alt_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.AltModifier
+        filenames = []
+        for url in event.mimeData().urls():
+            if url.isLocalFile():
+                # directories get a trailing "/", Path conversion removes it
+                filenames.append(str(Path(url.toLocalFile())))
+            else:
+                filenames.append(url.toString())
+
+        # TODO: add handlers
+        # self._qt_open(
+        #     filenames,
+        #     stack=bool(shift_down),
+        #     choose_plugin=bool(alt_down),
+        # )
 
     def closeEvent(self, event):
         """Cleanup and close.

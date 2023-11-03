@@ -1,7 +1,7 @@
 """X/Y-axis controls"""
 from typing import TYPE_CHECKING
 
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
@@ -133,7 +133,7 @@ class QtAxisWidget(QWidget):
         layout.addRow(hp.make_label(self, "Max width"), self.y_max_size_spin)
         layout.setSpacing(2)
 
-        disable_with_opacity(self, ["x_max_size_spin", "y_max_size_spin"], True)
+        set_widgets_enabled_with_opacity(self, [self.x_max_size_spin, self.y_max_size_spin], False)
 
     def on_change_visible(self):
         """Change visibility of the axes."""

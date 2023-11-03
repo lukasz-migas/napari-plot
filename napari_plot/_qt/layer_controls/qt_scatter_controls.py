@@ -2,7 +2,7 @@
 import typing as ty
 
 import numpy as np
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
@@ -59,7 +59,8 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.edge_width_is_relative.connect(self._on_edge_width_is_relative_change)
         self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.editable.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.size_slider = hp.make_slider(
             self,
@@ -129,7 +130,7 @@ class QtScatterControls(QtLayerControls):
         self._on_size_change(None)
         self._on_edge_width_is_relative_change(None)
         self._on_edge_width_change(None)
-        self._on_editable_change(None)
+        self._on_editable_or_visible_change(None)
 
     def on_change_symbol(self, _text):
         """Change marker symbol of the points on the layer model.
@@ -293,7 +294,7 @@ class QtScatterControls(QtLayerControls):
         with qt_signals_blocked(self.edge_width_relative):
             self.edge_width_relative.setChecked(self.layer.edge_width_is_relative)
 
-    def _on_editable_change(self, event=None):
+    def _on_editable_or_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters
@@ -301,23 +302,23 @@ class QtScatterControls(QtLayerControls):
         event : napari.utils.event.Event, optional
             The napari event that triggered this method, by default None.
         """
-        disable_with_opacity(
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "scaling_checkbox",
-                "text_display_checkbox",
-                "face_color_swatch",
-                "edge_color_swatch",
-                "size_slider",
-                "opacity_slider",
-                "blending_combobox",
-                "edge_width_slider",
-                "edge_width_relative",
-                "symbol_combobox",
+                self.scaling_checkbox,
+                self.text_display_checkbox,
+                self.face_color_swatch,
+                self.edge_color_swatch,
+                self.size_slider,
+                self.opacity_slider,
+                self.blending_combobox,
+                self.edge_width_slider,
+                self.edge_width_relative,
+                self.symbol_combobox,
             ],
-            self.layer.editable,
+            self.layer.editable and self.layer.visible,
         )
-        super()._on_editable_change()
+        super()._on_editable_or_visible_change()
 
     def close(self):
         """Disconnect events when widget is closing."""

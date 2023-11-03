@@ -1,7 +1,7 @@
 """MultiLine controls"""
 import typing as ty
 
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
@@ -46,7 +46,8 @@ class QtMultiLineControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.editable.connect(self._on_editable_or_visible_change)
 
         self.selection_spin = hp.make_int_spin(self, 0, 65536, value=0, tooltip="Specify current line index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
@@ -69,7 +70,7 @@ class QtMultiLineControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Index"), self.selection_spin)
         self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self._on_editable_change()
+        self._on_editable_or_visible_change()
         self._on_data_change()
         self._on_color_change()
 
@@ -137,7 +138,7 @@ class QtMultiLineControls(QtLayerControls):
         with self.layer.events.method.blocker():
             self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_change(self, event=None):
+    def _on_editable_or_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters
@@ -145,15 +146,15 @@ class QtMultiLineControls(QtLayerControls):
         event : napari.utils.event.Event, optional
             The napari event that triggered this method, by default None.
         """
-        disable_with_opacity(
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "width_slider",
-                "color_swatch",
-                "opacity_slider",
-                "blending_combobox",
-                "selection_spin",
+                self.width_slider,
+                self.color_swatch,
+                self.opacity_slider,
+                self.blending_combobox,
+                self.selection_spin,
             ],
-            self.layer.editable,
+            self.layer.editable and self.layer.visible,
         )
-        super()._on_editable_change(event)
+        super()._on_editable_or_visible_change(event)

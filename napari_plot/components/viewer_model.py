@@ -5,14 +5,19 @@ import warnings
 from functools import lru_cache
 
 import numpy as np
+
+from napari.components import Dims
+from napari.components.tooltip import Tooltip
+
 from napari.components.cursor import Cursor
-from napari.components.text_overlay import TextOverlay
+from napari.components.overlays import Overlay
+from napari.components.overlays.text import TextOverlay
 from napari.layers import Layer
 from napari.utils._register import create_func as create_add_method
-from napari.utils.events import Event, EventedModel, disconnect_events
+from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.mouse_bindings import MousemapProvider
-from pydantic import Extra, Field
+from pydantic import Extra, Field, PrivateAttr
 
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
@@ -31,11 +36,17 @@ from napari_plot.components._viewer_utils import (
 )
 from napari_plot.components.axis import Axis
 from napari_plot.components.camera import Camera
-from napari_plot.components.dragtool import DragTool
-from napari_plot.components.gridlines import GridLines
+from napari_plot.components.dragtool import DragMode, DragTool
+from napari_plot.components.gridlines import GridLinesOverlay
 from napari_plot.components.layerlist import LayerList
 from napari_plot.components.tools import BoxTool, PolygonTool
 from napari_plot.utils.utilities import get_min_max
+
+
+DEFAULT_OVERLAYS = {
+    "text": TextOverlay,
+    "grid_lines": GridLinesOverlay,
+}
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -51,20 +62,26 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     # Using allow_mutation=False means these attributes aren't settable and don't
     # have an event emitter associated with them
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
+    dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
     camera: Camera = Field(default_factory=Camera, allow_mutation=False)
     axis: Axis = Field(default_factory=Axis, allow_mutation=False)
-    text_overlay: TextOverlay = Field(default_factory=TextOverlay, allow_mutation=False)
     drag_tool: DragTool = Field(default_factory=DragTool, allow_mutation=False)
-    grid_lines: GridLines = Field(default_factory=GridLines, allow_mutation=False)
+    # private track of overlays, only expose the old ones for backward compatibility
+    _overlays: EventedDict[str, Overlay] = PrivateAttr(default_factory=EventedDict)
 
     help: str = ""
-    status: str = "Ready"
+    status: ty.Union[str, ty.Dict] = "Ready"
+    tooltip: Tooltip = Field(default_factory=Tooltip, allow_mutation=False)
     title: str = "napari-plot"
     theme: str = "dark"
 
     # 2-tuple indicating height and width
     _canvas_size: ty.Tuple[int, int] = (400, 400)
+
+    # To check if mouse is over canvas to avoid race conditions between
+    # different events systems
+    mouse_over_canvas: bool = False
 
     def __init__(self, title="napari_plot"):
         # allow extra attributes during model initialization, useful for mixins
@@ -76,18 +93,31 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
-        self.cursor.events.position.connect(self._on_cursor_position_change)
+        self.cursor.events.position.connect(self._update_status_bar_from_cursor)
         self.layers.events.inserted.connect(self._on_add_layer)
         self.layers.events.removed.connect(self._on_remove_layer)
         self.layers.events.reordered.connect(self._on_layers_change)
-        self.layers.selection.events.active.connect(self._on_active_layer)
         self.layers.events.inserted.connect(self._on_update_extent)
         self.layers.events.removed.connect(self._on_update_extent)
-        self.events.layers_change.connect(self._on_update_extent)
+        self.layers.events.connect(self._on_update_extent)
+        self.layers.selection.events.active.connect(self._on_active_layer)
 
         # Set current drag tool
         self.drag_tool.events.active.connect(self._on_update_tool)
-        self.drag_tool.active = "auto"
+        self.drag_tool.active = DragMode.AUTO
+
+        # add overlays
+        self._overlays.update({k: v() for k, v in DEFAULT_OVERLAYS.items()})
+
+    @property
+    def text_overlay(self) -> TextOverlay:
+        """Text overlay"""
+        return self._overlays["text"]
+
+    @property
+    def grid_lines(self) -> GridLinesOverlay:
+        """Text overlay"""
+        return self._overlays["grid_lines"]
 
     def __hash__(self):
         return id(self)
@@ -294,7 +324,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
-        self.events.layers_change()
+        self.events.layers_change()  # TODO: remove
 
     def _on_remove_layer(self, event):
         """Disconnect old layer events.
@@ -361,19 +391,30 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """Set the viewer cursor_size with the `event.cursor_size` int."""
         self.cursor.size = event.cursor_size
 
-    def _on_cursor_position_change(self, _event=None):
+    def _update_status_bar_from_cursor(self, _event=None):
         """Set the layer cursor position."""
-        with warnings.catch_warnings():
-            # Catch the deprecation warning on layer.position
-            warnings.filterwarnings("ignore", message="layer.position is deprecated")
-            for layer in self.layers:
-                layer.position = self.cursor.position
-
         # Update status and help bar based on active layer
+        if not self.mouse_over_canvas:
+            return
         active = self.layers.selection.active
         if active is not None:
-            # self.status = active.get_status(self.cursor.position, world=True)
+            self.status = active.get_status(
+                self.cursor.position,
+                view_direction=self.cursor._view_direction,
+                dims_displayed=list(self.dims.displayed),
+                world=True,
+            )
+
             self.help = active.help
+            if self.tooltip.visible:
+                self.tooltip.text = active._get_tooltip_text(
+                    self.cursor.position,
+                    view_direction=self.cursor._view_direction,
+                    dims_displayed=list(self.dims.displayed),
+                    world=True,
+                )
+        else:
+            self.status = "Ready"
 
 
 @lru_cache(maxsize=1)

@@ -1,7 +1,7 @@
 """Line controls"""
 import typing as ty
 
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
@@ -43,7 +43,8 @@ class QtLineControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.editable.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.width_slider = hp.make_slider(
             self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
@@ -62,7 +63,7 @@ class QtLineControls(QtLayerControls):
         self.layout.addRow(hp.make_label(self, "Line width"), self.width_slider)
         self.layout.addRow(hp.make_label(self, "Line color"), self.color_swatch)
         self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self._on_editable_change()
+        self._on_editable_or_visible_change()
 
     def on_change_width(self, value):
         """Change size of points on the layer model.
@@ -122,7 +123,7 @@ class QtLineControls(QtLayerControls):
         with self.layer.events.method.blocker():
             self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_change(self, event=None):
+    def _on_editable_or_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters
@@ -130,14 +131,14 @@ class QtLineControls(QtLayerControls):
         event : napari.utils.event.Event, optional
             The napari event that triggered this method, by default None.
         """
-        disable_with_opacity(
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "width_slider",
-                "color_swatch",
-                "opacity_slider",
-                "blending_combobox",
+                self.width_slider,
+                self.color_swatch,
+                self.opacity_slider,
+                self.blending_combobox,
             ],
-            self.layer.editable,
+            self.layer.editable and self.layer.visible,
         )
-        super()._on_editable_change(event)
+        super()._on_editable_or_visible_change(event)

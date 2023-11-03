@@ -117,3 +117,7 @@ QtQtaLabel#xxlarge{
     min-height : 80px;
     max-height : 80px;
 }
+
+QLabel#logo_silhouette {
+  image: url("theme_{{ id }}:/logo_silhouette.svg");
+}
