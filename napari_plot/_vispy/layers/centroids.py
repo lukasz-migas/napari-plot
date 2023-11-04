@@ -13,6 +13,9 @@ if ty.TYPE_CHECKING:
 class VispyCentroidsLayer(VispyBaseLayer):
     """Centroids layer"""
 
+    layer: "Centroids"
+    node: CentroidsVisual
+
     def __init__(self, layer: "Centroids"):
         node = CentroidsVisual()
         super().__init__(layer, node)

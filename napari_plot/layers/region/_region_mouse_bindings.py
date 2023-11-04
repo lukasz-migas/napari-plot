@@ -99,7 +99,7 @@ def move(layer, event):
             layer.move(index, _get_region(coordinates, wh_half, orientation), orientation)
         yield
 
-    # on release
+    # on release1
     layer.selected_data = set()  # clear selection
     if data is not None:
         coordinates = layer.world_to_data(event.position)
@@ -183,7 +183,7 @@ def _drag_selection_box(layer, coordinates):
     if len(layer.selected_data) > 0:
         return
 
-    coord = [coordinates[i] for i in layer._dims_displayed]
+    coord = [coordinates[i] for i in layer._slice_input.displayed]
 
     # Create or extend a selection box
     layer._is_selecting = True

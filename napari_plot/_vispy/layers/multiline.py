@@ -16,6 +16,9 @@ LINE_BOX = 2
 class VispyMultiLineLayer(VispyBaseLayer):
     """MultiLine layer."""
 
+    layer: "MultiLine"
+    node: MultiLineVisual
+
     def __init__(self, layer: "MultiLine"):
         node = MultiLineVisual()
         super().__init__(layer, node)

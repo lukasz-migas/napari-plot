@@ -17,6 +17,9 @@ LINE_BOX = 2
 class VispyRegionLayer(VispyBaseLayer):
     """Infinite region layer"""
 
+    layer: "Region"
+    node: RegionVisual
+
     def __init__(self, layer: "Region"):
         node = RegionVisual()
         super().__init__(layer, node)
@@ -39,7 +42,7 @@ class VispyRegionLayer(VispyBaseLayer):
             vertices = vertices[:, ::-1]
 
         if len(vertices) == 0 or len(faces) == 0:
-            vertices = np.zeros((3, self.layer._ndisplay))
+            vertices = np.zeros((3, self.layer._slice_input.ndisplay))
             faces = np.array([[0, 1, 2]])
             colors = np.array([[0, 0, 0, 0]])
 
@@ -54,7 +57,7 @@ class VispyRegionLayer(VispyBaseLayer):
         # Compute the vertices and faces of selected regions
         vertices, faces = self.layer._highlight_regions()
         if vertices is None or len(vertices) == 0 or len(faces) == 0:
-            vertices = np.zeros((3, self.layer._ndisplay))
+            vertices = np.zeros((3, self.layer._slice_input.ndisplay))
             faces = np.array([[0, 1, 2]])
 
         self.node._subvisuals[MESH_HIGHLIGHT].set_data(
@@ -70,6 +73,6 @@ class VispyRegionLayer(VispyBaseLayer):
         # add region edges
         width = 3  # set
         if pos is None or len(pos) == 0:
-            pos = np.zeros((1, self.layer._ndisplay))
+            pos = np.zeros((1, self.layer._slice_input.ndisplay))
             width = 0
         self.node._subvisuals[LINE_BOX].set_data(pos=pos, color=edge_color, width=width)

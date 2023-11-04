@@ -16,6 +16,7 @@ class Mode(StringEnum):
     """
 
     PAN_ZOOM = auto()
+    TRANSFORM = auto()
     SELECT = auto()
     ADD = auto()
     MOVE = auto()

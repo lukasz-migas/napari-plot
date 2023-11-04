@@ -17,6 +17,9 @@ LINE_HIGHLIGHT = 2
 class VispyInfLineLayer(VispyBaseLayer):
     """Infinite lines layer"""
 
+    layer: "InfLine"
+    node: InfLineVisual
+
     def __init__(self, layer: "InfLine"):
         node = InfLineVisual()
         super().__init__(layer, node)
@@ -69,7 +72,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
         # add region edges
         if pos is None or len(pos) == 0:
-            pos = np.zeros((1, self.layer._ndisplay))
+            pos = np.zeros((1, self.layer._slice_input.ndisplay))
             width = 0
         self.node._subvisuals[LINE_BOX].set_data(pos=pos, color=edge_color, width=width)
         self.node.update()

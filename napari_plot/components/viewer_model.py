@@ -12,13 +12,12 @@ from napari.components.tooltip import Tooltip
 from napari.components.cursor import Cursor
 from napari.components.overlays import Overlay
 from napari.components.overlays.text import TextOverlay
-from napari.layers import Layer
 from napari.utils._register import create_func as create_add_method
 from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.mouse_bindings import MousemapProvider
 from pydantic import Extra, Field, PrivateAttr
-
+from napari.layers import Layer
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
     box_select,
@@ -41,7 +40,6 @@ from napari_plot.components.gridlines import GridLinesOverlay
 from napari_plot.components.layerlist import LayerList
 from napari_plot.components.tools import BoxTool, PolygonTool
 from napari_plot.utils.utilities import get_min_max
-
 
 DEFAULT_OVERLAYS = {
     "text": TextOverlay,
@@ -302,7 +300,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layer = event.value  # noqa
 
         # Connect individual layer events to viewer events
-        layer.events.interactive.connect(self._update_interactive)
+        layer.events.mouse_pan.connect(self._update_mouse_pan)
+        layer.events.mouse_zoom.connect(self._update_mouse_zoom)
         layer.events.cursor.connect(self._update_cursor)
         layer.events.cursor_size.connect(self._update_cursor_size)
         layer.events.data.connect(self._on_layers_change)
@@ -313,6 +312,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         layer.events.affine.connect(self._on_layers_change)
         layer.events.name.connect(self.layers._update_name)
         layer.events.visible.connect(self._on_update_extent)
+        if hasattr(layer.events, "mode"):
+            layer.events.mode.connect(self._on_layer_mode_change)
 
         # Update dims and grid model
         self._on_layers_change(None)
@@ -321,6 +322,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
         if len(self.layers) == 1:
             self.reset_view()
+
+    def _on_layer_mode_change(self, event):
+        if (active := self.layers.selection.active) is not None:
+            self.help = active.help
 
     def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
@@ -377,11 +382,19 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             self.help = active_layer.help
             self.cursor.style = active_layer.cursor
             self.cursor.size = active_layer.cursor_size
-            self.camera.interactive = active_layer.interactive
+            self.camera.mouse_pan = active_layer.mouse_pan
+            self.camera.mouse_zoom = active_layer.mouse_zoom
+            self._update_status_bar_from_cursor()
 
-    def _update_interactive(self, event):
-        """Set the viewer interactivity with the `event.interactive` bool."""
-        self.camera.interactive = event.interactive
+    def _update_mouse_pan(self, event):
+        """Set the viewer interactive mouse panning"""
+        if event.source is self.layers.selection.active:
+            self.camera.mouse_pan = event.mouse_pan
+
+    def _update_mouse_zoom(self, event):
+        """Set the viewer interactive mouse zoom"""
+        if event.source is self.layers.selection.active:
+            self.camera.mouse_zoom = event.mouse_zoom
 
     def _update_cursor(self, event):
         """Set the viewer cursor with the `event.cursor` string."""

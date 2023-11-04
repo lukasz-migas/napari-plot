@@ -20,15 +20,20 @@ class QtCameraWidget(QWidget):
     def __init__(self, viewer: "ViewerModel", parent):
         super().__init__(parent=parent)
         self.viewer = viewer
+        self.viewer.camera.events.mouse_pan.connect(self._on_interactive_change)
+        self.viewer.camera.events.mouse_zoom.connect(self._on_interactive_change)
         self.viewer.camera.events.rect.connect(self._on_rect_change)
         self.viewer.camera.events.x_range.connect(self._on_x_range_change)
         self.viewer.camera.events.y_range.connect(self._on_y_range_change)
         self.viewer.camera.events.extent_mode.connect(self._on_extent_mode_change)
         self.viewer.camera.events.axis_mode.connect(self._on_axis_mode_change)
 
-        self.interactive_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable interaction")
-        self.interactive_checkbox.setChecked(self.viewer.camera.interactive)
-        self.interactive_checkbox.stateChanged.connect(self.on_change_interactive)
+        self.mouse_pan_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable mouse pan")
+        self.mouse_pan_checkbox.setChecked(self.viewer.camera.mouse_pan)
+        self.mouse_pan_checkbox.stateChanged.connect(self.on_change_interactive)
+        self.mouse_zoom_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable mouse pan")
+        self.mouse_zoom_checkbox.setChecked(self.viewer.camera.mouse_zoom)
+        self.mouse_zoom_checkbox.stateChanged.connect(self.on_change_interactive)
 
         self.extent_mode = hp.make_combobox(
             self, tooltip="Control whether the axes should be zoom-able outside of the plotted data."
@@ -93,7 +98,8 @@ class QtCameraWidget(QWidget):
         self.axis_mode_right.stateChanged.connect(self.on_change_axis_mode)
 
         layout = QFormLayout(self)
-        layout.addRow(hp.make_label(self, "Interactive"), self.interactive_checkbox)
+        layout.addRow(hp.make_label(self, "Interactive zoom"), self.mouse_zoom_checkbox)
+        layout.addRow(hp.make_label(self, "Interactive pan"), self.mouse_pan_checkbox)
         layout.addRow(hp.make_label(self, "Restriction mode"), self.extent_mode)
         layout.addRow(hp.make_label(self, "Current limits", alignment=Qt.AlignCenter, bold=True))
         layout.addRow(hp.make_label(self, "x (min)"), self.x_min)
@@ -118,6 +124,7 @@ class QtCameraWidget(QWidget):
 
         # setup UI
         self._on_rect_change()
+        self._on_interactive_change()
         self._on_x_range_change()
         self._on_y_range_change()
         self._on_extent_mode_change()
@@ -125,12 +132,15 @@ class QtCameraWidget(QWidget):
 
     def on_change_interactive(self):
         """Update interactivity."""
-        self.viewer.camera.interactive = self.interactive_checkbox.isChecked()
+        self.viewer.camera.mouse_pan = self.mouse_pan_checkbox.isChecked()
+        self.viewer.camera.mouse_zoom = self.mouse_zoom_checkbox.isChecked()
 
-    def _on_visible_change(self, _event=None):
+    def _on_interactive_change(self, _event=None):
         """Update interactive checkbox."""
-        with self.viewer.camera.events.interactive.blocker():
-            self.interactive_checkbox.setChecked(self.viewer.camera.interactive)
+        with self.viewer.camera.events.mouse_pan.blocker():
+            self.mouse_pan_checkbox.setChecked(self.viewer.camera.mouse_pan)
+        with self.viewer.camera.events.mouse_zoom.blocker():
+            self.mouse_zoom_checkbox.setChecked(self.viewer.camera.mouse_zoom)
 
     def on_change_extent_mode(self):
         """Update interactivity."""

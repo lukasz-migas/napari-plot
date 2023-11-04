@@ -78,6 +78,8 @@ class InfLine(BaseLayer):
         Whether the layer visual is currently being displayed.
     """
 
+    _modeclass = Mode
+
     _drag_modes = {
         Mode.ADD: add,
         Mode.SELECT: select,
@@ -140,9 +142,7 @@ class InfLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(
-            color=Event, width=Event, mode=Event, shifted=Event, highlight=Event, current_color=Event, selected=Event
-        )
+        self.events.add(color=Event, width=Event, shifted=Event, highlight=Event, current_color=Event, selected=Event)
 
         self._width = width
         self._data_view = InfiniteLineList()
@@ -152,6 +152,8 @@ class InfLine(BaseLayer):
         self._value_stored = (None, None)
         self._selected_data = set()
         self._selected_data_stored = set()
+
+        self._ndisplay_stored = self._slice_input.ndisplay
 
         self._drag_start = None
         self._drag_box = None
@@ -163,7 +165,7 @@ class InfLine(BaseLayer):
         self._moving_value = (None, None)
 
         # change mode once to trigger the Mode setting logic
-        self._mode = Mode.PAN_ZOOM
+        self._mode: Mode = Mode.PAN_ZOOM
         self.mode = Mode.PAN_ZOOM
         self._status = self.mode
 
@@ -346,8 +348,8 @@ class InfLine(BaseLayer):
             )
             self._add_line_to_view(region_inputs, self._data_view)
 
-        self._display_order_stored = copy(self._dims_order)
-        self._ndisplay_stored = copy(self._ndisplay)
+        self._display_order_stored = copy(self._slice_input.order)
+        self._ndisplay_stored = self._slice_input.ndisplay
         self._update_dims()
 
     @staticmethod
@@ -401,9 +403,9 @@ class InfLine(BaseLayer):
         return str(self._mode)
 
     @mode.setter
-    def mode(self, mode):
-        mode, changed = self._mode_setter_helper(mode, Mode)
-        if not changed:
+    def mode(self, mode: ty.Union[str, Mode]):
+        mode: Mode = self._mode_setter_helper(mode)
+        if mode == self._mode:
             return
 
         assert mode is not None, mode
@@ -412,7 +414,7 @@ class InfLine(BaseLayer):
         if mode == Mode.SELECT:
             self.selected_data = set()
 
-        self.help = TOOL_HELP[mode]
+        self.help = TOOL_HELP[str(mode)]
 
         if mode != Mode.SELECT or old_mode != Mode.SELECT:
             self._selected_data_stored = set()
@@ -423,7 +425,7 @@ class InfLine(BaseLayer):
 
     @property
     def n_inflines(self) -> int:
-        """Get number of inflines."""
+        """Get number of infinite lines."""
         return len(self._data_view.inflines)
 
     @property
@@ -520,7 +522,7 @@ class InfLine(BaseLayer):
 
         self._update_dims()
         self.events.data(value=self.data)
-        self._set_editable()
+        self._on_editable_changed()
 
     @property
     def orientation(self) -> ty.List[Orientation]:

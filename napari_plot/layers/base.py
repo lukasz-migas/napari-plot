@@ -53,7 +53,7 @@ class LayerMixin:
     def _emit_new_data(self):
         self._update_dims()
         self.events.data(value=self.data)
-        self._set_editable()
+        self._on_editable_changed()
 
     @contextmanager
     def block_thumbnail_update(self):

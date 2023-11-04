@@ -2,20 +2,25 @@
 import contextlib
 
 import time
+import sys
 import typing as ty
 from functools import partial
+
+from napari.utils.misc import in_jupyter, running_as_constructor_app
+from qtpy.QtWidgets import QToolTip
 from napari._qt.dialogs.qt_activity_dialog import QtActivityDialog
 from superqt.utils import QSignalThrottler
+import logging
 
 from napari._qt.widgets.qt_viewer_status_bar import ViewerStatusBar
 from weakref import WeakValueDictionary
-
+from napari._qt.dialogs.confirm_close_dialog import ConfirmCloseDialog
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_main_window import _QtMainWindow as Napari_QtMainWindow
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
-from qtpy.QtCore import QEvent, QEventLoop, Qt
-from qtpy.QtGui import QIcon, QKeySequence
+from qtpy.QtCore import QEvent, QEventLoop, Qt, QRect, QPoint, QProcess
+from qtpy.QtGui import QIcon, QKeySequence, QImage
 from qtpy.QtWidgets import (
     QAction,
     QApplication,
@@ -39,6 +44,9 @@ if ty.TYPE_CHECKING:
     from napari_plot.viewer import Viewer
 
 
+logger = logging.getLogger()
+
+
 class _QtMainWindow(QMainWindow):
     """Main window."""
 
@@ -53,9 +61,10 @@ class _QtMainWindow(QMainWindow):
     # *no* active windows, so we want to track the most recently active windows
     _instances: ty.ClassVar[ty.List["_QtMainWindow"]] = []
 
-    def __init__(self, viewer: QtViewer, parent=None) -> None:
+    def __init__(self, viewer: "Viewer", window: "Window", parent=None) -> None:
         super().__init__(parent)
         self._ev = None
+        self._window = window
         self._qt_viewer = QtViewer(
             viewer,
             dock_controls=True,
@@ -64,6 +73,7 @@ class _QtMainWindow(QMainWindow):
             dock_console=True,
             dock_axis=True,
             dock_camera=True,
+            show_welcome_screen=True,
         )
 
         self._quit_app = False
@@ -77,6 +87,8 @@ class _QtMainWindow(QMainWindow):
         self.setCentralWidget(center)
         self.setWindowTitle(self._qt_viewer.viewer.title)
 
+        self._toggle_menubar_visibility = False
+
         act_dlg = QtActivityDialog(self._qt_viewer._welcome_widget)
         self._qt_viewer._welcome_widget.resized.connect(act_dlg.move_to_bottom_right)
         act_dlg.hide()
@@ -84,11 +96,9 @@ class _QtMainWindow(QMainWindow):
 
         self.setStatusBar(ViewerStatusBar(self))
 
-        # Keep track of current instance
-        _QtMainWindow._instances.append(self)
-
-        # This is required for notifications to work properly
-        Napari_QtMainWindow._instances.append(self)
+        # this ia sa workaround for #5335 issue. The dict is used to not
+        # collide shortcuts for close and close all windows
+        self._is_close_dialog = {False: True, True: True}
 
         # Prevent QLineEdit based widgets to keep focus even when clicks are
         # done outside the widget. See #1571
@@ -104,6 +114,11 @@ class _QtMainWindow(QMainWindow):
         self.status_throttler.setTimeout(50)
         self._throttle_cursor_to_status_connection(viewer)
 
+        # Keep track of current instance
+        _QtMainWindow._instances.append(self)
+        # This is required for notifications to work properly
+        Napari_QtMainWindow._instances.append(self)
+
     def _throttle_cursor_to_status_connection(self, viewer: "Viewer"):
         # In the GUI we expect lots of changes to the cursor position, so
         # replace the direct connection with a throttled one.
@@ -112,31 +127,86 @@ class _QtMainWindow(QMainWindow):
         viewer.cursor.events.position.connect(self.status_throttler.throttle)
         self.status_throttler.triggered.connect(viewer._update_status_bar_from_cursor)
 
+    def statusBar(self) -> "ViewerStatusBar":
+        """Return statusbar."""
+        return super().statusBar()
+
     @classmethod
     def current(cls):
+        """Return current window instance."""
         return cls._instances[-1] if cls._instances else None
 
-    def event(self, e):
-        if e.type() == QEvent.Close:
+    @classmethod
+    def current_viewer(cls):
+        """Return current viewer instance."""
+        window = cls.current()
+        return window._qt_viewer.viewer if window else None
+
+    def event(self, e: QEvent) -> bool:
+        """Override Qt method."""
+        if e.type() == QEvent.Type.ToolTip and self._qt_viewer.viewer.tooltip.visible:
+            # globalPos is for Qt5 e.globalPosition().toPoint() is for QT6
+            # https://doc-snapshots.qt.io/qt6-dev/qmouseevent-obsolete.html#globalPos
+            pnt = e.globalPosition().toPoint() if hasattr(e, "globalPosition") else e.globalPos()
+            QToolTip.showText(pnt, self._qt_viewer.viewer.tooltip.text, self)
+        if e.type() == QEvent.Type.Close:
             # when we close the MainWindow, remove it from the instances list
-            try:
+            with contextlib.suppress(ValueError):
                 _QtMainWindow._instances.remove(self)
-            except ValueError:
-                pass
-        if e.type() in {QEvent.WindowActivate, QEvent.ZOrderChange}:
+        if e.type() in {QEvent.Type.WindowActivate, QEvent.Type.ZOrderChange}:
             # upon activation or raise_, put window at the end of _instances
-            try:
+            with contextlib.suppress(ValueError):
                 inst = _QtMainWindow._instances
                 inst.append(inst.pop(inst.index(self)))
-            except ValueError:
-                pass
         return super().event(e)
 
-    # noinspection PyShadowingNames
-    def close(self, quit_app=False):
+    def eventFilter(self, source, event):
+        """Event filter."""
+        # Handle showing hidden menubar on mouse move event.
+        # We do not hide menubar when a menu is being shown or
+        # we are not in menubar toggled state
+        if QApplication.activePopupWidget() is None and self._toggle_menubar_visibility:
+            if event.type() == QEvent.MouseMove:
+                if self.menuBar().isHidden():
+                    rect = self.geometry()
+                    # set mouse-sensitive zone to trigger showing the menubar
+                    rect.setHeight(25)
+                    if rect.contains(event.globalPos()):
+                        self.menuBar().show()
+                else:
+                    rect = QRect(
+                        self.menuBar().mapToGlobal(QPoint(0, 0)),
+                        self.menuBar().size(),
+                    )
+                    if not rect.contains(event.globalPos()):
+                        self.menuBar().hide()
+            elif event.type() == QEvent.Leave and source is self:
+                self.menuBar().hide()
+        return QMainWindow.eventFilter(self, source, event)
+
+    def close(self, quit_app=False, confirm_need=False):
         """Override to handle closing app or just the window."""
-        self._quit_app = quit_app
-        return super().close()
+        if hasattr(self.status_throttler, "_timer"):
+            self.status_throttler._timer.stop()
+        if not quit_app and not self._qt_viewer.viewer.layers:
+            return super().close()
+        confirm_need_local = confirm_need and self._is_close_dialog[quit_app]
+        self._is_close_dialog[quit_app] = False
+        # here we save information that we could request confirmation on close
+        # So fi function `close` is called again, we don't ask again but just close
+        if (
+            not confirm_need_local
+            # or not get_settings().application.confirm_close_window
+            or ConfirmCloseDialog(self, quit_app).exec_() == QDialog.Accepted
+        ):
+            self._quit_app = quit_app
+            self._is_close_dialog[quit_app] = True
+            # here we inform that confirmation dialog is not open
+            self._qt_viewer.dims.stop()
+            return super().close()
+        # here we inform that confirmation dialog is not open
+        self._is_close_dialog[quit_app] = True
+        return None
 
     def close_window(self):
         """Close active dialog or active window."""
@@ -152,11 +222,13 @@ class _QtMainWindow(QMainWindow):
 
             try:
                 parent = parent.parent()
-            except Exception:
+            except AttributeError:
                 parent = getattr(parent, "_parent", None)
 
     def show(self, block=False):
+        """Show window."""
         super().show()
+        self._qt_viewer.setFocus()
         if block:
             self._ev = QEventLoop()
             self._ev.exec()
@@ -166,8 +238,21 @@ class _QtMainWindow(QMainWindow):
 
         Regardless of whether cmd Q, cmd W, or the close button is used...
         """
+        if (
+            event.spontaneous()
+            and self._qt_viewer.viewer.layers
+            and ConfirmCloseDialog(self, False).exec_() != QDialog.Accepted
+        ):
+            event.ignore()
+            return
+
         if self._ev and self._ev.isRunning():
             self._ev.quit()
+
+        # Close any floating dockwidgets
+        for dock in self.findChildren(QtViewerDockWidget):
+            if isinstance(dock, QWidget) and dock.isFloating():
+                dock.setFloating(False)
 
         # On some versions of Darwin, exiting while fullscreen seems to tickle
         # some bug deep in NSWindow.  This forces the fullscreen keybinding
@@ -181,6 +266,27 @@ class _QtMainWindow(QMainWindow):
         if self._quit_app:
             quit_app()
         event.accept()
+
+    def restart(self):
+        """Restart the napari application in a detached process."""
+        process = QProcess()
+        process.setProgram(sys.executable)
+
+        if not running_as_constructor_app():
+            process.setArguments(sys.argv)
+
+        process.startDetached()
+        self.close(quit_app=True)
+
+    def toggle_menubar_visibility(self):
+        """
+        Change menubar to be shown or to be hidden and shown on mouse movement.
+
+        For the mouse movement functionality see the `eventFilter` implementation.
+        """
+        self._toggle_menubar_visibility = not self._toggle_menubar_visibility
+        self.menuBar().setVisible(not self._toggle_menubar_visibility)
+        return self._toggle_menubar_visibility
 
 
 class Window:
@@ -211,19 +317,16 @@ class Window:
 
     def __init__(self, viewer, *, show: bool = True):
         # create QApplication if it doesn't already exist
-        get_app()
+        qapp = get_app()
 
         # Dictionary holding dock widgets
         self._dock_widgets: ty.Dict[str, QtViewerDockWidget] = WeakValueDictionary()
         self._unnamed_dockwidget_count = 1
 
         # Connect the Viewer and create the Main Window
-        self._qt_window = _QtMainWindow(viewer)
+        self._qt_window = _QtMainWindow(viewer, self)
+        qapp.installEventFilter(self._qt_window)
         self._status_bar = self._qt_window.statusBar()
-
-        # since we initialize canvas before window, we need to manually connect them again.
-        if self._qt_window.windowHandle() is not None:
-            self._qt_window.windowHandle().screenChanged.connect(self._qt_viewer.canvas._backend.screen_changed)
 
         self._add_menubar()
         self._add_file_menu()
@@ -248,24 +351,44 @@ class Window:
         self._help = QLabel("")
         self._status_bar.addPermanentWidget(self._help)
 
-        viewer.events.status.connect(self._status_changed)
         viewer.events.help.connect(self._help_changed)
         viewer.events.title.connect(self._title_changed)
         viewer.events.theme.connect(self._update_theme)
+        viewer.events.status.connect(self._status_changed)
 
         if show:
             self.show()
+            # Ensure the controls dock uses the minimum height
+            self._qt_window.resizeDocks(
+                [
+                    self._qt_viewer.dockLayerControls,
+                    self._qt_viewer.dockLayerList,
+                ],
+                [self._qt_viewer.dockLayerControls.minimumHeight(), 10000],
+                Qt.Orientation.Vertical,
+            )
 
     def _setup_dev_tools(self):
         """Setup development tools."""
         import os
 
         try:
-            if os.getenv("NAPARI_PLOT_DEV_MODE", "0") and self._dev is None:
+            if os.getenv("NAPARI_PLOT_DEV_MODE", "0") == "1" and self._dev is None:
                 from napari_plot._qt.widgets.qt_dev import qdev
 
+                logging.getLogger("napari_plot").setLevel(logging.DEBUG)
                 self._dev = qdev()
-                print("Installed development tools.")
+                logger.debug("Installed development tools.")
+                self.dockQDev = QtViewerDockWidget(
+                    self,
+                    self._dev,
+                    name="QtReload Widget",
+                    area="left",
+                    allowed_areas=["left", "right"],
+                    object_name="qdev",
+                    close_btn=False,
+                )
+                self._add_viewer_dock_widget(self.dockQDev, tabify=False, menu=self.window_menu)
         except Exception as e:  # noqa
             print(f"Failed to install development tools. Error={e}")
 
@@ -703,7 +826,7 @@ class Window:
 
     def _update_theme(self, event=None):
         """Update widget color theme."""
-        try:
+        with contextlib.suppress(AttributeError, RuntimeError):
             if event:
                 value = event.value
                 self._qt_viewer.viewer.theme = value
@@ -711,17 +834,9 @@ class Window:
                 value = self._qt_viewer.viewer.theme
 
             self._qt_window.setStyleSheet(get_stylesheet(value))
-        except (AttributeError, RuntimeError):  # wrapped C/C++ object may have been deleted
-            pass
 
     def _status_changed(self, event):
-        """Update status bar.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
+        """Update status bar."""
         if isinstance(event.value, str):
             self._status_bar.setStatusText(event.value)
         else:
@@ -734,13 +849,7 @@ class Window:
             )
 
     def _title_changed(self, event):
-        """Update window title.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
+        """Update window title."""
         self._qt_window.setWindowTitle(event.value)
 
     def _help_changed(self, event):
@@ -751,16 +860,11 @@ class Window:
         event : napari.utils.event.Event
             The napari event that triggered this method.
         """
-        self._help.setText(event.value)
+        self._status_bar.setHelpText(event.value)
 
-    def close(self):
-        """Close the viewer window and cleanup sub-widgets."""
-        # Someone is closing us twice? Only try to delete self._qt_window
-        # if we still have one.
-        if hasattr(self, "_qt_window"):
-            self._qt_viewer.close()
-            self._qt_window.close()
-            del self._qt_window
+    def _restart(self):
+        """Restart the napari application."""
+        self._qt_window.restart()
 
     def resize(self, width, height):
         """Resize the window.
@@ -793,7 +897,7 @@ class Window:
         # A) it is our own event loop OR we are running in jupyter
         # B) it is not the first time a QMainWindow is being created
         app_name = QApplication.instance().applicationName()
-        if app_name == "napari-plot":
+        if (app_name == "napari-plot" or in_jupyter()) and self._qt_window.isActiveWindow():
             self.activate()
 
     def activate(self):
@@ -807,9 +911,8 @@ class Window:
 
         if dial.exec_():
             pass
-            # dial.selectedFiles()[0]
 
-    def _screenshot(self, flash=True, canvas_only=False):
+    def _screenshot(self, size=None, scale=None, flash=True, canvas_only=False) -> "QImage":
         """Capture screenshot of the currently displayed viewer.
 
         Parameters
@@ -817,35 +920,69 @@ class Window:
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
+        size : tuple (int, int)
+            Size (resolution) of the screenshot. By default, the currently displayed size.
+            Only used if `canvas_only` is True.
+        scale : float
+            Scale factor used to increase resolution of canvas for the screenshot. By default, the currently displayed resolution.
+            Only used if `canvas_only` is True.
         canvas_only : bool
-            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
-             the screenshot, By default, True.
+            If True, screenshot shows only the image display canvas, and
+            if False include the napari viewer frame in the screenshot,
+            By default, True.
+
+        Returns
+        -------
+        img : QImage
         """
         from napari._qt.utils import add_flash_animation
 
         if canvas_only:
-            img = self._qt_viewer.canvas.native.grabFramebuffer()
-            if flash:
-                add_flash_animation(self._qt_viewer._canvas_overlay)
+            canvas = self._qt_viewer.canvas
+            prev_size = canvas.size
+            if size is not None:
+                if len(size) != 2:
+                    raise ValueError(f"screenshot size must be 2 values, got {len(size)}")
+                # Scale the requested size to account for HiDPI
+                size = tuple(int(dim / self._qt_window.devicePixelRatio()) for dim in size)
+                canvas.size = size[::-1]  # invert x ad y for vispy
+            if scale is not None:
+                # multiply canvas dimensions by the scale factor to get new size
+                canvas.size = tuple(int(dim * scale) for dim in canvas.size)
+            try:
+                img = self._qt_viewer.canvas.native.grabFramebuffer()
+                if flash:
+                    add_flash_animation(self._qt_viewer._welcome_widget)
+            finally:
+                # make sure we always go back to the right canvas size
+                if size is not None or scale is not None:
+                    canvas.size = prev_size
         else:
             img = self._qt_window.grab().toImage()
             if flash:
                 add_flash_animation(self._qt_window)
         return img
 
-    def screenshot(self, path=None, flash=True, canvas_only=False):
+    def screenshot(self, path=None, size=None, scale=None, flash=True, canvas_only=False):
         """Take currently displayed viewer and convert to an image array.
 
         Parameters
         ----------
         path : str
             Filename for saving screenshot image.
+        size : tuple (int, int)
+            Size (resolution) of the screenshot. By default, the currently displayed size.
+            Only used if `canvas_only` is True.
+        scale : float
+            Scale factor used to increase resolution of canvas for the screenshot. By default, the currently displayed resolution.
+            Only used if `canvas_only` is True.
         flash : bool
             Flag to indicate whether flash animation should be shown after
             the screenshot was captured.
         canvas_only : bool
-            If True, screenshot shows only the image display canvas, and if False include the napari viewer frame in
-             the screenshot, By default, True.
+            If True, screenshot shows only the image display canvas, and
+            if False include the napari viewer frame in the screenshot,
+            By default, True.
 
         Returns
         -------
@@ -855,7 +992,7 @@ class Window:
         """
         from napari.utils.io import imsave
 
-        img = QImg2array(self._screenshot(flash, canvas_only))
+        img = QImg2array(self._screenshot(size, scale, flash, canvas_only))
         if path is not None:
             imsave(path, img)  # scikit-image imsave method
         return img
@@ -874,3 +1011,20 @@ class Window:
         img = self._screenshot(flash)
         cb = QGuiApplication.clipboard()
         cb.setImage(img)
+
+    def _teardown(self):
+        """Carry out various teardown tasks such as event disconnection."""
+        self._qt_viewer.viewer.layers.events.disconnect(self.file_menu.update)
+        for menu in self.file_menu._INSTANCES:
+            with contextlib.suppress(RuntimeError):
+                menu._destroy()
+
+    def close(self):
+        """Close the viewer window and cleanup sub-widgets."""
+        # Someone is closing us twice? Only try to delete self._qt_window
+        # if we still have one.
+        if hasattr(self, "_qt_window"):
+            self._teardown()
+            self._qt_viewer.close()
+            self._qt_window.close()
+            del self._qt_window

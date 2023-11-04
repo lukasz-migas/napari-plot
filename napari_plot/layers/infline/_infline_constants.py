@@ -17,10 +17,11 @@ class Mode(StringEnum):
     ADD allows adding new line
     """
 
+    PAN_ZOOM = auto()
+    TRANSFORM = auto()
     ADD = auto()
     MOVE = auto()
     SELECT = auto()
-    PAN_ZOOM = auto()
 
 
 class Box:

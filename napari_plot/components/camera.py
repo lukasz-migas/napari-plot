@@ -40,8 +40,10 @@ class Camera(EventedModel):
 
     Attributes
     ----------
-    interactive : bool
-        If the camera interactivity is enabled or not.
+    mouse_pan : bool
+        If the camera interactive panning with the mouse is enabled or not.
+    mouse_zoom : bool
+        If the camera interactive zooming with the mouse is enabled or not.
     zoom : float
         Scale from canvas pixels to world pixels. This variable is not used in napari-plot but is kept for compatibility
         with napari.
@@ -72,7 +74,8 @@ class Camera(EventedModel):
     """
 
     # fields
-    interactive: bool = True
+    mouse_pan: bool = True
+    mouse_zoom: bool = True
     zoom: float = 1.0
     rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)

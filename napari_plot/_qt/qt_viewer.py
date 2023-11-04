@@ -173,14 +173,6 @@ class QtViewer(QSplitter):
         self.canvas.events.draw.connect(self.on_draw)
         self.canvas.events.resize.connect(self.on_resize)
 
-        # self.canvas.connect(self.on_mouse_move)
-        # self.canvas.connect(self.on_mouse_press)
-        # self.canvas.connect(self.on_mouse_release)
-        # self.canvas.connect(self._key_map_handler.on_key_press)
-        # self.canvas.connect(self._key_map_handler.on_key_release)
-        # self.canvas.connect(self.on_mouse_wheel)
-        # self.canvas.connect(self.on_draw)
-        # self.canvas.connect(self.on_resize)
         self.canvas.bgcolor = get_theme(self.viewer.theme, False).canvas.as_rgb_tuple()
         theme = self.viewer.events.theme
 
@@ -264,10 +256,7 @@ class QtViewer(QSplitter):
                 close_btn=False,
             )
             self.dockLayerControls.setVisible(True)
-
-            self.dockLayerControls.visibilityChanged.connect(self._constrain_width)
-            self.dockLayerList.setMaximumWidth(258)
-            self.dockLayerList.setMinimumWidth(258)
+            # self.dockLayerControls.visibilityChanged.connect(self._constrain_width)
         if dock_console:
             self.dockConsole = QtViewerDockWidget(
                 self,
@@ -319,8 +308,11 @@ class QtViewer(QSplitter):
 
     def _set_events(self):
         # bind events
+        self.viewer.layers.events.inserted.connect(self._update_welcome_screen)
+        self.viewer.layers.events.removed.connect(self._update_welcome_screen)
         self.viewer.layers.selection.events.active.connect(self._on_active_change)
-        self.viewer.camera.events.interactive.connect(self._on_interactive)
+        # self.viewer.camera.events.mouse_pan.connect(self._on_interactive)
+        # self.viewer.camera.events.mouse_zoom.connect(self._on_interactive)
         self.viewer.cursor.events.style.connect(self._on_cursor)
         self.viewer.cursor.events.size.connect(self._on_cursor)
         self.viewer.layers.events.reordered.connect(self._reorder_layers)
@@ -393,18 +385,18 @@ class QtViewer(QSplitter):
         self.viewer.status = "Ready"
         self.viewer.mouse_over_canvas = True
 
-    def _constrain_width(self, _event):
-        """Allow the layer controls to be wider, only if floated.
-
-        Parameters
-        ----------
-        _event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        if self.dockLayerControls.isFloating():
-            self.controls.setMaximumWidth(700)
-        else:
-            self.controls.setMaximumWidth(220)
+    # def _constrain_width(self, _event):
+    #     """Allow the layer controls to be wider, only if floated.
+    #
+    #     Parameters
+    #     ----------
+    #     _event : napari.utils.event.Event
+    #         The napari event that triggered this method.
+    #     """
+    #     if self.dockLayerControls.isFloating():
+    #         self.controls.setMaximumWidth(700)
+    #     else:
+    #         self.controls.setMaximumWidth(220)
 
     def _ensure_connect(self):
         # lazy load console

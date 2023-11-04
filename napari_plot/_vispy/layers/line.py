@@ -12,6 +12,9 @@ if ty.TYPE_CHECKING:
 class VispyLineLayer(VispyBaseLayer):
     """Line layer."""
 
+    layer: "Line"
+    node: LineVisual
+
     def __init__(self, layer: "Line"):
         node = LineVisual()
         super().__init__(layer, node)

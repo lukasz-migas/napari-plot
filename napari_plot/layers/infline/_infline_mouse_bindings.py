@@ -149,7 +149,7 @@ def _drag_selection_box(layer, coordinates):
         Position of mouse cursor in data coordinates.
     """
     # If something selected return
-    coord = [coordinates[i] for i in layer._dims_displayed]
+    coord = [coordinates[i] for i in layer._slice_input.displayed]
 
     # Create or extend a selection box
     layer._is_selecting = True

@@ -84,6 +84,8 @@ class Region(BaseLayer):
         Whether the layer visual is currently being displayed.
     """
 
+    _modeclass = Mode
+
     _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: edit}
     _move_modes = {
         Mode.ADD: no_op,
@@ -148,16 +150,15 @@ class Region(BaseLayer):
             color=Event,
             current_color=Event,
             highlight=Event,
-            mode=Event,
             shifted=Event,
             accept=Event,
             selected=Event,
         )
         self._display_order_stored = []
-        self._ndisplay_stored = self._ndisplay
+        self._ndisplay_stored = self._slice_input.ndisplay
 
-        self._data_view = RegionList(ndisplay=self._ndisplay)
-        self._data_view.slice_key = np.array(self._slice_indices)[list(self._dims_not_displayed)]
+        self._data_view = RegionList(ndisplay=self._ndisplay_stored)
+        self._data_view.slice_key = np.array(self._slice_indices)[list(self._slice_input.not_displayed)]
 
         # indices of selected regions
         self._value = (None, None)
@@ -315,8 +316,8 @@ class Region(BaseLayer):
 
     @mode.setter
     def mode(self, mode):
-        mode, changed = self._mode_setter_helper(mode, Mode)
-        if not changed:
+        mode = self._mode_setter_helper(mode)
+        if mode == self._mode:
             return
 
         assert mode is not None, mode
@@ -387,7 +388,7 @@ class Region(BaseLayer):
         self._data_view.edit(index, new_data, new_type=orientation)
         self.events.set_data()
         self.events.data(value=self.data)
-        self._set_editable()
+        self._reset_editable()
         if finished:
             self.events.shifted(index=index)
 
@@ -405,13 +406,13 @@ class Region(BaseLayer):
             # the offset is needed to ensure that the top left corner of the shapes
             # corresponds to the top left corner of the thumbnail
             de = self._extent_data
-            offset = np.array([de[0, d] for d in self._dims_displayed]) + 0.5
+            offset = np.array([de[0, d] for d in self._slice_input.displayed]) + 0.5
             # calculate range of values for the vertices and pad with 1
             # padding ensures the entire shape can be represented in the thumbnail
             # without getting clipped
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "invalid value encountered in cast")
-                shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._dims_displayed]).astype(int)
+                shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._slice_input.displayed]).astype(int)
             zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
 
             color_mapped = self._data_view.to_colors(
@@ -470,7 +471,7 @@ class Region(BaseLayer):
 
         self._update_dims()
         self.events.data(value=self.data)
-        self._set_editable()
+        self._on_editable_changed()
 
     def _add_creating(self, data, *, orientation="vertical", color=None, z_index=None) -> int:
         """Add region."""
@@ -606,8 +607,8 @@ class Region(BaseLayer):
             )
             self._add_regions_to_view(region_inputs, self._data_view)
 
-        self._display_order_stored = copy(self._dims_order)
-        self._ndisplay_stored = copy(self._ndisplay)
+        self._display_order_stored = copy(self._slice_input.order)
+        self._ndisplay_stored = copy(self._slice_input.ndisplay)
         self._update_dims()
 
     def _get_new_region_color(self, adding: int):
@@ -646,7 +647,7 @@ class Region(BaseLayer):
         for d, ot, fc, z in shape_inputs:
             region_cls = region_classes[Orientation(ot)]
             d = preprocess_region(d, ot)
-            region = region_cls(d, z_index=z, dims_order=self._dims_order, ndisplay=self._ndisplay)
+            region = region_cls(d, z_index=z, dims_order=self._slice_input.order, ndisplay=self._slice_input.ndisplay)
 
             # Add region
             data_view.add(region, color=fc, z_refresh=False)
