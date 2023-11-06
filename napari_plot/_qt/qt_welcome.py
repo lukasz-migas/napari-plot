@@ -32,7 +32,7 @@ class QtWelcomeWidget(QWidget):
 
         # Create colored icon using theme
         self._image = QLabel()
-        self._image.setObjectName("logo_silhouette")
+        self._image.setObjectName("logo_silhouette_plot")
         self._image.setMinimumSize(300, 300)
         self._label = QtWelcomeLabel(trans._("Welcome to napari-plot!"))
 

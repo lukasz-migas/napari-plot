@@ -194,6 +194,8 @@ class QtRegionControls(QtLayerControls):
                 self.delete_button,
                 self.panzoom_button,
                 self.add_button,
+                self.move_back_button,
+                self.move_front_button,
                 # "edit_button",
             ],
             self.layer.editable and self.layer.visible,

@@ -1,7 +1,6 @@
 """Viewer model"""
 import inspect
 import typing as ty
-import warnings
 from functools import lru_cache
 
 import numpy as np
@@ -377,7 +376,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         if active_layer is None:
             self.help = ""
             self.cursor.style = "standard"
-            self.camera.interactive = True
         else:
             self.help = active_layer.help
             self.cursor.style = active_layer.cursor

@@ -23,6 +23,7 @@ def polygon_select(viewer: "Viewer", event):
         4. Right mouse click cancels polygon
     """
     # on press
+    viewer.drag_tool.tool.finished = False
     if event.button == 1:  # left-click
         if "Control" in event.modifiers:
             viewer.drag_tool.tool.remove_point(-1)
@@ -41,7 +42,9 @@ def polygon_select(viewer: "Viewer", event):
         yield
 
     # on release
+    viewer.drag_tool.tool.finished = True
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    # viewer.drag_tool.tool.visible = False
 
 
 def lasso_select(viewer: "Viewer", event):
@@ -56,6 +59,7 @@ def lasso_select(viewer: "Viewer", event):
         3. Right mouse click cancels lasso.
     """
     # on press
+    viewer.drag_tool.tool.finished = False
     if event.button == 1:  # left-click
         viewer.drag_tool.tool.add_point(event.position)
         viewer.drag_tool.tool.visible = True
@@ -69,18 +73,23 @@ def lasso_select(viewer: "Viewer", event):
         if event.button == 1:
             viewer.drag_tool.tool.add_point(event.position)
         yield
-
     # on release
+    viewer.drag_tool.tool.finished = True
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
-    viewer.drag_tool.tool.visible = False
+    # viewer.drag_tool.tool.visible = False
 
 
 def box_select(viewer, event):
     """Enable box zoom."""
     # on press
-    viewer.drag_tool.tool.visible = True
+    if event.button == 1:  # left-click
+        viewer.drag_tool.tool.finished = False
+        viewer.drag_tool.tool.visible = True
+        viewer.drag_tool.tool.shape = Shape.BOX
+    elif event.button == 2:  # right-click
+        viewer.drag_tool.tool.position = (0, 0, 0, 0)
+        viewer.drag_tool.tool.visible = False
     color = viewer.drag_tool.tool.color
-    viewer.drag_tool.tool.shape = Shape.BOX
     yield
 
     # on mouse move
@@ -89,9 +98,10 @@ def box_select(viewer, event):
 
     # on release
     viewer.drag_tool.tool.color = color
-    viewer.drag_tool.tool.visible = False
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
-    viewer.drag_tool.tool.position = (0, 0, 0, 0)
+    viewer.drag_tool.tool.finished = True
+    # viewer.drag_tool.tool.position = (0, 0, 0, 0)
+    # viewer.drag_tool.tool.visible = False
 
 
 def box_zoom(viewer, event):

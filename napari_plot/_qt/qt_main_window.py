@@ -75,10 +75,10 @@ class _QtMainWindow(QMainWindow):
             dock_camera=True,
             show_welcome_screen=True,
         )
-
+        self: QMainWindow  # to fix some typing issues...
         self._quit_app = False
         self.setWindowIcon(QIcon(self._window_icon))
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setUnifiedTitleAndToolBarOnMac(True)
         center = QWidget(self)
         center.setLayout(QHBoxLayout())
@@ -324,7 +324,7 @@ class Window:
         self._unnamed_dockwidget_count = 1
 
         # Connect the Viewer and create the Main Window
-        self._qt_window = _QtMainWindow(viewer, self)
+        self._qt_window: QMainWindow = _QtMainWindow(viewer, self)
         qapp.installEventFilter(self._qt_window)
         self._status_bar = self._qt_window.statusBar()
 
@@ -374,7 +374,7 @@ class Window:
 
         try:
             if os.getenv("NAPARI_PLOT_DEV_MODE", "0") == "1" and self._dev is None:
-                from napari_plot._qt.widgets.qt_dev import qdev
+                from napari_plot._qt.widgets.qt_dev import qdev, install_debugger_hook
 
                 logging.getLogger("napari_plot").setLevel(logging.DEBUG)
                 self._dev = qdev()
@@ -382,13 +382,14 @@ class Window:
                 self.dockQDev = QtViewerDockWidget(
                     self,
                     self._dev,
-                    name="QtReload Widget",
+                    name="Reload Widget",
                     area="left",
                     allowed_areas=["left", "right"],
                     object_name="qdev",
                     close_btn=False,
                 )
                 self._add_viewer_dock_widget(self.dockQDev, tabify=False, menu=self.window_menu)
+                install_debugger_hook()
         except Exception as e:  # noqa
             print(f"Failed to install development tools. Error={e}")
 

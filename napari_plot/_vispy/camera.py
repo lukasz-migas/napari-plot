@@ -32,12 +32,13 @@ class VispyCamera:
         self._viewer = viewer
 
         # Create camera
-        self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer)
+        self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
         self._camera.events.mouse_pan.connect(self._on_mouse_toggles_change)
         self._camera.events.mouse_zoom.connect(self._on_mouse_toggles_change)
+        self._camera.events.aspect.connect(self._on_aspect_change)
         self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
         self._camera.events.extent.connect(self._on_extent_change)
@@ -99,6 +100,9 @@ class VispyCamera:
         self.camera.extent = extent
         self.camera.set_default_state()
         self.camera.reset()
+
+    def _on_aspect_change(self):
+        self._camera.aspect = self._camera.aspect
 
     def _on_mouse_toggles_change(self):
         self.mouse_pan = self._camera.mouse_pan

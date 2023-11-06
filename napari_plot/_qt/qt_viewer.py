@@ -311,8 +311,6 @@ class QtViewer(QSplitter):
         self.viewer.layers.events.inserted.connect(self._update_welcome_screen)
         self.viewer.layers.events.removed.connect(self._update_welcome_screen)
         self.viewer.layers.selection.events.active.connect(self._on_active_change)
-        # self.viewer.camera.events.mouse_pan.connect(self._on_interactive)
-        # self.viewer.camera.events.mouse_zoom.connect(self._on_interactive)
         self.viewer.cursor.events.style.connect(self._on_cursor)
         self.viewer.cursor.events.size.connect(self._on_cursor)
         self.viewer.layers.events.reordered.connect(self._reorder_layers)
@@ -515,16 +513,6 @@ class QtViewer(QSplitter):
         if path is not None:
             imsave(path, img)
         return img
-
-    def _on_interactive(self, _event):
-        """Link interactive attributes of view and viewer.
-
-        Parameters
-        ----------
-        _event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        self.view.interactive = self.viewer.camera.interactive
 
     def _on_cursor(self, _event):
         """Set the appearance of the mouse cursor.

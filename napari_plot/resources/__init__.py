@@ -2,9 +2,11 @@
 from pathlib import Path
 
 from napari._qt.qt_resources import STYLES, get_stylesheet  # noqa
+from napari.resources._icons import ICONS as ICONS_
 
 ICON_PATH = (Path(__file__).parent / "icons").resolve()
 ICONS = {x.stem: str(x) for x in ICON_PATH.iterdir() if x.suffix == ".svg"}
+ICONS_.update(ICONS)
 
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
 STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})

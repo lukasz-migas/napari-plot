@@ -28,6 +28,7 @@ class BaseTool(EventedModel):
     """Base class for all drag tools."""
 
     visible: bool = False
+    finished: bool = False
     color: Array[float, (4,)] = (0.0, 0.0, 1.0, 1.0)
     opacity: float = 0.5
 

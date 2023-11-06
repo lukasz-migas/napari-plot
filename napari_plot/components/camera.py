@@ -76,6 +76,7 @@ class Camera(EventedModel):
     # fields
     mouse_pan: bool = True
     mouse_zoom: bool = True
+    aspect: ty.Optional[float] = None
     zoom: float = 1.0
     rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)

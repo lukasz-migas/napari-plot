@@ -2,9 +2,11 @@
 import os
 import sys
 from warnings import warn
+
+from napari._qt.qt_event_filters import QtToolTipEventFilter
 from qtpy import PYQT5, PYSIDE2
 from napari._qt.dialogs.qt_notification import NapariQtNotification
-from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop  # noqa
+from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop, _try_enable_ipython_gui  # noqa
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.plugins import plugin_manager
@@ -16,9 +18,15 @@ from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
 from napari_plot import __version__
+from napari_plot.viewer import Viewer
+import napari_plot.resources  # noqa: F401
 
 NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
+
+import logging
+
+logger = logging.getLogger()
 
 
 def set_app_id(app_id):
@@ -41,6 +49,7 @@ _defaults = {
 
 # store reference to QApplication to prevent garbage collection
 _app_ref = None
+_IPYTHON_WAS_HERE_FIRST = "IPython" in sys.modules
 
 
 def get_app(
@@ -120,7 +129,13 @@ def get_app(
         if PYQT5 or PYSIDE2:
             QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
             QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
-        app = QApplication(sys.argv)
+        argv = sys.argv.copy()
+        if sys.platform == "darwin" and not argv[0].endswith("napari_plot"):
+            # Make sure the app name in the Application menu is `napari`
+            # which is taken from the basename of sys.argv[0]; we use
+            # a copy so the original value is still available at sys.argv
+            argv[0] = "napari_plot"
+        app = QApplication(argv)
 
         # if this is the first time the Qt app is being instantiated, we set
         # the name and metadata
@@ -130,12 +145,21 @@ def get_app(
         app.setOrganizationDomain(kwargs.get("org_domain"))
         set_app_id(kwargs.get("app_id"))
 
-    if not _ipython_has_eventloop():
-        notification_manager.notification_ready.connect(NapariQtNotification.show_notification)
-        notification_manager.notification_ready.connect(show_console_notification)
+        # Intercept tooltip events in order to convert all text to rich text
+        # to allow for text wrapping of tooltips
+        app.installEventFilter(QtToolTipEventFilter())
 
     if app.windowIcon().isNull():
         app.setWindowIcon(QIcon(kwargs.get("icon")))
+
+    # if ipy_interactive is None:
+    #     ipy_interactive = get_settings().application.ipy_interactive
+    if _IPYTHON_WAS_HERE_FIRST:
+        _try_enable_ipython_gui("qt" if ipy_interactive else None)
+
+    if not _ipython_has_eventloop():
+        notification_manager.notification_ready.connect(NapariQtNotification.show_notification)
+        notification_manager.notification_ready.connect(show_console_notification)
 
     if not _app_ref:  # running get_app for the first time
         # see docstring of `wait_for_workers_to_quit` for caveats on killing
@@ -146,14 +170,6 @@ def get_app(
         for name in _themes:
             QDir.addSearchPath(f"theme_{name}", str(_theme_path(name)))
 
-        try:
-            # this will register all of our resources (icons) with Qt, so that they
-            # can be used in qss files and elsewhere.
-            plugin_manager.discover_icons()
-            plugin_manager.discover_qss()
-        except AttributeError:
-            pass
-
     _app_ref = app  # prevent garbage collection
 
     return app
@@ -161,11 +177,12 @@ def get_app(
 
 def quit_app():
     """Close all windows and quit the QApplication if napari started it."""
+    for v in list(Viewer._instances):
+        v.close()
     QApplication.closeAllWindows()
     # if we started the application then the app will be named 'napari'.
     if QApplication.applicationName() == "napari-plot" and not _ipython_has_eventloop():
         QApplication.quit()
-
     # otherwise, something else created the QApp before us (such as
     # %gui qt IPython magic).  If we quit the app in this case, then
     # *later* attempts to instantiate a napari viewer won't work until

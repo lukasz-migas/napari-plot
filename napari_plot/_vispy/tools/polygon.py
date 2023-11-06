@@ -31,11 +31,12 @@ class VispyPolygonVisual:
         self._viewer.drag_tool._polygon.events.opacity.connect(self._on_opacity_change)
         self._viewer.drag_tool._polygon.events.color.connect(self._on_data_change)
         self._viewer.drag_tool._polygon.events.data.connect(self._on_data_change)
+        self._viewer.drag_tool._polygon.events.finished.connect(self._on_data_finished_change)
         # box events
         self._viewer.drag_tool._box.events.visible.connect(self._on_visible_change)
         self._viewer.drag_tool._box.events.opacity.connect(self._on_opacity_change)
         self._viewer.drag_tool._box.events.color.connect(self._on_data_change)
-        self._viewer.drag_tool._box.events.position.connect(self._on_data_change)
+        self._viewer.drag_tool._box.events.position.connect(self._on_data_finished_change)
 
         self._on_tool_change(None)
 
@@ -60,6 +61,16 @@ class VispyPolygonVisual:
 
     def _on_data_change(self, _event=None):
         """Set data"""
+        data = self._viewer.drag_tool.tool.data
+
+        # Note that the indices of the vertices need to be reversed to
+        # go from numpy style to xyz
+        if data is not None:
+            data = data[:, ::-1]
+
+        self.node._subvisuals[MARKERS].set_data(data)
+
+    def _on_data_finished_change(self, _event=None):
         data = self._viewer.drag_tool.tool.data
         faces = self._viewer.drag_tool.tool.mesh.triangles
         colors = self._viewer.drag_tool.tool.mesh.triangles_colors
