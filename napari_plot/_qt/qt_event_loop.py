@@ -2,6 +2,7 @@
 import os
 import sys
 from warnings import warn
+import logging
 
 from napari._qt.qt_event_filters import QtToolTipEventFilter
 from qtpy import PYQT5, PYSIDE2
@@ -9,10 +10,9 @@ from napari._qt.dialogs.qt_notification import NapariQtNotification
 from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop, _try_enable_ipython_gui  # noqa
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
-from napari.plugins import plugin_manager
 from napari.resources._icons import _theme_path
 from napari.utils.notifications import notification_manager, show_console_notification
-from napari.utils.theme import _themes
+from napari.utils.theme import _themes, build_theme_svgs
 from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
@@ -24,7 +24,6 @@ import napari_plot.resources  # noqa: F401
 NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
 
-import logging
 
 logger = logging.getLogger()
 
@@ -160,6 +159,10 @@ def get_app(
     if not _ipython_has_eventloop():
         notification_manager.notification_ready.connect(NapariQtNotification.show_notification)
         notification_manager.notification_ready.connect(show_console_notification)
+
+    # necessary to ensure that the theme svgs are rebuilt
+    for theme in _themes.values():
+        build_theme_svgs(theme.id, "builtin")  # source is not correct here!
 
     if not _app_ref:  # running get_app for the first time
         # see docstring of `wait_for_workers_to_quit` for caveats on killing

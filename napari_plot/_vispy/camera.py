@@ -102,7 +102,7 @@ class VispyCamera:
         self.camera.reset()
 
     def _on_aspect_change(self):
-        self._camera.aspect = self._camera.aspect
+        self.camera.aspect = self._camera.aspect
 
     def _on_mouse_toggles_change(self):
         self.mouse_pan = self._camera.mouse_pan

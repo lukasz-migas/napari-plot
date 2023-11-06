@@ -22,6 +22,7 @@ class QtCameraWidget(QWidget):
         self.viewer = viewer
         self.viewer.camera.events.mouse_pan.connect(self._on_interactive_changed)
         self.viewer.camera.events.mouse_zoom.connect(self._on_interactive_changed)
+        self.viewer.camera.events.aspect.connect(self._on_aspect_changed)
         self.viewer.camera.events.rect.connect(self._on_rect_changed)
         self.viewer.camera.events.x_range.connect(self._on_x_range_changed)
         self.viewer.camera.events.y_range.connect(self._on_y_range_changed)

@@ -413,7 +413,9 @@ class Region(BaseLayer):
             with warnings.catch_warnings():
                 warnings.filterwarnings("ignore", "invalid value encountered in cast")
                 shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._slice_input.displayed]).astype(int)
-            zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
+            with warnings.catch_warnings():
+                warnings.filterwarnings("ignore", "divide by zero")
+                zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
 
             color_mapped = self._data_view.to_colors(
                 colors_shape=self._thumbnail_shape[:2],

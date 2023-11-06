@@ -11,5 +11,8 @@ image = np.random.randint(0, 255, (100, 100))
 viewer1d = napari_plot.Viewer()
 viewer1d.add_image(image)
 
+# ensure that pixels remain square
+viewer1d.camera.aspect = 1
+
 if __name__ == "__main__":
     napari_plot.run()
