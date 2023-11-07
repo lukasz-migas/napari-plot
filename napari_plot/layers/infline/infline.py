@@ -110,7 +110,6 @@ class InfLine(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         width=1,
         z_index=0,
-        label="",
         # base parameters
         name=None,
         metadata=None,
@@ -130,7 +129,6 @@ class InfLine(BaseLayer):
 
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,

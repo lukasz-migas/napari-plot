@@ -51,7 +51,7 @@ class QtCentroidControls(QtLayerControls):
         self.selection_spin = hp.make_int_spin(self, value=0, tooltip="Specify current index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
-        self.width_slider = hp.make_slider(
+        self.width_slider = hp.make_slider_with_text(
             self,
             1,
             25,
@@ -73,13 +73,13 @@ class QtCentroidControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_color)
 
         # add widgets to layout
-        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout.addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
-        self.layout.addRow(self.selection_text, self.selection_spin)
-        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
+        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
+        self.layout().addRow(self.selection_text, self.selection_spin)
+        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
+        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
         self._on_data_change()
         self._on_color_change()

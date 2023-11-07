@@ -79,7 +79,7 @@ def lasso_select(viewer: "Viewer", event):
     # viewer.drag_tool.tool.visible = False
 
 
-def box_select(viewer, event):
+def box_select(viewer: "Viewer", event):
     """Enable box zoom."""
     # on press
     if event.button == 1:  # left-click
@@ -104,7 +104,7 @@ def box_select(viewer, event):
     # viewer.drag_tool.tool.visible = False
 
 
-def box_zoom(viewer, event):
+def box_zoom(viewer: "Viewer", event):
     """Enable box zoom."""
 
     def _get_shape():
@@ -121,6 +121,9 @@ def box_zoom(viewer, event):
         return Shape.BOX
 
     # make sure box is visible
+    if not viewer.camera.mouse_zoom or not viewer.camera.mouse_pan:
+        return
+
     if not viewer.drag_tool.tool.visible:
         viewer.drag_tool.tool.visible = True
 
@@ -149,7 +152,7 @@ def box_zoom(viewer, event):
     viewer.events.span(position=position)
 
 
-def box_zoom_shape(shape: Shape, viewer, event):
+def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     """Enable box zoom."""
 
     def _set_event_range():

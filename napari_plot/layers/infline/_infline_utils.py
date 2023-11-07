@@ -37,7 +37,8 @@ def make_infinite_line(
     if len(indices) == 0:
         return np.zeros((0, 2)), np.zeros((0, 2)), np.zeros((0, 4))
 
-    min_val, max_val = np.iinfo(np.int64).min * 15, np.iinfo(np.int64).max * 15
+    # min_val, max_val = np.iinfo(np.int64).min * 15, np.iinfo(np.int64).max * 15
+    min_val, max_val = float(np.iinfo(np.int32).min) * 15, float(np.iinfo(np.int32).max * 15)
     i = 0
     for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
         if index in indices:

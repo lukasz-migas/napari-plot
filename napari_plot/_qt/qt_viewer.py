@@ -158,6 +158,7 @@ class QtViewer(QSplitter):
             vsync=True,
             parent=self,
             size=self.viewer._canvas_size[::-1],
+            autoswap=True,
         )
         self.canvas.events.reset_view.connect(self.viewer.reset_view)
         self.canvas.events.reset_x.connect(self.viewer.reset_x_view)
@@ -626,7 +627,7 @@ class QtViewer(QSplitter):
         event.dims_displayed = [0, 1]
 
         # Put a read only wrapper on the event
-        event = ReadOnlyWrapper(event)
+        event = ReadOnlyWrapper(event, exceptions=("handled",))
         mouse_callbacks(self.viewer, event)
 
         layer = self.viewer.layers.selection.active

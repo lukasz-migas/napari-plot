@@ -65,7 +65,6 @@ class Centroids(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         width=2,
         method="gl",
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -82,7 +81,6 @@ class Centroids(BaseLayer):
         data = parse_centroids_data(data)
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,

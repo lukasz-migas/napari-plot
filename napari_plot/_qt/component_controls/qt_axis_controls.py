@@ -40,7 +40,7 @@ class QtAxisWidget(QWidget):
         self.x_axis_edit = hp.make_line_edit(self, self.viewer.axis.x_label, placeholder="X-axis label...")
         self.x_axis_edit.textChanged.connect(self.on_change_label)
 
-        self.x_label_margin_spin = hp.make_slider(
+        self.x_label_margin_spin = hp.make_slider_with_text(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.x_label_margin
         )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
@@ -48,7 +48,7 @@ class QtAxisWidget(QWidget):
         self.y_axis_edit = hp.make_line_edit(self, self.viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)
 
-        self.y_label_margin_spin = hp.make_slider(
+        self.y_label_margin_spin = hp.make_slider_with_text(
             self, min_value=10, max_value=120, step_size=5, value=self.viewer.axis.y_label_margin
         )
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
@@ -70,7 +70,7 @@ class QtAxisWidget(QWidget):
         )
         self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)
 
-        self.x_max_size_spin = hp.make_slider(
+        self.x_max_size_spin = hp.make_slider_with_text(
             self,
             min_value=50,
             max_value=150,
@@ -80,7 +80,7 @@ class QtAxisWidget(QWidget):
         )
         self.x_max_size_spin.valueChanged.connect(self.on_change_max_size)
 
-        self.y_max_size_spin = hp.make_slider(
+        self.y_max_size_spin = hp.make_slider_with_text(
             self,
             min_value=50,
             max_value=150,
@@ -95,7 +95,7 @@ class QtAxisWidget(QWidget):
         )
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)
 
-        self.x_tick_margin_spin = hp.make_slider(
+        self.x_tick_margin_spin = hp.make_slider_with_text(
             self,
             min_value=5,
             max_value=100,
@@ -105,7 +105,7 @@ class QtAxisWidget(QWidget):
         )
         self.x_tick_margin_spin.valueChanged.connect(self.on_change_tick_margin)
 
-        self.y_tick_margin_spin = hp.make_slider(
+        self.y_tick_margin_spin = hp.make_slider_with_text(
             self,
             min_value=5,
             max_value=100,

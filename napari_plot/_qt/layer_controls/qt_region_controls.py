@@ -118,12 +118,12 @@ class QtRegionControls(QtLayerControls):
         button_row_2.setSpacing(4)
 
         # add widgets to the layout
-        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self.layout.addRow(button_row_1)
-        self.layout.addRow(button_row_2)
+        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
+        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
+        self.layout().addRow(button_row_1)
+        self.layout().addRow(button_row_2)
         self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 

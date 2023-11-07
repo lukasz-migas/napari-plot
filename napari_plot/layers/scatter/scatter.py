@@ -152,7 +152,8 @@ class Scatter(Points, LayerMixin):
         shading="none",
         shown=True,
         scaling=True,
-        label="",
+        canvas_size_limits=(2, 10000),
+        antialiasing=1,
     ):
         data, ndim = fix_data_points(data, 2)
         if ndim > 2:
@@ -192,11 +193,10 @@ class Scatter(Points, LayerMixin):
             experimental_clipping_planes=experimental_clipping_planes,
             shading=shading,
             shown=shown,
-            # canvas_size_limits=canvas_size_limits,
-            # antialiasing=antialiasing,
+            canvas_size_limits=canvas_size_limits,
+            antialiasing=antialiasing,
         )
-        self._label = label
-        self.events.add(scaling=Event, label=Event)
+        self.events.add(scaling=Event)
         self.scaling = scaling
 
     @property

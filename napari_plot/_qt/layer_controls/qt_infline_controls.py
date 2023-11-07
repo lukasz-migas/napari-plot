@@ -50,7 +50,7 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
-        self.width_slider = hp.make_slider(
+        self.width_slider = hp.make_slider_with_text(
             self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
@@ -98,12 +98,12 @@ class QtInfLineControls(QtLayerControls):
         button_row.setSpacing(4)
 
         # add widgets to the layout
-        self.layout.addRow(button_row)
-        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
+        self.layout().addRow(button_row)
+        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
+        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 

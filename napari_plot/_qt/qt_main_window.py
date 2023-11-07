@@ -335,9 +335,6 @@ class Window:
         self._add_window_menu()
         self._update_theme()
 
-        # Setup development tools
-        self._setup_dev_tools()
-
         if hasattr(self._qt_viewer, "dockConsole"):
             self._add_viewer_dock_widget(self._qt_viewer.dockConsole, tabify=False, menu=self.window_menu)
         self._add_viewer_dock_widget(self._qt_viewer.dockLayerControls, tabify=False, menu=self.window_menu)
@@ -355,6 +352,9 @@ class Window:
         viewer.events.title.connect(self._title_changed)
         viewer.events.theme.connect(self._update_theme)
         viewer.events.status.connect(self._status_changed)
+
+        # Setup development tools
+        self._setup_dev_tools()
 
         if show:
             self.show()

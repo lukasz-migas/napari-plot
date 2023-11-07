@@ -117,7 +117,6 @@ class Region(BaseLayer):
         orientation="vertical",
         color=(1.0, 1.0, 1.0, 1.0),
         z_index=0,
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -134,7 +133,6 @@ class Region(BaseLayer):
         data, orientation = parse_region_data(data, orientation)
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,

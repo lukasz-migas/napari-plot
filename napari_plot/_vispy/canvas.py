@@ -1,9 +1,9 @@
 """Line-specific vispy canvas"""
 from contextlib import contextmanager
-
+from weakref import WeakSet
 from napari._vispy.utils.gl import get_max_texture_sizes
 from qtpy.QtCore import QSize
-from vispy.scene import SceneCanvas
+from vispy.scene import SceneCanvas, Widget
 from vispy.util.event import Event
 from napari.utils.colormaps.standardize_color import transform_color
 
@@ -12,6 +12,7 @@ class VispyCanvas(SceneCanvas):
     """Line-based vispy canvas"""
 
     view, grid, x_axis, y_axis = None, None, None, None
+    _instances = WeakSet()
 
     def __init__(self, *args, **kwargs):
         # Since the base class is frozen we must create this attribute
@@ -20,6 +21,7 @@ class VispyCanvas(SceneCanvas):
         self._last_theme_color = None
         self._background_color_override = None
         super().__init__(*args, **kwargs)
+        self._instances.add(self)
         # Call get_max_texture_sizes() here so that we query OpenGL right now while we know a Canvas exists.
         # Later calls to get_max_texture_sizes() will return the same results because it's using an lru_cache.
         self.max_texture_sizes = get_max_texture_sizes()
@@ -33,7 +35,6 @@ class VispyCanvas(SceneCanvas):
 
         # connect events
         self.events.mouse_double_click.connect(self._on_mouse_double_click)
-
         self.events.add(reset_view=Event, reset_x=Event, reset_y=Event)
 
     @property
@@ -81,6 +82,13 @@ class VispyCanvas(SceneCanvas):
         yield self
         self.freeze()
 
+    @property
+    def central_widget(self):
+        """Overrides SceneCanvas.central_widget to make border_width=0"""
+        if self._central_widget is None:
+            self._central_widget = Widget(size=self.size, parent=self.scene, border_width=0)
+        return self._central_widget
+
     def _on_mouse_double_click(self, event):
         """Process mouse double click event"""
         vis = self.visual_at(event.pos)
@@ -102,3 +110,11 @@ class VispyCanvas(SceneCanvas):
     def camera(self):
         """Get camera associated with this view"""
         return self.view.camera
+
+    def _process_mouse_event(self, event):
+        """Ignore mouse wheel events which have modifiers."""
+        if event.type == "mouse_wheel" and len(event.modifiers) > 0:
+            return
+        if event.handled:
+            return
+        super()._process_mouse_event(event)

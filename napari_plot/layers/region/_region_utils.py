@@ -44,8 +44,13 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
 
 def preprocess_region(data, orientation) -> ty.List:
     """Pre-process data to proper format."""
-    min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
-    start, end = np.asarray(data)
+    # min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
+    # min_val, max_val = np.float64(np.iinfo(np.int32).min), np.float64(np.iinfo(np.int32).max)
+    # min_val, max_val = np.finfo(np.float32).min, np.finfo(np.float32).max
+    # min_val, max_val = np.iinfo(np.int32).min, np.iinfo(np.int32).max
+    # TODO: this is currently broken and does not work as expected!
+    min_val, max_val = np.iinfo(np.int16).min, np.iinfo(np.int16).max
+    start, end = np.asarray(data, dtype=np.float32)
     if orientation == "vertical":
         return [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]
     return [[start, min_val], [start, max_val], [end, max_val], [end, min_val]]

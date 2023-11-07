@@ -1,5 +1,6 @@
 """Napari-plot base layer"""
 import warnings
+import typing as ty
 from contextlib import contextmanager
 
 import numpy as np
@@ -15,6 +16,8 @@ class LayerMixin:
     # Set flag to 'False' to disable thumbnail update
     _allow_thumbnail_update = True
     events: EmitterGroup
+    _update_dims: ty.Callable
+    _update_draw: ty.Callable
 
     @property
     def data(self):
@@ -39,16 +42,6 @@ class LayerMixin:
 
     def _get_ndim(self):
         return 2
-
-    @property
-    def label(self) -> str:
-        """Get label."""
-        return self._label
-
-    @label.setter
-    def label(self, value: str):
-        self._label = value
-        self.events.label()
 
     def _emit_new_data(self):
         self._update_dims()
@@ -87,8 +80,6 @@ class BaseLayer(LayerMixin, Layer):
         self,
         data,
         *,
-        # napari-plot parameters
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -116,8 +107,7 @@ class BaseLayer(LayerMixin, Layer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(label=Event)
-        self._label = label
+        self.events.add()
 
     def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold):
         """Update draw."""

@@ -42,7 +42,7 @@ class QtLayerControls(QFrame):
         self.layer.events.opacity.connect(self._on_opacity_change)
         self.layer.events.editable.connect(self._on_editable_or_visible_change)
 
-        self.opacity_slider = hp.make_slider(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
+        self.opacity_slider = hp.make_slider_with_text(self, tooltip="Opacity", focus_policy=Qt.NoFocus)
         self.opacity_slider.valueChanged.connect(self.on_change_opacity)
         self._on_opacity_change()
 
@@ -54,8 +54,11 @@ class QtLayerControls(QFrame):
         self.editable_checkbox.stateChanged.connect(self.on_change_editable)
 
         # layout where all widgets will go
-        self.layout = QFormLayout(self)
-        self.layout.setSpacing(2)
+        self.setLayout(QFormLayout(self))
+        self.layout().setContentsMargins(0, 0, 0, 0)
+        self.layout().setSpacing(4)
+        self.layout().setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        self.layout().setSpacing(2)
 
     def on_change_editable(self, state):
         """Change editability value on the layer model.

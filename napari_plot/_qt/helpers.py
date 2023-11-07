@@ -105,6 +105,30 @@ def make_slider(
     return widget
 
 
+def make_slider_with_text(
+    parent: ty.Optional[QWidget],
+    min_value: int = 0,
+    max_value: int = 100,
+    step_size: int = 1,
+    value: int = 1,
+    orientation="horizontal",
+    tooltip: str = None,
+    focus_policy: Qt.FocusPolicy = Qt.TabFocus,
+) -> QSlider:
+    """Make QSlider."""
+    from superqt import QLabeledSlider
+
+    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    widget = QLabeledSlider(orientation, parent)
+    widget.setRange(min_value, max_value)
+    widget.setValue(value)
+    widget.setPageStep(step_size)
+    widget.setFocusPolicy(focus_policy)
+    if tooltip:
+        widget.setToolTip(tooltip)
+    return widget
+
+
 def make_double_slider(
     parent: ty.Optional[QWidget],
     min_value: float = 0,
