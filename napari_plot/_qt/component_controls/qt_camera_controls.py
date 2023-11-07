@@ -104,6 +104,9 @@ class QtCameraWidget(QWidget):
         self.axis_mode_right.stateChanged.connect(self.on_change_axis_mode)
 
         layout = QFormLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(4)
+        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
         layout.addRow(hp.make_label(self, "Interactive zoom"), self.mouse_zoom_checkbox)
         layout.addRow(hp.make_label(self, "Interactive pan"), self.mouse_pan_checkbox)
         layout.addRow(hp.make_label(self, "Restriction mode"), self.extent_mode)

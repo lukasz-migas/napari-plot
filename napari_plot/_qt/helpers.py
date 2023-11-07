@@ -152,6 +152,32 @@ def make_double_slider(
     return widget
 
 
+def make_double_slider_with_text(
+    parent: ty.Optional[QWidget],
+    min_value: float = 0,
+    max_value: float = 100,
+    step_size: float = 1,
+    value: float = 1,
+    n_decimals: int = 1,
+    orientation="horizontal",
+    tooltip: str = None,
+    focus_policy: Qt.FocusPolicy = Qt.TabFocus,
+) -> QSlider:
+    """Make QSlider."""
+    from superqt import QLabeledDoubleSlider
+
+    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    widget = QLabeledDoubleSlider(orientation, parent)
+    widget.setRange(min_value, max_value)
+    widget.setDecimals(n_decimals)
+    widget.setValue(value)
+    widget.setPageStep(step_size)
+    widget.setFocusPolicy(focus_policy)
+    if tooltip:
+        widget.setToolTip(tooltip)
+    return widget
+
+
 def make_int_spin(
     parent: ty.Optional[QWidget],
     min_value: int = 0,

@@ -58,7 +58,6 @@ class QtLayerControls(QFrame):
         self.layout().setContentsMargins(0, 0, 0, 0)
         self.layout().setSpacing(4)
         self.layout().setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
-        self.layout().setSpacing(2)
 
     def on_change_editable(self, state):
         """Change editability value on the layer model.
