@@ -1,4 +1,5 @@
 """Camera model"""
+
 import typing as ty
 from enum import Enum
 

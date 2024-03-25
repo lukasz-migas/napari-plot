@@ -1,4 +1,5 @@
 """Reimplementation of axis-visual"""
+
 import numpy as np
 import vispy.visuals.axis
 from vispy.visuals.axis import Ticker as _Ticker

@@ -100,6 +100,7 @@ functions in place.  This avoids the need to patch instances.  New objects are c
 target namespace.
 
 """
+
 import types
 
 NO_DEBUG = 0

@@ -1,4 +1,5 @@
 """Test ScatterPlotWidget"""
+
 import numpy as np
 import pytest
 

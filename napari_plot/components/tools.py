@@ -1,4 +1,5 @@
 """Zoom-box tool."""
+
 import typing as ty
 from enum import Enum
 

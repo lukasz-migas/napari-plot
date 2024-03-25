@@ -1,4 +1,5 @@
 """Multiple infinite lines in a single layer."""
+
 import napari_plot
 import numpy as np
 

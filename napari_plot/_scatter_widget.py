@@ -2,6 +2,7 @@
 
 This widget is inspired by ScatterWidget in https://github.com/dstansby/napari-matplotlib
 """
+
 import typing as ty
 from contextlib import suppress
 from warnings import warn

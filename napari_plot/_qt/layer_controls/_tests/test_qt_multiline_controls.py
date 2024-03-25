@@ -1,4 +1,5 @@
 """Test controls"""
+
 import numpy as np
 import pytest
 from napari.utils.colormaps.standardize_color import transform_color

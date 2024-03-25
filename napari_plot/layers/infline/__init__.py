@@ -1,4 +1,5 @@
 """Infinite line"""
+
 from napari_plot.layers.infline import _infline_key_bindings
 from napari_plot.layers.infline.infline import InfLine  # noqa: F401
 

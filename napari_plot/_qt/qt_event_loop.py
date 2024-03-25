@@ -1,4 +1,5 @@
 """Event loop"""
+
 import os
 import sys
 from warnings import warn

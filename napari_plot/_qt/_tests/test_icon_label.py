@@ -1,4 +1,5 @@
 """Test image labels."""
+
 import pytest
 
 from napari_plot._qt.widgets.qt_icon_label import SIZES, QtQtaLabel

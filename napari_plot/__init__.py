@@ -1,4 +1,5 @@
 """Init"""
+
 try:
     from napari_plot._version import version as __version__
 except ImportError:

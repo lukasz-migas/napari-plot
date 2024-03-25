@@ -1,4 +1,5 @@
 """Line layer"""
+
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event

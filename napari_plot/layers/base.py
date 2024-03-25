@@ -1,4 +1,5 @@
 """Napari-plot base layer"""
+
 import warnings
 from contextlib import contextmanager
 

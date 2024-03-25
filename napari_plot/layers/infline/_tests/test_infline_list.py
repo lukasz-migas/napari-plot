@@ -1,4 +1,5 @@
 """Test InfLineList"""
+
 import numpy as np
 import pytest
 

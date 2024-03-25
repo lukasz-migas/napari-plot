@@ -1,4 +1,5 @@
 """Qt widget that embeds the canvas"""
+
 import warnings
 from contextlib import suppress
 from weakref import WeakSet

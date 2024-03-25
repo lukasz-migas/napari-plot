@@ -1,4 +1,5 @@
 """Scatter layer."""
+
 import numpy as np
 from napari.layers import Points
 from napari.layers.points._points_utils import fix_data_points

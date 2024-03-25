@@ -1,4 +1,5 @@
 """Scatter layer controls"""
+
 import typing as ty
 
 import numpy as np
