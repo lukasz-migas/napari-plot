@@ -1,4 +1,5 @@
 """Napari contributions in old npe1 style."""
+
 from napari_plugin_engine import napari_hook_implementation
 
 from napari_plot._plot_widget import NapariPlotWidget

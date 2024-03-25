@@ -1,4 +1,5 @@
 """Line controls"""
+
 import typing as ty
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked

@@ -1,4 +1,5 @@
 """Example showing simple line and 'infinite' line to show the apex"""
+
 import napari_plot
 import numpy as np
 

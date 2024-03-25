@@ -1,4 +1,5 @@
 """Vispy visual for MultiLine Layer type."""
+
 import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer

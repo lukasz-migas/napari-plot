@@ -1,4 +1,5 @@
 """Camera controls"""
+
 import typing as ty
 
 from napari.utils.events import disconnect_events

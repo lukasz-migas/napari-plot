@@ -1,4 +1,5 @@
 """Various utilities"""
+
 import typing as ty
 from contextlib import suppress
 

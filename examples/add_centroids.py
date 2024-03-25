@@ -1,4 +1,5 @@
 """Example showing how to plot centroids."""
+
 import napari_plot
 import numpy as np
 

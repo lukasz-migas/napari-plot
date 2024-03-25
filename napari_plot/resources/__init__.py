@@ -1,4 +1,5 @@
 """Get all paths."""
+
 from pathlib import Path
 
 from napari._qt.qt_resources import STYLES, get_stylesheet  # noqa

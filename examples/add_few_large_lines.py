@@ -1,4 +1,5 @@
 """Example showing how to plot multiple line sand adjust axis labels."""
+
 import napari_plot
 import numpy as np
 

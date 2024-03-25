@@ -1,4 +1,5 @@
 """Axes visual"""
+
 from vispy.scene import AxisWidget
 
 

@@ -1,4 +1,5 @@
 """Add keybindings to the layer"""
+
 from napari_plot.layers.region._region_constants import Mode
 from napari_plot.layers.region.region import Region
 

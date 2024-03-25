@@ -1,4 +1,5 @@
 """Grid lines visual"""
+
 import typing as ty
 
 from vispy.scene.visuals import GridLines

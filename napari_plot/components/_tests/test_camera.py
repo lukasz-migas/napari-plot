@@ -1,4 +1,5 @@
 """Tests for components/camera"""
+
 from napari_plot.components.camera import Camera
 
 

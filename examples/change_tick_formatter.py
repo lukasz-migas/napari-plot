@@ -1,4 +1,5 @@
 """Custom formatter."""
+
 import napari_plot
 import numpy as np
 

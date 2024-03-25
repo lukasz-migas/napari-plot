@@ -1,4 +1,5 @@
 """Toolbar"""
+
 from weakref import ref
 
 from qtpy.QtCore import Qt

@@ -1,4 +1,5 @@
 """Layer list"""
+
 from napari.components.layerlist import LayerList as _LayerList
 
 

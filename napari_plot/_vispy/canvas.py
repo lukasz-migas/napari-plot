@@ -1,4 +1,5 @@
 """Line-specific vispy canvas"""
+
 from contextlib import contextmanager
 
 from napari._vispy.utils.gl import get_max_texture_sizes

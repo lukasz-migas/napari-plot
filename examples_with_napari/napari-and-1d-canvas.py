@@ -1,4 +1,5 @@
 """Display image and 1d plot."""
+
 import napari
 import numpy as np
 from skimage import data

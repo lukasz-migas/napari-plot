@@ -1,4 +1,5 @@
 """Line constants"""
+
 from enum import Enum, auto
 
 from napari.utils.misc import StringEnum

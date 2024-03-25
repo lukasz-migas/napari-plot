@@ -1,4 +1,5 @@
 """Interaction tool."""
+
 import typing as ty
 
 from napari_plot._vispy.tools.polygon import VispyPolygonVisual

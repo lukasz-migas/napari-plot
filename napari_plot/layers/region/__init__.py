@@ -1,4 +1,5 @@
 """Init"""
+
 from napari_plot.layers.region import _region_key_bindings
 from napari_plot.layers.region.region import Region  # noqa: F401
 

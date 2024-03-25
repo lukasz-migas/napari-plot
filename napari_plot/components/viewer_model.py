@@ -1,4 +1,5 @@
 """Viewer model"""
+
 import inspect
 import typing as ty
 import warnings

@@ -1,4 +1,5 @@
 """Display image and 1d plot."""
+
 import numpy as np
 
 import napari_plot

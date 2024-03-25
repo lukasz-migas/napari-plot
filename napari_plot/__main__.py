@@ -1,4 +1,5 @@
 """napari-plot command line viewer."""
+
 import argparse
 import logging
 import os

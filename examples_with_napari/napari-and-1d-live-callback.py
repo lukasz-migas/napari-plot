@@ -1,4 +1,5 @@
 """Create simple callback that modifies the line visual."""
+
 import napari
 import numpy as np
 from skimage import data, measure

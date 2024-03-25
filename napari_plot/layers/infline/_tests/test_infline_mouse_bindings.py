@@ -1,4 +1,5 @@
 """Test regions mouse bindings."""
+
 import collections
 
 import numpy as np

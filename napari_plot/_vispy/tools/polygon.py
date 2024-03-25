@@ -1,4 +1,5 @@
 """Span visual - based on the `Region` layer"""
+
 import typing as ty
 
 import numpy as np
