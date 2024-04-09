@@ -35,7 +35,7 @@ class QtQtaLabel(QtIconLabel):
     def __init__(self, *args, **kwargs):
         super().__init__("", *args, **kwargs)
         self._size = QSize(28, 28)
-        self.setAlignment(Qt.AlignVCenter | Qt.AlignHCenter)
+        self.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignHCenter)
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
         _themes.events.connect(self._update_from_event)
 

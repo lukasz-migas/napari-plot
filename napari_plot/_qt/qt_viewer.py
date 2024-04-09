@@ -72,7 +72,7 @@ class QtViewer(QSplitter):
     ):
         super().__init__(parent=parent)  # noqa
         self._instances.add(self)
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setAcceptDrops(False)
         QCoreApplication.setAttribute(Qt.AA_UseStyleSheetPropagationInWidgetStyles, True)
 
@@ -304,7 +304,7 @@ class QtViewer(QSplitter):
         main_layout.setSpacing(3)
         main_widget.setLayout(main_layout)
 
-        self.setOrientation(Qt.Vertical)
+        self.setOrientation(Qt.Orientation.Vertical)
         self.addWidget(main_widget)
 
     def _set_events(self):

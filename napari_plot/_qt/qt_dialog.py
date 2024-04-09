@@ -15,7 +15,7 @@ class QtDialog(QDialog):
         QDialog.__init__(self, parent)
         self._parent = parent
         self.setWindowTitle(QApplication.translate(str(self), title, None, -1))
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.make_gui()
 
     def on_close(self):
@@ -134,11 +134,11 @@ class QtFramelessPopup(QtDialog):
         parent,
         title="",
         position=None,
-        flags=Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Popup,
+        flags=Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint | Qt.WindowType.Popup,
     ):
         super().__init__(parent, title)
-        self.setAttribute(Qt.WA_DeleteOnClose)
-        self.setAttribute(Qt.WA_ShowWithoutActivating)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
         self.setWindowFlags(flags)
         if position is not None:
             self.move(position)
@@ -151,7 +151,7 @@ class QtFramelessPopup(QtDialog):
             "move",
             tooltip="Click here and drag the mouse around to move the window.",
         )
-        self._move_handle.setCursor(Qt.PointingHandCursor)
+        self._move_handle.setCursor(Qt.CursorShape.PointingHandCursor)
         layout = QHBoxLayout()
         layout.addWidget(self._title_label, stretch=True)
         layout.addWidget(self._move_handle)
@@ -161,7 +161,7 @@ class QtFramelessPopup(QtDialog):
         """mouse press event"""
         super().mousePressEvent(event)
         # allow movement of the window when user uses right-click and the move handle button does not exist
-        if event.button() == Qt.RightButton and self._move_handle is None:
+        if event.button() == Qt.MouseButton.RightButton and self._move_handle is None:
             self._old_window_pos = event.x(), event.y()
         elif self._move_handle is None:
             self._old_window_pos = None

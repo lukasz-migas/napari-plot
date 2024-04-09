@@ -24,7 +24,7 @@ QTA_MAPPING = {
     "zoom_out": "fa5s.expand",
     "target": "mdi6.target",
     # "move": "ei.move",
-    "move": "ph.hand-pointing-bold",
+    "move": "ei.move",
     "add": "ri.add-circle-fill",
     "minimise": "fa5s.window-minimize",
     "new_line": "msc.pulse",

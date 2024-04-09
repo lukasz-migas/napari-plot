@@ -10,18 +10,18 @@ import napari_plot._qt.helpers as hp
 class QtMiniToolbar(QFrame):
     """Mini toolbar"""
 
-    def __init__(self, parent, orientation: Qt.Horizontal, max_size: int = 25):
+    def __init__(self, parent, orientation: Qt.Orientation.Horizontal, max_size: int = 25):
         super().__init__(parent)
         self._icons = None
         self._tools = {}
         self.orientation = orientation
 
-        self.layout = QHBoxLayout() if orientation == Qt.Horizontal else QVBoxLayout()
-        self.layout.addSpacerItem(hp.make_h_spacer() if orientation == Qt.Horizontal else hp.make_v_spacer())
+        self.layout = QHBoxLayout() if orientation == Qt.Orientation.Horizontal else QVBoxLayout()
+        self.layout.addSpacerItem(hp.make_h_spacer() if orientation == Qt.Orientation.Horizontal else hp.make_v_spacer())
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
-        self.setMaximumHeight(max_size) if orientation == Qt.Horizontal else self.setMaximumWidth(max_size)
+        self.setMaximumHeight(max_size) if orientation == Qt.Orientation.Horizontal else self.setMaximumWidth(max_size)
 
     @property
     def n_items(self) -> int:

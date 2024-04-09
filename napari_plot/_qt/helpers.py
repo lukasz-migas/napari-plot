@@ -93,7 +93,7 @@ def make_slider(
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
-    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    orientation = Qt.Orientation.Horizontal if orientation.lower() else Qt.Orientation.Vertical
     widget = QSlider(parent)
     widget.setRange(min_value, max_value)
     widget.setValue(value)
@@ -118,7 +118,7 @@ def make_slider_with_text(
     """Make QSlider."""
     from superqt import QLabeledSlider
 
-    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    orientation = Qt.Orientation.Horizontal if orientation.lower() else Qt.Orientation.Vertical
     widget = QLabeledSlider(orientation, parent)
     widget.setRange(min_value, max_value)
     widget.setValue(value)
@@ -140,7 +140,7 @@ def make_double_slider(
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
-    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    orientation = Qt.Orientation.Horizontal if orientation.lower() else Qt.Orientation.Vertical
     widget = QDoubleSlider(parent)
     widget.setRange(min_value, max_value)
     widget.setValue(value)
@@ -166,7 +166,7 @@ def make_double_slider_with_text(
     """Make QSlider."""
     from superqt import QLabeledDoubleSlider
 
-    orientation = Qt.Horizontal if orientation.lower() else Qt.Vertical
+    orientation = Qt.Orientation.Horizontal if orientation.lower() else Qt.Orientation.Vertical
     widget = QLabeledDoubleSlider(orientation, parent)
     widget.setRange(min_value, max_value)
     widget.setDecimals(n_decimals)

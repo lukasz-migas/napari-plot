@@ -263,7 +263,7 @@ class QtCameraControls(QtFramelessPopup):
         self.viewer = viewer
 
         super().__init__(parent=parent)
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setObjectName("camera")
         self.setMouseTracking(True)
 

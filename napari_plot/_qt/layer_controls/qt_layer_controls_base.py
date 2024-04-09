@@ -33,7 +33,7 @@ class QtLayerControls(QFrame):
 
     def __init__(self, layer):
         super().__init__()
-        self.setAttribute(Qt.WA_DeleteOnClose)
+        self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setObjectName("layer")
         self.setMouseTracking(True)
 

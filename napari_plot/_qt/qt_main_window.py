@@ -428,7 +428,7 @@ class Window:
                 _wdg = current_dws_in_area + [dock_widget]
                 # add sizes to push lower widgets up
                 sizes = list(range(1, len(_wdg) * 4, 4))
-                self._qt_window.resizeDocks(_wdg, sizes, Qt.Vertical)
+                self._qt_window.resizeDocks(_wdg, sizes, Qt.Orientation.Vertical)
 
         if menu:
             action = dock_widget.toggleViewAction()
