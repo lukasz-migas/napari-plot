@@ -1,4 +1,5 @@
 """X/Y-axis controls"""
+
 from typing import TYPE_CHECKING
 
 from weakref import ref
@@ -246,7 +247,6 @@ class QtAxisControls(QtFramelessPopup):
         """Make panel"""
         widget = QtAxisWidget(self.ref_viewer(), self)
         layout = QFormLayout()
-        layout.setSpacing(2)
         layout.addRow(self._make_move_handle("Axis controls"))
         layout.addRow(widget)
         return layout
