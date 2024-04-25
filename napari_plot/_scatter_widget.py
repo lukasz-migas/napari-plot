@@ -77,7 +77,7 @@ class ScatterPlotWidget(NapariPlotWidget):
             self.viewer_plot.axis.y_label = self.layers[1].name
             self.viewer_plot.text_overlay.text = f"z={z}"
 
-    def connect_events(self, state: bool = True):
+    def connect_events(self, state: bool = True) -> None:
         """Connect events."""
         connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
         connect(self.viewer.layers.selection.events.changed, self.on_update_layers, state=state)

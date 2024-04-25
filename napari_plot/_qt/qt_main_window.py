@@ -197,7 +197,7 @@ class _QtMainWindow(QMainWindow):
         if (
             not confirm_need_local
             # or not get_settings().application.confirm_close_window
-            or ConfirmCloseDialog(self, quit_app).exec_() == QDialog.Accepted
+            or ConfirmCloseDialog(self, quit_app).exec_() == QDialog.DialogCode.Accepted
         ):
             self._quit_app = quit_app
             self._is_close_dialog[quit_app] = True
@@ -241,7 +241,7 @@ class _QtMainWindow(QMainWindow):
         if (
             event.spontaneous()
             and self._qt_viewer.viewer.layers
-            and ConfirmCloseDialog(self, False).exec_() != QDialog.Accepted
+            and ConfirmCloseDialog(self, False).exec_() != QDialog.DialogCode.Accepted
         ):
             event.ignore()
             return

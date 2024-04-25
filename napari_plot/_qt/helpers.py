@@ -1,4 +1,5 @@
 """Helper functions to easily create UI elements."""
+
 import typing as ty
 from contextlib import contextmanager
 
@@ -31,13 +32,13 @@ from napari_plot.utils.system import IS_WIN
 
 def make_v_spacer() -> QSpacerItem:
     """Make vertical QSpacerItem."""
-    widget = QSpacerItem(40, 20, QSizePolicy.Preferred, QSizePolicy.Expanding)
+    widget = QSpacerItem(40, 20, QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
     return widget
 
 
 def make_h_spacer() -> QSpacerItem:
     """Make horizontal QSpacerItem."""
-    widget = QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Preferred)
+    widget = QSpacerItem(40, 20, QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
     return widget
 
 

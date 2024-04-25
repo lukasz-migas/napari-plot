@@ -22,7 +22,7 @@ class QtDialog(QDialog):
         """Close window"""
         self.close()
 
-    def _on_teardown(self):
+    def on_teardown(self) -> None:
         """Execute just before deletion"""
 
     def closeEvent(self, event):
