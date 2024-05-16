@@ -1,4 +1,5 @@
 """Viewer model"""
+
 import inspect
 import typing as ty
 from functools import lru_cache
@@ -237,7 +238,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             ymin, ymax = real_ymin, real_ymax
         return ymin, ymax
 
-    def reset_view(self, _event=None):
+    def reset_view(self, _event: Event = None) -> None:
         """Reset the camera view."""
         xmin, xmax, ymin, ymax = self._get_rect_extent()
         self.camera.rect = (xmin, xmax, ymin, ymax)
