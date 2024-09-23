@@ -1,4 +1,5 @@
 """Example shows a sine wave `moving` over time.."""
+
 import time
 import napari_plot
 import numpy as np

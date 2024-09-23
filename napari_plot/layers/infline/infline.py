@@ -1,4 +1,5 @@
 """Infinite region"""
+
 import typing as ty
 from copy import copy
 

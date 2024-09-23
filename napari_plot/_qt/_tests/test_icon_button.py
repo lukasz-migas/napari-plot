@@ -1,4 +1,5 @@
 """Test image buttons."""
+
 import pytest
 from napari.layers import Points
 from napari.layers.points._points_constants import Mode

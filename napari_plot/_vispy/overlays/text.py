@@ -1,4 +1,5 @@
 """Override text visual to fix label cropping"""
+
 from weakref import ref
 
 from napari._vispy.overlays.text import TextOverlayPosition

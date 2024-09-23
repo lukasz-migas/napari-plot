@@ -1,4 +1,5 @@
 """X/Y-axis controls"""
+
 from typing import TYPE_CHECKING
 
 from napari._qt.utils import disable_with_opacity, qt_signals_blocked

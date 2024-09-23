@@ -1,4 +1,5 @@
 """Mouse bindings."""
+
 from copy import copy
 
 import numpy as np

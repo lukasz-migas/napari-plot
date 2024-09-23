@@ -1,4 +1,5 @@
 """Native window."""
+
 import time
 import typing as ty
 from functools import partial

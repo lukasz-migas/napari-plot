@@ -1,4 +1,5 @@
 """Mouse bindings to the viewer"""
+
 import typing as ty
 from functools import partial
 

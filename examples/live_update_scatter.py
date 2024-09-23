@@ -1,4 +1,5 @@
 """Example shows a sin and cos scatter points moving over time."""
+
 import time
 import napari_plot
 import numpy as np

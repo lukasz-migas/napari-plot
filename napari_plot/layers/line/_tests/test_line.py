@@ -1,4 +1,5 @@
 """Test Line layer."""
+
 import numpy as np
 import pytest
 

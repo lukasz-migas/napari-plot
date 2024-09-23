@@ -1,4 +1,5 @@
 """Container class for MultiLine data."""
+
 import typing as ty
 
 import numpy as np

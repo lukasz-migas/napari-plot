@@ -1,4 +1,5 @@
 """QtIconLabel"""
+
 import qtawesome
 from napari.settings import get_settings
 from napari.utils.events.event_utils import connect_no_arg

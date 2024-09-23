@@ -1,4 +1,5 @@
 """Test ViewerModel"""
+
 import numpy as np
 import pytest
 

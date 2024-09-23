@@ -1,4 +1,5 @@
 """Check QtViewer"""
+
 import numpy as np
 import pytest
 

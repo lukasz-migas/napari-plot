@@ -1,4 +1,5 @@
 """Specialized camera for 1d data"""
+
 import typing as ty
 
 import numpy as np
