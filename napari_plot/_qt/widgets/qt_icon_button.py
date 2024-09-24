@@ -1,4 +1,5 @@
 """QtImagePushButton"""
+
 import typing as ty
 
 import qtawesome

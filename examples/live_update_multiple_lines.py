@@ -5,6 +5,7 @@ a `stream` method which rapidly replaces existing data with new data and trigger
 This method does not do many checks so you must make sure that whatever data you replace, it has the same
 characteristics as the original or at least it's valid.
 """
+
 import napari_plot
 import numpy as np
 from napari.qt import thread_worker

@@ -1,4 +1,5 @@
 """Centroids layer"""
+
 import typing as ty
 
 from napari._vispy.layers.base import VispyBaseLayer

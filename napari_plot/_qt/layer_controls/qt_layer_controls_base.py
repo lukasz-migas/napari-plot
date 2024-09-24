@@ -1,4 +1,5 @@
 """Base layer controls"""
+
 from napari.layers.base._base_constants import BLENDING_TRANSLATIONS
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt

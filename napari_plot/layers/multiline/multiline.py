@@ -1,4 +1,5 @@
 """MultiLine layer."""
+
 import numpy as np
 from napari.layers.utils.color_transformations import (
     ColorType,

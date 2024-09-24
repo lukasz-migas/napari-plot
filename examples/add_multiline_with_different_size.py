@@ -3,6 +3,7 @@
 The MultiLine layer accepts data of different sizes. You can provide dict of `xs` and `ys` of arbitrary lengths
 as long as the number of lines arrays is the same and the corresponding arrays have identical size.
 """
+
 import napari_plot
 import numpy as np
 

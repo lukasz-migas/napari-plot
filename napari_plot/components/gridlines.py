@@ -1,4 +1,5 @@
 """Gridlines"""
+
 from napari.utils.events import EventedModel
 
 

@@ -1,4 +1,5 @@
 """Viewer instance."""
+
 import typing as ty
 from weakref import WeakSet
 

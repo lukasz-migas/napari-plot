@@ -1,4 +1,5 @@
 """Mini toolbar"""
+
 import typing as ty
 
 from qtpy.QtCore import Qt

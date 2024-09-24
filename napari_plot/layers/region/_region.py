@@ -1,4 +1,5 @@
 """Region based on Rectangle."""
+
 from napari.layers.shapes._shapes_models.rectangle import Rectangle
 
 from napari_plot.layers.region._region_constants import Orientation

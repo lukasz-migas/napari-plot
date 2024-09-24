@@ -1,4 +1,5 @@
 """Test scatter layer."""
+
 from itertools import cycle, islice
 
 import numpy as np

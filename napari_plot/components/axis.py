@@ -1,4 +1,5 @@
 """Axis model"""
+
 import typing as ty
 
 from napari.utils.colormaps.standardize_color import transform_color
