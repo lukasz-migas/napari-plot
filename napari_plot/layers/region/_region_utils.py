@@ -1,4 +1,5 @@
 """Region utils."""
+
 import typing as ty
 
 import numpy as np
@@ -49,7 +50,10 @@ def preprocess_region(data, orientation) -> ty.List:
     # min_val, max_val = np.finfo(np.float32).min, np.finfo(np.float32).max
     # min_val, max_val = np.iinfo(np.int32).min, np.iinfo(np.int32).max
     # TODO: this is currently broken and does not work as expected!
-    min_val, max_val = np.iinfo(np.int16).min, np.iinfo(np.int16).max
+    # min_val, max_val = np.iinfo(np.int16).min, np.iinfo(np.int16).max
+    min_val = np.finfo(np.float32).min / 1e20
+    max_val = np.finfo(np.float32).max / 1e20
+    print(min_val, max_val)
     start, end = np.asarray(data, dtype=np.float32)
     if orientation == "vertical":
         return [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]

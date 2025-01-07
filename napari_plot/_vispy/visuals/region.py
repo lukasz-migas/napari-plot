@@ -1,4 +1,5 @@
 """Scatter visual."""
+
 from vispy.scene.visuals import Compound, Line, Mesh
 
 
@@ -12,4 +13,4 @@ class RegionVisual(Compound):
     """
 
     def __init__(self):
-        super().__init__([Mesh(), Mesh(), Line()])
+        super().__init__([Mesh(mode="triangle_strip"), Mesh(), Line()])

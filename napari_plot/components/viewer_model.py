@@ -10,8 +10,7 @@ from napari.components import Dims
 from napari.components.tooltip import Tooltip
 
 from napari.components.cursor import Cursor
-from napari.components.overlays import Overlay
-from napari.components.overlays.text import TextOverlay
+from napari.components.overlays import Overlay, TextOverlay, BrushCircleOverlay
 from napari.utils._register import create_func as create_add_method
 from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
@@ -44,6 +43,7 @@ from napari_plot.utils.utilities import get_min_max
 DEFAULT_OVERLAYS = {
     "text": TextOverlay,
     "grid_lines": GridLinesOverlay,
+    "brush_circle": BrushCircleOverlay,
 }
 
 
@@ -59,6 +59,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     # Using allow_mutation=False means these attributes aren't settable and don't
     # have an event emitter associated with them
+    status: ty.Union[str, dict] = "Ready"
     cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
     dims: Dims = Field(default_factory=Dims, allow_mutation=False)
     layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
@@ -69,7 +70,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     _overlays: EventedDict[str, Overlay] = PrivateAttr(default_factory=EventedDict)
 
     help: str = ""
-    status: ty.Union[str, ty.Dict] = "Ready"
     tooltip: Tooltip = Field(default_factory=Tooltip, allow_mutation=False)
     title: str = "napari-plot"
     theme: str = "dark"
@@ -91,7 +91,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
+        # cursor
         self.cursor.events.position.connect(self._update_status_bar_from_cursor)
+        # layers
         self.layers.events.inserted.connect(self._on_add_layer)
         self.layers.events.removed.connect(self._on_remove_layer)
         self.layers.events.reordered.connect(self._on_layers_change)
@@ -99,8 +101,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         self.layers.events.removed.connect(self._on_update_extent)
         self.layers.events.connect(self._on_update_extent)
         self.layers.selection.events.active.connect(self._on_active_layer)
-
-        # Set current drag tool
+        # drag
         self.drag_tool.events.active.connect(self._on_update_tool)
         self.drag_tool.active = DragMode.AUTO
 
@@ -427,6 +428,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 )
         else:
             self.status = "Ready"
+
+    @property
+    def _brush_circle_overlay(self):
+        return self._overlays["brush_circle"]
 
 
 @lru_cache(maxsize=1)

@@ -1,4 +1,5 @@
 """Infinite region"""
+
 import typing as ty
 import warnings
 from copy import copy
@@ -20,8 +21,12 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.region._region import region_classes
 from napari_plot.layers.region._region_constants import Box, Mode, Orientation
 from napari_plot.layers.region._region_list import RegionList
-from napari_plot.layers.region._region_mouse_bindings import add, edit, highlight, move, select
+from napari_plot.layers.region._region_mouse_bindings import add, edit, highlight, move, select, finish_drawing_region
 from napari_plot.layers.region._region_utils import get_default_region_type, parse_region_data, preprocess_region
+from napari.layers.base._base_mouse_bindings import (
+    highlight_box_handles,
+    transform_with_box,
+)
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},
@@ -86,20 +91,40 @@ class Region(BaseLayer):
 
     _modeclass = Mode
 
-    _drag_modes = {Mode.ADD: add, Mode.MOVE: move, Mode.SELECT: select, Mode.PAN_ZOOM: no_op, Mode.EDIT: edit}
-    _move_modes = {
-        Mode.ADD: no_op,
-        Mode.MOVE: highlight,
-        Mode.SELECT: highlight,
+    _drag_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[["Region", Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
-        Mode.EDIT: no_op,
+        Mode.TRANSFORM: transform_with_box,  # TODO: replace with transform
+        Mode.SELECT: select,
+        Mode.ADD: add,
+        Mode.EDIT: edit,
+        Mode.MOVE: move,
     }
-    _cursor_modes = {
-        Mode.ADD: "pointing",
-        Mode.MOVE: "pointing",
-        Mode.SELECT: "pointing",
+    _move_modes = {
+        Mode.PAN_ZOOM: no_op,
+        Mode.TRANSFORM: highlight_box_handles,
+        Mode.SELECT: highlight,
+        Mode.ADD: no_op,
+        Mode.EDIT: no_op,
+        Mode.MOVE: highlight,
+    }
+    _double_click_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[["Region", Event], ty.Any]]] = {
+        Mode.PAN_ZOOM: no_op,
+        Mode.TRANSFORM: no_op,
+        Mode.SELECT: no_op,
+        Mode.ADD: finish_drawing_region,
+        Mode.EDIT: finish_drawing_region,
+        Mode.MOVE: finish_drawing_region,
+    }
+    _cursor_modes: ty.ClassVar[dict[Mode, str]] = {
         Mode.PAN_ZOOM: "standard",
+        Mode.TRANSFORM: "standard",
+        Mode.SELECT: "pointing",
+        Mode.ADD: "pointing",
         Mode.EDIT: "standard",
+        Mode.MOVE: "pointing",
+    }
+    _interactive_modes: ty.ClassVar[ty.Set[Mode]] = {
+        Mode.PAN_ZOOM,
     }
 
     _highlight_color = (0, 0.6, 1)
@@ -156,7 +181,7 @@ class Region(BaseLayer):
         self._ndisplay_stored = self._slice_input.ndisplay
 
         self._data_view = RegionList(ndisplay=self._ndisplay_stored)
-        self._data_view.slice_key = np.array(self._slice_indices)[list(self._slice_input.not_displayed)]
+        self._data_view.slice_key = np.array(self._data_slice.point)[list(self._slice_input.not_displayed)]
 
         # indices of selected regions
         self._value = (None, None)

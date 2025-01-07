@@ -127,9 +127,11 @@ def parse_sys_argv():
 
 
 def _run():
+    """Main program."""
+    import logging
+    from koyo.hooks import install_debugger_hook
     from napari_plot import Viewer, run
 
-    """Main program."""
     args, kwargs = parse_sys_argv()
 
     # parse -v flags and set the appropriate logging level
@@ -139,6 +141,7 @@ def _run():
 
     if args.dev:
         os.environ["NAPARI_PLOT_DEV_MODE"] = "1"
+        install_debugger_hook()
 
     from napari_plot._qt.widgets.qt_splash_screen import QtSplashScreen
 
@@ -160,9 +163,26 @@ def _run():
     #     layer_type=args.layer_type,
     #     **kwargs,
     # )
-
-    # only necessary in bundled app, but see #3596
-    from napari.utils.misc import install_certifi_opener, running_as_bundled_app
+    # if args.dev:
+    #     import logging
+    #
+    #     from qtreload.qt_reload import QDevPopup
+    #     from qtpy.QtWidgets import QPushButton
+    #
+    #     logging.getLogger("qtreload").setLevel(0)
+    #
+    #     window = viewer._window._qt_viewer
+    #     dev_dlg = QDevPopup(
+    #         window,
+    #         modules=["koyo", "napari", "napari_plot"],
+    #     )
+    #     dev_dlg.qdev.evt_stylesheet.connect(lambda: window._update_theme())
+    #     if hasattr(window, "statusbar"):
+    #         window.dev_btn = QPushButton(window)
+    #         window.dev_btn.setText("DevTools")
+    #         window.dev_btn.setTooltip("Open developer tools.")
+    #         window.dev_btn.clicked.connect(dev_dlg.show)
+    #         window.statusbar.addPermanentWidget(window.dev_btn)  # type: ignore[attr-defined]
 
     run()
 

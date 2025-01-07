@@ -33,9 +33,7 @@ class QtaMixin:
         if "." not in name:
             name = QTA_MAPPING[name]
         self._qta_data = (name, kwargs)
-        icon = qtawesome.icon(
-            name, **self._qta_data[1], color=get_theme(get_settings().appearance.theme, False).icon.as_hex()
-        )
+        icon = qtawesome.icon(name, **self._qta_data[1], color=get_theme(get_settings().appearance.theme).icon.as_hex())
         self.setIcon(icon)
 
     def set_size(self, size: ty.Tuple[int, int]):
@@ -120,14 +118,8 @@ class QtModeRadioButton(QtImagePushButton):
         connect_no_arg(get_settings().appearance.events.theme, self, "_update_qta")
         _themes.events.connect(self._update_from_event)
 
-    def _set_mode(self, bool):
-        """Toggle the mode associated with the layer.
-
-        Parameters
-        ----------
-        bool : bool
-            Whether this mode is currently selected or not.
-        """
+    def _set_mode(self, value: bool):
+        """Toggle the mode associated with the layer."""
         with self.layer.events.mode.blocker(self._set_mode):
-            if bool:
+            if value:
                 self.layer.mode = self.mode

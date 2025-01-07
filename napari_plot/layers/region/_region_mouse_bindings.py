@@ -1,18 +1,24 @@
 """Mouse bindings."""
+
+from __future__ import annotations
 from copy import copy
 
 import numpy as np
-
+import typing as ty
 from napari_plot.layers.region._region_constants import Orientation
 from napari_plot.layers.region._region_utils import preprocess_region
 
+if ty.TYPE_CHECKING:
+    from vispy.app.canvas import MouseEvent
+    from napari_plot.layers.region import Region
 
-def highlight(layer, event):
+
+def highlight(layer: Region, event: MouseEvent) -> None:
     """Highlight hovered regions."""
     layer._set_highlight()
 
 
-def add(layer, event):
+def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     """Add new infinite region."""
     # on press
     pos_start = event.pos
@@ -51,7 +57,12 @@ def add(layer, event):
     layer._finish_drawing()
 
 
-def edit(layer, event):
+def finish_drawing_region(layer: Region, event: MouseEvent) -> None:
+    """Finish drawing region."""
+    layer._finish_drawing()
+
+
+def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     """Edit layer by first selecting and then drawing new version of the region."""
     if len(layer.selected_data) == 1:
         # on press
@@ -79,7 +90,7 @@ def edit(layer, event):
         layer.mode = "select"
 
 
-def move(layer, event):
+def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     """Move region by first selecting and then moving along the axis."""
     # on press
     _select(layer, event, False)
@@ -110,7 +121,7 @@ def move(layer, event):
         layer._update_thumbnail()
 
 
-def select(layer, event):
+def select(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     """Select new region in the canvas"""
     shift = "Shift" in event.modifiers
     # on press
@@ -148,7 +159,7 @@ def select(layer, event):
         layer._update_thumbnail()
 
 
-def _select(layer, event, shift: bool):
+def _select(layer: Region, event: MouseEvent, shift: bool) -> ty.Tuple[ty.Optional[int], ty.Optional[int]]:
     """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
     # TODO: update current_face_color
     value = layer.get_value(event.position, world=True)
@@ -169,7 +180,7 @@ def _select(layer, event, shift: bool):
     return region_under_cursor, vertex_under_cursor
 
 
-def _drag_selection_box(layer, coordinates):
+def _drag_selection_box(layer: Region, coordinates: tuple[int, int]) -> None:
     """Drag a selection box.
 
     Parameters
@@ -193,14 +204,14 @@ def _drag_selection_box(layer, coordinates):
     layer._set_highlight()
 
 
-def _get_half(data: np.ndarray, orientation: Orientation):
+def _get_half(data: np.ndarray, orientation: Orientation) -> float:
     """Get data along dimension."""
     if orientation == Orientation.HORIZONTAL:
         return abs(data[0, 0] - data[2, 0]) / 2
     return abs(data[0, 1] - data[1, 1]) / 2
 
 
-def _get_region(coordinates, wh_half: float, orientation: Orientation):
+def _get_region(coordinates, wh_half: float, orientation: Orientation) -> tuple[float, float]:
     """Get region."""
     if orientation == Orientation.HORIZONTAL:
         return preprocess_region((coordinates[0] - wh_half, coordinates[0] + wh_half), orientation)
