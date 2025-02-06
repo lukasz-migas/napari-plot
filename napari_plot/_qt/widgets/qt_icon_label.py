@@ -1,4 +1,5 @@
 """QtIconLabel"""
+
 import qtawesome
 from napari.settings import get_settings
 from napari.utils.events.event_utils import connect_no_arg
@@ -45,7 +46,9 @@ class QtQtaLabel(QtIconLabel):
             name = QTA_MAPPING[name]
         self._qta_data = (name, kwargs)
         icon = qtawesome.icon(
-            name, **self._qta_data[1], color=get_theme(get_settings().appearance.theme, False).icon.as_hex()
+            name,
+            **self._qta_data[1],
+            color=get_theme(get_settings().appearance.theme, False).icon.as_hex(),
         )
         self.setIcon(icon)
 

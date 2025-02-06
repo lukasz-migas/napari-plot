@@ -1,4 +1,5 @@
 """Horizontal and Vertical lines"""
+
 from qtpy.QtWidgets import QFrame
 
 

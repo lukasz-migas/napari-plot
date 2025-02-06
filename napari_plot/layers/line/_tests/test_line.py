@@ -1,4 +1,5 @@
 """Test Line layer."""
+
 import numpy as np
 import pytest
 
@@ -10,7 +11,7 @@ def test_line_empty():
     assert layer.ndim == 2
 
 
-@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3]], np.random.random((10, 2))))
+@pytest.mark.parametrize("data", [[[0, 1, 2], [1, 2, 3]], np.random.random((10, 2))])
 def test_line_data(data):
     layer = Line(data)
     assert isinstance(layer.data, np.ndarray)

@@ -1,10 +1,11 @@
 """Camera model"""
+
 import typing as ty
 from enum import Enum
 
+from napari._pydantic_compat import validator
 from napari.utils.events import EventedModel
 from napari.utils.misc import ensure_n_tuple
-from pydantic import validator
 
 
 class CameraMode(str, Enum):
@@ -32,7 +33,10 @@ class ExtentMode(str, Enum):
     UNRESTRICTED = "unrestricted"
 
 
-EXTENT_MODE_TRANSLATIONS = {ExtentMode.RESTRICTED: "restricted", ExtentMode.UNRESTRICTED: "unrestricted"}
+EXTENT_MODE_TRANSLATIONS = {
+    ExtentMode.RESTRICTED: "restricted",
+    ExtentMode.UNRESTRICTED: "unrestricted",
+}
 
 
 class Camera(EventedModel):
@@ -122,7 +126,10 @@ class Camera(EventedModel):
             self.x_range = None
         else:
             x0, x1, _, _ = self._extent
-            self.x_range = min_val if min_val is not None else x0, max_val if max_val is not None else x1
+            self.x_range = (
+                min_val if min_val is not None else x0,
+                max_val if max_val is not None else x1,
+            )
 
     def set_y_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
         """Set y-axis range."""
@@ -130,4 +137,7 @@ class Camera(EventedModel):
             self.y_range = None
         else:
             _, _, y0, y1 = self._extent
-            self.y_range = min_val if min_val is not None else y0, max_val if max_val is not None else y1
+            self.y_range = (
+                min_val if min_val is not None else y0,
+                max_val if max_val is not None else y1,
+            )

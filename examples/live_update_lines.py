@@ -1,8 +1,11 @@
 """Example shows a sine wave `moving` over time.."""
+
 import time
-import napari_plot
+
 import numpy as np
 from napari.qt import thread_worker
+
+import napari_plot
 
 
 def update_layer(res):

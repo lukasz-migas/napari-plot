@@ -38,4 +38,4 @@ def test_bad_color_array():
     # test setting color with a color array of the wrong shape
     bad_color_array = np.array([[0, 0, 0, 1], [1, 1, 1, 1]])
     with pytest.raises(ValueError):
-        setattr(region_list, "color", bad_color_array)
+        region_list.color = bad_color_array

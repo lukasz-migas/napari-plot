@@ -1,4 +1,5 @@
 """Test controls"""
+
 import numpy as np
 import pytest
 from napari.utils.colormaps.standardize_color import transform_color
@@ -12,7 +13,13 @@ np.random.seed(0)
 _REGION = [[50, 100], [100, 200]]
 
 
-@pytest.mark.parametrize("layer", [Region(_REGION, orientation="vertical"), Region(_REGION, orientation="horizontal")])
+@pytest.mark.parametrize(
+    "layer",
+    [
+        Region(_REGION, orientation="vertical"),
+        Region(_REGION, orientation="horizontal"),
+    ],
+)
 def test_region_controls_creation(qtbot, layer):
     """Check basic creation of QtInfLineControls works"""
     qtctrl = QtRegionControls(layer)

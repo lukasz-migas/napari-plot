@@ -1,4 +1,5 @@
 """napari-plot command line viewer."""
+
 import argparse
 import logging
 import os
@@ -15,10 +16,8 @@ class InfoAction(argparse.Action):
 
     def __call__(self, *args, **kwargs):
         # prevent unrelated INFO logs when doing "napari --info"
-        from napari.utils import sys_info
 
         logging.basicConfig(level=logging.WARNING)
-        print(sys_info())
         sys.exit()
 
 
@@ -61,7 +60,7 @@ def validate_unknown_args(unknown: ty.List[str]) -> ty.Dict[str, ty.Any]:
             try:
                 value = unknown[i + 1]
                 if value.startswith("--"):
-                    raise IndexError()
+                    raise IndexError
             except IndexError:
                 sys.exit(f"error: argument {arg} expected one argument")
         try:
@@ -129,7 +128,9 @@ def parse_sys_argv():
 def _run():
     """Main program."""
     import logging
+
     from koyo.hooks import install_debugger_hook
+
     from napari_plot import Viewer, run
 
     args, kwargs = parse_sys_argv()

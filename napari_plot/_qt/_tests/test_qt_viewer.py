@@ -1,4 +1,5 @@
 """Check QtViewer"""
+
 import numpy as np
 import pytest
 
@@ -36,7 +37,7 @@ def test_qt_viewer_toggle_console(make_napari_plot_viewer):
     assert view.dockConsole.widget() is view.console
 
 
-@pytest.mark.parametrize("layer_class, data", layer_test_data)
+@pytest.mark.parametrize(("layer_class", "data"), layer_test_data)
 def test_add_layer(make_napari_plot_viewer, layer_class, data):
     viewer = make_napari_plot_viewer()
     add_layer_by_type(viewer, layer_class, data)

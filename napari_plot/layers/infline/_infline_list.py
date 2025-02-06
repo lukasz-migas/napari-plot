@@ -1,4 +1,5 @@
 """Infinite line list."""
+
 import typing as ty
 
 import numpy as np
@@ -126,7 +127,7 @@ class InfiniteLineList:
             cur_line = self.inflines[index]
             if isinstance(new_orientation, (str, Orientation)):
                 orientation = Orientation(new_orientation)
-                if orientation in infline_classes.keys():
+                if orientation in infline_classes:
                     line_cls = infline_classes[orientation]
                 else:
                     raise ValueError(
@@ -186,6 +187,7 @@ class InfiniteLineList:
         if len(indices) > 0:
             z_list = [self._z_order[i] for i in indices]
             return indices[np.argsort(z_list)][0]
+        return None
 
     def lines_in_box(self, corners):
         """Determines which lines, if any, are inside an axis aligned box."""

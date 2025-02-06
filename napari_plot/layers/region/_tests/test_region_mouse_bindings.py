@@ -1,10 +1,15 @@
 """Test regions mouse bindings."""
+
 import collections
 
 import numpy as np
 import pytest
 from napari.utils._proxies import ReadOnlyWrapper
-from napari.utils.interactions import mouse_move_callbacks, mouse_press_callbacks, mouse_release_callbacks
+from napari.utils.interactions import (
+    mouse_move_callbacks,
+    mouse_press_callbacks,
+    mouse_release_callbacks,
+)
 
 from napari_plot.layers import Region
 from napari_plot.layers.region.region import Mode, Orientation
@@ -229,7 +234,6 @@ def test_select_region(create_known_region_layer, Event):
         "select",
         "move",
         "add",
-        "select",
     ],
 )
 def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
@@ -407,7 +411,15 @@ def test_selecting_regions_with_drag(create_known_region_layer, Event):
     mouse_move_callbacks(layer, event)
 
     # Simulate drag end
-    event = ReadOnlyWrapper(Event(type="mouse_move", is_dragging=True, modifiers=[], pos=(), position=(1000, 1000)))
+    event = ReadOnlyWrapper(
+        Event(
+            type="mouse_move",
+            is_dragging=True,
+            modifiers=[],
+            pos=(),
+            position=(1000, 1000),
+        )
+    )
     mouse_move_callbacks(layer, event)
 
     # Simulate release
@@ -484,11 +496,11 @@ def test_selecting_no_regions_with_drag(create_known_region_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-@pytest.mark.parametrize("attr", ("_move_modes", "_drag_modes", "_cursor_modes"))
+@pytest.mark.parametrize("attr", ["_move_modes", "_drag_modes", "_cursor_modes"])
 def test_all_modes_covered(attr):
     """
     Test that all dictionaries modes have all the keys, this simplify the handling logic
     As we do not need to test whether a key is in a dict or not.
     """
     mode_dict = getattr(Region, attr)
-    assert {k.value for k in mode_dict.keys()} == set(Mode.keys())
+    assert {k.value for k in mode_dict} == set(Mode.keys())

@@ -1,6 +1,8 @@
 """Example showing how to plot multiple line sand adjust axis labels."""
-import napari_plot
+
 import numpy as np
+
+import napari_plot
 
 viewer1d = napari_plot.Viewer()
 x = np.arange(0.0, 10.0, 0.01)

@@ -1,9 +1,15 @@
 """Test image buttons."""
+
 import pytest
 from napari.layers import Points
 from napari.layers.points._points_constants import Mode
 
-from napari_plot._qt.widgets.qt_icon_button import SIZES, QtImagePushButton, QtModePushButton, QtModeRadioButton
+from napari_plot._qt.widgets.qt_icon_button import (
+    SIZES,
+    QtImagePushButton,
+    QtModePushButton,
+    QtModeRadioButton,
+)
 
 
 @pytest.mark.parametrize("size_name", SIZES)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from napari.utils.translations import trans
 from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QPainter
 from qtpy.QtWidgets import (
@@ -10,8 +11,6 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
-
-from napari.utils.translations import trans
 
 
 class QtWelcomeLabel(QLabel):

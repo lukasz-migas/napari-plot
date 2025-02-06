@@ -1,4 +1,5 @@
 """Test utilities."""
+
 import numpy as np
 from napari.utils.events import EventedList
 

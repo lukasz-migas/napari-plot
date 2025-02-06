@@ -1,25 +1,31 @@
 """Event loop"""
+
+import logging
 import os
 import sys
+from typing import Optional
 from warnings import warn
-import logging
 
-from napari._qt.qt_event_filters import QtToolTipEventFilter
-from qtpy import PYQT5, PYSIDE2
 from napari._qt.dialogs.qt_notification import NapariQtNotification
-from napari._qt.qt_event_loop import _ipython_has_eventloop, _pycharm_has_eventloop, _try_enable_ipython_gui  # noqa
+from napari._qt.qt_event_filters import QtToolTipEventFilter
+from napari._qt.qt_event_loop import (
+    _ipython_has_eventloop,
+    _pycharm_has_eventloop,
+    _try_enable_ipython_gui,
+)
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.resources._icons import _theme_path
 from napari.utils.notifications import notification_manager, show_console_notification
 from napari.utils.theme import _themes, build_theme_svgs
+from qtpy import PYQT5, PYSIDE2
 from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
+import napari_plot.resources  # noqa: F401
 from napari_plot import __version__
 from napari_plot.viewer import Viewer
-import napari_plot.resources  # noqa: F401
 
 NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
@@ -53,13 +59,13 @@ _IPYTHON_WAS_HERE_FIRST = "IPython" in sys.modules
 
 def get_app(
     *,
-    app_name: str = None,
-    app_version: str = None,
-    icon: str = None,
-    org_name: str = None,
-    org_domain: str = None,
-    app_id: str = None,
-    ipy_interactive: bool = None,
+    app_name: Optional[str] = None,
+    app_version: Optional[str] = None,
+    icon: Optional[str] = None,
+    org_name: Optional[str] = None,
+    org_domain: Optional[str] = None,
+    app_id: Optional[str] = None,
+    ipy_interactive: Optional[bool] = None,
 ) -> QApplication:
     """Get or create the Qt QApplication.
 

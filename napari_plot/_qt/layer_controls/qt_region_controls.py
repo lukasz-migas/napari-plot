@@ -1,15 +1,14 @@
 """Scatter layer controls"""
+
 import typing as ty
 
 import numpy as np
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Slot
-from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
 import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari_plot._qt.widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from napari_plot.layers.region._region_constants import Mode
 
 if ty.TYPE_CHECKING:
@@ -48,6 +47,10 @@ class QtRegionControls(QtLayerControls):
         Button to zoom in and disable other actions.
     """
 
+    MODE = Mode
+    PAN_ZOOM_ACTION_NAME = "activate_region_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_region_transform_mode"
+
     def __init__(self, layer: "Region"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
@@ -60,70 +63,86 @@ class QtRegionControls(QtLayerControls):
             initial_color=self.layer.current_color,
             tooltip="Click to set current face color",
         )
-        self.color_swatch.color_changed.connect(self.on_change_current_color)  # noqa
+        self.color_swatch.color_changed.connect(self.on_change_current_color)
         self._on_current_color_change(None)
 
-        self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
-        self.select_button = QtModeRadioButton(layer, "select", Mode.SELECT, tooltip="Select new region (S)")
-        self.edit_button = QtModeRadioButton(
+        self.delete_button = self._action_button(
+            layer,
+            "delete_shape",
+            slot=layer.remove_selected,
+            tooltip="Delete selected infinite lines (Backspace)",
+            edit_button=True,
+        )
+        self.add_button = self._radio_button(
+            layer,
+            "add",
+            Mode.ADD,
+            True,
+            tooltip="Add Region line (A)",
+            action_name="activate_region_add_mode",
+        )
+        self.select_button = self._radio_button(
+            layer,
+            "select_points",
+            Mode.SELECT,
+            True,
+            tooltip="Select Region line(s) (S)",
+            action_name="activate_region_select_mode",
+        )
+        self.move_button = self._radio_button(
+            layer,
+            "move",
+            Mode.MOVE,
+            True,
+            tooltip="Move Region line (M)",
+            action_name="activate_region_move_mode",
+        )
+        self.edit_button = self._radio_button(
             layer,
             "draw",
             Mode.EDIT,
+            True,
             tooltip="Edit region (E). Please first select ONE region and then modify it's range.",
-        )
-        self.move_button = QtModeRadioButton(layer, "move", Mode.MOVE, tooltip="Move region (M)")
-        self.panzoom_button = QtModeRadioButton(
-            layer,
-            "pan_zoom",
-            Mode.PAN_ZOOM,
-            tooltip="Pan/zoom (Z)",
-            checked=True,
-        )
-        self.move_front_button = QtModePushButton(
-            layer, "move_front", slot=self.layer.move_to_front, tooltip="Move to front"
+            action_name="activate_region_edit_mode",
         )
 
-        self.move_back_button = QtModePushButton(
+        self.move_front_button = self._action_button(
+            layer,
+            "move_front",
+            slot=layer.move_to_front,
+            tooltip="Move to front",
+            edit_button=True,
+        )
+        self.move_back_button = self._action_button(
             layer,
             "move_back",
-            slot=self.layer.move_to_back,
+            slot=layer.move_to_back,
             tooltip="Move to back",
+            edit_button=True,
         )
-        self.delete_button = QtModePushButton(
-            layer, "delete_shape", slot=self.layer.remove_selected, tooltip="Delete selected infinite lines"
+        self.delete_button = self._action_button(
+            layer,
+            "delete_shape",
+            slot=layer.remove_selected,
+            tooltip="Delete selected infinite lines (Backspace)",
+            edit_button=True,
         )
 
-        self.button_group = QButtonGroup(self)
-        self.button_group.addButton(self.add_button)
-        self.button_group.addButton(self.select_button)
-        self.button_group.addButton(self.move_button)
-        self.button_group.addButton(self.panzoom_button)
-
-        button_row_1 = QHBoxLayout()
-        button_row_1.addStretch(1)
-        button_row_1.addWidget(self.add_button)
-        button_row_1.addWidget(self.select_button)
-        button_row_1.addWidget(self.edit_button)
-        button_row_1.addWidget(self.move_button)
-        button_row_1.addWidget(self.panzoom_button)
-        button_row_1.addWidget(self.delete_button)
-        button_row_1.setContentsMargins(0, 0, 0, 5)
-        button_row_1.setSpacing(4)
-
-        button_row_2 = QHBoxLayout()
-        button_row_2.addStretch(1)
-        button_row_2.addWidget(self.move_back_button)
-        button_row_2.addWidget(self.move_front_button)
-        button_row_2.setContentsMargins(0, 0, 0, 5)
-        button_row_2.setSpacing(4)
+        self.button_grid.addWidget(self.delete_button, 0, 1)
+        self.button_grid.addWidget(self.add_button, 0, 2)
+        self.button_grid.addWidget(self.select_button, 0, 3)
+        self.button_grid.addWidget(self.edit_button, 0, 4)
+        self.button_grid.addWidget(self.move_button, 0, 5)
+        # row 2
+        self.button_grid.addWidget(self.move_back_button, 1, 1)
+        self.button_grid.addWidget(self.move_front_button, 1, 2)
 
         # add widgets to the layout
-        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
         self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self.layout().addRow(button_row_1)
-        self.layout().addRow(button_row_2)
         self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 
@@ -165,7 +184,7 @@ class QtRegionControls(QtLayerControls):
         else:
             raise ValueError(f"Mode {mode} not recognized")
 
-    @Slot(np.ndarray)  # noqa
+    @Slot(np.ndarray)
     def on_change_current_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
         self.layer.current_color = color

@@ -1,4 +1,5 @@
 """Region list."""
+
 import typing as ty
 
 import numpy as np
@@ -371,7 +372,7 @@ class RegionList:
             cur_shape = self.regions[index]
             if isinstance(new_type, (str, Orientation)):
                 orientation = Orientation(new_type)
-                if orientation in region_classes.keys():
+                if orientation in region_classes:
                     shape_cls = region_classes[orientation]
                 else:
                     raise ValueError(
@@ -425,7 +426,7 @@ class RegionList:
             Order that the dimensions are rendered in.
         """
         for index in range(len(self.regions)):
-            if not self.regions[index].dims_order == dims_order:
+            if self.regions[index].dims_order != dims_order:
                 shape = self.regions[index]
                 shape.dims_order = dims_order
                 self.remove(index, renumber=False)
@@ -570,7 +571,7 @@ class RegionList:
             return ordered_shapes[0]
         return None
 
-    def to_masks(self, mask_shape=None, zoom_factor=1, offset=[0, 0]):
+    def to_masks(self, mask_shape=None, zoom_factor=1, offset=None):
         """Returns N binary masks, one for each shape, embedded in an array of
         shape `mask_shape`.
 
@@ -592,6 +593,8 @@ class RegionList:
             Array where there is one binary mask of shape MxP for each of
             N shapes
         """
+        if offset is None:
+            offset = [0, 0]
         if mask_shape is None:
             mask_shape = self.displayed_vertices.max(axis=0).astype("int")
 

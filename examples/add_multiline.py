@@ -3,8 +3,10 @@
 The MultiLine layer is implemented to enable better performance when plotting multiple lines of long length.
 In the example below we are plotting several long lines with no noticeable performance drop.
 """
-import napari_plot
+
 import numpy as np
+
+import napari_plot
 
 
 def update_fps(fps):
@@ -21,7 +23,9 @@ for i in range(n_lines):
 
 viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
-viewer1d.window._qt_viewer.canvas.measure_fps(callback=update_fps)
+# note: this is using a private attribute, so it might break
+# without warning in future versions!
+viewer1d.window._qt_viewer.canvas._scene_canvas.measure_fps(callback=update_fps)
 viewer1d.add_multi_line({"xs": xs, "ys": ys})
 
 if __name__ == "__main__":

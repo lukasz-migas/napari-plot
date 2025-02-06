@@ -1,11 +1,18 @@
 """Line layer"""
+
 import numpy as np
-from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
+from napari.layers.utils.color_transformations import (
+    normalize_and_broadcast_colors,
+    transform_color_with_defaults,
+)
 from napari.utils.events import Event
 
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.centroids._centroids_constants import Method, Orientation
-from napari_plot.layers.centroids._centroids_utils import get_extents, parse_centroids_data
+from napari_plot.layers.centroids._centroids_utils import (
+    get_extents,
+    parse_centroids_data,
+)
 
 
 class Centroids(BaseLayer):

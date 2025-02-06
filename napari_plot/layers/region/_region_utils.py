@@ -19,7 +19,7 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
     if data is None:
         return [], []
     # Tuple for one shape or list of shapes with shape_type
-    elif isinstance(data, ty.Tuple):
+    if isinstance(data, ty.Tuple):
         data, orientation = data
         data, orientation = [data], [orientation]
     # List of (windows, shape_type) or (window min, window max) tuples
@@ -53,7 +53,6 @@ def preprocess_region(data, orientation) -> ty.List:
     # min_val, max_val = np.iinfo(np.int16).min, np.iinfo(np.int16).max
     min_val = np.finfo(np.float32).min / 1e20
     max_val = np.finfo(np.float32).max / 1e20
-    print(min_val, max_val)
     start, end = np.asarray(data, dtype=np.float32)
     if orientation == "vertical":
         return [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]

@@ -3,8 +3,10 @@
 The MultiLine layer accepts data of different sizes. You can provide dict of `xs` and `ys` of arbitrary lengths
 as long as the number of lines arrays is the same and the corresponding arrays have identical size.
 """
-import napari_plot
+
 import numpy as np
+
+import napari_plot
 
 
 def update_fps(fps):
@@ -22,7 +24,9 @@ for i in range(n_lines):
 
 viewer1d = napari_plot.Viewer()
 viewer1d.text_overlay.visible = True
-viewer1d.window._qt_viewer.canvas.measure_fps(callback=update_fps)
+# note: this is using a private attribute, so it might break
+# without warning in future versions!
+viewer1d.window._qt_viewer.canvas._scene_canvas.measure_fps(callback=update_fps)
 viewer1d.add_multi_line({"xs": xs, "ys": ys})
 
 if __name__ == "__main__":

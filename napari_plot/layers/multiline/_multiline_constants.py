@@ -1,4 +1,5 @@
 """Multiline constants"""
+
 from enum import auto
 
 from napari.utils.misc import StringEnum

@@ -1,4 +1,5 @@
 """Get all paths."""
+
 from pathlib import Path
 
 from napari._qt.qt_resources import STYLES, get_stylesheet  # noqa
@@ -25,7 +26,8 @@ QTA_MAPPING = {
     "target": "mdi6.target",
     # "move": "ei.move",
     "move": "ei.move",
-    "add": "ri.add-circle-fill",
+    # "add": "ri.add-circle-fill",
+    "add": "ri.add-circle-line",
     "minimise": "fa5s.window-minimize",
     "new_line": "msc.pulse",
     "new_centroids": "ri.bar-chart-fill",
@@ -35,10 +37,18 @@ QTA_MAPPING = {
     "new_points": "mdi6.scatter-plot",
     "home": "fa5s.home",
     "zoom": "fa5s.search",
-    # "pan_zoom": "fa5s.search",
-    "pan_zoom": "ei.move",
-    "select": "fa5s.location-arrow",
-    "select_points": "fa5s.location-arrow",
+    "pan": "ph.hand-pointing",
+    # "transform": "mdi.arrow-expand-all",
+    # "transform": "mdi.select-drag",
+    "transform": "ph.selection-plus-fill",
+    # "pan_zoom": "ei.move",
+    "pan_zoom": "fa5s.arrows-alt",
+    # "select": "fa5s.location-arrow",
+    "select_empty": "|ph.navigation-arrow-bold",
+    "select": "ph.navigation-arrow-fill",
+    # "select_points": "fa5s.location-arrow",
+    "select_points": "ph.navigation-arrow-fill",
+    "select_points_empty": "|ph.navigation-arrow-bold",
     "delete_shape": "fa5s.times",
     "move_back": "mdi6.arrange-send-backward",
     "move_front": "mdi6.arrange-bring-to-front",

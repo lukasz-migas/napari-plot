@@ -1,11 +1,12 @@
 """Napari-plot base layer"""
-import warnings
+
 import typing as ty
+import warnings
 from contextlib import contextmanager
 
 import numpy as np
 from napari.layers.base import Layer
-from napari.utils.events import EmitterGroup, Event
+from napari.utils.events import EmitterGroup
 
 
 class LayerMixin:
@@ -61,13 +62,12 @@ class LayerMixin:
             if not hasattr(self, attr):
                 if throw_exception:
                     raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{attr}'")
-                else:
-                    continue
+                continue
             try:
                 setattr(self, attr, value)
-            except (AttributeError, ValueError) as err:
+            except (AttributeError, ValueError):
                 if throw_exception:
-                    raise err
+                    raise
 
     def _get_mask_from_path(self, vertices, as_indices: bool = False):
         """Return data contained for specified vertices. Only certain layers implement this."""

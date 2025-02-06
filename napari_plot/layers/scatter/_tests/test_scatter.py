@@ -1,4 +1,5 @@
 """Test scatter layer."""
+
 from itertools import cycle, islice
 
 import numpy as np
@@ -52,7 +53,7 @@ def test_scatter_update_attrs():
     layer.update_attributes(face_color=1, throw_exception=False)
 
 
-@pytest.mark.parametrize("data", ([[0, 1], [1, 2], [3, 3]], np.random.random((10, 2))))
+@pytest.mark.parametrize("data", [[[0, 1], [1, 2], [3, 3]], np.random.random((10, 2))])
 def test_scatter_data(data):
     layer = Scatter(data)
     assert isinstance(layer.data, np.ndarray)
@@ -60,7 +61,7 @@ def test_scatter_data(data):
         layer.data = np.random.random((10, 3))
 
 
-@pytest.mark.parametrize("data", ([[0, 1, 2], [1, 2, 3]], np.random.random((10, 3))))
+@pytest.mark.parametrize("data", [[[0, 1, 2], [1, 2, 3]], np.random.random((10, 3))])
 def test_scatter_data_fail(data):
     with pytest.raises(ValueError):
         Scatter(data)
@@ -250,7 +251,28 @@ def test_point_selection_by_path():
     yx = np.c_[np.sin(2 * np.pi * x), x]
     layer = Scatter(yx)
     vertices = [[-0.2, -1.4], [0.29, -1.42], [0.29, 11.55], [-0.21, 11.55]]
-    expected = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95]
+    expected = [
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+    ]
     indices = layer._get_mask_from_path(vertices, as_indices=True)
     assert indices.ndim == 1
     assert indices.size == 20

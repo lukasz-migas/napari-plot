@@ -12,8 +12,7 @@ __all__ = ["Window"]
 try:
     from napari_plot._qt.qt_main_window import Window
 
-except ImportError as e:
-    print(f"Failed to import `napari_plot._qt.qt_main_window.Window`: {e}")
+except ImportError:
 
     class Window:  # type: ignore
         def __init__(self, *args, **kwargs):

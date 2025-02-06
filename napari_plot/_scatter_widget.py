@@ -2,6 +2,7 @@
 
 This widget is inspired by ScatterWidget in https://github.com/dstansby/napari-matplotlib
 """
+
 import typing as ty
 from contextlib import suppress
 from warnings import warn
@@ -45,11 +46,7 @@ class ScatterPlotWidget(NapariPlotWidget):
     @staticmethod
     def _check_layers(layers: ty.List) -> bool:
         """Check whether layers of correct type."""
-        if len(layers) != 2:
-            return False
-        elif any([type(layer) != Image for layer in layers]):
-            return False
-        return True
+        return not (len(layers) != 2 or any(type(layer) != Image for layer in layers))
 
     def on_update_layers(self, event=None):
         """Update layer selection."""
@@ -80,7 +77,11 @@ class ScatterPlotWidget(NapariPlotWidget):
     def connect_events(self, state: bool = True) -> None:
         """Connect events."""
         connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
-        connect(self.viewer.layers.selection.events.changed, self.on_update_layers, state=state)
+        connect(
+            self.viewer.layers.selection.events.changed,
+            self.on_update_layers,
+            state=state,
+        )
 
     def closeEvent(self, event) -> None:
         """Close event."""

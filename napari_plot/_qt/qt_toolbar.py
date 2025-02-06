@@ -1,4 +1,6 @@
 """Toolbar"""
+
+import typing as ty
 from weakref import ref
 
 from qtpy.QtCore import Qt
@@ -7,11 +9,9 @@ from qtpy.QtWidgets import QAction, QMenu, QWidget
 import napari_plot._qt.helpers as hp
 from napari_plot._qt.widgets.qt_mini_toolbar import QtMiniToolbar
 
-import typing as ty
-
 if ty.TYPE_CHECKING:
-    from napari_plot.viewer import Viewer
     from napari_plot._qt.qt_viewer import QtViewer
+    from napari_plot.viewer import Viewer
 
 
 class QtViewToolbar(QWidget):
@@ -33,7 +33,9 @@ class QtViewToolbar(QWidget):
         self.tools_zoomout_btn = toolbar_right.insert_qta_tool("zoom_out", tooltip="Zoom-out", func=self._reset_view)
         # view modifiers
         self.tools_clip_btn = toolbar_right.insert_qta_tool(
-            "clipboard", tooltip="Copy figure to clipboard", func=self.ref_qt_viewer().clipboard
+            "clipboard",
+            tooltip="Copy figure to clipboard",
+            func=self.ref_qt_viewer().clipboard,
         )
         self.tools_camera_btn = toolbar_right.insert_qta_tool(
             "zoom",
@@ -93,7 +95,9 @@ class QtViewToolbar(QWidget):
         dlg.show_left_of_widget(self.tools_axis_btn, x_offset=dlg.width() * 2)
 
     def _toggle_camera_controls(self, _):
-        from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls
+        from napari_plot._qt.component_controls.qt_camera_controls import (
+            QtCameraControls,
+        )
 
         dlg = QtCameraControls(self.ref_viewer(), self.ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_camera_btn, x_offset=dlg.width() * 2)
@@ -122,16 +126,11 @@ class QtViewToolbar(QWidget):
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self.ref_qt_viewer().viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
         toggle_tool.triggered.connect(
-            lambda: setattr(self.ref_qt_viewer().viewer.drag_tool, "active", DragMode.HORIZONTAL_SPAN)
-        )
-        menu.addAction(toggle_tool)
-        actions.append(toggle_tool)
-
-        toggle_tool = QAction("Tool: Box (select)", self)
-        toggle_tool.setCheckable(True)
-        toggle_tool.setChecked(self.ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX_SELECT)
-        toggle_tool.triggered.connect(
-            lambda: setattr(self.ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX_SELECT)
+            lambda: setattr(
+                self.ref_qt_viewer().viewer.drag_tool,
+                "active",
+                DragMode.HORIZONTAL_SPAN,
+            )
         )
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
@@ -145,7 +144,16 @@ class QtViewToolbar(QWidget):
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
-        toggle_tool = QAction("Tool: Polygon (select)", self)
+        toggle_tool = QAction("Select tool: Box (select)", self)
+        toggle_tool.setCheckable(True)
+        toggle_tool.setChecked(self.ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX_SELECT)
+        toggle_tool.triggered.connect(
+            lambda: setattr(self.ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX_SELECT)
+        )
+        menu.addAction(toggle_tool)
+        actions.append(toggle_tool)
+
+        toggle_tool = QAction("Select tool: Polygon (select)", self)
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self.ref_qt_viewer().viewer.drag_tool.active == DragMode.POLYGON)
         toggle_tool.triggered.connect(
@@ -154,7 +162,7 @@ class QtViewToolbar(QWidget):
         menu.addAction(toggle_tool)
         actions.append(toggle_tool)
 
-        toggle_tool = QAction("Tool: Lasso (select)", self)
+        toggle_tool = QAction("Select tool: Lasso (select)", self)
         toggle_tool.setCheckable(True)
         toggle_tool.setChecked(self.ref_qt_viewer().viewer.drag_tool.active == DragMode.LASSO)
         toggle_tool.triggered.connect(lambda: setattr(self.ref_qt_viewer().viewer.drag_tool, "active", DragMode.LASSO))

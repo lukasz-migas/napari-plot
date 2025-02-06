@@ -1,4 +1,5 @@
 """Test ViewerModel"""
+
 import numpy as np
 import pytest
 
@@ -173,7 +174,10 @@ def test_camera():
     assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -10, 15)
 
 
-@pytest.mark.parametrize("field", ["camera", "cursor", "layers", "grid_lines", "axis", "drag_tool", "text_overlay"])
+@pytest.mark.parametrize(
+    "field",
+    ["camera", "cursor", "layers", "grid_lines", "axis", "drag_tool", "text_overlay"],
+)
 def test_not_mutable_fields(field):
     """Test appropriate fields are not mutable."""
     viewer = ViewerModel()

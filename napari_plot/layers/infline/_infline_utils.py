@@ -1,4 +1,5 @@
 """Infinite line utilities."""
+
 import typing as ty
 
 import numpy as np
@@ -26,9 +27,9 @@ def make_infinite_line(
     indices : ty.List[int], optional
         List containing indices of lines to be included in the final display.
     """
-    assert (
-        len(data) == len(orientations) == len(colors)
-    ), "The number of points must match the number of orientations and colors."
+    assert len(data) == len(orientations) == len(colors), (
+        "The number of points must match the number of orientations and colors."
+    )
 
     if indices is None:
         indices = np.arange(len(data))
@@ -66,10 +67,7 @@ def make_infinite_pos(data: np.ndarray, orientations: ty.Iterable[Orientation]):
     if len(data) == 0:
         return np.zeros((0, 2))
     for val, orientation in zip(data, orientations):
-        if orientation == Orientation.VERTICAL:
-            _pos = [val, np.nan]
-        else:
-            _pos = [np.nan, val]
+        _pos = [val, np.nan] if orientation == Orientation.VERTICAL else [np.nan, val]
         pos.extend([_pos])
 
     return np.asarray(pos, dtype=np.float32)

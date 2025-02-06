@@ -1,9 +1,9 @@
 """X/Y-axis controls"""
 
 from typing import TYPE_CHECKING
-
 from weakref import ref
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
@@ -43,7 +43,11 @@ class QtAxisWidget(QWidget):
         self.x_axis_edit.textChanged.connect(self.on_change_label)
 
         self.x_label_margin_spin = hp.make_slider_with_text(
-            self, min_value=10, max_value=120, step_size=5, value=viewer.axis.x_label_margin
+            self,
+            min_value=10,
+            max_value=120,
+            step_size=5,
+            value=viewer.axis.x_label_margin,
         )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 
@@ -51,7 +55,11 @@ class QtAxisWidget(QWidget):
         self.y_axis_edit.textChanged.connect(self.on_change_label)
 
         self.y_label_margin_spin = hp.make_slider_with_text(
-            self, min_value=10, max_value=120, step_size=5, value=viewer.axis.y_label_margin
+            self,
+            min_value=10,
+            max_value=120,
+            step_size=5,
+            value=viewer.axis.y_label_margin,
         )
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 

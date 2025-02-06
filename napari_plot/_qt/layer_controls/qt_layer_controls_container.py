@@ -1,6 +1,6 @@
 """Layer controls."""
+
 import napari._qt.layer_controls.qt_layer_controls_container
-from napari._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer  # noqa
 
 from napari_plot._qt.layer_controls.qt_centroids_controls import QtCentroidControls
 from napari_plot._qt.layer_controls.qt_infline_controls import QtInfLineControls

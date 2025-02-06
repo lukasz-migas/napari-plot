@@ -1,7 +1,8 @@
 """Line controls"""
+
 import typing as ty
 
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
@@ -38,6 +39,9 @@ class QtLineControls(QtLayerControls):
         Color swatch controlling the line color.
     """
 
+    PAN_ZOOM_ACTION_NAME = "activate_line_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_line_transform_mode"
+
     def __init__(self, layer: "Line"):
         super().__init__(layer)
         self.layer.events.color.connect(self._on_color_change)
@@ -47,7 +51,12 @@ class QtLineControls(QtLayerControls):
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.width_slider = hp.make_slider_with_text(
-            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+            self,
+            1,
+            25,
+            value=self.layer.width,
+            tooltip="Line width.",
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
@@ -58,7 +67,8 @@ class QtLineControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_color)
 
         # add widgets to layout
-        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Line width"), self.width_slider)
         self.layout().addRow(hp.make_label(self, "Line color"), self.color_swatch)

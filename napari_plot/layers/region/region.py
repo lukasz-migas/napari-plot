@@ -1,4 +1,5 @@
 """Infinite region"""
+from __future__ import annotations
 
 import typing as ty
 import warnings
@@ -6,6 +7,10 @@ from copy import copy
 
 import numpy as np
 from napari.layers.base import no_op
+from napari.layers.base._base_mouse_bindings import (
+    highlight_box_handles,
+    transform_with_box,
+)
 from napari.layers.shapes._shapes_utils import create_box
 from napari.layers.utils.color_transformations import (
     ColorType,
@@ -21,11 +26,18 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.region._region import region_classes
 from napari_plot.layers.region._region_constants import Box, Mode, Orientation
 from napari_plot.layers.region._region_list import RegionList
-from napari_plot.layers.region._region_mouse_bindings import add, edit, highlight, move, select, finish_drawing_region
-from napari_plot.layers.region._region_utils import get_default_region_type, parse_region_data, preprocess_region
-from napari.layers.base._base_mouse_bindings import (
-    highlight_box_handles,
-    transform_with_box,
+from napari_plot.layers.region._region_mouse_bindings import (
+    add,
+    edit,
+    finish_drawing_region,
+    highlight,
+    move,
+    select,
+)
+from napari_plot.layers.region._region_utils import (
+    get_default_region_type,
+    parse_region_data,
+    preprocess_region,
 )
 
 REV_TOOL_HELP = {
@@ -91,7 +103,7 @@ class Region(BaseLayer):
 
     _modeclass = Mode
 
-    _drag_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[["Region", Event], ty.Any]]] = {
+    _drag_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[[Region, Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: transform_with_box,  # TODO: replace with transform
         Mode.SELECT: select,
@@ -107,7 +119,7 @@ class Region(BaseLayer):
         Mode.EDIT: no_op,
         Mode.MOVE: highlight,
     }
-    _double_click_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[["Region", Event], ty.Any]]] = {
+    _double_click_modes: ty.ClassVar[ty.Dict[Mode, ty.Callable[[Region, Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.SELECT: no_op,
@@ -672,7 +684,12 @@ class Region(BaseLayer):
         for d, ot, fc, z in shape_inputs:
             region_cls = region_classes[Orientation(ot)]
             d = preprocess_region(d, ot)
-            region = region_cls(d, z_index=z, dims_order=self._slice_input.order, ndisplay=self._slice_input.ndisplay)
+            region = region_cls(
+                d,
+                z_index=z,
+                dims_order=self._slice_input.order,
+                ndisplay=self._slice_input.ndisplay,
+            )
 
             # Add region
             data_view.add(region, color=fc, z_refresh=False)
@@ -800,7 +817,7 @@ class Region(BaseLayer):
             if len(index) == 0:
                 box = None
             elif len(index) == 1:
-                box = copy(self._data_view.regions[list(index)[0]]._box)
+                box = copy(self._data_view.regions[next(iter(index))]._box)
             else:
                 indices = np.isin(self._data_view.displayed_index, list(index))
                 box = create_box(self._data_view.displayed_vertices[indices])

@@ -1,4 +1,5 @@
 """Mouse bindings to the viewer"""
+
 import typing as ty
 from functools import partial
 
@@ -116,7 +117,7 @@ def box_zoom(viewer: "Viewer", event):
         if abs(sy - y) < ey:
             return Shape.VERTICAL
         # if there is minimum difference in x-position, lets show it as horizontal span
-        elif abs(sx - x) < ex:
+        if abs(sx - x) < ex:
             return Shape.HORIZONTAL
         return Shape.BOX
 

@@ -1,4 +1,5 @@
 """Test controls"""
+
 import numpy as np
 import pytest
 from napari.utils.colormaps.standardize_color import transform_color
@@ -13,7 +14,11 @@ _INFLINE = [50, 100, 230]
 
 
 @pytest.mark.parametrize(
-    "layer", [InfLine(_INFLINE, orientation="vertical"), InfLine(_INFLINE, orientation="horizontal")]
+    "layer",
+    [
+        InfLine(_INFLINE, orientation="vertical"),
+        InfLine(_INFLINE, orientation="horizontal"),
+    ],
 )
 def test_infline_controls_creation(qtbot, layer):
     """Check basic creation of QtInfLineControls works"""

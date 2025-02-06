@@ -1,4 +1,5 @@
 """Test MultiLine."""
+
 import numpy as np
 import pytest
 
@@ -24,12 +25,12 @@ def test_multiline_default():
 
 @pytest.mark.parametrize(
     "data",
-    (
+    [
         {"xs": [np.random.random(10)], "ys": [np.random.random(10)]},
         {"x": np.random.random(10), "ys": [np.random.random(10)]},
         (np.random.random(10), np.random.random(10)),
         ([np.random.random(10)], [np.random.random(10)]),
-    ),
+    ],
 )
 def test_multiline_inputs_single(data):
     layer = MultiLine(data)
@@ -38,12 +39,12 @@ def test_multiline_inputs_single(data):
 
 @pytest.mark.parametrize(
     "data",
-    (
+    [
         {"xs": [np.random.random(10)], "ys": [np.random.random(10)] * 3},
         {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3},
         {"x": np.random.random(10), "ys": [np.random.random(10)] * 3},
         {"x": np.random.random(10), "ys": np.random.random((10, 3))},
-    ),
+    ],
 )
 def test_multiline_inputs_multiple(data):
     layer = MultiLine(data)

@@ -1,4 +1,4 @@
-name: napari-plot
+name: napari_plot
 schema_version: 0.1.0
 contributions:
   commands:

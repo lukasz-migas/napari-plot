@@ -1,4 +1,5 @@
 """Test MultiLine."""
+
 import numpy as np
 import pytest
 
@@ -25,12 +26,12 @@ def test_centroids_default():
 
 @pytest.mark.parametrize(
     "data",
-    (
+    [
         np.random.random((10, 2)),
         np.random.random((10, 3)),
-    ),
+    ],
 )
-@pytest.mark.parametrize("orientation", ("vertical", "horizontal"))
+@pytest.mark.parametrize("orientation", ["vertical", "horizontal"])
 def test_centroids_inputs_multiple(data, orientation):
     layer = Centroids(data, orientation=orientation)
     assert len(layer.data) == 10

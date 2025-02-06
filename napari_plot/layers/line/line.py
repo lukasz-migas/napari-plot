@@ -1,4 +1,5 @@
 """Line layer"""
+
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
@@ -75,10 +76,7 @@ class Line(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.empty((0, 2))
-        else:
-            data = np.asarray(data)
+        data = np.empty((0, 2)) if data is None else np.asarray(data)
 
         super().__init__(
             data,

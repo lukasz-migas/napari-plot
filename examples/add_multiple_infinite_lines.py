@@ -1,6 +1,8 @@
 """Multiple infinite lines in a single layer."""
-import napari_plot
+
 import numpy as np
+
+import napari_plot
 
 viewer1d = napari_plot.Viewer()
 viewer1d.add_line(np.c_[np.arange(1000), np.random.randint(0, 1000, 1000)], name="line")

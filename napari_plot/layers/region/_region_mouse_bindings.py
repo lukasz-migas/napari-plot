@@ -1,15 +1,18 @@
 """Mouse bindings."""
 
 from __future__ import annotations
+
+import typing as ty
 from copy import copy
 
 import numpy as np
-import typing as ty
+
 from napari_plot.layers.region._region_constants import Orientation
 from napari_plot.layers.region._region_utils import preprocess_region
 
 if ty.TYPE_CHECKING:
     from vispy.app.canvas import MouseEvent
+
     from napari_plot.layers.region import Region
 
 
@@ -68,7 +71,7 @@ def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         # on press
         position_start = event.position
         coord_start = layer.world_to_data(position_start)
-        index = list(layer.selected_data)[0]
+        index = next(iter(layer.selected_data))
         orientation = layer.orientation[index]
         yield
         # on move
@@ -97,7 +100,7 @@ def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     # above, user should have selected single region and then can move it left-or-right or up-or-down
     data, orientation, wh_half = None, None, None
     if len(layer.selected_data) > 0:
-        index = list(layer.selected_data)[0]
+        index = next(iter(layer.selected_data))
         data, orientation = layer.data[index], layer.orientation[index]
         wh_half = _get_half(data, orientation)
     yield

@@ -1,4 +1,5 @@
 """Infinite line."""
+
 from napari_plot.layers.infline._infline_constants import Orientation
 
 
@@ -51,4 +52,7 @@ class HorizontalLine(InfiniteLine):
         self.name = "Horizontal"
 
 
-infline_classes = {Orientation.HORIZONTAL: HorizontalLine, Orientation.VERTICAL: VerticalLine}
+infline_classes = {
+    Orientation.HORIZONTAL: HorizontalLine,
+    Orientation.VERTICAL: VerticalLine,
+}

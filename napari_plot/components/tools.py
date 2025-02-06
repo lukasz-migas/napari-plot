@@ -1,14 +1,15 @@
 """Zoom-box tool."""
+
 import typing as ty
 from enum import Enum
 
 import numpy as np
+from napari._pydantic_compat import validator
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Path, Polygon, Rectangle
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
-from pydantic import validator
 
 from napari_plot.layers.region._region import Box, Horizontal, Vertical
 
@@ -137,18 +138,14 @@ class PolygonTool(MeshBaseTool):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         self._mesh.clear()
         if len(self.data) >= 2:
-            if len(self.data) < 2:
-                poly = Path(self.data, edge_width=0)
-            else:
-                poly = Polygon(self.data, edge_width=0)
+            poly = Path(self.data, edge_width=0) if len(self.data) < 2 else Polygon(self.data, edge_width=0)
             self._add(poly)
         return self._mesh
 
     def add_point(self, point: ty.Tuple[float, float]):
         """Add point to the polygon."""
-        if len(self.data) > 0:
-            if np.all(self.data[-1] == point):
-                return
+        if len(self.data) > 0 and np.all(self.data[-1] == point):
+            return
         self.data = np.vstack((self.data, point))
 
     def remove_point(self, index: int):

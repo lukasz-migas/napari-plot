@@ -1,4 +1,5 @@
 """Infinite region"""
+
 import typing as ty
 from copy import copy
 
@@ -17,8 +18,16 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.infline._infline import infline_classes
 from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
 from napari_plot.layers.infline._infline_list import InfiniteLineList
-from napari_plot.layers.infline._infline_mouse_bindings import add, highlight, move, select
-from napari_plot.layers.infline._infline_utils import get_default_infline_type, parse_infline_orientation
+from napari_plot.layers.infline._infline_mouse_bindings import (
+    add,
+    highlight,
+    move,
+    select,
+)
+from napari_plot.layers.infline._infline_utils import (
+    get_default_infline_type,
+    parse_infline_orientation,
+)
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
@@ -140,7 +149,14 @@ class InfLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, shifted=Event, highlight=Event, current_color=Event, selected=Event)
+        self.events.add(
+            color=Event,
+            width=Event,
+            shifted=Event,
+            highlight=Event,
+            current_color=Event,
+            selected=Event,
+        )
 
         self._width = width
         self._data_view = InfiniteLineList()

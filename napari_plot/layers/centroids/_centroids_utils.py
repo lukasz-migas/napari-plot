@@ -1,4 +1,5 @@
 """Various utilities."""
+
 import typing as ty
 
 import numpy as np
@@ -14,7 +15,7 @@ def parse_centroids_data(data: np.ndarray):
     if data.shape[1] == 3:
         return data
     # If data only contains position and height, insert zeros into the array
-    elif data.shape[1] == 2:
+    if data.shape[1] == 2:
         data = np.insert(data, 1, np.zeros(data.shape[0]), axis=1)
         return data
     raise NotImplementedError("Cannot parse input data.")

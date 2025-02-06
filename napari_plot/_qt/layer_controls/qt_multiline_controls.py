@@ -1,7 +1,8 @@
 """MultiLine controls"""
+
 import typing as ty
 
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
@@ -40,6 +41,9 @@ class QtMultiLineControls(QtLayerControls):
         Color swatch controlling the line color.
     """
 
+    PAN_ZOOM_ACTION_NAME = "activate_multiline_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_multiline_transform_mode"
+
     def __init__(self, layer: "MultiLine"):
         super().__init__(layer)
         self.layer.events.data.connect(self._on_data_change)
@@ -53,7 +57,12 @@ class QtMultiLineControls(QtLayerControls):
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider_with_text(
-            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+            self,
+            1,
+            25,
+            value=self.layer.width,
+            tooltip="Line width.",
+            focus_policy=Qt.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
@@ -64,7 +73,8 @@ class QtMultiLineControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_color)
 
         # add widgets to layout
-        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
         self.layout().addRow(hp.make_label(self, "Index"), self.selection_spin)

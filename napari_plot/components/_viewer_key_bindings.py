@@ -1,4 +1,5 @@
 """Keyboard shortcuts"""
+
 from napari_plot.components.viewer_model import ViewerModel
 
 

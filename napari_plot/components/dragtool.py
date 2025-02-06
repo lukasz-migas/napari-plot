@@ -1,8 +1,10 @@
 """Tool model."""
+
 import typing as ty
 from enum import Enum
 
 import numpy as np
+from napari._pydantic_compat import PrivateAttr
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
@@ -42,7 +44,12 @@ class DragMode(str, Enum):
 
 
 # List of `modes` which utilize the `BoxTool` model
-BOX_ZOOM_TOOLS = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
+BOX_ZOOM_TOOLS = [
+    DragMode.AUTO,
+    DragMode.BOX,
+    DragMode.VERTICAL_SPAN,
+    DragMode.HORIZONTAL_SPAN,
+]
 POLYGON_TOOLS = [DragMode.POLYGON, DragMode.LASSO]
 BOX_SELECT_TOOLS = [DragMode.BOX_SELECT]
 SELECT_TOOLS = [DragMode.POLYGON, DragMode.LASSO, DragMode.BOX_SELECT]
@@ -77,8 +84,8 @@ class DragTool(EventedModel):
     ctrl: Array[float, (4,)] = (0, 0, 0, 0)
 
     # instances of the the tools that are kept around - these are not evented
-    _box = BoxTool()
-    _polygon = PolygonTool()
+    _box = PrivateAttr(default_factory=BoxTool)
+    _polygon = PrivateAttr(default_factory=PolygonTool)
 
     @property
     def selecting(self) -> bool:

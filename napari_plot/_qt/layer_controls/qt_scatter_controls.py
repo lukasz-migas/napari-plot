@@ -1,8 +1,10 @@
 """Scatter layer controls"""
+
+import contextlib
 import typing as ty
 
 import numpy as np
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
@@ -76,7 +78,7 @@ class QtScatterControls(QtLayerControls):
             else self.layer._default_face_color,
             tooltip="Click to set face color",
         )
-        self.face_color_swatch.color_changed.connect(self.on_change_face_color)  # noqa
+        self.face_color_swatch.color_changed.connect(self.on_change_face_color)
 
         self.edge_color_swatch = QColorSwatch(
             initial_color=self.layer.edge_color[-1]
@@ -84,10 +86,12 @@ class QtScatterControls(QtLayerControls):
             else self.layer._default_edge_color,
             tooltip="Click to set edge color",
         )
-        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)  # noqa
+        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)
 
         self.edge_width_relative = hp.make_checkbox(
-            self, val=self.layer.edge_width_is_relative, tooltip="Toggle between relative and absolute edge widths."
+            self,
+            val=self.layer.edge_width_is_relative,
+            tooltip="Toggle between relative and absolute edge widths.",
         )
         self.edge_width_relative.stateChanged.connect(self.on_change_edge_width_is_relative)
 
@@ -95,7 +99,7 @@ class QtScatterControls(QtLayerControls):
             self,
             1,
             tooltip="Scatter edge width",
-            focus_policy=Qt.NoFocus,
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
 
@@ -113,14 +117,15 @@ class QtScatterControls(QtLayerControls):
         self.text_display_checkbox.stateChanged.connect(self.on_change_text_visibility)
 
         # add widgets to the layout
-        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Points size"), self.size_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Symbol"), self.symbol_combobox)
         self.layout().addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
         self.layout().addRow(hp.make_label(self, "Edge color"), self.edge_color_swatch)
         self.layout().addRow(
-            hp.make_label(self, "Rel. edge width", tooltip="Edge width is relative"), self.edge_width_relative
+            hp.make_label(self, "Rel. edge width", tooltip="Edge width is relative"),
+            self.edge_width_relative,
         )
         self.layout().addRow(hp.make_label(self, "Edge width"), self.edge_width_slider)
         self.layout().addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
@@ -182,10 +187,8 @@ class QtScatterControls(QtLayerControls):
                     self.size_slider.setMinimum(max(1, int(min_val - 1)))
                 if max_val > self.size_slider.maximum():
                     self.size_slider.setMaximum(int(max_val + 1))
-                try:
+                with contextlib.suppress(TypeError):
                     self.size_slider.setValue(int(value))
-                except TypeError:
-                    pass
 
     def on_change_edge_width(self, value):
         """Change size of points on the layer model.
@@ -251,7 +254,7 @@ class QtScatterControls(QtLayerControls):
         with self.layer.events.scaling.blocker():
             self.scaling_checkbox.setChecked(self.layer.scaling)
 
-    @Slot(np.ndarray)  # noqa
+    @Slot(np.ndarray)
     def on_change_face_color(self, color: np.ndarray):
         """Update face color of layer model from color picker user input."""
         self.layer.face_color = color
@@ -263,7 +266,7 @@ class QtScatterControls(QtLayerControls):
                 self.layer.face_color[-1] if self.layer.face_color.size > 0 else self.layer._default_face_color
             )
 
-    @Slot(np.ndarray)  # noqa
+    @Slot(np.ndarray)
     def on_change_edge_color(self, color: np.ndarray):
         """Update edge color of layer model from color picker user input."""
         self.layer.edge_color = color

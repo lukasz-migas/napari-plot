@@ -1,7 +1,8 @@
 """Centroids controls"""
+
 import typing as ty
 
-from napari._qt.utils import set_widgets_enabled_with_opacity, qt_signals_blocked
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
@@ -39,6 +40,9 @@ class QtCentroidControls(QtLayerControls):
         Color swatch controlling the line color.
     """
 
+    PAN_ZOOM_ACTION_NAME = "activate_centroids_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_centroids_transform_mode"
+
     def __init__(self, layer: "Centroids"):
         super().__init__(layer)
         self.layer.events.color.connect(self._on_color_change)
@@ -57,7 +61,7 @@ class QtCentroidControls(QtLayerControls):
             25,
             value=self.layer.width,
             tooltip="Line width.",
-            focus_policy=Qt.NoFocus,
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
@@ -73,7 +77,8 @@ class QtCentroidControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_color)
 
         # add widgets to layout
-        self.layout().addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
         self.layout().addRow(hp.make_label(self, "Color choice"), self.coloring_choice)

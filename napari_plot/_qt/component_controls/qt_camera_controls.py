@@ -1,16 +1,16 @@
 """Camera controls"""
 
 import typing as ty
+from weakref import ref
 
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator
 from qtpy.QtWidgets import QFormLayout, QWidget
-from weakref import ref
+
 import napari_plot._qt.helpers as hp
 from napari_plot._qt.qt_dialog import QtFramelessPopup
 from napari_plot.components.camera import EXTENT_MODE_TRANSLATIONS, CameraMode
-
 
 if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
@@ -39,32 +39,57 @@ class QtCameraWidget(QWidget):
         self.mouse_zoom_checkbox.stateChanged.connect(self.on_change_interactive)
 
         self.extent_mode = hp.make_combobox(
-            self, tooltip="Control whether the axes should be zoom-able outside of the plotted data."
+            self,
+            tooltip="Control whether the axes should be zoom-able outside of the plotted data.",
         )
-        hp.set_combobox_data(self.extent_mode, EXTENT_MODE_TRANSLATIONS, self.ref_viewer().camera.extent_mode)
+        hp.set_combobox_data(
+            self.extent_mode,
+            EXTENT_MODE_TRANSLATIONS,
+            self.ref_viewer().camera.extent_mode,
+        )
         self.extent_mode.currentIndexChanged.connect(self.on_change_extent_mode)
 
         self.aspect = hp.make_double_spin_box(
-            self, tooltip="Upper x-axis range", minimum=-1e10, maximum=1e10, n_decimals=3
+            self,
+            tooltip="Upper x-axis range",
+            minimum=-1e10,
+            maximum=1e10,
+            n_decimals=3,
         )
         self.aspect.valueChanged.connect(self.on_change_aspect)
 
         validator = QDoubleValidator(parent=self)
         self.x_min = hp.make_double_spin_box(
-            self, tooltip="Lower x-axis range", minimum=-1e10, maximum=1e10, n_decimals=6
+            self,
+            tooltip="Lower x-axis range",
+            minimum=-1e10,
+            maximum=1e10,
+            n_decimals=6,
         )
         self.x_min.valueChanged.connect(self.on_change_rect)
         self.x_max = hp.make_double_spin_box(
-            self, tooltip="Upper x-axis range", minimum=-1e10, maximum=1e10, n_decimals=6
+            self,
+            tooltip="Upper x-axis range",
+            minimum=-1e10,
+            maximum=1e10,
+            n_decimals=6,
         )
         self.x_max.valueChanged.connect(self.on_change_rect)
 
         self.y_min = hp.make_double_spin_box(
-            self, tooltip="Lower y-axis range", minimum=-1e10, maximum=1e10, n_decimals=6
+            self,
+            tooltip="Lower y-axis range",
+            minimum=-1e10,
+            maximum=1e10,
+            n_decimals=6,
         )
         self.y_min.valueChanged.connect(self.on_change_rect)
         self.y_max = hp.make_double_spin_box(
-            self, tooltip="Upper y-axis range", minimum=-1e10, maximum=1e10, n_decimals=6
+            self,
+            tooltip="Upper y-axis range",
+            minimum=-1e10,
+            maximum=1e10,
+            n_decimals=6,
         )
         self.y_max.valueChanged.connect(self.on_change_rect)
 
@@ -89,19 +114,23 @@ class QtCameraWidget(QWidget):
         self.axis_mode_all = hp.make_btn(self, "Unlock all")
         self.axis_mode_all.clicked.connect(self.on_reset_axis_mode)
         self.axis_mode_bottom = hp.make_checkbox(
-            self, tooltip="Lock to bottom. Whenever you zoom-in or out, the bottom x-axis value will be at the minimum."
+            self,
+            tooltip="Lock to bottom. Whenever you zoom-in or out, the bottom x-axis value will be at the minimum.",
         )
         self.axis_mode_bottom.stateChanged.connect(self.on_change_axis_mode)
         self.axis_mode_top = hp.make_checkbox(
-            self, tooltip="Lock to top. Whenever you zoom-in or out, the top x-axis value will be at the maximum."
+            self,
+            tooltip="Lock to top. Whenever you zoom-in or out, the top x-axis value will be at the maximum.",
         )
         self.axis_mode_top.stateChanged.connect(self.on_change_axis_mode)
         self.axis_mode_left = hp.make_checkbox(
-            self, tooltip="Lock to left. Whenever you zoom-in or out, the left y-axis value will be at the minimum."
+            self,
+            tooltip="Lock to left. Whenever you zoom-in or out, the left y-axis value will be at the minimum.",
         )
         self.axis_mode_left.stateChanged.connect(self.on_change_axis_mode)
         self.axis_mode_right = hp.make_checkbox(
-            self, tooltip="Lock to right. Whenever you zoom-in or out, the right y-axis value will be at the maximum."
+            self,
+            tooltip="Lock to right. Whenever you zoom-in or out, the right y-axis value will be at the maximum.",
         )
         self.axis_mode_right.stateChanged.connect(self.on_change_axis_mode)
 
@@ -113,7 +142,14 @@ class QtCameraWidget(QWidget):
         layout.addRow(hp.make_label(self, "Interactive pan"), self.mouse_pan_checkbox)
         layout.addRow(hp.make_label(self, "Restriction mode"), self.extent_mode)
         layout.addRow(hp.make_label(self, "Aspect ratio"), self.aspect)
-        layout.addRow(hp.make_label(self, "Current limits", alignment=Qt.AlignmentFlag.AlignCenter, bold=True))
+        layout.addRow(
+            hp.make_label(
+                self,
+                "Current limits",
+                alignment=Qt.AlignmentFlag.AlignCenter,
+                bold=True,
+            )
+        )
         layout.addRow(hp.make_label(self, "x (min)"), self.x_min)
         layout.addRow(hp.make_label(self, "x (max)"), self.x_max)
         layout.addRow(hp.make_label(self, "y (min)"), self.y_min)
@@ -126,7 +162,14 @@ class QtCameraWidget(QWidget):
         layout.addRow(hp.make_label(self, "lower"), self.y_range_min)
         layout.addRow(hp.make_label(self, "upper"), self.y_range_max)
         layout.addRow(self.y_range_reset)
-        layout.addRow(hp.make_label(self, "Axis limit modes", alignment=Qt.AlignmentFlag.AlignCenter, bold=True))
+        layout.addRow(
+            hp.make_label(
+                self,
+                "Axis limit modes",
+                alignment=Qt.AlignmentFlag.AlignCenter,
+                bold=True,
+            )
+        )
         layout.addRow(self.axis_mode_all)
         layout.addRow(hp.make_label(self, "Limit to top"), self.axis_mode_top)
         layout.addRow(hp.make_label(self, "Limit to bottom"), self.axis_mode_bottom)
@@ -217,7 +260,12 @@ class QtCameraWidget(QWidget):
 
     def on_change_rect(self):
         """Update min/max."""
-        self.ref_viewer().camera.rect = [self.x_min.value(), self.x_max.value(), self.y_min.value(), self.y_max.value()]
+        self.ref_viewer().camera.rect = [
+            self.x_min.value(),
+            self.x_max.value(),
+            self.y_min.value(),
+            self.y_max.value(),
+        ]
 
     def _on_rect_changed(self, _event=None):
         """Update min/max controls."""

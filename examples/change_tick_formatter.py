@@ -1,6 +1,8 @@
 """Custom formatter."""
-import napari_plot
+
 import numpy as np
+
+import napari_plot
 
 
 def formatter(val):

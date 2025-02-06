@@ -1,7 +1,8 @@
 """Example showing how to plot centroids."""
 
-import napari_plot
 import numpy as np
+
+import napari_plot
 
 mu, sigma = 0, 0.1  # mean and standard deviation
 s = np.random.normal(mu, sigma, 1000)

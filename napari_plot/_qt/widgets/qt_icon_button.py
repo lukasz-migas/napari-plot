@@ -1,9 +1,12 @@
 """QtImagePushButton"""
+
 import typing as ty
 
 import qtawesome
 from napari._qt.widgets.qt_mode_buttons import QtModePushButton as _QtModePushButton
-from napari._qt.widgets.qt_viewer_buttons import QtViewerPushButton as _QtViewerPushButton
+from napari._qt.widgets.qt_viewer_buttons import (
+    QtViewerPushButton as _QtViewerPushButton,
+)
 from napari.settings import get_settings
 from napari.utils.events.event_utils import connect_no_arg
 from napari.utils.theme import _themes, get_theme
@@ -33,7 +36,11 @@ class QtaMixin:
         if "." not in name:
             name = QTA_MAPPING[name]
         self._qta_data = (name, kwargs)
-        icon = qtawesome.icon(name, **self._qta_data[1], color=get_theme(get_settings().appearance.theme).icon.as_hex())
+        icon = qtawesome.icon(
+            name,
+            **self._qta_data[1],
+            color=get_theme(get_settings().appearance.theme).icon.as_hex(),
+        )
         self.setIcon(icon)
 
     def set_size(self, size: ty.Tuple[int, int]):

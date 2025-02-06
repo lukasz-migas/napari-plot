@@ -1,4 +1,5 @@
 """Tool dialog to display layer controls"""
+
 from weakref import ref
 
 from qtpy.QtWidgets import QVBoxLayout

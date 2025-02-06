@@ -9,8 +9,8 @@ Display a points layer on top of an image layer using the ``add_points`` and
 """
 
 import numpy as np
-import napari_plot
 
+import napari_plot
 
 # add the image
 viewer = napari_plot.Viewer()

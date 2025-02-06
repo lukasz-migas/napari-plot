@@ -1,13 +1,13 @@
 """Grid lines visual"""
+
 import typing as ty
 
+from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from vispy.scene.visuals import GridLines
 
-from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
-
 if ty.TYPE_CHECKING:
-    from napari_plot.components.viewer_model import ViewerModel
     from napari_plot.components.gridlines import GridLinesOverlay
+    from napari_plot.components.viewer_model import ViewerModel
 
 
 class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):

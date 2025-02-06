@@ -32,7 +32,6 @@ class QtDialog(QDialog):
 
     def make_panel(self) -> QLayout:
         """Make panel"""
-        ...
 
     def make_gui(self):
         """Make and arrange main panel"""
@@ -175,7 +174,7 @@ class QtFramelessPopup(QtDialog):
             self.move(
                 event.globalX() - self._old_window_pos[0],
                 event.globalY() - self._old_window_pos[1],
-            )  # noqa
+            )
 
     def mouseReleaseEvent(self, event):
         """mouse release event"""

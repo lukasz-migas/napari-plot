@@ -1,4 +1,5 @@
 """Mini toolbar"""
+
 import typing as ty
 
 from qtpy.QtCore import Qt
@@ -17,7 +18,9 @@ class QtMiniToolbar(QFrame):
         self.orientation = orientation
 
         self.layout = QHBoxLayout() if orientation == Qt.Orientation.Horizontal else QVBoxLayout()
-        self.layout.addSpacerItem(hp.make_h_spacer() if orientation == Qt.Orientation.Horizontal else hp.make_v_spacer())
+        self.layout.addSpacerItem(
+            hp.make_h_spacer() if orientation == Qt.Orientation.Horizontal else hp.make_v_spacer()
+        )
         self.layout.setSpacing(0)
         self.layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(self.layout)
@@ -33,7 +36,7 @@ class QtMiniToolbar(QFrame):
         name: str,
         flat: bool = True,
         func: ty.Optional[ty.Callable] = None,
-        tooltip: str = None,
+        tooltip: ty.Optional[str] = None,
         checkable: bool = False,
         check: bool = False,
     ):

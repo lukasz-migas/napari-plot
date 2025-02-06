@@ -28,7 +28,7 @@ def pytest_addoption(parser):
         _SAVE_GRAPH_OPNAME,
         action="store_true",
         default=False,
-        help="Try to save a graph of leaked object's reference (need objgraph" "and graphviz installed",
+        help="Try to save a graph of leaked object's reference (need objgraphand graphviz installed",
     )
 
 
@@ -42,7 +42,7 @@ def fail_obj_graph(Klass):
     except ImportError:
         return
 
-    if not len(Klass._instances) == 0:
+    if len(Klass._instances) != 0:
         global COUNTER
         COUNTER += 1
         import gc
@@ -58,7 +58,7 @@ def fail_obj_graph(Klass):
 
         # DO not remove len, this can break as C++ obj are gone, but python objects
         # still hang around and _repr_ would crash.
-        assert False, len(Klass._instances)
+        raise AssertionError(len(Klass._instances))
 
 
 @pytest.fixture
@@ -162,7 +162,7 @@ def make_napari_plot_viewer(qtbot, request: "FixtureRequest"):
         leak = set(QApplication.topLevelWidgets()).difference(initial)
         # still not sure how to clean up some of the remaining vispy
         # vispy.app.backends._qt.CanvasBackendDesktop widgets...
-        if any([n.__class__.__name__ != "CanvasBackendDesktop" for n in leak]):
+        if any(n.__class__.__name__ != "CanvasBackendDesktop" for n in leak):
             # just a warning... but this can be converted to test errors
             # in pytest with `-W error`
             msg = f"""The following Widgets leaked!: {leak}.

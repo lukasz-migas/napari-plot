@@ -1,4 +1,5 @@
 """Mouse bindings"""
+
 from copy import copy
 
 import numpy as np
@@ -54,7 +55,7 @@ def move(layer, event):
     index, data, orientation = None, None, None
     n = len(layer.selected_data)
     if n > 0:
-        index = list(layer.selected_data)[0]
+        index = next(iter(layer.selected_data))
         data, orientation = layer.data[index], layer.orientation[index]
         layer.selected_data = {index}
         layer._set_highlight()
@@ -65,14 +66,22 @@ def move(layer, event):
         if data is not None:
             coordinates = layer.world_to_data(event.position)
             layer._moving_coordinates = coordinates
-            layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=False)
+            layer.move(
+                index,
+                coordinates[1] if orientation == "vertical" else coordinates[0],
+                finished=False,
+            )
         yield
 
     # on release
     if data is not None:
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
-        layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=True)
+        layer.move(
+            index,
+            coordinates[1] if orientation == "vertical" else coordinates[0],
+            finished=True,
+        )
         layer._set_highlight()
         layer._update_thumbnail()
 

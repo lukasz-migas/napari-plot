@@ -43,7 +43,12 @@ def make_h_spacer() -> QSpacerItem:
 
 
 def make_qta_label(
-    parent: ty.Optional[QWidget], icon_name: str, alignment=None, tooltip: str = None, small: bool = False, **kwargs
+    parent: ty.Optional[QWidget],
+    icon_name: str,
+    alignment=None,
+    tooltip: ty.Optional[str] = None,
+    small: bool = False,
+    **kwargs,
 ):
     """Make QLabel with QtAwesome icon."""
     widget = QtQtaLabel(parent=parent)
@@ -60,7 +65,7 @@ def make_qta_label(
 def make_qta_btn(
     parent: ty.Optional[QWidget],
     icon_name: str,
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     flat: bool = False,
     checkable: bool = False,
     size: ty.Optional[ty.Tuple[int, int]] = None,
@@ -90,7 +95,7 @@ def make_slider(
     step_size: int = 1,
     value: int = 1,
     orientation="horizontal",
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
@@ -113,7 +118,7 @@ def make_slider_with_text(
     step_size: int = 1,
     value: int = 1,
     orientation="horizontal",
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
@@ -137,7 +142,7 @@ def make_double_slider(
     step_size: float = 1,
     value: float = 1,
     orientation="horizontal",
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
@@ -161,7 +166,7 @@ def make_double_slider_with_text(
     value: float = 1,
     n_decimals: int = 1,
     orientation="horizontal",
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSlider:
     """Make QSlider."""
@@ -184,7 +189,7 @@ def make_int_spin(
     min_value: int = 0,
     max_value: int = 100,
     value: int = 1,
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QSpinBox:
     """Make QSpinBox."""
@@ -205,7 +210,7 @@ def make_double_spin_box(
     step_size: float = 0.01,
     default: float = 1,
     n_decimals: int = 1,
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     value: ty.Optional[float] = None,
     focus_policy: Qt.FocusPolicy = Qt.TabFocus,
 ) -> QDoubleSpinBox:
@@ -225,7 +230,7 @@ def make_double_spin_box(
     return widget
 
 
-def make_btn(parent, text: str, tooltip: str = None, flat: bool = False, checkable=False) -> QPushButton:
+def make_btn(parent, text: str, tooltip: ty.Optional[str] = None, flat: bool = False, checkable=False) -> QPushButton:
     """Make button"""
     widget = QPushButton(parent=parent)
     widget.setText(text)
@@ -241,7 +246,7 @@ def make_checkbox(
     parent: ty.Optional[QWidget],
     text: str = "",
     val: bool = False,
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
 ) -> QCheckBox:
     """Make QCheckBox"""
     widget = QCheckBox(parent)
@@ -277,7 +282,7 @@ def make_label(
     object_name: str = "",
     bold: bool = False,
     font_size: ty.Optional[int] = None,
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
 ) -> QLabel:
     """Make QLabel."""
     widget = QLabel(parent)
@@ -299,7 +304,7 @@ def make_label(
     return widget
 
 
-def make_combobox(parent: ty.Optional[QWidget], items: ty.List[str] = None, tooltip: str = None) -> QComboBox:
+def make_combobox(parent: ty.Optional[QWidget], items: ty.Optional[ty.List[str]] = None, tooltip: ty.Optional[str] = None) -> QComboBox:
     """Make QComboBox with specified items."""
     widget = QComboBox(parent)
     if items:
@@ -309,16 +314,19 @@ def make_combobox(parent: ty.Optional[QWidget], items: ty.List[str] = None, tool
     return widget
 
 
-def set_combobox_data(widget: QComboBox, data: ty.Union[ty.Dict, ty.OrderedDict], current_item: ty.Optional = None):
+def set_combobox_data(
+    widget: QComboBox,
+    data: ty.Union[ty.Dict, ty.OrderedDict],
+    current_item: ty.Optional = None,
+):
     """Set data/value on combobox"""
     for index, (data, text) in enumerate(data.items()):
         if not isinstance(data, str):
             data = data.value
         widget.addItem(text, data)
 
-        if current_item is not None:
-            if current_item == data or current_item == text:
-                widget.setCurrentIndex(index)
+        if current_item is not None and (current_item in (data, text)):
+            widget.setCurrentIndex(index)
 
 
 def set_combobox_current_index(widget: QComboBox, current_data: ty.Any):
@@ -332,11 +340,11 @@ def set_combobox_current_index(widget: QComboBox, current_data: ty.Any):
 def make_line_edit(
     parent: ty.Optional[QWidget],
     text: str = "",
-    tooltip: str = None,
+    tooltip: ty.Optional[str] = None,
     placeholder: str = "",
 ) -> QLineEdit:
     """Make QLineEdit/"""
-    widget = QLineEdit(parent)  # noqa
+    widget = QLineEdit(parent)
     widget.setText(text)
     if tooltip:
         widget.setToolTip(tooltip)

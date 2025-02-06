@@ -1,4 +1,5 @@
 """Specialized camera for 1d data"""
+
 import typing as ty
 
 import numpy as np
@@ -152,6 +153,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 elif extent is not None:
                     x0, x1 = extent.left, extent.right
             return make_rect(x0, x1, y0, y1)
+        return None
 
     def _check_zoom_limit(self, rect: Rect) -> Rect:
         """Check whether new range is outside of the allowed window"""
@@ -203,10 +205,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     @rect.setter
     def rect(self, args):
-        if isinstance(args, tuple):
-            rect = Rect(*args)
-        else:
-            rect = Rect(args)
+        rect = Rect(*args) if isinstance(args, tuple) else Rect(args)
 
         # ensure user never goes outside of allowed limits
         rect = self._check_zoom_limit(rect)
