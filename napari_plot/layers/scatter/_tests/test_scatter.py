@@ -93,7 +93,7 @@ def test_scatter_change_data():
 
 def test_scatter_edge_width():
     data = np.random.random((10, 2))
-    layer = Scatter(data, edge_width=4, edge_width_is_relative=False)
+    layer = Scatter(data, border_width=4, border_width_is_relative=False)
     layer.edge_width = 3
     assert np.all(layer.edge_width == 3)
     layer.edge_width = np.arange(len(data))
@@ -143,7 +143,7 @@ def test_scatter_size():
 
 def test_scatter_color():
     data = np.random.random((10, 2))
-    layer = Scatter(data, face_color="white", edge_color="red")
+    layer = Scatter(data, face_color="white", border_color="red")
     assert len(layer.face_color) == len(data)
     assert len(layer.edge_color) == len(data)
     np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))

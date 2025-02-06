@@ -4,6 +4,7 @@ import numpy as np
 from napari.layers import Points
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
+from napari.utils.migrations import add_deprecated_property, rename_argument
 
 from napari_plot.layers.base import LayerMixin
 
@@ -34,18 +35,18 @@ class Scatter(Points, LayerMixin):
     size : float, array
         Size of the point marker in data pixels. If given as a scalar, all points are made the same size. If given as an
         array, size must be the same or broadcastable to the same shape as the data.
-    edge_width : float, array
+    border_width : float, array
         Width of the symbol edge in pixels.
-    edge_width_is_relative : bool
-        If enabled, edge_width is interpreted as a fraction of the point size.
-    edge_color : str, array-like, dict
+    border_width_is_relative : bool
+        If enabled, border_width is interpreted as a fraction of the point size.
+    border_color : str, array-like, dict
         Color of the point marker border. Numeric color values should be RGB(A).
-    edge_color_cycle : np.ndarray, list
-        Cycle of colors (provided as string name, RGB, or RGBA) to map to edge_color if a
+    border_color_cycle : np.ndarray, list
+        Cycle of colors (provided as string name, RGB, or RGBA) to map to border_color if a
         categorical attribute is used color the vectors.
-    edge_colormap : str, napari.utils.Colormap
-        Colormap to set edge_color if a continuous attribute is used to set face_color.
-    edge_contrast_limits : None, (float, float)
+    border_colormap : str, napari.utils.Colormap
+        Colormap to set border_color if a continuous attribute is used to set face_color.
+    border_contrast_limits : None, (float, float)
         clims for mapping the property to a color map. These are the min and max value of the specified property that
         are mapped to 0 and 1, respectively. The default value is None. If set the none, the clims will be set to
         (property.min(), property.max())
@@ -117,6 +118,12 @@ class Scatter(Points, LayerMixin):
     _default_size = 1
     _default_rel_size = 0.1
 
+    @rename_argument("edge_width", "border_width", since_version="0.2.0", version="0.3.0")
+    @rename_argument("edge_width_is_relative", "border_width_is_relative", since_version="0.5.0", version="0.6.0")
+    @rename_argument("edge_color", "border_color", since_version="0.2.0", version="0.3.0")
+    @rename_argument("edge_color_cycle", "border_color_cycle", since_version="0.2.0", version="0.3.0")
+    @rename_argument("edge_colormap", "border_colormap", since_version="0.2.0", version="0.3.0")
+    @rename_argument("edge_contrast_limits", "border_contrast_limits", since_version="0.2.0", version="0.3.0")
     def __init__(
         self,
         data=None,
@@ -126,12 +133,12 @@ class Scatter(Points, LayerMixin):
         text=None,
         symbol="o",
         size=10,
-        edge_width=0.05,
-        edge_width_is_relative=True,
-        edge_color="dimgray",
-        edge_color_cycle=None,
-        edge_colormap="viridis",
-        edge_contrast_limits=None,
+        border_width=0.05,
+        border_width_is_relative=True,
+        border_color="dimgray",
+        border_color_cycle=None,
+        border_colormap="viridis",
+        border_contrast_limits=None,
         face_color="white",
         face_color_cycle=None,
         face_colormap="viridis",
@@ -168,12 +175,12 @@ class Scatter(Points, LayerMixin):
             text=text,
             symbol=symbol,
             size=size,
-            edge_width=edge_width,
-            edge_width_is_relative=edge_width_is_relative,
-            edge_color=edge_color,
-            edge_color_cycle=edge_color_cycle,
-            edge_colormap=edge_colormap,
-            edge_contrast_limits=edge_contrast_limits,
+            border_width=border_width,
+            border_width_is_relative=border_width_is_relative,
+            border_color=border_color,
+            border_color_cycle=border_color_cycle,
+            border_colormap=border_colormap,
+            border_contrast_limits=border_contrast_limits,
             face_color=face_color,
             face_color_cycle=face_color_cycle,
             face_colormap=face_colormap,
@@ -199,6 +206,30 @@ class Scatter(Points, LayerMixin):
         )
         self.events.add(scaling=Event)
         self.scaling = scaling
+
+    @classmethod
+    def _add_deprecated_properties(cls) -> None:
+        """Adds deprecated properties to class."""
+        deprecated_properties = [
+            "edge_width",
+            "edge_width_is_relative",
+            "current_edge_width",
+            "edge_color",
+            "edge_color_cycle",
+            "edge_colormap",
+            "edge_contrast_limits",
+            "current_edge_color",
+            "edge_color_mode",
+        ]
+        for old_property in deprecated_properties:
+            new_property = old_property.replace("edge", "border")
+            add_deprecated_property(
+                cls,
+                old_property,
+                new_property,
+                since_version="0.2.0",
+                version="0.3.0",
+            )
 
     @property
     def scaling(self):

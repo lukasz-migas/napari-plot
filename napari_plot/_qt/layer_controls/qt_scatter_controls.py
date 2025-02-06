@@ -51,6 +51,9 @@ class QtScatterControls(QtLayerControls):
         Checkbox to enable/disable visibility of text items
     """
 
+    PAN_ZOOM_ACTION_NAME = "activate_scatter_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_scatter_transform_mode"
+
     def __init__(self, layer: "Scatter"):
         super().__init__(layer)
         self.layer.events.symbol.connect(self._on_symbol_change)
@@ -68,7 +71,7 @@ class QtScatterControls(QtLayerControls):
             self,
             1,
             tooltip="Scatter point size",
-            focus_policy=Qt.NoFocus,
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.size_slider.valueChanged.connect(self.on_change_size)
 
@@ -117,6 +120,7 @@ class QtScatterControls(QtLayerControls):
         self.text_display_checkbox.stateChanged.connect(self.on_change_text_visibility)
 
         # add widgets to the layout
+        self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Points size"), self.size_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)

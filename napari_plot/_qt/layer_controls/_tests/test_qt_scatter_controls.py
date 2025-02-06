@@ -12,7 +12,7 @@ np.random.seed(0)
 _SCATTER = np.random.random((10, 2))
 
 
-@pytest.mark.parametrize("layer", [Scatter(_SCATTER, edge_width_is_relative=True)])
+@pytest.mark.parametrize("layer", [Scatter(_SCATTER, border_width_is_relative=True)])
 def test_scatter_controls_creation(qtbot, layer):
     """Check basic creation of QtScatterControls works"""
     qtctrl = QtScatterControls(layer)

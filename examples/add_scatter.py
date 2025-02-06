@@ -21,12 +21,17 @@ yx = np.random.random((n, 2))
 viewer1d = napari_plot.Viewer()
 viewer1d.drag_tool.active = "lasso"
 viewer1d.drag_tool.events.vertices.connect(select_data)
-layer = viewer1d.add_scatter(yx, face_color=np.random.random((n, 4)), scaling=False, name="Your data")
+layer = viewer1d.add_scatter(
+    yx,
+    face_color=np.random.random((n, 4)),
+    scaling=False,
+    name="Your data",
+)
 sel_layer = viewer1d.add_scatter(
     None,
     scaling=False,
     face_color="yellow",
-    edge_color="green",
+    border_color="green",
     size=10,
     name="Selected points",
 )

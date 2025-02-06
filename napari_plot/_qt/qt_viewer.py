@@ -24,9 +24,7 @@ from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
-from napari_plot._qt.layer_controls.qt_layer_controls_container import (
-    QtLayerControlsContainer,
-)
+from napari._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from napari_plot._qt.qt_toolbar import QtViewToolbar
 from napari_plot._qt.qt_welcome import QtWidgetOverlay
