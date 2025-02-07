@@ -58,10 +58,10 @@ class QtScatterControls(QtLayerControls):
         super().__init__(layer)
         self.layer.events.symbol.connect(self._on_symbol_change)
         self.layer.events.size.connect(self._on_size_change)
-        self.layer.events.edge_width.connect(self._on_edge_width_change)
+        self.layer.events.border_width.connect(self._on_edge_width_change)
         self.layer.events.face_color.connect(self._on_face_color_change)
-        self.layer.events.edge_color.connect(self._on_edge_color_change)
-        self.layer.events.edge_width_is_relative.connect(self._on_edge_width_is_relative_change)
+        self.layer.events.border_color.connect(self._on_edge_color_change)
+        self.layer.events.border_width_is_relative.connect(self._on_edge_width_is_relative_change)
         self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
         self.layer.events.editable.connect(self._on_editable_or_visible_change)
@@ -83,28 +83,28 @@ class QtScatterControls(QtLayerControls):
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)
 
-        self.edge_color_swatch = QColorSwatch(
-            initial_color=self.layer.edge_color[-1]
-            if self.layer.edge_color.size > 0
-            else self.layer._default_edge_color,
+        self.border_color_swatch = QColorSwatch(
+            initial_color=self.layer.border_color[-1]
+            if self.layer.border_color.size > 0
+            else self.layer._default_border_color,
             tooltip="Click to set edge color",
         )
-        self.edge_color_swatch.color_changed.connect(self.on_change_edge_color)
+        self.border_color_swatch.color_changed.connect(self.on_change_edge_color)
 
-        self.edge_width_relative = hp.make_checkbox(
+        self.border_width_relative = hp.make_checkbox(
             self,
-            val=self.layer.edge_width_is_relative,
+            val=self.layer.border_width_is_relative,
             tooltip="Toggle between relative and absolute edge widths.",
         )
-        self.edge_width_relative.stateChanged.connect(self.on_change_edge_width_is_relative)
+        self.border_width_relative.stateChanged.connect(self.on_change_edge_width_is_relative)
 
-        self.edge_width_slider = hp.make_double_slider(
+        self.border_width_slider = hp.make_double_slider(
             self,
             1,
             tooltip="Scatter edge width",
             focus_policy=Qt.FocusPolicy.NoFocus,
         )
-        self.edge_width_slider.valueChanged.connect(self.on_change_edge_width)
+        self.border_width_slider.valueChanged.connect(self.on_change_edge_width)
 
         self.symbol_combobox = hp.make_combobox(self, tooltip="Marker symbol")
         current_symbol = self.layer.symbol[-1] if len(self.layer.symbol) > 0 else None
@@ -126,12 +126,12 @@ class QtScatterControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Symbol"), self.symbol_combobox)
         self.layout().addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
-        self.layout().addRow(hp.make_label(self, "Edge color"), self.edge_color_swatch)
+        self.layout().addRow(hp.make_label(self, "Border color"), self.border_color_swatch)
         self.layout().addRow(
-            hp.make_label(self, "Rel. edge width", tooltip="Edge width is relative"),
-            self.edge_width_relative,
+            hp.make_label(self, "Rel. border width", tooltip="Border width is relative"),
+            self.border_width_relative,
         )
-        self.layout().addRow(hp.make_label(self, "Edge width"), self.edge_width_slider)
+        self.layout().addRow(hp.make_label(self, "Border width"), self.border_width_slider)
         self.layout().addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
         self.layout().addRow(hp.make_label(self, "Display text"), self.text_display_checkbox)
         self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
@@ -202,7 +202,7 @@ class QtScatterControls(QtLayerControls):
         value : float
             Size of points.
         """
-        self.layer.edge_width = value
+        self.layer.border_width = value
 
     def _on_edge_width_change(self, _event):
         """Receive layer model size change event and update point size slider.
@@ -212,9 +212,11 @@ class QtScatterControls(QtLayerControls):
         _event : napari.utils.event.Event, optional
             The napari event that triggered this method.
         """
-        with self.layer.events.edge_width.blocker():
-            edge_width = self.layer.edge_width[-1] if len(self.layer.edge_width) > 0 else self.layer._default_edge_width
-            self.edge_width_slider.setValue(edge_width)
+        with self.layer.events.border_width.blocker():
+            edge_width = (
+                self.layer.border_width[-1] if len(self.layer.border_width) > 0 else self.layer._default_border_width
+            )
+            self.border_width_slider.setValue(edge_width)
 
     def on_change_text_visibility(self, state):
         """Toggle the visibility of the text.
@@ -224,7 +226,7 @@ class QtScatterControls(QtLayerControls):
         state : QCheckBox
             Checkbox indicating if text is visible.
         """
-        self.layer.text.visible = state == Qt.Checked
+        self.layer.text.visible = state == Qt.CheckState.Checked
 
     def _on_text_visibility_change(self, _event):
         """Receive layer model text visibility change change event and update checkbox.
@@ -245,7 +247,7 @@ class QtScatterControls(QtLayerControls):
         state : QCheckBox
             Checkbox indicating if text is visible.
         """
-        self.layer.scaling = state == Qt.Checked
+        self.layer.scaling = state == Qt.CheckState.Checked
 
     def _on_scaling_change(self, _event):
         """Receive layer model text visibility change change event and update checkbox.
@@ -273,35 +275,35 @@ class QtScatterControls(QtLayerControls):
     @Slot(np.ndarray)
     def on_change_edge_color(self, color: np.ndarray):
         """Update edge color of layer model from color picker user input."""
-        self.layer.edge_color = color
+        self.layer.border_color = color
 
     def _on_edge_color_change(self, _event):
         """Receive layer.current_edge_color() change event and update view."""
-        with qt_signals_blocked(self.edge_color_swatch):
-            self.edge_color_swatch.setColor(
-                self.layer.edge_color[-1] if self.layer.edge_color.size > 0 else self.layer._default_edge_color
+        with qt_signals_blocked(self.border_color_swatch):
+            self.border_color_swatch.setColor(
+                self.layer.border_color[-1] if self.layer.border_color.size > 0 else self.layer._default_border_color
             )
 
     def on_change_edge_width_is_relative(self, state: bool):
         """Update edge color of layer model from color picker user input."""
-        default_edge_width = self.layer._default_rel_size if state else self.layer._default_edge_width
-        current_edge_width = self.layer.edge_width[-1] if self.layer.edge_width.size > 0 else default_edge_width
+        default_edge_width = self.layer._default_rel_size if state else self.layer._default_border_width
+        current_edge_width = self.layer.border_width[-1] if self.layer.border_width.size > 0 else default_edge_width
         if state and current_edge_width > 1:
             current_edge_width = default_edge_width
-        # with self.layer.events.edge_width.blocker():  # reduces number of UI updates
-        self.layer.edge_width = current_edge_width
-        self.layer.edge_width_is_relative = state
+        # with self.layer.events.border_width.blocker():  # reduces number of UI updates
+        self.layer.border_width = current_edge_width
+        self.layer.border_width_is_relative = state
 
     def _on_edge_width_is_relative_change(self, _event):
         """Receive layer.current_edge_color() change event and update view."""
-        if self.layer.edge_width_is_relative:
-            self.edge_width_slider.setPageStep(0.05)
-            self.edge_width_slider.setRange(0, 1)
+        if self.layer.border_width_is_relative:
+            self.border_width_slider.setPageStep(0.05)
+            self.border_width_slider.setRange(0, 1)
         else:
-            self.edge_width_slider.setPageStep(1)
-            self.edge_width_slider.setRange(0, 100)
-        with qt_signals_blocked(self.edge_width_relative):
-            self.edge_width_relative.setChecked(self.layer.edge_width_is_relative)
+            self.border_width_slider.setPageStep(1)
+            self.border_width_slider.setRange(0, 100)
+        with qt_signals_blocked(self.border_width_relative):
+            self.border_width_relative.setChecked(self.layer.border_width_is_relative)
 
     def _on_editable_or_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -317,12 +319,12 @@ class QtScatterControls(QtLayerControls):
                 self.scaling_checkbox,
                 self.text_display_checkbox,
                 self.face_color_swatch,
-                self.edge_color_swatch,
+                self.border_color_swatch,
                 self.size_slider,
                 self.opacity_slider,
                 self.blending_combobox,
-                self.edge_width_slider,
-                self.edge_width_relative,
+                self.border_width_slider,
+                self.border_width_relative,
                 self.symbol_combobox,
             ],
             self.layer.editable and self.layer.visible,

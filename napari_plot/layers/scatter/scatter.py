@@ -113,8 +113,8 @@ class Scatter(Points, LayerMixin):
     """
 
     _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
-    _default_edge_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
-    _default_edge_width = 1
+    _default_border_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
+    _default_border_width = 1
     _default_size = 1
     _default_rel_size = 0.1
 
