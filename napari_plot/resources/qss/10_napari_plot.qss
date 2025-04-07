@@ -1,0 +1,21 @@
+/* ----------------- Widgets ----------------- */
+QLabel#logo_silhouette_plot {
+  image: url("theme_{{ id }}:/logo_silhouette_plot.svg");
+}
+
+QtViewerPushButton[mode="new_centroids"] {
+  image: url("theme_{{ id }}:/new_centroids.svg");
+}
+
+QtViewerPushButton[mode="new_inf_line"] {
+  image: url("theme_{{ id }}:/new_inf_line.svg");
+}
+QtViewerPushButton[mode="new_line"] {
+  image: url("theme_{{ id }}:/new_line.svg");
+}
+QtViewerPushButton[mode="new_region"] {
+  image: url("theme_{{ id }}:/new_region.svg");
+}
+QtViewerPushButton[mode="new_scatter"] {
+  image: url("theme_{{ id }}:/new_scatter.svg");
+}

@@ -95,15 +95,13 @@ class QtLayerButtons(QFrame):
         )
         self.new_region_btn.setParent(self)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = hp.make_h_layout(parent=self, spacing=2, margin=0)
         layout.addWidget(self.new_shapes_btn)
         layout.addWidget(self.new_points_btn)
         layout.addWidget(self.new_region_btn)
         layout.addWidget(self.new_infline_btn)
         layout.addStretch(0)
         layout.addWidget(self.delete_btn)
-        self.setLayout(layout)
 
 
 class QtViewerButtons(QFrame):
@@ -143,10 +141,8 @@ class QtViewerButtons(QFrame):
                 self, "ipython", "Show/hide console panel", func=parent.on_toggle_console_visibility
             )
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = hp.make_h_layout(parent=self, spacing=2, margin=0)
         layout.addWidget(self.resetViewButton)
         if self.consoleButton is not None:
             layout.addWidget(self.consoleButton)
         layout.addStretch(0)
-        self.setLayout(layout)
