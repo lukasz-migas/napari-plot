@@ -43,7 +43,7 @@ from napari_plot.components._viewer_utils import (
 from napari_plot.components.axis import Axis
 from napari_plot.components.camera import Camera
 from napari_plot.components.dragtool import DragMode, DragTool
-from napari_plot.components.gridlines import GridLinesOverlay
+from napari_plot.components.grid_lines import GridLinesOverlay
 from napari_plot.components.layerlist import LayerList
 from napari_plot.components.tools import BoxTool, PolygonTool
 from napari_plot.utils.utilities import get_min_max

@@ -3,11 +3,11 @@
 import typing as ty
 
 import numpy as np
+import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Slot
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 from napari_plot.layers.region._region_constants import Mode
 

@@ -3,13 +3,13 @@
 import typing as ty
 from weakref import ref
 
+import qtextra.helpers as hp
 from napari.utils.events import disconnect_events
+from qtextra.widgets.qt_dialog import QtFramelessPopup
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QDoubleValidator
 from qtpy.QtWidgets import QFormLayout, QWidget
 
-import napari_plot._qt.helpers as hp
-from napari_plot._qt.qt_dialog import QtFramelessPopup
 from napari_plot.components.camera import EXTENT_MODE_TRANSLATIONS, CameraMode
 
 if ty.TYPE_CHECKING:
@@ -137,7 +137,7 @@ class QtCameraWidget(QWidget):
         layout = QFormLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(4)
-        layout.setFieldGrowthPolicy(QFormLayout.AllNonFixedFieldsGrow)
+        layout.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         layout.addRow(hp.make_label(self, "Interactive zoom"), self.mouse_zoom_checkbox)
         layout.addRow(hp.make_label(self, "Interactive pan"), self.mouse_pan_checkbox)
         layout.addRow(hp.make_label(self, "Restriction mode"), self.extent_mode)

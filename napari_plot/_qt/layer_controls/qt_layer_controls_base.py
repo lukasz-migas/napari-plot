@@ -2,13 +2,13 @@
 
 import typing as ty
 
+import qtextra.helpers as hp
 from napari.layers.base._base_constants import BLENDING_TRANSLATIONS, Blending, Mode
 from napari.utils.action_manager import action_manager
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QButtonGroup, QFormLayout, QFrame, QGridLayout
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 
 # opaque and minimum blending do not support changing alpha (opacity)

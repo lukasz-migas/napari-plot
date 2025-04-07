@@ -6,7 +6,7 @@ from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from vispy.scene.visuals import GridLines
 
 if ty.TYPE_CHECKING:
-    from napari_plot.components.gridlines import GridLinesOverlay
+    from napari_plot.components.grid_lines import GridLinesOverlay
     from napari_plot.components.viewer_model import ViewerModel
 
 

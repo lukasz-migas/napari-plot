@@ -5,10 +5,7 @@ from __future__ import annotations
 from typing import Callable
 
 from napari.layers.base._base_constants import Mode
-from napari.layers.utils.layer_utils import (
-    register_layer_action,
-    register_layer_attr_action,
-)
+from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action
 
 from napari_plot.layers.scatter import Scatter
 
@@ -35,4 +32,3 @@ scatter_fun_to_mode = [
     (activate_scatter_pan_zoom_mode, Mode.PAN_ZOOM),
     (activate_scatter_transform_mode, Mode.TRANSFORM),
 ]
-

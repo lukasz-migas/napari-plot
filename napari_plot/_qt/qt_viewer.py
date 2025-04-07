@@ -7,33 +7,39 @@ import sys
 import typing as ty
 import warnings
 import weakref
+from functools import partial
 from pathlib import Path
 from types import FrameType
-from weakref import WeakSet, ref
 
 import napari.layers as n_layers
 from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
-from napari._qt.utils import QImg2array, add_flash_animation
+from napari._qt.qt_viewer import QtViewer as NapariQtViewer
+from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_dims import QtDims
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
-from PyQt6.QtCore import QUrl
-from qtpy.QtCore import QCoreApplication, Qt
+from qtpy.QtCore import QCoreApplication, Qt, QUrl
 from qtpy.QtGui import QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
+from napari_plot._qt._qapp_model import init_qactions, reset_default_keymap
 from napari_plot._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from napari_plot._qt.qt_toolbar import QtViewToolbar
 from napari_plot._qt.qt_welcome import QtWidgetOverlay
 from napari_plot._vispy.canvas import VispyCanvas
+from napari_plot._vispy.overlays import register_vispy_overlays
 from napari_plot._vispy.utils.visual import create_vispy_layer
 
 if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
+
+
+reset_default_keymap()
+register_vispy_overlays()
 
 
 class QtViewer(QSplitter):
@@ -54,7 +60,11 @@ class QtViewer(QSplitter):
         Napari viewer containing the rendered scene, layers, and controls.
     """
 
-    _instances = WeakSet()
+    # To track window instances and facilitate getting the "active" viewer...
+    # We use this instead of QApplication.activeWindow for compatibility with
+    # IPython usage. When you activate IPython, it will appear that there are
+    # *no* active windows, so we want to track the most recently active windows
+    _instances: ty.ClassVar[ty.List[QtViewer]] = []
     _console = None
 
     def __init__(
@@ -66,12 +76,23 @@ class QtViewer(QSplitter):
         **kwargs,
     ):
         super().__init__(parent=parent)
-        self._instances.add(self)
+        self._show_welcome_screen = show_welcome_screen
+
+        # add a few methods from napari QtViewer
+        # self._leave_canvas = partial(NapariQtViewer._leave_canvas, self=self)
+        # self._enter_canvas = partial(NapariQtViewer._enter_canvas, self=self)
+        # self._ensure_connect = partial(NapariQtViewer._ensure_connect, self=self)
+        # self._weakref_if_possible = partial(NapariQtViewer._weakref_if_possible, self=self)
+        # self._unwrap_if_weakref = partial(NapariQtViewer._unwrap_if_weakref, self=self)
+        # self._on_active_change = partial(NapariQtViewer._on_active_change, self=self)
+        # self._on_add_layer_change = partial(NapariQtViewer._on_add_layer_change, self=self)
+        self.clipboard = partial(NapariQtViewer.clipboard, self=self)
+        self._screenshot = partial(NapariQtViewer._screenshot, self=self)
+
+        self._instances.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setAcceptDrops(False)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
-
-        self._show_welcome_screen = show_welcome_screen
 
         # handle to the viewer instance
         self.viewer = viewer
@@ -90,25 +111,6 @@ class QtViewer(QSplitter):
         self._create_widgets(**kwargs)
 
         # create main vispy canvas
-        self._create_canvas()
-
-        # set ui
-        self._set_layout(**kwargs)
-
-        # setup events
-        self._set_events()
-
-        # bind shortcuts stored in settings last.
-        self._bind_shortcuts()
-
-        for layer in self.viewer.layers:
-            self._add_layer(layer)
-
-    def __getattr__(self, name):
-        return object.__getattribute__(self, name)
-
-    def _create_canvas(self) -> None:
-        """Create the canvas and hook up events."""
         self.canvas = VispyCanvas(
             viewer=self.viewer,
             parent=self,
@@ -116,6 +118,63 @@ class QtViewer(QSplitter):
             size=self.viewer._canvas_size,
             autoswap=True,
         )
+
+        # this is the line that initializes any Qt-based app-model Actions that
+        # were defined somewhere in the `_qt` module and imported in init_qactions
+        init_qactions()
+
+        # set ui
+        self._set_layout(**kwargs)
+
+        # setup events
+        # self.viewer.layers.events.inserted.connect(self._update_camera_depth)
+        # self.viewer.layers.events.removed.connect(self._update_camera_depth)
+        # self.viewer.dims.events.ndisplay.connect(self._update_camera_depth)
+        self.viewer.layers.events.inserted.connect(self._update_welcome_screen)
+        self.viewer.layers.events.removed.connect(self._update_welcome_screen)
+        self.viewer.layers.selection.events.active.connect(self._on_active_change)
+        self.viewer.layers.events.inserted.connect(self._on_add_layer_change)
+
+        # bind shortcuts stored in settings last.
+        self._bind_shortcuts()
+
+        for layer in self.viewer.layers:
+            self._add_layer(layer)
+
+    def _leave_canvas(self):
+        NapariQtViewer._leave_canvas(self)
+
+    def _enter_canvas(self):
+        NapariQtViewer._enter_canvas(self)
+
+    def _on_active_change(self):
+        NapariQtViewer._on_active_change(self)
+
+    def _on_add_layer_change(self, event):
+        NapariQtViewer._on_add_layer_change(self, event)
+
+    def _ensure_connect(self):
+        NapariQtViewer._ensure_connect(self)
+
+    def _weakref_if_possible(self, obj):
+        return NapariQtViewer._weakref_if_possible(self, obj)
+
+    def _unwrap_if_weakref(self, obj):
+        return NapariQtViewer._unwrap_if_weakref(self, obj)
+
+    @classmethod
+    def current(cls):
+        """Return current window instance."""
+        return cls._instances[-1] if cls._instances else None
+
+    @classmethod
+    def current_viewer(cls):
+        """Return current viewer instance."""
+        window = cls.current()
+        return window._qt_viewer.viewer if window else None
+
+    def __getattr__(self, name):
+        return object.__getattribute__(self, name)
 
     def _create_widgets(self, **kwargs):
         """Create ui widgets"""
@@ -240,34 +299,10 @@ class QtViewer(QSplitter):
         self.setOrientation(Qt.Orientation.Vertical)
         self.addWidget(main_widget)
 
-    def _set_events(self):
-        # bind events
-        # self.viewer.layers.events.inserted.connect(self._update_camera_depth)
-        # self.viewer.layers.events.removed.connect(self._update_camera_depth)
-        # self.viewer.dims.events.ndisplay.connect(self._update_camera_depth)
-        self.viewer.layers.events.inserted.connect(self._update_welcome_screen)
-        self.viewer.layers.events.removed.connect(self._update_welcome_screen)
-        self.viewer.layers.selection.events.active.connect(self._on_active_change)
-        self.viewer.layers.events.inserted.connect(self._on_add_layer_change)
-
     @property
     def layer_to_visual(self):
         """Mapping of Napari layer to Vispy layer. Added for backward compatibility"""
         return self.canvas.layer_to_visual
-
-    def _leave_canvas(self):
-        """disable status on canvas leave"""
-        self.viewer.status = ""
-        self.viewer.mouse_over_canvas = False
-
-    def _enter_canvas(self):
-        """enable status on canvas enter"""
-        self.viewer.status = "Ready"
-        self.viewer.mouse_over_canvas = True
-
-    def _ensure_connect(self):
-        # lazy load console
-        id(self.console)
 
     def _bind_shortcuts(self):
         """Bind shortcuts stored in SETTINGS to actions."""
@@ -337,48 +372,6 @@ class QtViewer(QSplitter):
                 layer._update_thumbnail()
                 layer._set_highlight(force=True)
 
-    def _weakref_if_possible(self, obj):
-        """Create a weakref to obj.
-
-        Parameters
-        ----------
-        obj : object
-            Cannot create weakrefs to many Python built-in datatypes such as
-            list, dict, str.
-
-            From https://docs.python.org/3/library/weakref.html: "Objects which
-            support weak references include class instances, functions written
-            in Python (but not in C), instance methods, sets, frozensets, some
-            file objects, generators, type objects, sockets, arrays, deques,
-            regular expression pattern objects, and code objects."
-
-        Returns
-        -------
-        weakref or object
-            Returns a weakref if possible.
-        """
-        try:
-            newref = ref(obj)
-        except TypeError:
-            newref = obj
-        return newref
-
-    def _unwrap_if_weakref(self, value):
-        """Return value or if that is weakref the object referenced by value.
-
-        Parameters
-        ----------
-        value : object or weakref
-            No-op for types other than weakref.
-
-        Returns
-        -------
-        unwrapped: object or None
-            Returns referenced object, or None if weakref is dead.
-        """
-        unwrapped = value() if isinstance(value, ref) else value
-        return unwrapped
-
     def add_to_console_backlog(self, variables):
         """Save variables for pushing to console when it is instantiated.
 
@@ -425,25 +418,6 @@ class QtViewer(QSplitter):
         """Show welcome screen widget."""
         self._show_welcome_screen = visible
         self._welcome_widget.set_welcome_visible(visible)
-
-    def _on_active_change(self):
-        """When active layer changes change keymap handler."""
-        self._key_map_handler.keymap_providers = (
-            [self.viewer]
-            if self.viewer.layers.selection.active is None
-            else [self.viewer.layers.selection.active, self.viewer]
-        )
-
-    def _on_add_layer_change(self, event):
-        """When a layer is added, set its parent and order.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        layer = event.value
-        self._add_layer(layer)
 
     def _add_layer(self, layer):
         """When a layer is added, set its parent and order.
@@ -531,14 +505,6 @@ class QtViewer(QSplitter):
     def _screenshot_dialog(self):
         """Save screenshot of current display, default .png"""
         ScreenshotDialog(self.screenshot, self)
-
-    def clipboard(self):
-        """Take a screenshot of the currently displayed viewer and copy the image to the clipboard."""
-        img = self.canvas.screenshot()
-
-        cb = QGuiApplication.clipboard()
-        cb.setImage(img)
-        add_flash_animation(self)
 
     def keyPressEvent(self, event):
         """Called whenever a key is pressed.
@@ -716,6 +682,9 @@ class QtViewer(QSplitter):
         event : qtpy.QtCore.QCloseEvent
             Event from the Qt context.
         """
+        index = self._instances.index(self)
+        if index >= 0:
+            self._instances.pop(index)
         self.layers.close()
         # if the viewer.QtDims object is playing an axis, we need to terminate
         # the AnimationThread before close, otherwise it will cause a segFault

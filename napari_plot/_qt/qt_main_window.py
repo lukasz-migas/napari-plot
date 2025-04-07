@@ -1,4 +1,5 @@
 """Native window."""
+
 from __future__ import annotations
 
 import contextlib
@@ -12,6 +13,7 @@ from pathlib import Path
 from weakref import WeakValueDictionary
 
 import numpy as np
+import qtextra.helpers as hp
 from napari._qt._qapp_model.qactions import add_dummy_actions, init_qactions
 from napari._qt._qapp_model.qactions._debug import _is_set_trace_active
 from napari._qt.dialogs.confirm_close_dialog import ConfirmCloseDialog
@@ -42,7 +44,6 @@ from qtpy.QtWidgets import (
     QWidget,
 )
 
-import napari_plot._qt.helpers as hp
 from napari_plot._app_model.context import create_context
 from napari_plot._qt.qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
 from napari_plot._qt.qt_viewer import QtViewer

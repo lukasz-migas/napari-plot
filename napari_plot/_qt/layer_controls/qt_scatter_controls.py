@@ -4,13 +4,13 @@ import contextlib
 import typing as ty
 
 import numpy as np
+import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
@@ -98,7 +98,7 @@ class QtScatterControls(QtLayerControls):
         )
         self.border_width_relative.stateChanged.connect(self.on_change_edge_width_is_relative)
 
-        self.border_width_slider = hp.make_double_slider(
+        self.border_width_slider = hp.make_double_slider_with_text(
             self,
             1,
             tooltip="Scatter edge width",

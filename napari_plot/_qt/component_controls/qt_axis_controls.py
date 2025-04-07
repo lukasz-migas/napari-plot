@@ -3,14 +3,13 @@
 from typing import TYPE_CHECKING
 from weakref import ref
 
+import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.utils.events import disconnect_events
+from qtextra.widgets.qt_dialog import QtFramelessPopup
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QWidget
-
-import napari_plot._qt.helpers as hp
-from napari_plot._qt.qt_dialog import QtFramelessPopup
 
 if TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
@@ -69,7 +68,7 @@ class QtAxisWidget(QWidget):
         )
         self.label_color_swatch.color_changed.connect(self.on_change_label_color)
 
-        self.label_font_size = hp.make_double_slider(
+        self.label_font_size = hp.make_double_slider_with_text(
             self, min_value=4, max_value=16, step_size=1, value=viewer.axis.label_size
         )
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)
@@ -100,7 +99,7 @@ class QtAxisWidget(QWidget):
         )
         self.y_max_size_spin.valueChanged.connect(self.on_change_max_size)
 
-        self.tick_font_size = hp.make_double_slider(
+        self.tick_font_size = hp.make_double_slider_with_text(
             self, min_value=4, max_value=16, step_size=1, value=viewer.axis.tick_size
         )
         self.tick_font_size.valueChanged.connect(self.on_change_tick_font_size)

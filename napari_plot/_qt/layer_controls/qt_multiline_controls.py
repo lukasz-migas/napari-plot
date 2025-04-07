@@ -2,11 +2,11 @@
 
 import typing as ty
 
+import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
 if ty.TYPE_CHECKING:
@@ -53,7 +53,7 @@ class QtMultiLineControls(QtLayerControls):
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
         self.layer.events.editable.connect(self._on_editable_or_visible_change)
 
-        self.selection_spin = hp.make_int_spin(self, 0, 65536, value=0, tooltip="Specify current line index.")
+        self.selection_spin = hp.make_int_spin_box(self, 0, 65536, value=0, tooltip="Specify current line index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider_with_text(

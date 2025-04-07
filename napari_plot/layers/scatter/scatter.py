@@ -1,7 +1,12 @@
 """Scatter layer."""
 
+import typing as ty
+
 import numpy as np
 from napari.layers import Points
+from napari.layers.base import Layer, no_op
+from napari.layers.base._base_constants import Mode
+from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument
@@ -112,6 +117,21 @@ class Scatter(Points, LayerMixin):
         Label to be used with legend - currently does not do anything.
     """
 
+    _modeclass = Mode
+    _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[["Points", Event], ty.Any]]] = {
+        Mode.PAN_ZOOM: no_op,
+        Mode.TRANSFORM: transform_with_box,
+    }
+
+    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[["Points", Event], ty.Any]]] = {
+        Mode.PAN_ZOOM: no_op,
+        Mode.TRANSFORM: highlight_box_handles,
+    }
+    _cursor_modes: ty.ClassVar[dict[Mode, str]] = {
+        Mode.PAN_ZOOM: "standard",
+        Mode.TRANSFORM: "standard",
+    }
+
     _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
     _default_border_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
     _default_border_width = 1
@@ -206,6 +226,13 @@ class Scatter(Points, LayerMixin):
         )
         self.events.add(scaling=Event)
         self.scaling = scaling
+
+    def _mode_setter_helper(self, mode):
+        mode = Layer._mode_setter_helper(self, mode)
+        if mode == self._mode:
+            return mode
+        self._set_highlight()
+        return mode
 
     @classmethod
     def _add_deprecated_properties(cls) -> None:

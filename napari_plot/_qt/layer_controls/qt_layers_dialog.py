@@ -2,10 +2,9 @@
 
 from weakref import ref
 
+import qtextra.helpers as hp
+from qtextra.widgets.qt_dialog import QtFramelessTool
 from qtpy.QtWidgets import QVBoxLayout
-
-import napari_plot._qt.helpers as hp
-from napari_plot._qt.qt_dialog import QtFramelessTool
 
 
 class NapariPlotControls(QtFramelessTool):

@@ -3,11 +3,10 @@
 import typing as ty
 from weakref import ref
 
+import qtextra.helpers as hp
+from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
-
-import napari_plot._qt.helpers as hp
-from napari_plot._qt.widgets.qt_mini_toolbar import QtMiniToolbar
 
 if ty.TYPE_CHECKING:
     from napari_plot._qt.qt_viewer import QtViewer

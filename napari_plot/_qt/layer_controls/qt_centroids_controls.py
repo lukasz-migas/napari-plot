@@ -2,11 +2,11 @@
 
 import typing as ty
 
+import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 from napari_plot.layers.centroids._centroids_constants import COLORING_TRANSLATIONS
 
@@ -52,7 +52,7 @@ class QtCentroidControls(QtLayerControls):
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
-        self.selection_spin = hp.make_int_spin(self, value=0, tooltip="Specify current index.")
+        self.selection_spin = hp.make_int_spin_box(self, value=0, tooltip="Specify current index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider_with_text(

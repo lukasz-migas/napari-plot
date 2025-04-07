@@ -12,7 +12,7 @@ from napari_plot._vispy.layers.region import VispyRegionLayer
 from napari_plot._vispy.layers.scatter import VispyScatterLayer
 from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
 from napari_plot._vispy.overlays.text import VispyTextOverlay
-from napari_plot.components.gridlines import GridLinesOverlay
+from napari_plot.components.grid_lines import GridLinesOverlay
 from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
 
 layer_to_visual = {
