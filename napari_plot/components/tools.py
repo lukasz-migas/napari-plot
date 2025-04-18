@@ -11,7 +11,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
-from napari_plot.layers.region._region import Box, Horizontal, Vertical
+from napari_plot.utils._tool import Box, Horizontal, Vertical
 
 
 class Shape(str, Enum):

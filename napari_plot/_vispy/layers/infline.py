@@ -20,15 +20,41 @@ class VispyInfLineLayer(VispyBaseLayer):
     def __init__(self, layer: "InfLine"):
         node = InfLineVisual()
         super().__init__(layer, node)
+        self.node.opacity = layer.opacity
 
+        # connect events
         self.layer.events.color.connect(self._on_appearance_change)
+        self.layer.events.highlight.connect(self._on_highlight_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.adding.connect(self._on_adding_change)
         self.layer.events.removed.connect(self._on_remove_change)
-        self.layer.events.highlight.connect(self._on_highlight_change)
 
         self.reset()
         self._on_data_change()
+
+    def _on_adding_change(self, _event=None):
+        # update temporary
+        pos, orientation = self.layer._creating_value
+        color = self.layer.current_color
+        if color.ndim == 2:
+            color = color[0]
+        if pos is not None:
+            if orientation == "vertical":
+                self.node.vertical_visual.set_data(pos=pos, color=color)
+                self.node.horizontal_visual.set_data(color=(0, 0, 0, 0))
+            else:
+                self.node.horizontal_visual.set_data(pos=pos, color=color)
+                self.node.vertical_visual.set_data(color=(0, 0, 0, 0))
+        else:
+            self.node.vertical_visual.set_data(color=(0, 0, 0, 0))
+            self.node.horizontal_visual.set_data(color=(0, 0, 0, 0))
+
+    def _on_remove_change(self, event) -> None:
+        """Remove lines."""
+        to_remove = event.value
+        for index in to_remove:
+            self.node.remove(index)
+        self.node.update()
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
@@ -45,32 +71,6 @@ class VispyInfLineLayer(VispyBaseLayer):
             visual.line_width = self.layer.width
         self.node.update()
 
-    def _on_adding_change(self, _event=None):
-        # update temporary
-        pos, orientation = self.layer._creating_value
-        color = self.layer.current_color
-        if color.ndim == 2:
-            color = color[0]
-        if pos is not None:
-            if orientation == "vertical":
-                self.node.vertical_infline.set_data(pos=pos, color=color)
-                self.node.horizontal_infline.set_data(color=(0, 0, 0, 0))
-            else:
-                self.node.horizontal_infline.set_data(pos=pos, color=color)
-                self.node.vertical_infline.set_data(color=(0, 0, 0, 0))
-        else:
-            self.node.vertical_infline.set_data(color=(0, 0, 0, 0))
-            self.node.horizontal_infline.set_data(color=(0, 0, 0, 0))
-
-    def _on_remove_change(self, event) -> None:
-        """Remove lines."""
-        # self.node.remove_all_lines()
-        # self._on_data_change()
-        to_remove = event.value
-        for index in to_remove:
-            self.node.remove_line(index)
-        self.node.update()
-
     def _on_data_change(self, _event=None):
         """Set data"""
         pos, orientation, color = self.layer._data_view.get_simple_lines_and_colors()
@@ -81,7 +81,7 @@ class VispyInfLineLayer(VispyBaseLayer):
         added = []
         if n_in_visual < len(pos):
             for i in range(n_in_visual, len(pos)):
-                self.node.create_line(
+                self.node.create(
                     pos[i],
                     color=self.layer._highlight_color if i in selected else color[i],
                     vertical=orientation[i] == 0,
@@ -116,5 +116,5 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def close(self):
         """Vispy visual is closing."""
-        self.node.remove_all_lines()
+        self.node.remove_all()
         super().close()

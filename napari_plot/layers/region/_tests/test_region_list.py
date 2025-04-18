@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from napari_plot.layers.region._region import Horizontal, Vertical
-from napari_plot.layers.region._region_list import RegionList
+from napari_plot.layers.region.__region import Horizontal, Vertical
+from napari_plot.layers.region.__region_list import RegionList
 
 
 def test_empty_region_list():

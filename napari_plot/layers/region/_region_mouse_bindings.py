@@ -8,7 +8,6 @@ from copy import copy
 import numpy as np
 
 from napari_plot.layers.region._region_constants import Orientation
-from napari_plot.layers.region._region_utils import preprocess_region
 
 if ty.TYPE_CHECKING:
     from vispy.app.canvas import MouseEvent
@@ -31,17 +30,15 @@ def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     yield
 
     # on move
-    index = None
+    pos, orientation = None, None
     while event.type == "mouse_move":
         coord_end = layer.world_to_data(event.position)
-        shift = "Shift" in event.modifiers
-        ctrl = "Control" in event.modifiers
 
         # if the Ctrl key is pressed, orientation is vertical
-        if ctrl:
+        if "Control" in event.modifiers:
             orientation = Orientation.VERTICAL
         # if the Shift key is pressed, orientation is horizontal
-        elif shift:
+        elif "Shift" in event.modifiers:
             orientation = Orientation.HORIZONTAL
         # otherwise, it's based on distance
         else:
@@ -49,16 +46,12 @@ def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
             orientation = Orientation.HORIZONTAL if abs(x_dist) < abs(y_dist) else Orientation.VERTICAL
 
         pos = [coord_start[1], coord_end[1]] if orientation == "vertical" else [coord_start[0], coord_end[0]]
-        print(index, pos, coord_start, coord_end)
-        if index is None:
-            index = layer._add_creating(pos, orientation=orientation)
-        else:
-            layer.move(index, preprocess_region(pos, orientation), orientation=orientation)
+        layer._add_move(pos, orientation=orientation)
         yield
 
     # on release
-    layer._is_creating = False
-    layer._finish_drawing()
+    if pos:
+        layer._add_finish(pos, orientation=orientation)
 
 
 def finish_drawing_region(layer: Region, event: MouseEvent) -> None:

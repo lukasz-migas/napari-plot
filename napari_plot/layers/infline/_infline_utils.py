@@ -7,7 +7,7 @@ import numpy as np
 from napari_plot.layers.infline._infline_constants import Orientation
 
 
-def make_infinite_line(
+def make_infinite_line_bounds_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
@@ -61,7 +61,7 @@ def make_infinite_line(
     )
 
 
-def make_simple_infinite_line(
+def make_infinite_line_simple_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
@@ -109,7 +109,7 @@ def make_simple_infinite_line(
     )
 
 
-def make_infinite_pos(
+def make_infinite_line_pos(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     indices: ty.Optional[ty.List[int]] = None,
@@ -123,12 +123,12 @@ def make_infinite_pos(
 
     for index, (val, orientation) in enumerate(zip(data, orientations)):
         if index in indices:
-            _pos = [val, np.nan] if orientation == Orientation.VERTICAL else [np.nan, val]
-            pos.extend([_pos])
+            pos_ = [val, np.nan] if orientation == Orientation.VERTICAL else [np.nan, val]
+            pos.extend([pos_])
     return np.asarray(pos, dtype=np.float32)
 
 
-def make_infinite_color(colors) -> np.ndarray:
+def make_infinite_line_color(colors) -> np.ndarray:
     """Create properly formatted colors."""
     _colors = []
     for color in colors:
@@ -136,7 +136,7 @@ def make_infinite_color(colors) -> np.ndarray:
     return np.asarray(_colors, dtype=object)
 
 
-def parse_infline_orientation(data, orientation=None):
+def parse_infinite_line_orientation(data, orientation=None):
     """Separate orientation from data if present and return both."""
     # Data is None so return empty array
     if data is None:
@@ -153,7 +153,6 @@ def parse_infline_orientation(data, orientation=None):
     # Iterable of position without orientation
     elif isinstance(data, ty.Iterable) and isinstance(orientation, (str, Orientation)):
         orientation = [orientation] * len(data)
-
     return np.asarray(data), orientation
 
 
