@@ -1,10 +1,15 @@
 """Infinite region"""
 
 import typing as ty
+import warnings
 from copy import copy
 
 import numpy as np
 from napari.layers.base import no_op
+from napari.layers.base._base_mouse_bindings import (
+    highlight_box_handles,
+    transform_with_box,
+)
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -18,12 +23,7 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.infline._infline import infline_classes
 from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
 from napari_plot.layers.infline._infline_list import InfiniteLineList
-from napari_plot.layers.infline._infline_mouse_bindings import (
-    add,
-    highlight,
-    move,
-    select,
-)
+from napari_plot.layers.infline._infline_mouse_bindings import add, highlight, move, select
 from napari_plot.layers.infline._infline_utils import (
     get_default_infline_type,
     parse_infline_orientation,
@@ -35,6 +35,7 @@ REV_TOOL_HELP = {
     " (horizontal line)": {Mode.ADD},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
     "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
+    "Enter transformation mode": {Mode.TRANSFORM},
 }
 TOOL_HELP = {}
 for t, modes in REV_TOOL_HELP.items():
@@ -88,24 +89,26 @@ class InfLine(BaseLayer):
     """
 
     _modeclass = Mode
-
     _drag_modes = {
         Mode.ADD: add,
         Mode.SELECT: select,
         Mode.PAN_ZOOM: no_op,
         Mode.MOVE: move,
+        Mode.TRANSFORM: transform_with_box,
     }
     _move_modes = {
         Mode.ADD: no_op,
         Mode.SELECT: highlight,
         Mode.PAN_ZOOM: no_op,
         Mode.MOVE: highlight,
+        Mode.TRANSFORM: highlight_box_handles,
     }
     _cursor_modes = {
         Mode.ADD: "standard",
         Mode.SELECT: "standard",
         Mode.PAN_ZOOM: "standard",
         Mode.MOVE: "cross",
+        Mode.TRANSFORM: "standard",
     }
 
     _highlight_color = (0, 0.6, 1, 0.5)
@@ -156,6 +159,8 @@ class InfLine(BaseLayer):
             highlight=Event,
             current_color=Event,
             selected=Event,
+            adding=Event,
+            removed=Event,
         )
 
         self._width = width
@@ -169,19 +174,18 @@ class InfLine(BaseLayer):
 
         self._ndisplay_stored = self._slice_input.ndisplay
 
+        # responsible for handling selection box
+        self._is_selecting = False
         self._drag_start = None
         self._drag_box = None
         self._drag_box_stored = None
-        self._is_creating = False
-        self._is_selecting = False
-        self._moving_coordinates = None
+        # responsible for handling moving of infinite line
         self._is_moving = False
+        self._moving_coordinates = None
         self._moving_value = (None, None)
-
-        # change mode once to trigger the Mode setting logic
-        self._mode: Mode = Mode.PAN_ZOOM
-        self.mode = Mode.PAN_ZOOM
-        self._status = self.mode
+        # responsible for handling creation of new infinite line
+        self._is_creating = False
+        self._creating_value: tuple[ty.Optional[float], ty.Optional[Orientation]] = (None, None)
 
         self._init_lines(
             data,
@@ -243,6 +247,24 @@ class InfLine(BaseLayer):
                 z_index=z_index,
             )
             self.events.data(value=self.data)
+
+    def _add_move(self, pos: float, *, orientation="vertical"):
+        """Add a new line at the clicked position."""
+        self._is_creating = True
+        self._creating_value = (pos, orientation)
+        self.events.adding()
+
+    def _add_finish(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
+        self.add(
+            [pos],
+            orientation=[orientation],
+            color=[color] if color is not None else color,
+            z_index=[z_index] if z_index is not None else z_index,
+        )
+        self._is_creating = False
+        self._creating_value = (None, None)
+        self.events.adding()
+        return len(self.data) - 1
 
     def _add_creating(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
         """Add new line and return the index of said line.
@@ -549,6 +571,7 @@ class InfLine(BaseLayer):
         to_remove = sorted(index, reverse=True)
         for ind in to_remove:
             self._data_view.remove(ind)
+        self.events.removed(value=to_remove)
         self.selected_data = set()
         self._emit_new_data()
 
@@ -589,10 +612,7 @@ class InfLine(BaseLayer):
         """
         if len(self.data) > 0:
             transformed_color = transform_color_with_defaults(
-                num_entries=len(self.data),
-                colors=color,
-                elem_name="color",
-                default="white",
+                num_entries=len(self.data), colors=color, elem_name="color", default="white"
             )
             colors = normalize_and_broadcast_colors(len(self.data), transformed_color)
         else:
@@ -628,7 +648,16 @@ class InfLine(BaseLayer):
 
     @property
     def _extent_data(self) -> np.ndarray:
-        return np.full((2, 2), np.nan)
+        if len(self.data) == 0:
+            extrema = np.full((2, 2), np.nan)
+        else:
+            pos = self._data_view.get_display_pos()
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore", RuntimeWarning)
+                maxs = np.nanmax(pos, axis=0)[::-1]
+                mins = np.nanmin(pos, axis=0)[::-1]
+                extrema = np.vstack([mins, maxs])
+        return extrema
 
     def _set_highlight(self, force=False):
         """Render highlights.
@@ -650,22 +679,23 @@ class InfLine(BaseLayer):
         self._drag_box_stored = copy(self._drag_box)
         self.events.highlight()
 
-    def _compute_box(self):
+    def _compute_box(self) -> tuple[ty.Union[str, np.ndarray], np.ndarray, float]:
         """Compute location of highlight vertices and box for rendering.
 
         Returns
         -------
-        edge_color : str
+        edge_color : np.ndarray
             String of the edge color of the Markers and Line for the box
         pos : np.ndarray
             Nx2 array of vertices of the box that will be rendered using a
             Vispy Line
+        width : int
+            Width of the line
         """
         from napari.layers.shapes._shapes_utils import create_box
 
         if self._is_selecting:
-            # If currently dragging a selection box just show an outline of
-            # that box
+            # If currently dragging a selection box just show an outline of # that box
             edge_color = self._highlight_color
             box = create_box(self._drag_box)
             # Use a subset of the vertices of the interaction_box to plot
@@ -673,6 +703,6 @@ class InfLine(BaseLayer):
             pos = box[Box.LINE][:, ::-1]
         else:
             # Otherwise show nothing
-            edge_color = "white"
+            edge_color = np.array([0, 0, 0, 0])
             pos = None
         return edge_color, pos, self._highlight_width

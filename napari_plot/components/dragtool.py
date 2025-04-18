@@ -44,12 +44,7 @@ class DragMode(str, Enum):
 
 
 # List of `modes` which utilize the `BoxTool` model
-BOX_ZOOM_TOOLS = [
-    DragMode.AUTO,
-    DragMode.BOX,
-    DragMode.VERTICAL_SPAN,
-    DragMode.HORIZONTAL_SPAN,
-]
+BOX_ZOOM_TOOLS = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
 POLYGON_TOOLS = [DragMode.POLYGON, DragMode.LASSO]
 BOX_SELECT_TOOLS = [DragMode.BOX_SELECT]
 SELECT_TOOLS = [DragMode.POLYGON, DragMode.LASSO, DragMode.BOX_SELECT]

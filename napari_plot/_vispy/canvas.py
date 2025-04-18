@@ -167,7 +167,7 @@ class VispyCanvas:
         self._scene_canvas.events.reset_x.connect(self.viewer.reset_x_view)
         self._scene_canvas.events.reset_y.connect(self.viewer.reset_y_view)
 
-        self._scene_canvas.events.mouse_double_click.connect(self._scene_canvas._on_mouse_double_click)
+        self._scene_canvas.events.mouse_double_click.connect(self._on_mouse_double_click)
         self._scene_canvas.events.mouse_move.connect(qthrottled(self._on_mouse_move, timeout=5))
         self._scene_canvas.events.mouse_press.connect(self._on_mouse_press)
         self._scene_canvas.events.mouse_release.connect(self._on_mouse_release)

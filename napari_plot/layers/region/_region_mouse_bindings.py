@@ -49,6 +49,7 @@ def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
             orientation = Orientation.HORIZONTAL if abs(x_dist) < abs(y_dist) else Orientation.VERTICAL
 
         pos = [coord_start[1], coord_end[1]] if orientation == "vertical" else [coord_start[0], coord_end[0]]
+        print(index, pos, coord_start, coord_end)
         if index is None:
             index = layer._add_creating(pos, orientation=orientation)
         else:

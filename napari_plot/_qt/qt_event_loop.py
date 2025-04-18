@@ -16,14 +16,16 @@ from napari._qt.qt_event_loop import (
 from napari._qt.qthreading import wait_for_workers_to_quit
 from napari._qt.utils import _maybe_allow_interrupt
 from napari.resources._icons import _theme_path
+from napari.settings import get_settings
 from napari.utils.notifications import notification_manager, show_console_notification
 from napari.utils.theme import _themes, build_theme_svgs
+from qtextra.config.theme import THEMES
 from qtpy import PYQT5, PYSIDE2
 from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
-import napari_plot.resources  # noqa: F401
+import napari_plot.resources
 from napari_plot import __version__
 from napari_plot.viewer import Viewer
 
@@ -179,6 +181,8 @@ def get_app(
         for name in _themes:
             QDir.addSearchPath(f"theme_{name}", str(_theme_path(name)))
 
+    # synchronize themes
+    THEMES.theme = get_settings().appearance.theme
     _app_ref = app  # prevent garbage collection
 
     return app

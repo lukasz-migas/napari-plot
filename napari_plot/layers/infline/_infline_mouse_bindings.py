@@ -20,33 +20,28 @@ def add(layer, event):
         yield
 
     # on move
-    index = None
+
+    pos, orientation = None, None
     while event.type == "mouse_move":
         coordinates = layer.world_to_data(event.position)
-        shift = "Shift" in event.modifiers
-        ctrl = "Control" in event.modifiers
-
+        # otherwise, it's based on distance
         # if the Ctrl key is pressed, orientation is vertical
-        if ctrl:
+        if "Control" in event.modifiers:
             orientation = Orientation.VERTICAL
         # if the Shift key is pressed, orientation is horizontal
-        elif shift:
+        elif "Shift" in event.modifiers:
             orientation = Orientation.HORIZONTAL
-        # otherwise, it's based on distance
         else:
             x_dist, y_dist = start_pos - event.pos
             orientation = Orientation.HORIZONTAL if abs(x_dist) > abs(y_dist) else Orientation.VERTICAL
 
         pos = coordinates[1] if orientation == "vertical" else coordinates[0]
-        if index is None:
-            index = layer._add_creating(pos, orientation=orientation)
-        else:
-            layer.move(index, pos, orientation)
+        layer._add_move(pos, orientation=orientation)
         yield
 
     # on release
-    if index is not None:
-        layer.move(index, pos, orientation, True)
+    if pos:
+        layer._add_finish(pos, orientation=orientation)
 
 
 def move(layer, event):

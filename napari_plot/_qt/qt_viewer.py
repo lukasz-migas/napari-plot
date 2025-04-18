@@ -79,13 +79,6 @@ class QtViewer(QSplitter):
         self._show_welcome_screen = show_welcome_screen
 
         # add a few methods from napari QtViewer
-        # self._leave_canvas = partial(NapariQtViewer._leave_canvas, self=self)
-        # self._enter_canvas = partial(NapariQtViewer._enter_canvas, self=self)
-        # self._ensure_connect = partial(NapariQtViewer._ensure_connect, self=self)
-        # self._weakref_if_possible = partial(NapariQtViewer._weakref_if_possible, self=self)
-        # self._unwrap_if_weakref = partial(NapariQtViewer._unwrap_if_weakref, self=self)
-        # self._on_active_change = partial(NapariQtViewer._on_active_change, self=self)
-        # self._on_add_layer_change = partial(NapariQtViewer._on_add_layer_change, self=self)
         self.clipboard = partial(NapariQtViewer.clipboard, self=self)
         self._screenshot = partial(NapariQtViewer._screenshot, self=self)
 

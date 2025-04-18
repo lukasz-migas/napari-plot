@@ -41,8 +41,8 @@ class QtInfLineControls(QtLayerControls):
     """
 
     MODE = Mode
-    PAN_ZOOM_ACTION_NAME = "activate_centroids_pan_zoom_mode"
-    TRANSFORM_ACTION_NAME = "activate_centroids_transform_mode"
+    PAN_ZOOM_ACTION_NAME = "activate_infline_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_infline_transform_mode"
 
     def __init__(self, layer: "InfLine"):
         super().__init__(layer)
@@ -147,6 +147,8 @@ class QtInfLineControls(QtLayerControls):
             self.select_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
+        elif mode == Mode.TRANSFORM:
+            self.transform_button.setChecked(True)
         else:
             raise ValueError(f"Mode {mode} not recognized")
 

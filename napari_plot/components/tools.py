@@ -120,6 +120,16 @@ class BoxTool(MeshBaseTool):
         self._add(box)
         return self._mesh
 
+    @property
+    def horizontal(self) -> list[tuple[float, float]]:
+        """Horizontal span."""
+        return [self.position[2], self.position[3]]
+
+    @property
+    def vertical(self) -> list[tuple[float, float]]:
+        """Vertical span."""
+        return [self.position[0], self.position[1]]
+
 
 class PolygonTool(MeshBaseTool):
     """Class for polygon and lasso tool."""

@@ -1,19 +1,21 @@
 """Get all paths."""
 
+from __future__ import annotations
+
 from pathlib import Path
 
-from napari._qt.qt_resources import STYLES, get_stylesheet
+from napari._qt.qt_resources import STYLES as STYLES_
 from napari.resources._icons import ICONS as ICONS_
-from qtextra.assets import update_icons, update_styles
+from qtextra.assets import STYLES, get_stylesheet, update_icons, update_styles
 
 ICON_PATH = (Path(__file__).parent / "icons").resolve()
 ICONS = {x.stem: str(x) for x in ICON_PATH.iterdir() if x.suffix == ".svg"}
 ICONS_.update(ICONS)
 
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
-STYLES.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
+STYLES_.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
 
-update_styles(STYLES)
+update_styles(STYLES_)
 update_icons(
     {
         "delete": "fa5s.trash",
@@ -26,8 +28,7 @@ update_icons(
         "erase": "ph.eraser-fill",
         "zoom_out": "fa5s.expand",
         "target": "mdi6.target",
-        # "move": "ei.move",
-        "move": "ei.move",
+        "move": "fa5s.arrows-alt",
         # "add": "ri.add-circle-fill",
         "add": "ri.add-circle-line",
         "minimise": "fa5s.window-minimize",

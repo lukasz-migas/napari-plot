@@ -8,7 +8,7 @@ from functools import partial
 import qtextra.helpers as hp
 from napari.utils.action_manager import action_manager
 from qtextra.widgets.qt_button_icon import QtImagePushButton
-from qtpy.QtWidgets import QFrame, QHBoxLayout, QWidget
+from qtpy.QtWidgets import QFrame, QWidget
 
 
 def _add_new_points(viewer):
@@ -62,7 +62,7 @@ class QtLayerButtons(QFrame):
             self,
             "delete",
             tooltip="Delete selected layers",
-            action="napari:delete_selected_layers",
+            action="napari:delete_selected_layers",  # TODO: change to napari_plot
         )
         self.delete_btn.setParent(self)
 

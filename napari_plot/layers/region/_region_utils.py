@@ -3,6 +3,7 @@
 import typing as ty
 
 import numpy as np
+from koyo.system import IS_MAC
 
 from napari_plot.layers.region._region_constants import Orientation
 
@@ -23,7 +24,7 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
         data, orientation = data
         data, orientation = [data], [orientation]
     # List of (windows, shape_type) or (window min, window max) tuples
-    elif len(data) != 0 and all(isinstance(dat, ty.Tuple) for dat in data):
+    elif len(data) != 0 and all(isinstance(dat, tuple) for dat in data):
         _data, _orientation = [], []
         for el1, el2 in data:
             if not isinstance(el2, (str, Orientation)):
@@ -43,20 +44,35 @@ def parse_region_data(data, orientation=None) -> ty.Tuple[ty.List, ty.List]:
     return data, orientation
 
 
+def get_divisor(start: float, end: float) -> float:
+    """Get divisor appropriate for data range and OS."""
+    if not IS_MAC:
+        return 1
+    diff = abs(end - start)
+    if diff < 1e3:
+        return 1e35
+    if diff < 1e4:
+        return 1e35
+    if diff < 1e5:
+        return 1e32
+    if diff < 1e9:
+        return 1e30
+    return 1e35
+
+
 def preprocess_region(data, orientation) -> ty.List:
     """Pre-process data to proper format."""
-    # min_val, max_val = np.iinfo(np.int64).min, np.iinfo(np.int64).max
-    # min_val, max_val = np.float64(np.iinfo(np.int32).min), np.float64(np.iinfo(np.int32).max)
-    # min_val, max_val = np.finfo(np.float32).min, np.finfo(np.float32).max
-    # min_val, max_val = np.iinfo(np.int32).min, np.iinfo(np.int32).max
-    # TODO: this is currently broken and does not work as expected!
-    # min_val, max_val = np.iinfo(np.int16).min, np.iinfo(np.int16).max
-    min_val = np.finfo(np.float32).min / 1e20
-    max_val = np.finfo(np.float32).max / 1e20
     start, end = np.asarray(data, dtype=np.float32)
+    min_val = np.finfo(np.float32).min / 1e30
+    max_val = np.finfo(np.float32).max / 1e30
     if orientation == "vertical":
         return [[min_val, start], [min_val, end], [max_val, end], [max_val, start]]
     return [[start, min_val], [start, max_val], [end, max_val], [end, min_val]]
+
+
+def preprocess_region_alt(data, orientation) -> tuple[float, float]:
+    """Pre-process data to proper format."""
+    return np.asarray(data, dtype=np.float32)
 
 
 def preprocess_box(data):

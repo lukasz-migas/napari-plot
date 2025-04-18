@@ -1,5 +1,6 @@
 """Scatter visual."""
 
+
 from vispy.scene.visuals import Compound, Line, Mesh
 
 

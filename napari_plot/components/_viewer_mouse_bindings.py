@@ -3,12 +3,16 @@
 import typing as ty
 from functools import partial
 
+import numpy as np
+
 from napari_plot.components.tools import Shape
 
 if ty.TYPE_CHECKING:
     from napari_plot.viewer import Viewer
 
-ACTIVE_COLOR = (1.0, 0.0, 0.0, 1.0)
+ACTIVE_COLOR: tuple[int, int, int, int] = (1.0, 0.0, 0.0, 1.0)
+EXTENT_MULTIPLIER: float = 0.05
+LASSO_VERTEX_DISTANCE: int = 10
 
 
 def polygon_select(viewer: "Viewer", event):
@@ -70,9 +74,13 @@ def lasso_select(viewer: "Viewer", event):
     yield
 
     # on mouse move
+    last_pos = event.pos
     while event.type == "mouse_move":
         if event.button == 1:
-            viewer.drag_tool.tool.add_point(event.position)
+            position_diff = np.linalg.norm(event.pos - last_pos)
+            if position_diff > LASSO_VERTEX_DISTANCE:
+                viewer.drag_tool.tool.add_point(event.position)
+                last_pos = event.pos
         yield
     # on release
     viewer.drag_tool.tool.finished = True
@@ -109,8 +117,15 @@ def box_zoom(viewer: "Viewer", event):
     """Enable box zoom."""
 
     def _get_shape():
-        if sx0 is None or "Alt" in event.modifiers:
+        # handle modifiers first
+        if "Alt" in event.modifiers or sx0 is None:
             return Shape.BOX
+        if "Control" in event.modifiers:
+            return Shape.VERTICAL
+        if "Shift" in event.modifiers:
+            return Shape.HORIZONTAL
+
+        # then handle the shape
         x0, x1, y0, y1 = viewer.drag_tool.tool.position
         x, y = abs(x1 - x0), abs(y1 - y0)
         # if there is minimum difference in y-position, lets show it as vertical span
@@ -131,8 +146,8 @@ def box_zoom(viewer: "Viewer", event):
     # on press
     sx0, sx1, sy0, sy1 = None, None, None, None
     extent = viewer.camera.rect
-    ex = abs(extent[1] - extent[0]) * 0.07
-    ey = abs(extent[3] - extent[2]) * 0.07
+    ex = abs(extent[1] - extent[0]) * EXTENT_MULTIPLIER
+    ey = abs(extent[3] - extent[2]) * EXTENT_MULTIPLIER
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.shape = _get_shape()
     yield

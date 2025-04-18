@@ -1,6 +1,7 @@
 """Infinite line list."""
 
 import typing as ty
+from contextlib import suppress
 
 import numpy as np
 
@@ -11,6 +12,7 @@ from napari_plot.layers.infline._infline_utils import (
     make_infinite_color,
     make_infinite_line,
     make_infinite_pos,
+    make_simple_infinite_line,
     nearby_line,
 )
 
@@ -40,9 +42,17 @@ class InfiniteLineList:
         """list of (M, D) array: data arrays for each shape."""
         return np.asarray([s.data for s in self.inflines])
 
+    def get_display_pos(self, indices=None):
+        """Return position of lines."""
+        return make_infinite_pos(self.data, self.orientations, indices=indices)
+
     def get_display_lines(self, indices=None):
         """Return data to be displayed."""
         return make_infinite_line(self.data, self.orientations, self.color, indices=indices)
+
+    def get_simple_lines_and_colors(self, indices=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return position and color of infinite lines."""
+        return make_simple_infinite_line(self.data, self.orientations, self.color, indices=indices)
 
     @property
     def orientations(self):
@@ -183,10 +193,11 @@ class InfiniteLineList:
     def inside(self, coord, max_dist: float = 0.1):
         """Determine if any line at given coord by looking at nearest line within defined limit."""
         pos = make_infinite_pos(self.data, self.orientations)
-        indices = nearby_line(pos - coord[::-1], max_dist)
-        if len(indices) > 0:
-            z_list = [self._z_order[i] for i in indices]
-            return indices[np.argsort(z_list)][0]
+        with suppress(IndexError):
+            indices = nearby_line(pos - coord[::-1], max_dist)
+            if len(indices) > 0:
+                z_list = [self._z_order[i] for i in indices]
+                return indices[np.argsort(z_list)][0]
         return None
 
     def lines_in_box(self, corners):
