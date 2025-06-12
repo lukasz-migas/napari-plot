@@ -138,11 +138,14 @@ class QtViewerButtons(QFrame):
         self.consoleButton = None
         if kwargs.get("dock_console", False):
             self.consoleButton = make_qta_btn(
-                self, "ipython", "Show/hide console panel", func=parent.on_toggle_console_visibility
+                self,
+                "ipython",
+                "Show/hide console panel",
+                func=parent.on_toggle_console_visibility,
             )
 
         layout = hp.make_h_layout(parent=self, spacing=2, margin=0)
-        layout.addWidget(self.resetViewButton)
         if self.consoleButton is not None:
             layout.addWidget(self.consoleButton)
+        layout.addWidget(self.resetViewButton)
         layout.addStretch(0)
