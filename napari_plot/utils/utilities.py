@@ -1,7 +1,6 @@
 """Various utilities"""
 
 import typing as ty
-from contextlib import suppress
 
 import numpy as np
 
@@ -30,10 +29,3 @@ def find_nearest_index(data: np.ndarray, value: ty.Union[float, np.ndarray, ty.I
 def get_min_max(values):
     """Get the minimum and maximum value of an array"""
     return [np.min(values), np.max(values)]
-
-
-def connect(connectable, func: ty.Callable, state: bool = True):
-    """Function that connects/disconnects."""
-    with suppress(Exception):
-        connectable = connectable.connect if state else connectable.disconnect
-        connectable(func)

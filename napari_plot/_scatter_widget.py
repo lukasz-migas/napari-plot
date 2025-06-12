@@ -9,10 +9,10 @@ from warnings import warn
 
 import napari
 import numpy as np
+import qtextra.helpers as hp
 from napari.layers import Image
 
 from napari_plot._plot_widget import NapariPlotWidget
-from napari_plot.utils.utilities import connect
 
 __all__ = ["ScatterPlotWidget"]
 
@@ -76,8 +76,8 @@ class ScatterPlotWidget(NapariPlotWidget):
 
     def connect_events(self, state: bool = True) -> None:
         """Connect events."""
-        connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
-        connect(
+        hp.connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
+        hp.connect(
             self.viewer.layers.selection.events.changed,
             self.on_update_layers,
             state=state,
