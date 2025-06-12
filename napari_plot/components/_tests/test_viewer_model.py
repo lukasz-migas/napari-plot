@@ -57,7 +57,7 @@ def test_add_shapes():
     data = 20 * np.random.random((10, 4, 2))
     layer = viewer.add_shapes(data)
     assert len(viewer.layers) == 1
-    assert len(layer.data) == 2
+    assert len(layer.data) == 10
 
 
 def test_new_shapes():

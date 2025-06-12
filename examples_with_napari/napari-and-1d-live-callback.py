@@ -18,8 +18,8 @@ viewer.add_image(chelsea)
 shapes_layer = viewer.add_shapes(
     [np.array([[11, 13], [250, 313]]), np.array([[100, 10], [10, 345]])],
     shape_type="line",
-    border_width=5,
-    border_color="coral",
+    edge_width=5,
+    edge_color="coral",
     face_color="royalblue",
 )
 shapes_layer.mode = "select"

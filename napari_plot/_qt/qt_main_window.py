@@ -1251,7 +1251,8 @@ class Window:
         canvas = self._qt_viewer.canvas
         prev_size = canvas.size
         camera = self._qt_viewer.viewer.camera
-        old_center = camera.center
+        old_rect = camera.rect
+        old_extent = camera.extent
         old_zoom = camera.zoom
         ndisplay = self._qt_viewer.viewer.dims.ndisplay
 
@@ -1286,7 +1287,8 @@ class Window:
             finally:
                 # make sure we always go back to the right canvas size
                 canvas.size = prev_size
-                camera.center = old_center
+                camera.rect = old_rect
+                camera.extent = old_extent
                 camera.zoom = old_zoom
         else:
             img = self._qt_window.grab().toImage()
