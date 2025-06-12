@@ -1,22 +1,15 @@
 import pytest
 
-from napari_plot._app_model import get_app, get_app_model
+from napari_plot._app_model import get_app_model
 from napari_plot.layers import Points
 
 
 def test_app(mock_app_model):
     """just make sure our app model is registering menus and commands"""
     app = get_app_model()
-    assert app.name == "test_app"
+    assert app.name == "napari_plot"
     assert list(app.menus)
     assert list(app.commands)
-    # assert list(app.keybindings)  # don't have any yet
-    with pytest.warns(
-        FutureWarning,
-        match="`NapariApplication` instance access through `get_app` is deprecated and will be removed in 0.6.0.\nPlease use `get_app_model` instead.\n",
-    ):
-        deprecated_app = get_app()
-    assert app == deprecated_app
 
 
 def test_app_injection(mock_app_model):

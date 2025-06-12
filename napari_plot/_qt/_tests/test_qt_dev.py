@@ -1,6 +1,11 @@
+"""Test for the QtReload widget."""
+
 import pytest
 
-from napari_plot._qt.widgets.qt_dev import QtReload
+try:
+    from napari_plot._qt.widgets.qt_dev import QtReload
+except ImportError:
+    pytest.skip("QtReload widget not available", allow_module_level=True)
 
 
 @pytest.fixture

@@ -154,8 +154,8 @@ docs = [
     "markdown-changelog"
 ]
 
-[project.entry-points.pytest11]
-napari_plot = "napari_plot.utils._testsupport"
+#[project.entry-points.pytest11]
+#napari_plot = "napari_plot.utils._testsupport"
 
 [project.entry-points."napari.manifest"]
 napari_plot = "napari_plot:napari.yaml"
