@@ -28,7 +28,7 @@ class ScatterPlotWidget(NapariPlotWidget):
         super().__init__(napari_viewer)
         self.connect_events()
         # create layer which will be used to display the data
-        self.scatter_layer = self.viewer_plot.add_scatter(None, edge_color="orange")
+        self.scatter_layer = self.viewer_plot.add_scatter(None, border_color="orange")
         self.layers = []  # empty
 
         # get two layers

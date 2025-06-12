@@ -27,15 +27,15 @@ def test_scatter_controls_creation(qtbot, layer):
 
     # test edge color
     target_color = layer.edge_color[0]
-    np.testing.assert_almost_equal(transform_color(qtctrl.edge_color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(transform_color(qtctrl.border_color_swatch.color)[0], target_color)
     layer.edge_color = "green"
     target_color = layer.edge_color[0]
-    np.testing.assert_almost_equal(transform_color(qtctrl.edge_color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(transform_color(qtctrl.border_color_swatch.color)[0], target_color)
 
     # test width
-    assert qtctrl.edge_width_slider.maximum() <= 1.0
-    assert qtctrl.edge_width_slider.value() <= 1.0
+    assert qtctrl.border_width_slider.maximum() <= 1.0
+    assert qtctrl.border_width_slider.value() <= 1.0
 
     # change to non-relative edge width
-    layer.edge_width_is_relative = False
-    assert qtctrl.edge_width_slider.maximum() > 1.0
+    layer.border_width_is_relative = False
+    assert qtctrl.border_width_slider.maximum() > 1.0

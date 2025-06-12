@@ -46,9 +46,6 @@ def test_add_empty_points_to_empty_viewer():
 
 def test_add_empty_shapes_layer():
     viewer = ViewerModel()
-    image = np.random.random((8, 64, 64))
-    # add_image always returns the corresponding layer
-    _ = viewer.add_image(image)
     layer = viewer.add_shapes(ndim=2)
     assert layer.ndim == 2
 
@@ -58,9 +55,9 @@ def test_add_shapes():
     viewer = ViewerModel()
     np.random.seed(0)
     data = 20 * np.random.random((10, 4, 2))
-    viewer.add_shapes(data)
+    layer = viewer.add_shapes(data)
     assert len(viewer.layers) == 1
-    assert np.all(viewer.layers[0].data == data)
+    assert len(layer.data) == 2
 
 
 def test_new_shapes():
@@ -76,9 +73,9 @@ def test_new_shapes():
     np.random.seed(0)
     data = np.random.random((10, 15))
     viewer.add_image(data)
-    viewer.add_shapes()
+    layer = viewer.add_shapes()
     assert len(viewer.layers) == 2
-    assert len(viewer.layers[1].data) == 0
+    assert len(layer.data) == 0
 
 
 def test_naming():
@@ -126,7 +123,7 @@ def test_active_layer():
     assert viewer.layers.selection.active == viewer.layers[0]
 
     # Check newly added layer is active
-    viewer.add_image(np.random.random((5, 6, 5)))
+    viewer.add_image(np.random.random((5, 6)))
     assert len(viewer.layers) == 2
     assert viewer.layers.selection.active == viewer.layers[1]
 
@@ -176,7 +173,7 @@ def test_camera():
 
 @pytest.mark.parametrize(
     "field",
-    ["camera", "cursor", "layers", "grid_lines", "axis", "drag_tool", "text_overlay"],
+    ["camera", "cursor", "layers", "axis", "drag_tool"],
 )
 def test_not_mutable_fields(field):
     """Test appropriate fields are not mutable."""

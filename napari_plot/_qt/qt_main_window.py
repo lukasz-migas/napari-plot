@@ -52,6 +52,8 @@ from napari_plot.components.dragtool import DragMode
 from napari_plot.resources import get_stylesheet
 
 if ty.TYPE_CHECKING:
+    from magicgui.widgets import Widget
+
     from napari_plot.viewer import Viewer
 
 logger = logging.getLogger()
@@ -1467,10 +1469,6 @@ class Window:
 
     def _teardown(self):
         """Carry out various teardown tasks such as event disconnection."""
-        self._qt_viewer.viewer.layers.events.disconnect(self.file_menu.update)
-        for menu in self.file_menu._INSTANCES:
-            with contextlib.suppress(RuntimeError):
-                menu._destroy()
 
     def close(self):
         """Close the viewer window and cleanup sub-widgets."""

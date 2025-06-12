@@ -1,15 +1,15 @@
-name: napari-plot
+name: napari_plot
 schema_version: 0.1.1
 contributions:
   commands:
-  - id: napari-plot.NapariPlotWidget
+  - id: napari_plot.NapariPlotWidget
     title: Create Napari-Plot
     python_name: napari_plot._plot_widget:NapariPlotWidget
-  - id: napari-plot.ScatterPlotWidget
+  - id: napari_plot.ScatterPlotWidget
     python_name: napari-plot._scatter_widget:ScatterPlotWidget
     title: Scatter plot of two layers
   widgets:
-  - command: napari-plot.NapariPlotWidget
+  - command: napari_plot.NapariPlotWidget
     display_name: Napari-Plot (2D Plot)
-  - command: napari-plot.ScatterPlotWidget
+  - command: napari_plot.ScatterPlotWidget
     display_name: Napari-Plot (Scatter)

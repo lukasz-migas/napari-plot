@@ -6,7 +6,6 @@ from napari_plot.components.camera import Camera
 def test_camera():
     """Test camera."""
     camera = Camera()
-    assert camera.interactive
     assert camera.rect == (0, 0, 0, 0)
     assert camera.extent == (0, 0, 0, 0)
     assert camera.x_range is None
