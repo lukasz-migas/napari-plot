@@ -10,6 +10,7 @@ Internally, prefer using the `MenuId` enum instead of the string literal.
 SOME of these (but definitely not all) will be exposed as "contributable"
 menus for plugins to contribute commands and submenu items to.
 """
+
 from __future__ import annotations
 
 from napari.utils.compat import StrEnum

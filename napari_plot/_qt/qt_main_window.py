@@ -520,7 +520,7 @@ class Window:
     def _setup_dev_tools(self):
         """Setup development tools."""
         try:
-            if os.getenv("NAPARI_PLOT_DEV_MODE", "0") == "1" and self._dev is None:
+            if os.getenv("NAPARI_PLOT_DEV", "0") == "1" and self._dev is None:
                 from napari_plot._qt.widgets.qt_dev import install_debugger_hook, qdev
 
                 logging.getLogger("napari_plot").setLevel(logging.DEBUG)
@@ -531,7 +531,7 @@ class Window:
                     self._dev,
                     name="Reload Widget",
                     area="left",
-                    allowed_areas=["left", "right"],
+                    allowed_areas=["left", "right", "bottom"],
                     object_name="qdev",
                     close_btn=False,
                 )

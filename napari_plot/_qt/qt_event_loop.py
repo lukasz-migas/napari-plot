@@ -25,7 +25,6 @@ from qtpy.QtCore import QDir, Qt
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
-import napari_plot.resources
 from napari_plot import __version__
 from napari_plot.viewer import Viewer
 

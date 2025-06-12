@@ -1,6 +1,5 @@
 """Override text visual to fix label cropping"""
 
-
 from napari._vispy.overlays.text import CanvasPosition, VispyTextOverlay as _VispyTextOverlay
 
 

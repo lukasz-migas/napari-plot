@@ -29,8 +29,6 @@ class QtRegionControls(QtLayerControls):
         An instance of a Region layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -56,7 +54,6 @@ class QtRegionControls(QtLayerControls):
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.color_swatch = QColorSwatchEdit(
@@ -127,12 +124,13 @@ class QtRegionControls(QtLayerControls):
             tooltip="Delete selected infinite lines (Backspace)",
             edit_button=True,
         )
+        self.transform_button.hide()
 
         self.button_grid.addWidget(self.delete_button, 0, 1)
         self.button_grid.addWidget(self.add_button, 0, 2)
-        self.button_grid.addWidget(self.select_button, 0, 3)
-        self.button_grid.addWidget(self.edit_button, 0, 4)
-        self.button_grid.addWidget(self.move_button, 0, 5)
+        self.button_grid.addWidget(self.edit_button, 0, 3)
+        self.button_grid.addWidget(self.move_button, 0, 4)
+        self.button_grid.addWidget(self.select_button, 0, 5)
         # row 2
         self.button_grid.addWidget(self.move_back_button, 1, 1)
         self.button_grid.addWidget(self.move_front_button, 1, 2)
@@ -142,16 +140,16 @@ class QtRegionControls(QtLayerControls):
         self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 
     def _on_edit_mode_active(self, event=None):
         """Enable/disable `edit` mode when correct number of regions is selected."""
         show = len(self.layer.selected_data) == 1
-        set_widgets_enabled_with_opacity(self, [self.edit_button], show)
+        set_widgets_enabled_with_opacity(self, [self.edit_button, self.move_button], show)
         if not show:
             self.edit_button.setChecked(False)
+            self.move_button.setChecked(False)
 
     def _on_mode_change(self, event):
         """Update ticks in checkbox widgets when points layer mode is changed.
@@ -215,8 +213,6 @@ class QtRegionControls(QtLayerControls):
                 self.add_button,
                 self.move_back_button,
                 self.move_front_button,
-                # "edit_button",
             ],
-            self.layer.editable and self.layer.visible,
+            self.layer.visible,
         )
-        super()._on_editable_or_visible_change(event)

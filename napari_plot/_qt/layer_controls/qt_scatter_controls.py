@@ -7,6 +7,7 @@ import numpy as np
 import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
+from napari.layers.base._base_constants import Mode
 from napari.layers.points._points_constants import SYMBOL_TRANSLATION
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
@@ -31,8 +32,6 @@ class QtScatterControls(QtLayerControls):
         An instance of a Scatter layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -51,6 +50,7 @@ class QtScatterControls(QtLayerControls):
         Checkbox to enable/disable visibility of text items
     """
 
+    MODE = Mode
     PAN_ZOOM_ACTION_NAME = "activate_scatter_pan_zoom_mode"
     TRANSFORM_ACTION_NAME = "activate_scatter_transform_mode"
 
@@ -64,7 +64,6 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.border_width_is_relative.connect(self._on_edge_width_is_relative_change)
         self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.size_slider = hp.make_slider_with_text(
@@ -134,7 +133,6 @@ class QtScatterControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "Border width"), self.border_width_slider)
         self.layout().addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
         self.layout().addRow(hp.make_label(self, "Display text"), self.text_display_checkbox)
-        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
 
         # initialize values
         self._on_size_change(None)
@@ -327,9 +325,8 @@ class QtScatterControls(QtLayerControls):
                 self.border_width_relative,
                 self.symbol_combobox,
             ],
-            self.layer.editable and self.layer.visible,
+            self.layer.visible,
         )
-        super()._on_editable_or_visible_change()
 
     def close(self):
         """Disconnect events when widget is closing."""

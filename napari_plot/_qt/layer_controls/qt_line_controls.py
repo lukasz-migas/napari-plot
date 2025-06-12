@@ -27,8 +27,6 @@ class QtLineControls(QtLayerControls):
         An instance of a napari-plot Line layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -47,7 +45,6 @@ class QtLineControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.width_slider = hp.make_slider_with_text(
@@ -72,7 +69,6 @@ class QtLineControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Line width"), self.width_slider)
         self.layout().addRow(hp.make_label(self, "Line color"), self.color_swatch)
-        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
 
     def on_change_width(self, value):
@@ -149,6 +145,5 @@ class QtLineControls(QtLayerControls):
                 self.opacity_slider,
                 self.blending_combobox,
             ],
-            self.layer.editable and self.layer.visible,
+            self.layer.visible,
         )
-        super()._on_editable_or_visible_change(event)

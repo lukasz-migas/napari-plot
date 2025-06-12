@@ -41,6 +41,7 @@ class VispyPolygonVisual:
                 ),
             ]
         )
+        self.node.order = order
         if parent:
             parent.add(self.node)
 

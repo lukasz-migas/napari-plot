@@ -133,7 +133,7 @@ class VispyCanvas:
         self.max_texture_sizes = get_max_texture_sizes()
 
         # drag tool
-        self.tool = VispyDragTool(self.viewer, view=self.view, order=1e5)
+        self.tool = VispyDragTool(self.viewer, view=self.view, order=1e6)
 
         # add x-axis widget
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)

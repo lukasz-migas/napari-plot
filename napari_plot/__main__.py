@@ -141,7 +141,7 @@ def _run():
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
     if args.dev:
-        os.environ["NAPARI_PLOT_DEV_MODE"] = "1"
+        os.environ["NAPARI_PLOT_DEV"] = "1"
         install_debugger_hook()
 
     from napari_plot._qt.widgets.qt_splash_screen import QtSplashScreen

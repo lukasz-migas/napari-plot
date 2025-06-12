@@ -28,8 +28,6 @@ class QtCentroidControls(QtLayerControls):
         An instance of a napari-plot Line layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -48,7 +46,6 @@ class QtCentroidControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
@@ -84,7 +81,6 @@ class QtCentroidControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
         self.layout().addRow(self.selection_text, self.selection_spin)
         self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
         self._on_data_change()
         self._on_color_change()
@@ -180,6 +176,5 @@ class QtCentroidControls(QtLayerControls):
                 self.selection_spin,
                 self.coloring_choice,
             ],
-            self.layer.editable and self.layer.visible,
+            self.layer.visible,
         )
-        super()._on_editable_or_visible_change(event)

@@ -54,70 +54,6 @@ def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         layer._add_finish(pos, orientation=orientation)
 
 
-def finish_drawing_region(layer: Region, event: MouseEvent) -> None:
-    """Finish drawing region."""
-    layer._finish_drawing()
-
-
-def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
-    """Edit layer by first selecting and then drawing new version of the region."""
-    if len(layer.selected_data) == 1:
-        # on press
-        position_start = event.position
-        coord_start = layer.world_to_data(position_start)
-        index = next(iter(layer.selected_data))
-        orientation = layer.orientation[index]
-        yield
-        # on move
-        while event.type == "mouse_move":
-            coord_end = layer.world_to_data(event.position)
-            if orientation == Orientation.HORIZONTAL:
-                pos = [coord_start[0], coord_end[0]]
-            else:
-                pos = [coord_start[1], coord_end[1]]
-            if index is None:
-                index = layer._add_creating(pos, orientation=orientation)
-            else:
-                layer.move(index, preprocess_region(pos, orientation), orientation=orientation)
-            yield
-
-        # on release
-        layer._is_creating = False
-        layer._finish_drawing()
-        layer.mode = "select"
-
-
-def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
-    """Move region by first selecting and then moving along the axis."""
-    # on press
-    _select(layer, event, False)
-    # above, user should have selected single region and then can move it left-or-right or up-or-down
-    data, orientation, wh_half = None, None, None
-    if len(layer.selected_data) > 0:
-        index = next(iter(layer.selected_data))
-        data, orientation = layer.data[index], layer.orientation[index]
-        wh_half = _get_half(data, orientation)
-    yield
-
-    # on move
-    while event.type == "mouse_move":
-        if data is not None:
-            coordinates = layer.world_to_data(event.position)
-            layer._moving_coordinates = coordinates
-            layer.move(index, _get_region(coordinates, wh_half, orientation), orientation)
-        yield
-
-    # on release1
-    layer.selected_data = set()  # clear selection
-    if data is not None:
-        coordinates = layer.world_to_data(event.position)
-        layer._moving_coordinates = coordinates
-        layer.move(index, _get_region(coordinates, wh_half, orientation), orientation, True)
-        layer._finish_drawing()
-        layer._set_highlight()
-        layer._update_thumbnail()
-
-
 def select(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     """Select new region in the canvas"""
     shift = "Shift" in event.modifiers
@@ -151,9 +87,73 @@ def select(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
     layer._drag_start = None
     layer._drag_box = None
     layer._set_highlight()
-
     if update_thumbnail:
         layer._update_thumbnail()
+
+
+def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
+    """Edit a region by first selecting and then drawing new version of the region."""
+    if len(layer.selected_data) == 1:
+        # on press
+        index = next(iter(layer.selected_data))
+        orientation = layer.orientation[index]
+        start_coordinates = layer.world_to_data(event.position)
+        yield
+
+        # on move
+        while event.type == "mouse_move":
+            current_coordinates = layer.world_to_data(event.position)
+            if orientation == Orientation.HORIZONTAL:
+                pos = [start_coordinates[0], current_coordinates[0]]
+            else:
+                pos = [start_coordinates[1], current_coordinates[1]]
+            layer.move(index, pos, orientation=orientation)
+            yield
+
+        # on release
+        layer._set_highlight()
+        layer._update_thumbnail()
+        layer.mode = "select"
+
+
+def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
+    """Move region by first selecting and then moving along the axis.
+
+    The method will move the regions in the direction of the mouse movement by the amount from 'start' to finish'
+    """
+    # on press
+    # above, user should have selected single region and then can move it left-or-right or up-or-down
+    tmp = {}
+    start_coordinates = layer.world_to_data(event.position)
+    for index in layer.selected_data:
+        data = layer.data[index]
+        tmp[index] = {
+            "data": data,
+            "orientation": layer.orientation[index],
+        }
+    yield
+
+    # on move
+    while event.type == "mouse_move":
+        current_coordinates = layer.world_to_data(event.position)
+        vert_diff, horz_diff = start_coordinates - current_coordinates
+        for index, tmp_ in tmp.items():
+            orientation = tmp_["orientation"]
+            diff = vert_diff if orientation == Orientation.HORIZONTAL else horz_diff
+            layer.move(index, tmp_["data"] - diff, orientation)
+        yield
+
+    # on release
+    if tmp:
+        current_coordinates = layer.world_to_data(event.position)
+        vert_diff, horz_diff = start_coordinates - current_coordinates
+        for index, tmp_ in tmp.items():
+            orientation = tmp_["orientation"]
+            diff = vert_diff if orientation == Orientation.HORIZONTAL else horz_diff
+            layer.move(index, tmp_["data"] - diff, orientation)
+        layer._set_highlight()
+        layer._update_thumbnail()
+        del tmp
 
 
 def _select(layer: Region, event: MouseEvent, shift: bool) -> ty.Tuple[ty.Optional[int], ty.Optional[int]]:
@@ -199,17 +199,3 @@ def _drag_selection_box(layer: Region, coordinates: tuple[int, int]) -> None:
         layer._drag_start = coord
     layer._drag_box = np.array([layer._drag_start, coord])
     layer._set_highlight()
-
-
-def _get_half(data: np.ndarray, orientation: Orientation) -> float:
-    """Get data along dimension."""
-    if orientation == Orientation.HORIZONTAL:
-        return abs(data[0, 0] - data[2, 0]) / 2
-    return abs(data[0, 1] - data[1, 1]) / 2
-
-
-def _get_region(coordinates, wh_half: float, orientation: Orientation) -> tuple[float, float]:
-    """Get region."""
-    if orientation == Orientation.HORIZONTAL:
-        return preprocess_region((coordinates[0] - wh_half, coordinates[0] + wh_half), orientation)
-    return preprocess_region((coordinates[1] - wh_half, coordinates[1] + wh_half), orientation)

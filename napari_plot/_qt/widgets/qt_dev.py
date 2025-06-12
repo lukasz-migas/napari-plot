@@ -39,7 +39,7 @@ def install_debugger_hook() -> None:
     sys.excepthook = debugger_hook
 
 
-def qdev(parent=None, modules: ty.Iterable[str] = ("napari", "napari_plot")) -> "QtReloadWidget":
+def qdev(parent=None, modules: ty.Iterable[str] = ("napari", "napari_plot", "qtextra")) -> "QtReloadWidget":
     """Create reload widget."""
     from qtreload.qt_reload import QtReloadWidget
 

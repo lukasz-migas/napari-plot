@@ -28,8 +28,6 @@ class QtInfLineControls(QtLayerControls):
         An instance of a InfLine layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -49,7 +47,6 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.width.connect(self._on_width_change)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
         self.layer.events.visible.connect(self._on_editable_or_visible_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
@@ -101,6 +98,7 @@ class QtInfLineControls(QtLayerControls):
             tooltip="Delete selected infinite lines (Backspace)",
             edit_button=True,
         )
+        self.transform_button.hide()
 
         self.button_grid.addWidget(self.delete_button, 0, 2)
         self.button_grid.addWidget(self.add_button, 0, 3)
@@ -113,7 +111,6 @@ class QtInfLineControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
         self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout().addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
         self._on_editable_or_visible_change()
         self._on_edit_mode_active()
 
@@ -225,6 +222,5 @@ class QtInfLineControls(QtLayerControls):
                 self.panzoom_button,
                 self.delete_button,
             ],
-            self.layer.editable and self.layer.visible,
+            self.layer.visible,
         )
-        super()._on_editable_or_visible_change(event)

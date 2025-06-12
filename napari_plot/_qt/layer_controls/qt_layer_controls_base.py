@@ -31,8 +31,6 @@ class QtLayerControls(QFrame):
         An instance of a layer.
     layout : qtpy.QtWidgets.QGridLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -56,10 +54,6 @@ class QtLayerControls(QFrame):
         self.layer = layer
         self.layer.events.blending.connect(self._on_blending_change)
         self.layer.events.opacity.connect(self._on_opacity_change)
-        self.layer.events.editable.connect(self._on_editable_or_visible_change)
-
-        self.editable_checkbox = hp.make_checkbox(self, "")
-        self.editable_checkbox.stateChanged.connect(self.on_change_editable)
 
         # layout where all widgets will go
         self.setLayout(QFormLayout(self))
@@ -117,27 +111,6 @@ class QtLayerControls(QFrame):
             # layout so that qtbot will correctly clean up all instantiated
             # widgets.
             self.layout().addRow(self.button_grid)
-
-    def on_change_editable(self, state):
-        """Change editability value on the layer model.
-
-        Parameters
-        ----------
-        state : bool
-        """
-        with self.layer.events.blocker(self._on_editable_or_visible_change):
-            self.layer.editable = state
-
-    def _on_editable_or_visible_change(self, _event=None):
-        """Receive layer model opacity change event and update opacity slider.
-
-        Parameters
-        ----------
-        _event : napari.utils.event.Event, optional
-            The napari event that triggered this method, by default None.
-        """
-        with self.layer.events.editable.blocker():
-            self.editable_checkbox.setChecked(self.layer.editable)
 
     def on_change_opacity(self, value):
         """Change opacity value on the layer model.

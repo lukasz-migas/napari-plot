@@ -118,12 +118,12 @@ class Scatter(Points, LayerMixin):
     """
 
     _modeclass = Mode
-    _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[["Points", Event], ty.Any]]] = {
+    _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[["Scatter", Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: transform_with_box,
     }
 
-    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[["Points", Event], ty.Any]]] = {
+    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[["Scatter", Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: highlight_box_handles,
     }
@@ -224,6 +224,7 @@ class Scatter(Points, LayerMixin):
             canvas_size_limits=canvas_size_limits,
             antialiasing=antialiasing,
         )
+        self._mode = Mode.PAN_ZOOM
         self.events.add(scaling=Event)
         self.scaling = scaling
 

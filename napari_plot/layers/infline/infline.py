@@ -6,10 +6,6 @@ from copy import copy
 
 import numpy as np
 from napari.layers.base import no_op
-from napari.layers.base._base_mouse_bindings import (
-    highlight_box_handles,
-    transform_with_box,
-)
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -91,14 +87,14 @@ class InfLine(BaseLayer):
     _modeclass = Mode
     _drag_modes = {
         Mode.PAN_ZOOM: no_op,
-        Mode.TRANSFORM: transform_with_box,
+        Mode.TRANSFORM: no_op,
         Mode.ADD: add,
         Mode.SELECT: select,
         Mode.MOVE: move,
     }
     _move_modes = {
         Mode.PAN_ZOOM: no_op,
-        Mode.TRANSFORM: highlight_box_handles,
+        Mode.TRANSFORM: no_op,
         Mode.ADD: no_op,
         Mode.SELECT: highlight,
         Mode.MOVE: highlight,
