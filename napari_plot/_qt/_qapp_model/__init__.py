@@ -48,11 +48,7 @@ def init_qactions() -> None:
     app.injection_store.register(processors=QPROCESSORS)
 
     # register menubar actions
-    app.register_actions(
-        chain(
-            LAYERS_ACTIONS,
-        )
-    )
+    app.register_actions(chain(LAYERS_ACTIONS))
 
 
 def reset_default_keymap():
