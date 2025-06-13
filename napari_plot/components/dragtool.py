@@ -1,17 +1,17 @@
 """Tool model."""
 
 import typing as ty
-from enum import Enum
 
 import numpy as np
 from napari._pydantic_compat import PrivateAttr
+from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
 from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 
 
-class DragMode(str, Enum):
+class DragMode(StrEnum):
     """Interaction mode.
 
     No interaction tools:

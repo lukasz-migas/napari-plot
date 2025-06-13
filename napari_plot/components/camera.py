@@ -1,14 +1,14 @@
 """Camera model"""
 
 import typing as ty
-from enum import Enum
 
 from napari._pydantic_compat import validator
+from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.misc import ensure_n_tuple
 
 
-class CameraMode(str, Enum):
+class CameraMode(StrEnum):
     """Interaction mode
 
     Sets the zoom mode:
@@ -26,7 +26,7 @@ class CameraMode(str, Enum):
     LOCK_TO_RIGHT = "lock_to_right"
 
 
-class ExtentMode(str, Enum):
+class ExtentMode(StrEnum):
     """Mode specifying whether plot extents should be specified."""
 
     RESTRICTED = "restricted"

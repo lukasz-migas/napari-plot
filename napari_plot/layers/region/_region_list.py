@@ -181,6 +181,19 @@ class InfiniteRegionList:
         """Updates the z order of the triangles given the z_index list"""
         self._z_order = np.argsort(self._z_index)
 
+    def update_z_index(self, index, z_index):
+        """Update the z-index of a single shape located at index.
+
+        Parameters
+        ----------
+        index : int
+            Location in list of the shape to be changed.
+        z_index : int
+            The new z-index for the shape.
+        """
+        self._z_index[index] = z_index
+        self._update_z_order()
+
     def inside(self, coord, max_dist: float = 0.1):
         """Determine if any line at given coord by looking at nearest line within defined limit."""
         # pos = make_infinite_line_pos(self.data, self.orientations)

@@ -10,6 +10,8 @@ from ast import literal_eval
 from pathlib import Path
 from textwrap import wrap
 
+from koyo.utilities import is_installed
+
 
 class InfoAction(argparse.Action):
     """Print information."""
@@ -108,11 +110,19 @@ def parse_sys_argv():
         nargs=0,
         help="show system information and exit",
     )
-    parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="show system information and exit",
-    )
+    if is_installed("qtreload"):
+        parser.add_argument(
+            "--dev",
+            action="store_true",
+            help="show system information and exit",
+        )
+        parser.add_argument(
+            "--dev_module",
+            action="append",
+            nargs="*",
+            default=[],
+            help="concatenate multiple modules that should be watched alongside `napari_plot` and `qtextra`.",
+        )
 
     args, unknown = parser.parse_known_args()
     # this is a hack to allow using "=" as a key=value separator while also
@@ -140,9 +150,15 @@ def _run():
     level = levels[min(2, args.verbose)]  # prevent index error
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
+    # check whether Dev mode was requested
     if args.dev:
         os.environ["NAPARI_PLOT_DEV"] = "1"
         install_debugger_hook()
+        logging.info("Activated development mode.")
+    # check if additional dev modules were requested
+    if args.dev_module:
+        dev_module = list(args.dev_module)
+        os.environ["NAPARI_PLOT_DEV_MODULES"] = ",".join(dev_module)
 
     from napari_plot._qt.widgets.qt_splash_screen import QtSplashScreen
 

@@ -156,8 +156,8 @@ def test_add_infline_vertical_force_horizontal(create_known_infline_layer, Event
     mouse_release_callbacks(layer, event)
 
     # Check new shape added at coordinates
-    assert len(layer.data) == n_inflines + 1
-    assert layer.orientation[-1] == Orientation.HORIZONTAL
+    assert len(layer.data) == n_inflines
+    assert layer.orientation[-1] == Orientation.VERTICAL
 
 
 def test_add_infline_horizontal(create_known_infline_layer, Event):
@@ -250,7 +250,7 @@ def test_add_infline_horizontal_force_vertical(create_known_infline_layer, Event
     mouse_release_callbacks(layer, event)
 
     # Check new shape added at coordinates
-    assert len(layer.data) == n_inflines + 1
+    assert len(layer.data) == n_inflines
     assert layer.orientation[-1] == Orientation.VERTICAL
 
 

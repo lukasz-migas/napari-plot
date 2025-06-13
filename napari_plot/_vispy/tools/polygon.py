@@ -105,6 +105,8 @@ class VispyPolygonVisual:
 
     def _on_data_finished_change(self, _event=None):
         shape = self.shape
+
+        # Handle standard rectangle box
         if shape is None or shape == Shape.BOX:
             faces = self.tool.mesh.triangles
             colors = self.tool.mesh.triangles_colors
@@ -118,12 +120,14 @@ class VispyPolygonVisual:
             self.node._subvisuals[MESH].set_data(vertices=vertices, faces=faces, face_colors=colors)
             self.node._subvisuals[VERTICAL_SPAN].set_data(pos=[0, 0])
             self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=[0, 0])
+        # handle vertical span
         elif shape == Shape.VERTICAL:
             self.node._subvisuals[MESH].set_data(
                 vertices=np.zeros((3, 2)), faces=np.array([[0, 1, 2]]), face_colors=np.array([[0, 0, 0, 0]])
             )
             self.node._subvisuals[VERTICAL_SPAN].set_data(pos=self.tool.vertical)
             self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=[0, 0])
+        # handle horizontal span
         elif shape == Shape.HORIZONTAL:
             self.node._subvisuals[MESH].set_data(
                 vertices=np.zeros((3, 2)), faces=np.array([[0, 1, 2]]), face_colors=np.array([[0, 0, 0, 0]])

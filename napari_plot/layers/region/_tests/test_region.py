@@ -198,7 +198,7 @@ def test_z_index():
 
     # Test setting index with number
     layer.z_index = 4
-    assert all(idx == 4 for idx in layer.z_index)
+    assert all(list(idx == 4 for idx in layer.z_index))
 
     # Test setting index with list
     new_z_indices = [2] * 5 + [3] * 4

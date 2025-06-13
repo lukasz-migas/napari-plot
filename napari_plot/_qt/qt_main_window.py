@@ -106,6 +106,9 @@ class _QtMainWindow(QMainWindow):
         self._old_size = None
         self._positions = []
         self._toggle_menubar_visibility = False
+        # QtReload widget for development purposes.
+        self._qdev = None
+        self._dockQDev = None
 
         # this ia sa workaround for #5335 issue. The dict is used to not
         # collide shortcuts for close and close all windows
@@ -505,7 +508,7 @@ class Window:
         viewer.events.status.connect(self._status_changed)
 
         # Setup development tools
-        self._setup_dev_tools()
+        self._create_dev_tools()
 
         if show:
             self.show()
@@ -519,25 +522,24 @@ class Window:
                 Qt.Orientation.Vertical,
             )
 
-    def _setup_dev_tools(self):
+    def _create_dev_tools(self):
         """Setup development tools."""
         try:
             if os.getenv("NAPARI_PLOT_DEV", "0") == "1" and self._dev is None:
                 from napari_plot._qt.widgets.qt_dev import install_debugger_hook, qdev
 
                 logging.getLogger("napari_plot").setLevel(logging.DEBUG)
-                self._dev = qdev()
-                logger.debug("Installed development tools.")
-                self.dockQDev = QtViewerDockWidget(
+                self._qdev = qdev()
+                self._dockQDev = QtViewerDockWidget(
                     self,
-                    self._dev,
-                    name="Reload Widget",
-                    area="left",
+                    self._qdev,
+                    name="hot reload",
+                    area="bottom",
                     allowed_areas=["left", "right", "bottom"],
-                    object_name="qdev",
+                    object_name="QDev",
                     close_btn=False,
                 )
-                self._add_viewer_dock_widget(self.dockQDev, tabify=False, menu=self.window_menu)
+                self._add_viewer_dock_widget(self._dockQDev, tabify=False, menu=self.window_menu)
                 install_debugger_hook()
         except Exception as e:  # noqa
             pass

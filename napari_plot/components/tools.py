@@ -1,28 +1,25 @@
 """Zoom-box tool."""
 
 import typing as ty
-from enum import Enum
 
 import numpy as np
 from napari._pydantic_compat import validator
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Path, Polygon, Rectangle
 from napari.utils.colormaps.standardize_color import transform_color
+from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
-from napari_plot.utils._tool import Box, Horizontal, Vertical
+from napari_plot.utils._tool import Box
 
 
-class Shape(str, Enum):
+class Shape(StrEnum):
     """Orientation of the span"""
 
     HORIZONTAL = "horizontal"
     VERTICAL = "vertical"
     BOX = "box"
-
-
-span_classes = {Shape.HORIZONTAL: Horizontal, Shape.VERTICAL: Vertical, Shape.BOX: Box}
 
 
 class BaseTool(EventedModel):
@@ -42,7 +39,7 @@ class MeshBaseTool(BaseTool):
     # private attributes
     _mesh: Mesh = Mesh(ndisplay=2)
 
-    @validator("position", pre=True)
+    @validator("position", pre=True, allow_reuse=True)
     def _validate_position(cls, v):
         assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
         x0, x1, y0, y1 = v
@@ -103,21 +100,15 @@ class BoxTool(MeshBaseTool):
         x0, x1, y0, y1 = self.position
         return np.asarray([[y0, x0], [y1, x0], [y1, x1], [y0, x1]])
 
-    @validator("color", pre=True)
+    @validator("color", pre=True, allow_reuse=True)
     def _coerce_color(cls, v):
         return transform_color(v)[0]
 
     @property
     def mesh(self):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
-        if self.shape == Shape.VERTICAL:
-            box = Vertical(self.position[0:2])
-        elif self.shape == Shape.HORIZONTAL:
-            box = Horizontal(self.position[2:])
-        else:
-            box = Box(self.position, edge_width=0)
         self._mesh.clear()
-        self._add(box)
+        self._add(Box(self.position, edge_width=0))
         return self._mesh
 
     @property
@@ -137,7 +128,7 @@ class PolygonTool(MeshBaseTool):
     data: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     auto_reset: bool = False
 
-    @validator("data", pre=True)
+    @validator("data", pre=True, allow_reuse=True)
     def _validate_position(cls, v):
         v = np.asarray(v)
         assert v.ndim == 2

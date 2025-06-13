@@ -311,6 +311,8 @@ class QtViewer(QSplitter):
     def console(self):
         """QtConsole: iPython console terminal integrated into the napari GUI."""
         if self._console is None and self.dockConsole is not None:
+            from qtextra.config import THEMES
+
             try:
                 import napari
                 import numpy as np
@@ -324,7 +326,7 @@ class QtViewer(QSplitter):
 
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore")
-                    self.console = QtConsole(self.viewer)
+                    self.console = QtConsole(self.viewer, style_sheet=THEMES.get_theme_stylesheet())
                     self.console.push({"napari": napari, "napari_plot": napari_plot})
                     with CallerFrame(_in_napari) as c:
                         if c.frame.f_globals.get("__name__", "") == "__main__":

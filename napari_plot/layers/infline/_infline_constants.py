@@ -1,8 +1,24 @@
 """Region constants"""
 
-from enum import Enum, auto
+from enum import auto
 
+from napari.utils.compat import StrEnum
 from napari.utils.misc import StringEnum
+
+
+class Box:
+    """Box: Constants associated with the vertices of the interaction box"""
+
+    WITH_HANDLE = [0, 1, 2, 3, 4, 5, 6, 7]
+    LINE_HANDLE = [7, 6, 4, 2, 0, 7]
+    LINE = [0, 2, 4, 6, 0]
+    TOP_LEFT = 0
+    TOP_CENTER = 7
+    LEFT_CENTER = 1
+    BOTTOM_RIGHT = 4
+    BOTTOM_LEFT = 2
+    CENTER = 8
+    LEN = 8
 
 
 class Mode(StringEnum):
@@ -25,22 +41,7 @@ class Mode(StringEnum):
     SELECT = auto()
 
 
-class Box:
-    """Box: Constants associated with the vertices of the interaction box"""
-
-    WITH_HANDLE = [0, 1, 2, 3, 4, 5, 6, 7]
-    LINE_HANDLE = [7, 6, 4, 2, 0, 7]
-    LINE = [0, 2, 4, 6, 0]
-    TOP_LEFT = 0
-    TOP_CENTER = 7
-    LEFT_CENTER = 1
-    BOTTOM_RIGHT = 4
-    BOTTOM_LEFT = 2
-    CENTER = 8
-    LEN = 8
-
-
-class Orientation(str, Enum):
+class Orientation(StrEnum):
     """Orientation"""
 
     HORIZONTAL = "horizontal"
