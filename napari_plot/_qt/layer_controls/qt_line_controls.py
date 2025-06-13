@@ -45,7 +45,7 @@ class QtLineControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_visible_change)
 
         self.width_slider = hp.make_slider_with_text(
             self,
@@ -66,10 +66,10 @@ class QtLineControls(QtLayerControls):
         # add widgets to layout
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
-        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout().addRow(hp.make_label(self, "Line width"), self.width_slider)
-        self.layout().addRow(hp.make_label(self, "Line color"), self.color_swatch)
-        self._on_editable_or_visible_change()
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "line width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "line color"), self.color_swatch)
+        self._on_visible_change()
 
     def on_change_width(self, value):
         """Change size of points on the layer model.
@@ -129,7 +129,7 @@ class QtLineControls(QtLayerControls):
         with self.layer.events.method.blocker():
             self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_or_visible_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters

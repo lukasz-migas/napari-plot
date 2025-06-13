@@ -54,7 +54,7 @@ class QtRegionControls(QtLayerControls):
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
-        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_visible_change)
 
         self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.current_color,
@@ -138,9 +138,9 @@ class QtRegionControls(QtLayerControls):
         # add widgets to the layout
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
-        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self._on_editable_or_visible_change()
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
+        self._on_visible_change()
         self._on_edit_mode_active()
 
     def _on_edit_mode_active(self, event=None):
@@ -192,7 +192,7 @@ class QtRegionControls(QtLayerControls):
         with qt_signals_blocked(self.color_swatch):
             self.color_swatch.setColor(self.layer.current_color)
 
-    def _on_editable_or_visible_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters

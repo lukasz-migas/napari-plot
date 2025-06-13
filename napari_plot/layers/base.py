@@ -12,8 +12,6 @@ from napari.utils.events import EmitterGroup
 class LayerMixin:
     """Mixin class."""
 
-    _label: str = ""
-
     # Set flag to 'False' to disable thumbnail update
     _allow_thumbnail_update = True
     events: EmitterGroup
@@ -107,7 +105,6 @@ class BaseLayer(LayerMixin, Layer):
             blending=blending,
             visible=visible,
         )
-        self.events.add()
 
     def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold):
         """Update draw."""

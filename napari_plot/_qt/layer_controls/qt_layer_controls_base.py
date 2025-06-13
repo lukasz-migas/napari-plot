@@ -91,7 +91,7 @@ class QtLayerControls(QFrame):
         self.button_grid.setSpacing(4)
 
         # Control widgets
-        self.opacity_label = hp.make_label(self, "Opacity:")
+        self.opacity_label = hp.make_label(self, "opacity:")
         self.opacity_slider = hp.make_slider_with_text(self, tooltip="Opacity", focus_policy=Qt.FocusPolicy.NoFocus)
         self.opacity_slider.valueChanged.connect(self.on_change_opacity)
         self._on_opacity_change()

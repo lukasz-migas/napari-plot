@@ -46,7 +46,7 @@ class QtCentroidControls(QtLayerControls):
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
         self.selection_spin = hp.make_int_spin_box(self, value=0, tooltip="Specify current index.")
@@ -76,12 +76,12 @@ class QtCentroidControls(QtLayerControls):
         # add widgets to layout
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
-        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout().addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "color choice"), self.coloring_choice)
         self.layout().addRow(self.selection_text, self.selection_spin)
-        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self._on_editable_or_visible_change()
+        self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
+        self._on_visible_change()
         self._on_data_change()
         self._on_color_change()
 
@@ -158,7 +158,7 @@ class QtCentroidControls(QtLayerControls):
         with self.layer.events.method.blocker():
             self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_or_visible_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters

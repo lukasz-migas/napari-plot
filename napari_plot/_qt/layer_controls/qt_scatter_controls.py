@@ -64,7 +64,7 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.border_width_is_relative.connect(self._on_edge_width_is_relative_change)
         self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
-        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_visible_change)
 
         self.size_slider = hp.make_slider_with_text(
             self,
@@ -121,24 +121,24 @@ class QtScatterControls(QtLayerControls):
         # add widgets to the layout
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
-        self.layout().addRow(hp.make_label(self, "Points size"), self.size_slider)
-        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout().addRow(hp.make_label(self, "Symbol"), self.symbol_combobox)
-        self.layout().addRow(hp.make_label(self, "Face color"), self.face_color_swatch)
-        self.layout().addRow(hp.make_label(self, "Border color"), self.border_color_swatch)
+        self.layout().addRow(hp.make_label(self, "points size"), self.size_slider)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "symbol"), self.symbol_combobox)
+        self.layout().addRow(hp.make_label(self, "face color"), self.face_color_swatch)
+        self.layout().addRow(hp.make_label(self, "border color"), self.border_color_swatch)
         self.layout().addRow(
-            hp.make_label(self, "Rel. border width", tooltip="Border width is relative"),
+            hp.make_label(self, "rel. border width", tooltip="Border width is relative"),
             self.border_width_relative,
         )
-        self.layout().addRow(hp.make_label(self, "Border width"), self.border_width_slider)
-        self.layout().addRow(hp.make_label(self, "Scaling"), self.scaling_checkbox)
-        self.layout().addRow(hp.make_label(self, "Display text"), self.text_display_checkbox)
+        self.layout().addRow(hp.make_label(self, "border width"), self.border_width_slider)
+        self.layout().addRow(hp.make_label(self, "scaling"), self.scaling_checkbox)
+        self.layout().addRow(hp.make_label(self, "display text"), self.text_display_checkbox)
 
         # initialize values
         self._on_size_change(None)
         self._on_edge_width_is_relative_change(None)
         self._on_edge_width_change(None)
-        self._on_editable_or_visible_change(None)
+        self._on_visible_change(None)
 
     def on_change_symbol(self, _text):
         """Change marker symbol of the points on the layer model.
@@ -303,7 +303,7 @@ class QtScatterControls(QtLayerControls):
         with qt_signals_blocked(self.border_width_relative):
             self.border_width_relative.setChecked(self.layer.border_width_is_relative)
 
-    def _on_editable_or_visible_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters

@@ -47,7 +47,7 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.width.connect(self._on_width_change)
-        self.layer.events.visible.connect(self._on_editable_or_visible_change)
+        self.layer.events.visible.connect(self._on_visible_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
         self.width_slider = hp.make_slider_with_text(
@@ -108,10 +108,10 @@ class QtInfLineControls(QtLayerControls):
         # add widgets to the layout
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
-        self.layout().addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout().addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout().addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self._on_editable_or_visible_change()
+        self.layout().addRow(hp.make_label(self, "width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
+        self._on_visible_change()
         self._on_edit_mode_active()
 
     def _on_edit_mode_active(self, event=None):
@@ -207,7 +207,7 @@ class QtInfLineControls(QtLayerControls):
     #     with self.layer.events.method.blocker():
     #         self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_or_visible_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons."""
         set_widgets_enabled_with_opacity(
             self,
