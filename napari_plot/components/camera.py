@@ -4,7 +4,7 @@ import typing as ty
 
 from napari._pydantic_compat import validator
 from napari.utils.compat import StrEnum
-from napari.utils.events import EventedModel
+from napari.utils.events import Event, EventedModel
 from napari.utils.misc import ensure_n_tuple
 
 
@@ -94,6 +94,10 @@ class Camera(EventedModel):
     # is used as a backup for resetting x/y-axis ranges.
     _extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.events.add(force_rect=Event)
+
     # validators
     @validator("x_range", "y_range", pre=True)
     def _ensure_2_tuple(cls, v) -> ty.Optional[ty.Tuple[float, float]]:
@@ -110,6 +114,11 @@ class Camera(EventedModel):
         if not isinstance(v, tuple):
             return (v,)
         return tuple(v)
+
+    def set_rect(self, xmin, xmax, ymin, ymax):
+        """Set the camera rectangle."""
+        self.rect = (xmin, xmax, ymin, ymax)
+        self.events.force_rect()
 
     def get_effective_extent(self) -> ty.Tuple[float, float, float, float]:
         """This function returns extent based on current values of `x_range` and `y_range`."""

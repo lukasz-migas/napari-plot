@@ -267,6 +267,7 @@ select = [
 ]
 ignore = [
     "E501",
+    "T201",  # print statements
 #    "TC001", "TC002", "TC003",
     "A003", # flake8-builtins - we have class attributes violating these rule
     "COM812", # flake8-commas - we don't like adding comma on single line of arguments

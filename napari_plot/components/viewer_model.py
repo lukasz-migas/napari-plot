@@ -245,11 +245,6 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             return np.vstack([np.full(self.dims.ndim, -0.5), np.full(self.dims.ndim, 511.5)])
         return self.layers._extent_world_augmented[:, self.dims.displayed]
 
-    def reset_view(self, _event: Event = None) -> None:
-        """Reset the camera view."""
-        xmin, xmax, ymin, ymax = self._get_rect_extent()
-        self.camera.rect = (xmin, xmax, ymin, ymax)
-
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:
         """Get data extent"""
         extent = self._sliced_extent_world
@@ -306,29 +301,38 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     ):
         """Set view on specified x-axis"""
         ymin, ymax = self._get_y_range_extent_for_x(xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale)
-        self.camera.rect = (xmin, xmax, ymin, ymax)
+        self.camera.set_rect(xmin, xmax, ymin, ymax)
+
+    def reset_view(self, _event: Event = None) -> None:
+        """Reset the camera view."""
+        xmin, xmax, ymin, ymax = self._get_rect_extent()
+        self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_x_view(self, _event=None):
         """Reset the camera view, but only in the y-axis dimension"""
         xmin, xmax, _, _ = self._get_rect_extent()
         _, _, ymin, ymax = self.camera.rect
-        self.camera.rect = (xmin, xmax, ymin, ymax)
+        self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def set_y_view(self, ymin: float, ymax: float):
         """Set view on specified y-axis"""
         xmin, xmax, _, _ = self._get_rect_extent()
-        self.camera.rect = (xmin, xmax, ymin, ymax)
+        self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_y_view(self, _event=None):
         """Reset the camera view, but only in the y-axis dimension"""
         _, _, ymin, ymax = self._get_rect_extent()
         xmin, xmax, _, _ = self.camera.rect
-        self.camera.rect = (xmin, xmax, ymin, ymax)
+        self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_current_y_view(self, _event=None):
         """Reset y-axis for current selection."""
         xmin, xmax, _, _ = self.camera.rect
         self.set_x_view(xmin, xmax)
+
+    def update_extents(self, _event=None):
+        """Reset y-axis for current selection."""
+        self.camera.extent = self._get_rect_extent()
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
@@ -356,7 +360,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 pass
         tool = None
         if self.drag_tool.active in BOX_ZOOM_TOOLS:
-            tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else self.drag_tool._box
+            tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box
             if tool and self.drag_tool.active == DragMode.VERTICAL_SPAN:
                 tool.shape = Shape.VERTICAL
                 self.mouse_drag_callbacks.append(box_zoom_vert)
@@ -371,13 +375,13 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 self.mouse_drag_callbacks.append(box_zoom)
         elif self.drag_tool.active in SELECT_TOOLS:
             if self.drag_tool.active == DragMode.POLYGON:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else self.drag_tool._polygon
+                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, PolygonTool) else self.drag_tool._polygon
                 self.mouse_drag_callbacks.append(polygon_select)
             elif self.drag_tool.active == DragMode.LASSO:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == PolygonTool else self.drag_tool._polygon
+                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, PolygonTool) else self.drag_tool._polygon
                 self.mouse_drag_callbacks.append(lasso_select)
             elif self.drag_tool.active == DragMode.BOX_SELECT:
-                tool = self.drag_tool.tool if type(self.drag_tool.tool) == BoxTool else self.drag_tool._box
+                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box
                 self.mouse_drag_callbacks.append(box_select)
         self.drag_tool.tool = tool
 

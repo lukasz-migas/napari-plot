@@ -205,12 +205,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     @rect.setter
     def rect(self, args):
-        rect = Rect(*args) if isinstance(args, tuple) else Rect(args)
-
-        # ensure user never goes outside of allowed limits
+        rect = (Rect(*args) if isinstance(args, tuple) else Rect(args)) if not isinstance(args, Rect) else args
+        # ensure user never goes outside the allowed limits
         rect = self._check_zoom_limit(rect)
         rect = self._check_mode_limit(rect)
-
         if self._rect != rect:
             self._rect = rect
             self.view_changed()

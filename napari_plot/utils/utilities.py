@@ -28,4 +28,6 @@ def find_nearest_index(data: np.ndarray, value: ty.Union[float, np.ndarray, ty.I
 
 def get_min_max(values):
     """Get the minimum and maximum value of an array"""
+    if values is None or len(values) == 0:
+        return [None, None]
     return [np.min(values), np.max(values)]

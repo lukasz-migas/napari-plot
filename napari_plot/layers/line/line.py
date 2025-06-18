@@ -215,3 +215,10 @@ class Line(BaseLayer):
             mins = np.min(self.data, axis=0)[::-1]
             extrema = np.vstack([mins, maxs])
         return extrema
+
+    def _get_x_region_extent(self, x_min: float, x_max: float) -> None:
+        """Return data extents in the (xmin, xmax, ymin, ymax) format."""
+        from napari_plot.utils.utilities import find_nearest_index, get_min_max
+
+        idx_min, idx_max = find_nearest_index(self.x, [x_min, x_max])
+        return get_min_max(self.y[idx_min:idx_max])

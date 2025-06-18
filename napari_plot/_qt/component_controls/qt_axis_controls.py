@@ -252,10 +252,11 @@ class QtAxisControls(QtFramelessPopup):
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Make panel"""
-        widget = QtAxisWidget(self.ref_viewer(), self)
         layout = QFormLayout()
+        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(0)
         layout.addRow(self._make_move_handle("Axis controls"))
-        layout.addRow(widget)
+        layout.addRow(QtAxisWidget(self.ref_viewer(), self))
         return layout
 
     def close(self):

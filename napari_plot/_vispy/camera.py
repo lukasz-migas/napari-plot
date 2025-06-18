@@ -29,8 +29,8 @@ class VispyCamera:
 
     def __init__(self, view, camera: "Camera", viewer: "ViewerModel"):
         self._view = view
-        self._camera = camera
         self._viewer = viewer
+        self._camera = camera
 
         # Create camera
         self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
@@ -47,6 +47,7 @@ class VispyCamera:
         self._camera.events.y_range.connect(self._on_range_change)
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
+        self._camera.events.force_rect.connect(self._on_force_rect_change)
 
         self._on_axis_mode_change(None)
         self._on_extent_mode_change(None)
@@ -85,9 +86,12 @@ class VispyCamera:
     def rect(self, rect: Rect):
         if self.rect == rect:
             return
-        _rect = Rect(self.camera.rect)
-        _rect.left, _rect.right, _rect.bottom, _rect.top = rect  # nicely unpack tuple
-        self.camera.rect = _rect
+        self._update_rect(rect)
+
+    def _update_rect(self, rect: Rect) -> None:
+        rect_obj = Rect(self.camera.rect)
+        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = rect  # nicely unpack tuple
+        self.camera.rect = rect_obj
 
     @property
     def extent(self):
@@ -101,6 +105,7 @@ class VispyCamera:
         self.camera.extent = extent
         self.camera.set_default_state()
         self.camera.reset()
+        self._on_rect_change(None)
 
     def _on_aspect_change(self):
         self.camera.aspect = self._camera.aspect
@@ -116,6 +121,9 @@ class VispyCamera:
 
     def _on_rect_change(self, event):
         self.rect = self._camera.rect
+
+    def _on_force_rect_change(self, event):
+        self._update_rect(self._camera.rect)
 
     def _on_extent_change(self, event):
         self.extent = self._camera.get_effective_extent()
@@ -133,10 +141,7 @@ class VispyCamera:
         self.camera.reset_view()
 
     def on_draw(self, event):
-        """Called whenever the canvas is drawn.
-
-        Update camera model rect.
-        """
+        """Called whenever the canvas is drawn. Update camera model rect."""
         with self._camera.events.rect.blocker(self._on_rect_change):
             self._camera.rect = self.rect
         with self._camera.events.zoom.blocker(self._on_zoom_change):

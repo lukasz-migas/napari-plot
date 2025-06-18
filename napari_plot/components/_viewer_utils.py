@@ -13,6 +13,9 @@ def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty
         return None, None
     if layer.ndim != 2:
         return None, None
+    if hasattr(layer, "_get_x_region_extent"):
+        return layer._get_x_region_extent(x_min, x_max)
+
     if isinstance(layer, (layers.Line, layers.Centroids)):
         idx_min, idx_max = find_nearest_index(layer.data[:, 0], [x_min, x_max])
         if idx_min == idx_max:
@@ -23,7 +26,7 @@ def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty
             return get_min_max(layer.data[idx_min:idx_max, 1])
         except ValueError:
             return None, None
-    if isinstance(layer, layers.Scatter):
+    if isinstance(layer, (layers.Scatter, layers.Points)):
         idx_min, idx_max = find_nearest_index(layer.data[:, 1], [x_min, x_max])
         if idx_min == idx_max:
             idx_max += 1

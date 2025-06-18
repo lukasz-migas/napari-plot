@@ -16,7 +16,7 @@ update_icons(ICONS_)
 update_icons(ICONS)
 
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
-STYLES_.update({x.stem: str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
+STYLES_.update({f"{x.stem}-napari-plot": str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
 update_styles(STYLES_)
 
 update_icon_mapping(
