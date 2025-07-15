@@ -9,6 +9,20 @@ from napari.layers.base import Layer
 from napari.utils.events import EmitterGroup
 
 
+def update_layer_attributes(layer: Layer, throw_exception: bool = True, **kwargs: ty.Any) -> None:
+    """Update attributes on the layer."""
+    for attr, value in kwargs.items():
+        if not hasattr(layer, attr):
+            if throw_exception:
+                raise AttributeError(f"'{layer.__class__.__name__}' has no attribute '{attr}'")
+            continue
+        try:
+            setattr(layer, attr, value)
+        except (AttributeError, ValueError):
+            if throw_exception:
+                raise
+
+
 class LayerMixin:
     """Mixin class."""
 
@@ -56,16 +70,7 @@ class LayerMixin:
 
     def update_attributes(self, throw_exception: bool = True, **kwargs):
         """Update attributes on the layer."""
-        for attr, value in kwargs.items():
-            if not hasattr(self, attr):
-                if throw_exception:
-                    raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{attr}'")
-                continue
-            try:
-                setattr(self, attr, value)
-            except (AttributeError, ValueError):
-                if throw_exception:
-                    raise
+        update_layer_attributes(self, throw_exception=throw_exception, **kwargs)
 
     def _get_mask_from_path(self, vertices, as_indices: bool = False):
         """Return data contained for specified vertices. Only certain layers implement this."""

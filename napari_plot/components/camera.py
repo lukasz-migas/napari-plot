@@ -118,7 +118,7 @@ class Camera(EventedModel):
     def set_rect(self, xmin, xmax, ymin, ymax):
         """Set the camera rectangle."""
         self.rect = (xmin, xmax, ymin, ymax)
-        self.events.force_rect()
+        # self.events.force_rect()
 
     def get_effective_extent(self) -> ty.Tuple[float, float, float, float]:
         """This function returns extent based on current values of `x_range` and `y_range`."""

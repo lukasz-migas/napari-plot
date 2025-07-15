@@ -96,7 +96,6 @@ class QtCameraWidget(QWidget):
         self.x_range_max = hp.make_line_edit(
             self, tooltip="Upper x-axis range", validator=validator, func=self.on_change_x_range
         )
-        self.x_range_reset = hp.make_btn(self, "Reset x-range", func=self.on_reset_x_range)
 
         self.y_range_min = hp.make_line_edit(
             self, tooltip="Lower x-axis range", validator=validator, func=self.on_change_y_range
@@ -104,7 +103,6 @@ class QtCameraWidget(QWidget):
         self.y_range_max = hp.make_line_edit(
             self, tooltip="Upper x-axis range", validator=validator, func=self.on_change_y_range
         )
-        self.y_range_reset = hp.make_btn(self, "Reset y-range", func=self.on_reset_y_range)
 
         self.axis_mode_all = hp.make_btn(self, "Unlock all", func=self.on_change_axis_mode)
         self.axis_mode_bottom = hp.make_checkbox(
@@ -149,11 +147,11 @@ class QtCameraWidget(QWidget):
         layout.addRow(hp.make_h_line_with_text("X-axis limits", bold=True))
         layout.addRow(hp.make_label(self, "lower"), self.x_range_min)
         layout.addRow(hp.make_label(self, "upper"), self.x_range_max)
-        layout.addRow(self.x_range_reset)
+        layout.addRow(hp.make_btn(self, "Reset x-range", func=self.on_reset_x_range))
         layout.addRow(hp.make_h_line_with_text("Y-axis limits", bold=True))
         layout.addRow(hp.make_label(self, "lower"), self.y_range_min)
         layout.addRow(hp.make_label(self, "upper"), self.y_range_max)
-        layout.addRow(self.y_range_reset)
+        layout.addRow(hp.make_btn(self, "Reset y-range", func=self.on_reset_y_range))
         layout.addRow(hp.make_h_line_with_text("Axis limit modes", bold=True))
         layout.addRow(self.axis_mode_all)
         layout.addRow(hp.make_label(self, "Limit to top"), self.axis_mode_top)

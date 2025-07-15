@@ -29,7 +29,8 @@ from napari.utils.mouse_bindings import MousemapProvider
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
     box_select,
-    box_zoom,
+    box_zoom_auto,
+    box_zoom_auto_trigger,
     box_zoom_box,
     box_zoom_horz,
     box_zoom_vert,
@@ -348,7 +349,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             box_zoom_box,
             box_zoom_vert,
             box_zoom_horz,
-            box_zoom,
+            box_zoom_auto,
+            box_zoom_auto_trigger,
             polygon_select,
             lasso_select,
             box_select,
@@ -359,6 +361,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             except ValueError:
                 pass
         tool = None
+        # zoom tools
         if self.drag_tool.active in BOX_ZOOM_TOOLS:
             tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box
             if tool and self.drag_tool.active == DragMode.VERTICAL_SPAN:
@@ -372,7 +375,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
                 self.mouse_drag_callbacks.append(box_zoom_box)
             elif tool and self.drag_tool.active == DragMode.AUTO:
                 tool.shape = Shape.BOX
-                self.mouse_drag_callbacks.append(box_zoom)
+                self.mouse_drag_callbacks.append(box_zoom_auto)
+            elif tool and self.drag_tool.active == DragMode.AUTO_TRIGGER:
+                tool.shape = Shape.BOX
+                self.mouse_drag_callbacks.append(box_zoom_auto_trigger)
+        # selection tools
         elif self.drag_tool.active in SELECT_TOOLS:
             if self.drag_tool.active == DragMode.POLYGON:
                 tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, PolygonTool) else self.drag_tool._polygon
