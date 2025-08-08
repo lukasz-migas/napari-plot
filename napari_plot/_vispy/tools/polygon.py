@@ -125,14 +125,14 @@ class VispyPolygonVisual:
             self.node._subvisuals[MESH].set_data(
                 vertices=np.zeros((3, 2)), faces=np.array([[0, 1, 2]]), face_colors=np.array([[0, 0, 0, 0]])
             )
-            self.node._subvisuals[VERTICAL_SPAN].set_data(pos=self.tool.vertical)
+            self.node._subvisuals[VERTICAL_SPAN].set_data(pos=self.tool.vertical, color=self.tool.color)
             self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=[0, 0])
         # handle horizontal span
         elif shape == Shape.HORIZONTAL:
             self.node._subvisuals[MESH].set_data(
                 vertices=np.zeros((3, 2)), faces=np.array([[0, 1, 2]]), face_colors=np.array([[0, 0, 0, 0]])
             )
-            self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=self.tool.horizontal)
+            self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=self.tool.horizontal, color=self.tool.color)
             self.node._subvisuals[VERTICAL_SPAN].set_data(pos=[0, 0])
 
         # Note that the indices of the vertices need to be reversed to

@@ -226,10 +226,10 @@ def box_zoom_auto_trigger(viewer: "Viewer", event):
     # on release
     viewer.drag_tool.tool.visible = False
     viewer.drag_tool.tool.color = color
-    viewer.drag_tool.tool.position = (0, 0, 0, 0)
     viewer.drag_tool.selection_active = bool(event.modifiers)
     position = viewer.drag_tool.tool.position
     _set_event_range()
+    viewer.drag_tool.tool.position = (0, 0, 0, 0)
     viewer.events.span(position=position)
 
 
