@@ -29,8 +29,8 @@ class VispyCamera:
 
     def __init__(self, view, camera: "Camera", viewer: "ViewerModel"):
         self._view = view
-        self._viewer = viewer
         self._camera = camera
+        self._viewer = viewer
 
         # Create camera
         self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
@@ -48,6 +48,7 @@ class VispyCamera:
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
         self._camera.events.force_rect.connect(self._on_force_rect_change)
+        self._camera.events.zoomed.connect(self._on_sync_rect)
 
         self._on_axis_mode_change(None)
         self._on_extent_mode_change(None)
@@ -87,6 +88,12 @@ class VispyCamera:
         if self.rect == rect:
             return
         self._update_rect(rect)
+
+    def _on_sync_rect(self, event: ty.Any) -> None:
+        """Sync rect from the Camera object to the Camera model."""
+        with self._camera.events.rect.blocker(self._on_rect_change):
+            r = self._view.camera.rect
+            self._camera.rect = r.left, r.right, r.bottom, r.top
 
     def _update_rect(self, rect: Rect) -> None:
         rect_obj = Rect(self.camera.rect)

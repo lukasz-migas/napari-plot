@@ -212,3 +212,4 @@ class LimitedPanZoomCamera(PanZoomCamera):
         if self._rect != rect:
             self._rect = rect
             self.view_changed()
+            self.viewer.camera.events.zoomed()

@@ -1,5 +1,7 @@
 """Camera model"""
 
+from __future__ import annotations
+
 import typing as ty
 
 from napari._pydantic_compat import validator
@@ -82,35 +84,35 @@ class Camera(EventedModel):
     mouse_zoom: bool = True
     aspect: ty.Optional[float] = None
     zoom: float = 1.0
-    rect: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    x_range: ty.Optional[ty.Tuple[float, float]] = None
-    y_range: ty.Optional[ty.Tuple[float, float]] = None
+    rect: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    extent: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    x_range: ty.Optional[tuple[float, float]] = None
+    y_range: ty.Optional[tuple[float, float]] = None
     extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
-    axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
+    axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
 
     # private field
     # this attribute is quite special and must be set alongside `extent` but only if e.g. layer is being added as it
     # is used as a backup for resetting x/y-axis ranges.
-    _extent: ty.Tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
+    _extent: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.events.add(force_rect=Event)
+        self.events.add(force_rect=Event, zoomed=Event)
 
     # validators
     @validator("x_range", "y_range", pre=True)
-    def _ensure_2_tuple(cls, v) -> ty.Optional[ty.Tuple[float, float]]:
+    def _ensure_2_tuple(cls, v) -> ty.Optional[tuple[float, float]]:
         if v is None:
             return v
         return ensure_n_tuple(v, n=2)
 
     @validator("rect", "extent", pre=True)
-    def _ensure_4_tuple(cls, v) -> ty.Tuple[float, float, float, float]:
+    def _ensure_4_tuple(cls, v) -> tuple[float, float, float, float]:
         return ensure_n_tuple(v, n=4)
 
     @validator("axis_mode", pre=True)
-    def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, ty.Tuple[CameraMode]]) -> ty.Tuple[CameraMode]:
+    def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, tuple[CameraMode]]) -> tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
         return tuple(v)
@@ -120,7 +122,7 @@ class Camera(EventedModel):
         self.rect = (xmin, xmax, ymin, ymax)
         # self.events.force_rect()
 
-    def get_effective_extent(self) -> ty.Tuple[float, float, float, float]:
+    def get_effective_extent(self) -> tuple[float, float, float, float]:
         """This function returns extent based on current values of `x_range` and `y_range`."""
         x0, x1, y0, y1 = self._extent
         if self.x_range is not None:
