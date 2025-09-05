@@ -8,6 +8,7 @@ from weakref import WeakSet
 
 import numpy as np
 from napari._vispy import create_vispy_overlay
+from napari._vispy.mouse_event import NapariMouseEvent
 from napari._vispy.utils.cursor import QtCursorVisual
 from napari._vispy.utils.gl import get_max_texture_sizes
 from napari.components.overlays import CanvasOverlay, Overlay, SceneOverlay
@@ -84,6 +85,8 @@ class NapariSceneCanvas(SceneCanvas_):
             return
         if event.handled:
             return
+        if not hasattr(event, "scale"):
+            event.scale = 1.0
         super()._process_mouse_event(event)
 
     def _on_mouse_double_click(self, event: MouseEvent) -> None:
@@ -399,27 +402,35 @@ class VispyCanvas:
         if event.pos is None:
             return
 
+        event.scale = 1.0
+        napari_event = NapariMouseEvent(
+            event=event,
+            view_direction=None,
+            up_direction=None,
+            camera_zoom=self.viewer.camera.zoom,
+            position=self._map_canvas2world(event.pos),
+            dims_displayed=[0, 1],
+            dims_point=list(self.viewer.dims.point),
+            viewbox=(0, 0),
+        )
+
         # Add the view ray to the event
         event.view_direction = None  # always None because we will display 2d data
         event.up_direction = None  # always None because we will display 2d data
 
         # Update the cursor position
-        self.viewer.cursor._view_direction = event.view_direction
-        self.viewer.cursor.position = self._map_canvas2world(event.pos)
-
-        # Add the cursor position to the event
-        event.position = self.viewer.cursor.position
-
-        # Add the displayed dimensions to the event
-        event.dims_displayed = [0, 1]
+        self.viewer.cursor._view_direction = napari_event.view_direction
+        self.viewer.cursor.position = napari_event.position
 
         # Put a read only wrapper on the event
-        event = ReadOnlyWrapper(event, exceptions=("handled",))
-        mouse_callbacks(self.viewer, event)
+        read_only_event = ReadOnlyWrapper(napari_event, exceptions=("handled", "scale"))
+        mouse_callbacks(self.viewer, read_only_event)
 
         layer = self.viewer.layers.selection.active
         if layer is not None:
-            mouse_callbacks(layer, event)
+            mouse_callbacks(layer, read_only_event)
+
+        event.handled = napari_event.handled
 
     def _on_mouse_double_click(self, event):
         """Called whenever a mouse double-click happen on the canvas
