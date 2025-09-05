@@ -1,5 +1,7 @@
 """Zoom-box tool."""
 
+from __future__ import annotations
+
 import typing as ty
 
 import numpy as np
@@ -61,13 +63,22 @@ class MeshBaseTool(BaseTool):
         self._mesh.vertices_centers = np.append(self._mesh.vertices_centers, vertices, axis=0)
         vertices = np.zeros(box._face_vertices.shape)
         self._mesh.vertices_offsets = np.append(self._mesh.vertices_offsets, vertices, axis=0)
+
+        if self._mesh.vertices_index.ndim == 1:
+            self._mesh.vertices_index = np.empty((0, 2), dtype=int)
         index = np.repeat([[0, 0]], len(vertices), axis=0)
         self._mesh.vertices_index = np.append(self._mesh.vertices_index, index, axis=0)
 
+        if self._mesh.triangles.ndim == 1:
+            self._mesh.triangles = np.empty((0, 3), dtype=np.uint32)
         triangles = box._face_triangles + m
         self._mesh.triangles = np.append(self._mesh.triangles, triangles, axis=0)
+
+        if self._mesh.triangles_index.ndim == 1:
+            self._mesh.triangles_index = np.empty((0, 2), dtype=int)
         index = np.repeat([[0, 0]], len(triangles), axis=0)
         self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
+
         color_array = np.repeat([self.color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
