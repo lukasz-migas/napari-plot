@@ -28,7 +28,7 @@ jobs:
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.14
       - name: Install dependencies
         run: |
           pip install --upgrade pip
@@ -46,7 +46,7 @@ jobs:
       - name: Set up Python 3.8
         uses: actions/setup-python@v4
         with:
-          python-version: 3.8
+          python-version: 3.14
       - name: Install dependencies
         run: |
           pip install --upgrade pip
@@ -159,7 +159,7 @@ jobs:
       - name: Set up Python 3.9
         uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: 3.14
           cache: "pip"
           cache-dependency-path: napari-plot-from-github/setup.cfg
 
@@ -183,7 +183,7 @@ jobs:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
-          python-version: 3.9
+          python-version: 3.14
       - uses: tlambert03/setup-qt-libs@v1
       - name: Install this commit
         run: |
