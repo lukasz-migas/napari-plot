@@ -150,8 +150,8 @@ docs = [
     "mkdocs",
     "mkdocs-material",
     "mkdocs-minify-plugin",
-    "mkdocstrings@git+https://github.com/mkdocstrings/mkdocstrings.git@aa77b9c",
-    "mkdocstrings-python@git+https://github.com/mkdocstrings/python.git@480d0c3",
+    "mkdocstrings",
+    "mkdocstrings-python",
     "markdown-changelog"
 ]
 
