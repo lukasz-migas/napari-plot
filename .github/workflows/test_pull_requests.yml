@@ -25,7 +25,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.8
       - name: Install dependencies
@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: Set up Python 3.8
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.8
       - name: Install dependencies
@@ -95,14 +95,14 @@ jobs:
 
     steps:
       - name: Cancel Previous Runs
-        uses: styfle/cancel-workflow-action@0.11.0
+        uses: styfle/cancel-workflow-action@0.12.1
         with:
           access_token: ${{ github.token }}
 
       - uses: actions/checkout@v5
 
       - name: Set up Python ${{ matrix.python }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
           cache: "pip"
@@ -137,7 +137,7 @@ jobs:
       # `tox -e py38-linux-pyqt,py38-linux-pyside`
       # see tox.ini for more
       - name: Test with tox
-        uses: aganders3/headless-gui@v1
+        uses: aganders3/headless-gui@v2
         with:
           run: python -m tox
         env:
@@ -154,7 +154,7 @@ jobs:
             ./report-*.json
 
       - name: Coverage
-        uses: codecov/codecov-action@v3
+        uses: codecov/codecov-action@v5
 
   test_pip_install:
     name: ubuntu-latest 3.8 pip install
@@ -165,7 +165,7 @@ jobs:
           path: napari-plot-from-github
 
       - name: Set up Python 3.9
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v6
         with:
           python-version: 3.9
           cache: "pip"
@@ -180,7 +180,7 @@ jobs:
           pip install ./napari-plot-from-github[all,testing]
 
       - name: Test
-        uses: aganders3/headless-gui@v1
+        uses: aganders3/headless-gui@v2
         with:
           run: pytest --pyargs napari_plot --color=yes
 
@@ -190,7 +190,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v6
         with:
           python-version: 3.9
           cache-dependency-path: setup.cfg
@@ -201,6 +201,6 @@ jobs:
           pip install setuptools tox tox-gh-actions
 
       - name: Test
-        uses: aganders3/headless-gui@v1
+        uses: aganders3/headless-gui@v2
         with:
           run: tox -e py39-linux-pyside2-examples
