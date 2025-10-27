@@ -94,9 +94,7 @@ class QtViewToolbar(QWidget):
         dlg.show_left_of_widget(self.tools_axis_btn, x_offset=dlg.width() * 2)
 
     def _toggle_camera_controls(self, _):
-        from napari_plot._qt.component_controls.qt_camera_controls import (
-            QtCameraControls,
-        )
+        from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls
 
         dlg = QtCameraControls(self.ref_viewer(), self.ref_qt_viewer())
         dlg.show_left_of_widget(self.tools_camera_btn, x_offset=dlg.width() * 2)

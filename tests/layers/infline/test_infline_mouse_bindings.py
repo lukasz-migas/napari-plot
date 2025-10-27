@@ -3,11 +3,7 @@
 import numpy as np
 import pytest
 from napari.utils._proxies import ReadOnlyWrapper
-from napari.utils.interactions import (
-    mouse_move_callbacks,
-    mouse_press_callbacks,
-    mouse_release_callbacks,
-)
+from napari.utils.interactions import mouse_move_callbacks, mouse_press_callbacks, mouse_release_callbacks
 
 from napari_plot.layers import InfLine
 from napari_plot.layers.infline._infline_constants import Mode, Orientation

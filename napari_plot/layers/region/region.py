@@ -22,17 +22,8 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.region._region import region_classes
 from napari_plot.layers.region._region_constants import Box, Mode, Orientation
 from napari_plot.layers.region._region_list import InfiniteRegionList
-from napari_plot.layers.region._region_mouse_bindings import (
-    add,
-    edit,
-    highlight,
-    move,
-    select,
-)
-from napari_plot.layers.region._region_utils import (
-    get_default_region_type,
-    parse_infinite_region_orientation,
-)
+from napari_plot.layers.region._region_mouse_bindings import add, edit, highlight, move, select
+from napari_plot.layers.region._region_utils import get_default_region_type, parse_infinite_region_orientation
 
 REV_TOOL_HELP = {
     "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},

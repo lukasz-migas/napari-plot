@@ -2,11 +2,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from napari_plot._app_model.context._context import (
-    ContextMapping,
-    create_context,
-    get_context,
-)
+from napari_plot._app_model.context._context import ContextMapping, create_context, get_context
 
 
 def test_simple_mapping():

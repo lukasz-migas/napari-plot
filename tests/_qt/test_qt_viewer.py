@@ -3,11 +3,7 @@
 import numpy as np
 import pytest
 
-from napari_plot.utils._test_support import (
-    add_layer_by_type,
-    layer_test_data,
-    skip_on_win_ci,
-)
+from napari_plot.utils._test_support import add_layer_by_type, layer_test_data, skip_on_win_ci
 
 
 def test_qt_viewer(make_napari_plot_viewer):

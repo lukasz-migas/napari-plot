@@ -337,11 +337,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
-        from napari_plot.components.dragtool import (
-            BOX_ZOOM_TOOLS,
-            SELECT_TOOLS,
-            DragMode,
-        )
+        from napari_plot.components.dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
         from napari_plot.components.tools import Shape
 
         # if self.drag_tool.tool not in BOX_ZOOM_TOOLS:
@@ -548,14 +544,10 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         from napari.layers.shapes._shapes_key_bindings import shapes_fun_to_mode
         from napari.settings import get_settings
 
-        from napari_plot.layers.centroids._centroids_key_bindings import (
-            centroids_fun_to_mode,
-        )
+        from napari_plot.layers.centroids._centroids_key_bindings import centroids_fun_to_mode
         from napari_plot.layers.infline._infline_key_bindings import infline_fun_to_mode
         from napari_plot.layers.line._line_key_bindings import line_fun_to_mode
-        from napari_plot.layers.multiline._multiline_key_bindings import (
-            multiline_fun_to_mode,
-        )
+        from napari_plot.layers.multiline._multiline_key_bindings import multiline_fun_to_mode
         from napari_plot.layers.region._region_key_bindings import region_fun_to_mode
         from napari_plot.layers.scatter._scatter_key_bindings import scatter_fun_to_mode
 

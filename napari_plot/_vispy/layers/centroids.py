@@ -5,10 +5,7 @@ import typing as ty
 from napari._vispy.layers.base import VispyBaseLayer
 
 from napari_plot._vispy.visuals.centroids import CentroidsVisual
-from napari_plot.layers.centroids._centroids_utils import (
-    make_centroids,
-    make_centroids_color,
-)
+from napari_plot.layers.centroids._centroids_utils import make_centroids, make_centroids_color
 
 if ty.TYPE_CHECKING:
     from napari_plot.layers import Centroids
