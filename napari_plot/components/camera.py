@@ -112,7 +112,9 @@ class Camera(EventedModel):
         return ensure_n_tuple(v, n=4)
 
     @validator("axis_mode", pre=True)
-    def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, tuple[CameraMode]]) -> tuple[CameraMode]:
+    def _ensure_axis_tuple(
+        cls, v: ty.Union[CameraMode, tuple[CameraMode]]
+    ) -> tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
         return tuple(v)
@@ -131,7 +133,9 @@ class Camera(EventedModel):
             y0, y1 = self.y_range
         return x0, x1, y0, y1
 
-    def set_x_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+    def set_x_range(
+        self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None
+    ):
         """Set x-axis range."""
         if min_val is None and max_val is None:
             self.x_range = None
@@ -142,7 +146,9 @@ class Camera(EventedModel):
                 max_val if max_val is not None else x1,
             )
 
-    def set_y_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+    def set_y_range(
+        self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None
+    ):
         """Set y-axis range."""
         if min_val is None and max_val is None:
             self.y_range = None

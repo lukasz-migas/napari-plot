@@ -44,6 +44,7 @@ def _provide_viewer_or_raise(msg: str = "", public_proxy: bool = False) -> Viewe
 
 def _provide_qt_viewer() -> QtViewer:
     from napari_plot._qt.qt_viewer import QtViewer
+
     # from napari_plot._qt.qt_main_window import _QtMainWindow
 
     if _qviewer := QtViewer.current():

@@ -152,7 +152,9 @@ class Line(BaseLayer):
     def x(self, value):
         value = np.asarray(value)
         if self.data.shape[0] != value.shape[0]:
-            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+            raise ValueError(
+                "The shape of the `x-axis` array does not match the shape of the `data` array."
+            )
         self.data[:, 0] = value
         self._emit_new_data()
 
@@ -165,7 +167,9 @@ class Line(BaseLayer):
     def y(self, value):
         value = np.asarray(value)
         if self.data.shape[0] != value.shape[0]:
-            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+            raise ValueError(
+                "The shape of the `x-axis` array does not match the shape of the `data` array."
+            )
         self.data[:, 1] = value
         self._emit_new_data()
 

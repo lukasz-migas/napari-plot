@@ -18,12 +18,18 @@ def test_multiline_controls_creation(qtbot, layer):
     qtctrl = QtMultiLineControls(layer)
     qtbot.addWidget(qtctrl)
 
-    assert qtctrl.selection_spin.maximum() == layer.color.shape[0] - 1  # index starts at 0
+    assert (
+        qtctrl.selection_spin.maximum() == layer.color.shape[0] - 1
+    )  # index starts at 0
 
     # test face color
     target_color = layer.color[0]
-    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(
+        transform_color(qtctrl.color_swatch.color)[0], target_color
+    )
 
     qtctrl.selection_spin.setValue(2)
     target_color = layer.color[2]
-    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(
+        transform_color(qtctrl.color_swatch.color)[0], target_color
+    )

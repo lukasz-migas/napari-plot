@@ -11,7 +11,9 @@ from napari_plot.layers.infline._infline_constants import Mode
 from napari_plot.layers.infline.infline import InfLine
 
 
-def register_infline_action(description: str, repeatable: bool = False) -> Callable[[Callable], Callable]:
+def register_infline_action(
+    description: str, repeatable: bool = False
+) -> Callable[[Callable], Callable]:
     return register_layer_action(InfLine, description, repeatable)
 
 

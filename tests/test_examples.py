@@ -27,7 +27,9 @@ for f in EXAMPLE_DIR.glob("*.py"):
         continue
     examples.append(f.name)
 
-EXAMPLE_WITH_NAPARI_DIR = Path(napari_plot.__file__).parent.parent / "examples_with_napari"
+EXAMPLE_WITH_NAPARI_DIR = (
+    Path(napari_plot.__file__).parent.parent / "examples_with_napari"
+)
 # using f.name here and re-joining at `run_path()` for test key presentation
 # (works even if the examples list is empty, as opposed to using an ids lambda)
 examples_with_napari = []

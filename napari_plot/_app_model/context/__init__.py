@@ -1,8 +1,4 @@
-from napari_plot._app_model.context._context import (
-    Context,
-    create_context,
-    get_context,
-)
+from napari_plot._app_model.context._context import Context, create_context, get_context
 from napari_plot._app_model.context._layerlist_context import (
     LayerListContextKeys,
     LayerListSelectionContextKeys,

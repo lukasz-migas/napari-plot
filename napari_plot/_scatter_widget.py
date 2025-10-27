@@ -67,7 +67,9 @@ class ScatterPlotWidget(NapariPlotWidget):
             if sizes[0] != sizes[1]:
                 min_size = min(sizes)
                 data = [d[:min_size] for d in data]
-                warn("napari-plot(Scatter): The two input arrays were of different size and shape.")
+                warn(
+                    "napari-plot(Scatter): The two input arrays were of different size and shape."
+                )
 
             self.scatter_layer.data = np.c_[data[1], data[0]]
             self.viewer_plot.axis.x_label = self.layers[0].name
@@ -76,7 +78,9 @@ class ScatterPlotWidget(NapariPlotWidget):
 
     def connect_events(self, state: bool = True) -> None:
         """Connect events."""
-        hp.connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
+        hp.connect(
+            self.viewer.dims.events.current_step, self.on_update_scatter, state=state
+        )
         hp.connect(
             self.viewer.layers.selection.events.changed,
             self.on_update_layers,

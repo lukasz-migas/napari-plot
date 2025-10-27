@@ -13,8 +13,12 @@ if ty.TYPE_CHECKING:
 class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
     """Grid lines visual."""
 
-    def __init__(self, *, viewer: "ViewerModel", overlay: "GridLinesOverlay", parent=None) -> None:
-        super().__init__(node=GridLines(), viewer=viewer, overlay=overlay, parent=parent)
+    def __init__(
+        self, *, viewer: "ViewerModel", overlay: "GridLinesOverlay", parent=None
+    ) -> None:
+        super().__init__(
+            node=GridLines(), viewer=viewer, overlay=overlay, parent=parent
+        )
 
         self.viewer.grid_lines.events.visible.connect(self._on_visible_change)
         self._on_visible_change(None)

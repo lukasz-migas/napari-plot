@@ -19,9 +19,15 @@ def pin_config_minimum_requirements(config_filename):
     config.read(config_filename)
 
     # swap out >= requirements for ==
-    config["options"]["install_requires"] = config["options"]["install_requires"].replace(">=", "==")
-    config["options.extras_require"]["pyside2"] = config["options.extras_require"]["pyside2"].replace(">=", "==")
-    config["options.extras_require"]["pyqt5"] = config["options.extras_require"]["pyqt5"].replace(">=", "==")
+    config["options"]["install_requires"] = config["options"][
+        "install_requires"
+    ].replace(">=", "==")
+    config["options.extras_require"]["pyside2"] = config["options.extras_require"][
+        "pyside2"
+    ].replace(">=", "==")
+    config["options.extras_require"]["pyqt5"] = config["options.extras_require"][
+        "pyqt5"
+    ].replace(">=", "==")
 
     # rewrite setup.cfg with new config
     with open(config_filename, "w") as fout:

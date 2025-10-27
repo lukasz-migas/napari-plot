@@ -71,9 +71,9 @@ def make_infinite_region_simple_data(
     indices : ty.List[int], optional
         List containing indices of lines to be included in the final display.
     """
-    assert len(data) == len(orientations) == len(colors), (
-        "The number of points must match the number of orientations and colors."
-    )
+    assert (
+        len(data) == len(orientations) == len(colors)
+    ), "The number of points must match the number of orientations and colors."
     if indices is None:
         indices = np.arange(len(data))
     if len(indices) == 0:
@@ -83,7 +83,9 @@ def make_infinite_region_simple_data(
     pos_ = np.zeros((len(indices), 2), dtype=np.float32)
     orientation_ = np.zeros(len(indices), dtype=np.float32)
     colors_ = np.zeros((len(indices), 4), dtype=np.float32)
-    for index, ((min_val, max_val), orientation, color) in enumerate(zip(data, orientations, colors)):
+    for index, ((min_val, max_val), orientation, color) in enumerate(
+        zip(data, orientations, colors)
+    ):
         if index in indices:
             pos_[i] = (min_val, max_val)
             orientation_[i] = 0 if orientation == Orientation.VERTICAL else 1

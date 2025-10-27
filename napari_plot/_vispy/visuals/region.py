@@ -45,7 +45,9 @@ class RegionVisual(Compound):
         """Vertical infinite line visual"""
         return self._subvisuals[VERTICAL_REGION]
 
-    def create(self, pos: tuple[float, float], vertical: bool, color: np.ndarray) -> None:
+    def create(
+        self, pos: tuple[float, float], vertical: bool, color: np.ndarray
+    ) -> None:
         """Create new visuals"""
         visual = LinearRegion(pos, color=color, vertical=vertical, parent=self.parent)
         visual.opacity = self._opacity

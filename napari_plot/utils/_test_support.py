@@ -46,7 +46,10 @@ layer_test_data = [
 
 classes = [Centroids, Line, InfLine, MultiLine, Scatter, Shapes, Points, Region, Image]
 names = [cls.__name__ for cls in classes]
-layer2addmethod = {cls: getattr(Viewer, "add_" + camel_to_snake(name)) for cls, name in zip(classes, names)}
+layer2addmethod = {
+    cls: getattr(Viewer, "add_" + camel_to_snake(name))
+    for cls, name in zip(classes, names)
+}
 
 skip_local_popups = pytest.mark.skipif(
     not os.getenv("CI") and os.getenv("NAPARI_PLOT_POPUP_TESTS", "0") == "0",

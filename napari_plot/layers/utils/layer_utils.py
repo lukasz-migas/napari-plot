@@ -127,7 +127,9 @@ def register_layer_attr_action(
             return _callback
 
         repeatable = False  # attribute actions are always non-repeatable
-        register_layer_action(keymapprovider, description, repeatable, shortcuts)(_wrapper)
+        register_layer_action(keymapprovider, description, repeatable, shortcuts)(
+            _wrapper
+        )
         return func
 
     return _handle

@@ -30,7 +30,9 @@ class Box(Rectangle):
         ndisplay=2,
     ):
         if len(data) != 4:
-            raise ValueError("Please provide 4 values in order: x_min, x_max, y_min, y_max.")
+            raise ValueError(
+                "Please provide 4 values in order: x_min, x_max, y_min, y_max."
+            )
         data = preprocess_box(data)
         super().__init__(
             data,

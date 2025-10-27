@@ -33,7 +33,9 @@ class VispyCamera:
         self._viewer = viewer
 
         # Create camera
-        self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
+        self._view.camera = MouseToggledLimitedPanZoomCamera(
+            viewer=self._viewer, aspect=camera.aspect
+        )
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
@@ -97,7 +99,9 @@ class VispyCamera:
 
     def _update_rect(self, rect: Rect) -> None:
         rect_obj = Rect(self.camera.rect)
-        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = rect  # nicely unpack tuple
+        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = (
+            rect  # nicely unpack tuple
+        )
         self.camera.rect = rect_obj
 
     @property

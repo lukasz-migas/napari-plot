@@ -6,7 +6,12 @@ from pathlib import Path
 
 from napari._qt.qt_resources import STYLES as STYLES_
 from napari.resources._icons import ICONS as ICONS_
-from qtextra.assets import get_stylesheet, update_icon_mapping, update_icons, update_styles
+from qtextra.assets import (
+    get_stylesheet,
+    update_icon_mapping,
+    update_icons,
+    update_styles,
+)
 
 __all__ = ["get_stylesheet", "load_assets"]
 
@@ -16,7 +21,13 @@ update_icons(ICONS_)
 update_icons(ICONS)
 
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
-STYLES_.update({f"{x.stem}-napari-plot": str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
+STYLES_.update(
+    {
+        f"{x.stem}-napari-plot": str(x)
+        for x in STYLE_PATH.iterdir()
+        if x.suffix == ".qss"
+    }
+)
 update_styles(STYLES_)
 
 update_icon_mapping(

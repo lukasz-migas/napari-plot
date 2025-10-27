@@ -62,7 +62,8 @@ class VispyInfLineLayer(VispyBaseLayer):
         selected = self.layer.selected_data
         for i in range(len(pos)):
             self.node._subvisuals[3 + i].set_data(
-                pos=pos[i], color=self.layer._highlight_color if i in selected else color[i]
+                pos=pos[i],
+                color=self.layer._highlight_color if i in selected else color[i],
             )
 
     def _on_width_change(self, _event=None):
@@ -94,7 +95,8 @@ class VispyInfLineLayer(VispyBaseLayer):
             if i in added:
                 continue
             self.node._subvisuals[3 + i].set_data(
-                pos=pos[i], color=self.layer._highlight_color if i in selected else color[i]
+                pos=pos[i],
+                color=self.layer._highlight_color if i in selected else color[i],
             )
         self.node.update()
 

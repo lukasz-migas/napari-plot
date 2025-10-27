@@ -39,7 +39,11 @@ def add(layer: InfLine, event: MouseEvent):
         # otherwise, it's based on distance
         else:
             x_dist, y_dist = start_pos - event.pos
-            orientation = Orientation.HORIZONTAL if abs(x_dist) > abs(y_dist) else Orientation.VERTICAL
+            orientation = (
+                Orientation.HORIZONTAL
+                if abs(x_dist) > abs(y_dist)
+                else Orientation.VERTICAL
+            )
 
         pos = coordinates[1] if orientation == "vertical" else coordinates[0]
         layer._add_move(pos, orientation=orientation)

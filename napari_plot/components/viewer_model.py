@@ -243,7 +243,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         """
         # if not layers are present, assume image-like with dimensions of size 512
         if len(self.layers) == 0:
-            return np.vstack([np.full(self.dims.ndim, -0.5), np.full(self.dims.ndim, 511.5)])
+            return np.vstack(
+                [np.full(self.dims.ndim, -0.5), np.full(self.dims.ndim, 511.5)]
+            )
         return self.layers._extent_world_augmented[:, self.dims.displayed]
 
     def _get_rect_extent(self) -> ty.Tuple[float, ...]:
@@ -278,7 +280,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             ymin, ymax = real_ymin, real_ymax
         return ymin, ymax * y_multiplier
 
-    def _get_x_range_extent_for_y(self, ymin: float, ymax: float, auto_scale: bool = True):
+    def _get_x_range_extent_for_y(
+        self, ymin: float, ymax: float, auto_scale: bool = True
+    ):
         """Calculate range for specified x-axis range."""
         _, _, real_ymin, real_ymax = self._get_rect_extent()
         if auto_scale:
@@ -301,7 +305,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         auto_scale: bool = True,
     ):
         """Set view on specified x-axis"""
-        ymin, ymax = self._get_y_range_extent_for_x(xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale)
+        ymin, ymax = self._get_y_range_extent_for_x(
+            xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale
+        )
         self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_view(self, _event: Event = None) -> None:
@@ -363,7 +369,11 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         tool = None
         # zoom tools
         if self.drag_tool.active in BOX_ZOOM_TOOLS:
-            tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box
+            tool = (
+                self.drag_tool.tool
+                if isinstance(self.drag_tool.tool, BoxTool)
+                else self.drag_tool._box
+            )
             if tool and self.drag_tool.active == DragMode.VERTICAL_SPAN:
                 tool.shape = Shape.VERTICAL
                 self.mouse_drag_callbacks.append(box_zoom_vert)
@@ -382,13 +392,25 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # selection tools
         elif self.drag_tool.active in SELECT_TOOLS:
             if self.drag_tool.active == DragMode.POLYGON:
-                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, PolygonTool) else self.drag_tool._polygon
+                tool = (
+                    self.drag_tool.tool
+                    if isinstance(self.drag_tool.tool, PolygonTool)
+                    else self.drag_tool._polygon
+                )
                 self.mouse_drag_callbacks.append(polygon_select)
             elif self.drag_tool.active == DragMode.LASSO:
-                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, PolygonTool) else self.drag_tool._polygon
+                tool = (
+                    self.drag_tool.tool
+                    if isinstance(self.drag_tool.tool, PolygonTool)
+                    else self.drag_tool._polygon
+                )
                 self.mouse_drag_callbacks.append(lasso_select)
             elif self.drag_tool.active == DragMode.BOX_SELECT:
-                tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box
+                tool = (
+                    self.drag_tool.tool
+                    if isinstance(self.drag_tool.tool, BoxTool)
+                    else self.drag_tool._box
+                )
                 self.mouse_drag_callbacks.append(box_select)
         self.drag_tool.tool = tool
 
@@ -870,14 +892,18 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             # but forget the channel_axis arg
             for k, v in kwargs.items():
                 if k not in iterable_kwargs and is_sequence(v):
-                    raise TypeError(f"Received sequence for argument '{k}', did you mean to specify a 'channel_axis'? ")
+                    raise TypeError(
+                        f"Received sequence for argument '{k}', did you mean to specify a 'channel_axis'? "
+                    )
             layer = n_layers.Image(data, **kwargs)
             self.layers.append(layer)
 
             return layer
 
         layerdata_list = split_channels(data, channel_axis, **kwargs)
-        layer_list = [n_layers.Image(image, **i_kwargs) for image, i_kwargs, _ in layerdata_list]
+        layer_list = [
+            n_layers.Image(image, **i_kwargs) for image, i_kwargs, _ in layerdata_list
+        ]
         self.layers.extend(layer_list)
         return layer_list
 

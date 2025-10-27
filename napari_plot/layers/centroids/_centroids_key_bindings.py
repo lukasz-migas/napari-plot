@@ -13,7 +13,9 @@ from napari.layers.utils.layer_utils import (
 from napari_plot.layers.centroids.centroids import Centroids
 
 
-def register_centroids_action(description: str, repeatable: bool = False) -> Callable[[Callable], Callable]:
+def register_centroids_action(
+    description: str, repeatable: bool = False
+) -> Callable[[Callable], Callable]:
     return register_layer_action(Centroids, description, repeatable)
 
 

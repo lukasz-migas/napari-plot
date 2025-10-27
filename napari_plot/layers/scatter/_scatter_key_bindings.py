@@ -5,12 +5,17 @@ from __future__ import annotations
 from typing import Callable
 
 from napari.layers.base._base_constants import Mode
-from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action
+from napari.layers.utils.layer_utils import (
+    register_layer_action,
+    register_layer_attr_action,
+)
 
 from napari_plot.layers.scatter import Scatter
 
 
-def register_scatter_action(description: str, repeatable: bool = False) -> Callable[[Callable], Callable]:
+def register_scatter_action(
+    description: str, repeatable: bool = False
+) -> Callable[[Callable], Callable]:
     return register_layer_action(Scatter, description, repeatable)
 
 

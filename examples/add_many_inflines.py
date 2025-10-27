@@ -11,7 +11,11 @@ y = np.sin(2 * np.pi * x)
 viewer1d.add_line(np.c_[x, y], name="Sin", color="#FF0000")
 
 horizontal_lines = np.linspace(-1, 1, 100)
-viewer1d.add_inf_line(horizontal_lines, orientation="horizontal", color=[get_random_hex_color() for _ in range(100)])
+viewer1d.add_inf_line(
+    horizontal_lines,
+    orientation="horizontal",
+    color=[get_random_hex_color() for _ in range(100)],
+)
 
 vertical_lines = np.linspace(0, 10, 100)
 viewer1d.add_inf_line(vertical_lines, orientation="vertical")

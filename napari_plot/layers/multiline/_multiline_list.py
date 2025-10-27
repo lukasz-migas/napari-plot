@@ -22,7 +22,9 @@ class MultiLineList:
     def add(self, xs: ty.List, ys: ty.List[np.ndarray], color: np.ndarray):
         """Add data to store."""
         if len(ys) != len(color):
-            raise ValueError("The number of `ys` must be equal to the number of colors.")
+            raise ValueError(
+                "The number of `ys` must be equal to the number of colors."
+            )
         if len(xs) == 0 and self.n_lines == 0:
             raise ValueError("Cannot add `ys` to empty container.")
 

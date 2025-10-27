@@ -55,7 +55,10 @@ def contains_dummy_action(menu_items: list[MenuOrSubmenu]) -> bool:
     bool
         True if menu_items contains dummy item otherwise false
     """
-    return any(hasattr(item, "command") and "empty_dummy" in item.command.id for item in menu_items)
+    return any(
+        hasattr(item, "command") and "empty_dummy" in item.command.id
+        for item in menu_items
+    )
 
 
 def is_empty_menu(menu_id: str) -> bool:
@@ -76,7 +79,10 @@ def is_empty_menu(menu_id: str) -> bool:
         return True
     if len(app.menus.get_menu(menu_id)) == 0:
         return True
-    return bool(len(app.menus.get_menu(menu_id)) == 1 and contains_dummy_action(app.menus.get_menu(menu_id)))
+    return bool(
+        len(app.menus.get_menu(menu_id)) == 1
+        and contains_dummy_action(app.menus.get_menu(menu_id))
+    )
 
 
 def no_op() -> None:

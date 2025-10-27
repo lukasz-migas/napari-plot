@@ -8,7 +8,10 @@ import numpy as np
 from napari.layers import Points
 from napari.layers.base import Layer, no_op
 from napari.layers.base._base_constants import Mode
-from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
+from napari.layers.base._base_mouse_bindings import (
+    highlight_box_handles,
+    transform_with_box,
+)
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument
@@ -140,12 +143,30 @@ class Scatter(Points, LayerMixin):
     _default_size = 1
     _default_rel_size = 0.1
 
-    @rename_argument("edge_width", "border_width", since_version="0.2.0", version="0.3.0")
-    @rename_argument("edge_width_is_relative", "border_width_is_relative", since_version="0.5.0", version="0.6.0")
-    @rename_argument("edge_color", "border_color", since_version="0.2.0", version="0.3.0")
-    @rename_argument("edge_color_cycle", "border_color_cycle", since_version="0.2.0", version="0.3.0")
-    @rename_argument("edge_colormap", "border_colormap", since_version="0.2.0", version="0.3.0")
-    @rename_argument("edge_contrast_limits", "border_contrast_limits", since_version="0.2.0", version="0.3.0")
+    @rename_argument(
+        "edge_width", "border_width", since_version="0.2.0", version="0.3.0"
+    )
+    @rename_argument(
+        "edge_width_is_relative",
+        "border_width_is_relative",
+        since_version="0.5.0",
+        version="0.6.0",
+    )
+    @rename_argument(
+        "edge_color", "border_color", since_version="0.2.0", version="0.3.0"
+    )
+    @rename_argument(
+        "edge_color_cycle", "border_color_cycle", since_version="0.2.0", version="0.3.0"
+    )
+    @rename_argument(
+        "edge_colormap", "border_colormap", since_version="0.2.0", version="0.3.0"
+    )
+    @rename_argument(
+        "edge_contrast_limits",
+        "border_contrast_limits",
+        since_version="0.2.0",
+        version="0.3.0",
+    )
     def __init__(
         self,
         data=None,
@@ -294,7 +315,9 @@ class Scatter(Points, LayerMixin):
         if value.ndim > 1:
             raise ValueError("The `x-axis` array must be 1D.")
         if self.data.shape[0] != value.shape[0]:
-            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+            raise ValueError(
+                "The shape of the `x-axis` array does not match the shape of the `data` array."
+            )
         self.data[:, 1] = value
         self._emit_new_data()
 
@@ -309,7 +332,9 @@ class Scatter(Points, LayerMixin):
         if value.ndim > 1:
             raise ValueError("The `y-axis` array must be 1D.")
         if self.data.shape[0] != value.shape[0]:
-            raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
+            raise ValueError(
+                "The shape of the `x-axis` array does not match the shape of the `data` array."
+            )
         self.data[:, 0] = value
         self._emit_new_data()
 

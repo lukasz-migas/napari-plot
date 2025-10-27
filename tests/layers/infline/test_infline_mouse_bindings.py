@@ -25,7 +25,9 @@ def Event():
         A new tuple subclass named Event that can be used to create a
         NamedTuple object with fields "type", "is_dragging", and "modifiers".
     """
-    return collections.namedtuple("Event", field_names=["type", "is_dragging", "modifiers", "position", "pos"])
+    return collections.namedtuple(
+        "Event", field_names=["type", "is_dragging", "modifiers", "position", "pos"]
+    )
 
 
 def _get_position(pos: float):

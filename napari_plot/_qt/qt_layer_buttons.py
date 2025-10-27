@@ -28,7 +28,12 @@ def _add_new_inf_line(viewer):
 
 
 def make_qta_btn(
-    parent: QWidget, icon_name: str, tooltip: str = "", action: str = "", extra_tooltip_text: str = "", **kwargs: ty.Any
+    parent: QWidget,
+    icon_name: str,
+    tooltip: str = "",
+    action: str = "",
+    extra_tooltip_text: str = "",
+    **kwargs: ty.Any,
 ) -> QtImagePushButton:
     """Make a button with an icon from QtAwesome."""
     btn = hp.make_qta_btn(parent=parent, icon_name=icon_name, tooltip=tooltip, **kwargs)

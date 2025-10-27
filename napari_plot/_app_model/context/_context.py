@@ -3,11 +3,7 @@ from __future__ import annotations
 import collections.abc
 from typing import TYPE_CHECKING, Any, Final, Optional
 
-from app_model.expressions import (
-    Context,
-    create_context as _create_context,
-    get_context as _get_context,
-)
+from app_model.expressions import Context, create_context as _create_context, get_context as _get_context
 
 if TYPE_CHECKING:
     from napari.utils.events import Event

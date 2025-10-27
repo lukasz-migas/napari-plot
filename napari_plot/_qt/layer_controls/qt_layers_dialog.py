@@ -46,7 +46,9 @@ class NapariPlotControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self._ref_qt_viewer().canvas._backend._keyEvent(self._ref_qt_viewer().canvas.events.key_press, event)
+        self._ref_qt_viewer().canvas._backend._keyEvent(
+            self._ref_qt_viewer().canvas.events.key_press, event
+        )
         event.accept()
 
     def keyReleaseEvent(self, event):
@@ -57,5 +59,7 @@ class NapariPlotControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self._ref_qt_viewer().canvas._backend._keyEvent(self._ref_qt_viewer().canvas.events.key_release, event)
+        self._ref_qt_viewer().canvas._backend._keyEvent(
+            self._ref_qt_viewer().canvas.events.key_release, event
+        )
         event.accept()

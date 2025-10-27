@@ -92,18 +92,26 @@ class QtLayerControls(QFrame):
 
         # Control widgets
         self.opacity_label = hp.make_label(self, "opacity:")
-        self.opacity_slider = hp.make_slider_with_text(self, tooltip="Opacity", focus_policy=Qt.FocusPolicy.NoFocus)
+        self.opacity_slider = hp.make_slider_with_text(
+            self, tooltip="Opacity", focus_policy=Qt.FocusPolicy.NoFocus
+        )
         self.opacity_slider.valueChanged.connect(self.on_change_opacity)
         self._on_opacity_change()
 
         # Blending
         self.blending_combobox = hp.make_combobox(self)
-        hp.set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
+        hp.set_combobox_data(
+            self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending
+        )
         self.blending_combobox.currentTextChanged.connect(self.on_change_blending)
 
         # opaque and minimum blending do not support changing alpha
-        self.opacity_slider.setEnabled(self.layer.blending not in NO_OPACITY_BLENDING_MODES)
-        self.opacity_label.setEnabled(self.layer.blending not in NO_OPACITY_BLENDING_MODES)
+        self.opacity_slider.setEnabled(
+            self.layer.blending not in NO_OPACITY_BLENDING_MODES
+        )
+        self.opacity_label.setEnabled(
+            self.layer.blending not in NO_OPACITY_BLENDING_MODES
+        )
 
         if self.__class__ == QtLayerControls:
             # This base class is only instantiated in tests. When it's not a
@@ -145,12 +153,18 @@ class QtLayerControls(QFrame):
         """
         self.layer.blending = self.blending_combobox.currentData()
         # opaque and minimum blending do not support changing alpha
-        self.opacity_slider.setEnabled(self.layer.blending not in NO_OPACITY_BLENDING_MODES)
-        self.opacity_label.setEnabled(self.layer.blending not in NO_OPACITY_BLENDING_MODES)
+        self.opacity_slider.setEnabled(
+            self.layer.blending not in NO_OPACITY_BLENDING_MODES
+        )
+        self.opacity_label.setEnabled(
+            self.layer.blending not in NO_OPACITY_BLENDING_MODES
+        )
 
         blending_tooltip = ""
         if self.layer.blending == str(Blending.MINIMUM):
-            blending_tooltip = ("`minimum` blending mode works best with inverted colormaps with a white background.",)
+            blending_tooltip = (
+                "`minimum` blending mode works best with inverted colormaps with a white background.",
+            )
         self.blending_combobox.setToolTip(blending_tooltip)
         self.layer.help = blending_tooltip
 
@@ -209,7 +223,9 @@ class QtLayerControls(QFrame):
         """
         action_name = f"napari:{action_name}"
         btn = QtModeRadioButton(layer, btn_name, mode, **kwargs)
-        action_manager.bind_button(action_name, btn, extra_tooltip_text=extra_tooltip_text)
+        action_manager.bind_button(
+            action_name, btn, extra_tooltip_text=extra_tooltip_text
+        )
         self._MODE_BUTTONS[mode] = btn
         self.button_group.addButton(btn)
         if edit_button:

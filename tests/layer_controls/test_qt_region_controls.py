@@ -27,7 +27,9 @@ def test_region_controls_creation(qtbot, layer):
 
     # test face color
     target_color = layer.color[0]
-    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(
+        transform_color(qtctrl.color_swatch.color)[0], target_color
+    )
 
     # ensure edit is disable if no selection
     assert not qtctrl.edit_button.isEnabled()
@@ -42,7 +44,9 @@ def test_region_controls_creation(qtbot, layer):
     layer.selected_data = {0}
     layer.current_color = "green"
     target_color = layer.color[0]
-    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)
+    np.testing.assert_almost_equal(
+        transform_color(qtctrl.color_swatch.color)[0], target_color
+    )
 
     # check change of mode
     layer.mode = Mode.MOVE

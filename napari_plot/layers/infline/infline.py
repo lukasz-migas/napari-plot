@@ -21,14 +21,21 @@ from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.infline._infline import infline_classes
 from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
 from napari_plot.layers.infline._infline_list import InfiniteLineList
-from napari_plot.layers.infline._infline_mouse_bindings import add, highlight, move, select
+from napari_plot.layers.infline._infline_mouse_bindings import (
+    add,
+    highlight,
+    move,
+    select,
+)
 from napari_plot.layers.infline._infline_utils import (
     get_default_infline_type,
     parse_infinite_line_orientation,
 )
 
 REV_TOOL_HELP = {
-    "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {Mode.MOVE},
+    "Hold <space> to pan/zoom, select line by clicking on it and then move mouse left-right or up-down.": {
+        Mode.MOVE
+    },
     "Hold <space> to pan/zoom, hold <ctrl> or drag along y-axis (vertical line), hold <shift> or drag along x-axis"
     " (horizontal line)": {Mode.ADD},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
@@ -138,7 +145,9 @@ class InfLine(BaseLayer):
         # sanitize data
         data, orientation = parse_infinite_line_orientation(data, orientation)
         if not len(data) == len(orientation):
-            raise ValueError("The number of points and orientations is incorrect. They must be matched.")
+            raise ValueError(
+                "The number of points and orientations is incorrect. They must be matched."
+            )
 
         super().__init__(
             data,
@@ -186,7 +195,10 @@ class InfLine(BaseLayer):
         self._moving_value = (None, None)
         # responsible for handling creation of new infinite line
         self._is_creating = False
-        self._creating_value: tuple[ty.Optional[float], ty.Optional[Orientation]] = (None, None)
+        self._creating_value: tuple[ty.Optional[float], ty.Optional[Orientation]] = (
+            None,
+            None,
+        )
 
         self._init_lines(data, orientation=orientation, color=color, z_index=z_index)
         # set the current_* properties
@@ -262,7 +274,9 @@ class InfLine(BaseLayer):
         self._creating_value = (pos, orientation)
         self.events.adding()
 
-    def _add_finish(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
+    def _add_finish(
+        self, pos, *, orientation="vertical", color=None, z_index=None
+    ) -> int:
         self.add(
             [pos],
             orientation=[orientation],
@@ -453,7 +467,10 @@ class InfLine(BaseLayer):
         """
         if len(self.data) > 0:
             transformed_color = transform_color_with_defaults(
-                num_entries=len(self.data), colors=color, elem_name="color", default="white"
+                num_entries=len(self.data),
+                colors=color,
+                elem_name="color",
+                default="white",
             )
             colors = normalize_and_broadcast_colors(len(self.data), transformed_color)
         else:
@@ -558,7 +575,10 @@ class InfLine(BaseLayer):
         # more shapes, add attributes
         elif self.n_inflines < n_new:
             n_shapes_difference = n_new - self.n_inflines
-            orientation = orientation + [get_default_infline_type(orientation)] * n_shapes_difference
+            orientation = (
+                orientation
+                + [get_default_infline_type(orientation)] * n_shapes_difference
+            )
             z_indices = z_indices + [0] * n_shapes_difference
             color = np.concatenate((color, self._get_new_color(n_shapes_difference)))
         # create new instance of the data

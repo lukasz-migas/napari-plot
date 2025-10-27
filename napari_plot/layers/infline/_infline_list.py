@@ -47,9 +47,13 @@ class InfiniteLineList:
         """Return position of lines."""
         return make_infinite_line_pos(self.data, self.orientations, indices=indices)
 
-    def get_simple_lines_and_colors(self, indices=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    def get_simple_lines_and_colors(
+        self, indices=None
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return position and color of infinite lines."""
-        return make_infinite_line_simple_data(self.data, self.orientations, self.color, indices=indices)
+        return make_infinite_line_simple_data(
+            self.data, self.orientations, self.color, indices=indices
+        )
 
     @property
     def orientations(self):

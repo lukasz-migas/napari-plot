@@ -32,7 +32,9 @@ def get_extents(data: np.ndarray, orientation: str) -> np.ndarray:
     return np.array([[np.min(y), np.min(x)], [np.max(y), np.max(x)]])
 
 
-def make_centroids(data: np.ndarray, color: np.ndarray, orientation: str) -> ty.Tuple[np.ndarray, np.ndarray]:
+def make_centroids(
+    data: np.ndarray, color: np.ndarray, orientation: str
+) -> ty.Tuple[np.ndarray, np.ndarray]:
     """Make centroids data in the format [[x, 0], [x, y]]"""
     pos = np.zeros((len(data) * 2, 2), dtype=data.dtype)
     colors = np.repeat(color, 2, axis=0)
