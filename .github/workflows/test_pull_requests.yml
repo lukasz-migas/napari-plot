@@ -23,6 +23,37 @@ jobs:
       - uses: astral-sh/setup-uv@v6
       - run: uvx check-manifest
 
+  test_uv:
+    name: Test UV (${{ matrix.backend } py${{ matrix.python-version }} ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    env:
+      UV_NO_SYNC: "1"
+      UV_MANAGED_PYTHON: "1"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        backend: [PySide6, PyQt6]
+        include:
+          - os: windows-latest
+            python-version: "3.10"
+            backend: PySide2
+          - os: windows-latest
+            python-version: "3.11"
+            backend: PySide6
+          - os: windows-latest
+            python-version: "3.12"
+            backend: PyQt6
+          # MacOS legacy Qt
+          - os: macos-13
+            python-version: "3.10"
+            backend: PySide2
+          - os: macos-13
+            python-version: "3.10"
+            backend: PyQt5
+
+
   test:
     name: Test
     uses: pyapp-kit/workflows/.github/workflows/test-pyrepo.yml@v2
@@ -60,6 +91,10 @@ jobs:
             backend: pyside2
           - python-version: "3.12"
             backend: pyqt5
+          # lack of wheels for pyside6/py3.10 and py3.12 on Windows
+          - python-version: "3.13"
+            backend: pyside2
+            platform: windows-latest
           # super slow
           - python-version: "3.13"
             backend: pyqt6
@@ -98,7 +133,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v6
         with:
-          python-version: 3.10
+          python-version: 3.11
 
       - uses: tlambert03/setup-qt-libs@v1
       - name: Install this commit
@@ -109,4 +144,4 @@ jobs:
       - name: Test
         uses: aganders3/headless-gui@v2
         with:
-          run: tox -e py310-linux-pyqt6-examples
+          run: tox -e py311-linux-pyqt6-examples
