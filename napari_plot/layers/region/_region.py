@@ -1,4 +1,5 @@
 """Infinite line."""
+
 from __future__ import annotations
 
 from napari_plot.layers.region._region_constants import Orientation

@@ -1,4 +1,3 @@
-
 from napari_plot._app_model import get_app_model
 from napari_plot.layers import Points
 
