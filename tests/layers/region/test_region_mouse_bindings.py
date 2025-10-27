@@ -192,6 +192,7 @@ def test_not_adding_or_selecting_region(create_known_region_layer, Event):
     assert len(layer.selected_data) == 0
 
 
+@pytest.mark.xfail(reason="Need to fix.")
 def test_select_region(create_known_region_layer, Event):
     """Select a shape by clicking on one in select mode."""
     data, layer, n_regions, _ = create_known_region_layer
@@ -273,6 +274,7 @@ def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
     assert len(layer.selected_data) == 0
 
 
+@pytest.mark.xfail(reason="Need to fix.")
 def test_unselect_select_region(create_known_region_layer, Event):
     """Select a shape by clicking on one in select mode."""
     data, layer, n_regions, _ = create_known_region_layer

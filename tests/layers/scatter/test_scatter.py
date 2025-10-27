@@ -94,33 +94,33 @@ def test_scatter_change_data():
 def test_scatter_edge_width():
     data = np.random.random((10, 2))
     layer = Scatter(data, border_width=4, border_width_is_relative=False)
-    layer.edge_width = 3
-    assert np.all(layer.edge_width == 3)
-    layer.edge_width = np.arange(len(data))
-    assert layer.edge_width[0] == 0
-    assert layer.edge_width[3] == 3
+    layer.border_width = 3
+    assert np.all(layer.border_width == 3)
+    layer.border_width = np.arange(len(data))
+    assert layer.border_width[0] == 0
+    assert layer.border_width[3] == 3
 
     new_data = np.random.random((0, 2))
     layer.data = new_data
-    assert len(layer.edge_width) == len(new_data)
+    assert len(layer.border_width) == len(new_data)
 
     new_data = np.random.random((30, 2))
     layer.data = new_data
-    assert len(layer.edge_width) == len(new_data)
+    assert len(layer.border_width) == len(new_data)
 
     # check with `edge_width_is_relative=True`
     data = np.random.random((10, 2))
     layer = Scatter(data)
-    layer.edge_width = 0.5
-    assert np.all(layer.edge_width == 0.5)
+    layer.border_width = 0.5
+    assert np.all(layer.border_width == 0.5)
 
     # raised because `edge_width_is_relative=True` which expects values between 0 and 1
     with pytest.raises(ValueError):
-        layer.edge_width = 3
+        layer.border_width = 3
 
-    layer.edge_width_is_relative = False
-    layer.edge_width = 3
-    assert np.all(layer.edge_width == 3)
+    layer.border_width_is_relative = False
+    layer.border_width = 3
+    assert np.all(layer.border_width == 3)
 
 
 def test_scatter_size():
@@ -145,12 +145,12 @@ def test_scatter_color():
     data = np.random.random((10, 2))
     layer = Scatter(data, face_color="white", border_color="red")
     assert len(layer.face_color) == len(data)
-    assert len(layer.edge_color) == len(data)
+    assert len(layer.border_color) == len(data)
     np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
-    np.testing.assert_array_equal(layer.edge_color[5], np.asarray([1.0, 0.0, 0.0, 1.0]))
+    np.testing.assert_array_equal(layer.border_color[5], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
-    layer.edge_color = np.asarray([1.0, 1.0, 1.0, 1.0])
-    np.testing.assert_array_equal(layer.edge_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
+    layer.border_color = np.asarray([1.0, 1.0, 1.0, 1.0])
+    np.testing.assert_array_equal(layer.border_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
     layer.face_color = np.asarray([1.0, 0.0, 0.0, 1.0])
     np.testing.assert_array_equal(layer.face_color[4], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
@@ -158,20 +158,20 @@ def test_scatter_color():
     data = np.random.random((0, 2))
     layer.data = data
     assert len(layer.face_color) == len(data)
-    assert len(layer.edge_color) == len(data)
+    assert len(layer.border_color) == len(data)
 
     # add new dataset with MORE items
     data = np.random.random((12, 2))
     layer.data = data
     assert len(layer.face_color) == len(data)
-    assert len(layer.edge_color) == len(data)
+    assert len(layer.border_color) == len(data)
 
     # set new colors
     layer.face_color = np.random.random((12, 4))
     assert len(layer.face_color) == len(data)
     assert layer.face_color.shape == (12, 4)
-    layer.edge_color = "yellow"
-    assert len(layer.edge_color) == len(data)
+    layer.border_color = "yellow"
+    assert len(layer.border_color) == len(data)
 
 
 def test_empty_points_with_properties():

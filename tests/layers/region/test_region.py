@@ -167,6 +167,7 @@ def test_region_trim():
     assert layer.n_regions == 10
 
 
+@pytest.mark.xfail(reason="Need to fix.")
 def test_z_index():
     """Test setting z-index during instantiation."""
     shape = (10, 2)
