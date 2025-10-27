@@ -10,16 +10,16 @@ from ast import literal_eval
 from pathlib import Path
 from textwrap import wrap
 
+from koyo.utilities import is_installed
+
 
 class InfoAction(argparse.Action):
     """Print information."""
 
     def __call__(self, *args, **kwargs):
         # prevent unrelated INFO logs when doing "napari --info"
-        from napari.utils import sys_info
 
         logging.basicConfig(level=logging.WARNING)
-        print(sys_info())
         sys.exit()
 
 
@@ -62,7 +62,7 @@ def validate_unknown_args(unknown: ty.List[str]) -> ty.Dict[str, ty.Any]:
             try:
                 value = unknown[i + 1]
                 if value.startswith("--"):
-                    raise IndexError()
+                    raise IndexError
             except IndexError:
                 sys.exit(f"error: argument {arg} expected one argument")
         try:
@@ -110,11 +110,19 @@ def parse_sys_argv():
         nargs=0,
         help="show system information and exit",
     )
-    parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="show system information and exit",
-    )
+    if is_installed("qtreload"):
+        parser.add_argument(
+            "--dev",
+            action="store_true",
+            help="show system information and exit",
+        )
+        parser.add_argument(
+            "--dev_module",
+            action="append",
+            nargs="*",
+            default=[],
+            help="concatenate multiple modules that should be watched alongside `napari_plot` and `qtextra`.",
+        )
 
     args, unknown = parser.parse_known_args()
     # this is a hack to allow using "=" as a key=value separator while also
@@ -128,18 +136,29 @@ def parse_sys_argv():
 
 
 def _run():
+    """Main program."""
+    import logging
+
+    from koyo.hooks import install_debugger_hook
+
     from napari_plot import Viewer, run
 
-    """Main program."""
-    args, kwargs = parse_sys_argv()
+    args, _kwargs = parse_sys_argv()
 
     # parse -v flags and set the appropriate logging level
     levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     level = levels[min(2, args.verbose)]  # prevent index error
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
+    # check whether Dev mode was requested
     if args.dev:
-        os.environ["NAPARI_PLOT_DEV_MODE"] = "1"
+        os.environ["NAPARI_PLOT_DEV"] = "1"
+        install_debugger_hook()
+        logging.info("Activated development mode.")
+    # check if additional dev modules were requested
+    if args.dev_module:
+        dev_module = list(args.dev_module)
+        os.environ["NAPARI_PLOT_DEV_MODULES"] = ",".join(dev_module)
 
     from napari_plot._qt.widgets.qt_splash_screen import QtSplashScreen
 
@@ -161,12 +180,27 @@ def _run():
     #     layer_type=args.layer_type,
     #     **kwargs,
     # )
+    # if args.dev:
+    #     import logging
+    #
+    #     from qtreload.qt_reload import QDevPopup
+    #     from qtpy.QtWidgets import QPushButton
+    #
+    #     logging.getLogger("qtreload").setLevel(0)
+    #
+    #     window = viewer._window._qt_viewer
+    #     dev_dlg = QDevPopup(
+    #         window,
+    #         modules=["koyo", "napari", "napari_plot"],
+    #     )
+    #     dev_dlg.qdev.evt_stylesheet.connect(lambda: window._update_theme())
+    #     if hasattr(window, "statusbar"):
+    #         window.dev_btn = QPushButton(window)
+    #         window.dev_btn.setText("DevTools")
+    #         window.dev_btn.setTooltip("Open developer tools.")
+    #         window.dev_btn.clicked.connect(dev_dlg.show)
+    #         window.statusbar.addPermanentWidget(window.dev_btn)  # type: ignore[attr-defined]
 
-    # only necessary in bundled app, but see #3596
-    from napari.utils.misc import install_certifi_opener, running_as_bundled_app
-
-    if running_as_bundled_app():
-        install_certifi_opener()
     run()
 
 
@@ -192,7 +226,7 @@ def _maybe_rerun_with_macos_fixes():
     if sys.platform != "darwin":
         return
 
-    if "_NAPARI_RERUN_WITH_FIXES" in os.environ:
+    if "_NAPARI_PLOT_RERUN_WITH_FIXES" in os.environ:
         # This function already ran, do not recurse!
         # We also restore sys.executable to its initial value,
         # if we used a symlink
@@ -277,6 +311,10 @@ def _maybe_rerun_with_macos_fixes():
             cmd = [executable, sys.argv[0]]
         else:  # we assume it must have been launched via '-m' syntax
             cmd = [executable, "-m", "napari_plot"]
+
+        # this fixes issues running from a venv/virtualenv based virtual
+        # environment with certain python distributions (e.g. pyenv, asdf)
+        env["PYTHONEXECUTABLE"] = sys.executable
 
         # Append original command line arguments.
         if len(sys.argv) > 1:

@@ -1,10 +1,8 @@
 """Utilities."""
 
-from napari._vispy.layers.base import VispyBaseLayer
-from napari._vispy.layers.image import VispyImageLayer
-from napari._vispy.layers.points import VispyPointsLayer
-from napari._vispy.layers.shapes import VispyShapesLayer
-from napari.layers import Points, Shapes
+import napari._vispy.utils.visual
+from napari._vispy.utils.visual import create_vispy_layer, create_vispy_overlay
+from napari.components.overlays import TextOverlay
 
 from napari_plot._vispy.layers.centroids import VispyCentroidsLayer
 from napari_plot._vispy.layers.infline import VispyInfLineLayer
@@ -12,38 +10,33 @@ from napari_plot._vispy.layers.line import VispyLineLayer
 from napari_plot._vispy.layers.multiline import VispyMultiLineLayer
 from napari_plot._vispy.layers.region import VispyRegionLayer
 from napari_plot._vispy.layers.scatter import VispyScatterLayer
-from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Region, Scatter
+from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
+from napari_plot._vispy.overlays.text import VispyTextOverlay
+from napari_plot.components.grid_lines import GridLinesOverlay
+from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
 
 layer_to_visual = {
-    # napari-plot layers
     Line: VispyLineLayer,
     Centroids: VispyCentroidsLayer,
     Scatter: VispyScatterLayer,
     Region: VispyRegionLayer,
     InfLine: VispyInfLineLayer,
     MultiLine: VispyMultiLineLayer,
-    # napari layers
-    Shapes: VispyShapesLayer,
-    Points: VispyPointsLayer,
-    Image: VispyImageLayer,
 }
+layer_to_visual.update(napari._vispy.utils.visual.layer_to_visual)
+napari._vispy.utils.visual.layer_to_visual = layer_to_visual
+# napari._vispy.utils.visual.layer_to_visual.update(layer_to_visual)
+
+overlay_to_visual = {
+    TextOverlay: VispyTextOverlay,
+    GridLinesOverlay: VispyGridLinesOverlay,
+}
+napari._vispy.utils.visual.overlay_to_visual.update(overlay_to_visual)
 
 
-def create_vispy_visual(layer) -> VispyBaseLayer:
-    """Create vispy visual for a layer based on its layer type.
-
-    Parameters
-    ----------
-    layer : napari.layers._base_layer.Layer
-        Layer that needs its property widget created.
-
-    Returns
-    -------
-    visual : vispy.scene.visuals.VisualNode
-        Vispy visual node
-    """
-    for layer_type, visual_class in layer_to_visual.items():
-        if isinstance(layer, layer_type):
-            return visual_class(layer)
-
-    raise TypeError(f"Could not find VispyLayer for layer of type {type(layer)}")
+__all__ = (
+    "create_vispy_layer",
+    "create_vispy_overlay",
+    "layer_to_visual",
+    "overlay_to_visual",
+)

@@ -13,26 +13,8 @@ def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty
         return None, None
     if layer.ndim != 2:
         return None, None
-    if isinstance(layer, (layers.Line, layers.Centroids)):
-        idx_min, idx_max = find_nearest_index(layer.data[:, 0], [x_min, x_max])
-        if idx_min == idx_max:
-            idx_max += 1
-            if idx_max > len(layer.data):
-                return None, None
-        try:
-            return get_min_max(layer.data[idx_min:idx_max, 1])
-        except ValueError:
-            return None, None
-    if isinstance(layer, layers.Scatter):
-        idx_min, idx_max = find_nearest_index(layer.data[:, 1], [x_min, x_max])
-        if idx_min == idx_max:
-            idx_max += 1
-            if idx_max > len(layer.data):
-                return None, None
-        try:
-            return get_min_max(layer.data[idx_min:idx_max, 0])
-        except ValueError:
-            return None, None
+    if hasattr(layer, "_get_x_region_extent"):
+        return layer._get_x_region_extent(x_min, x_max)
     return None, None
 
 
@@ -93,7 +75,9 @@ def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> ty.Tup
     return None, None
 
 
-def get_range_extent(full_min, full_max, range_min, range_max, min_val: float = None) -> ty.Tuple[float, float]:
+def get_range_extent(
+    full_min, full_max, range_min, range_max, min_val: ty.Optional[float] = None
+) -> ty.Tuple[float, float]:
     """Get tuple of specified range"""
     if range_min is None:
         range_min = full_min

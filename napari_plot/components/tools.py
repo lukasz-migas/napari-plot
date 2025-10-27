@@ -1,20 +1,22 @@
 """Zoom-box tool."""
 
+from __future__ import annotations
+
 import typing as ty
-from enum import Enum
 
 import numpy as np
+from napari._pydantic_compat import validator
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Path, Polygon, Rectangle
 from napari.utils.colormaps.standardize_color import transform_color
+from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
-from pydantic import validator
 
-from napari_plot.layers.region._region import Box, Horizontal, Vertical
+from napari_plot.utils._tool import Box
 
 
-class Shape(str, Enum):
+class Shape(StrEnum):
     """Orientation of the span"""
 
     HORIZONTAL = "horizontal"
@@ -22,13 +24,11 @@ class Shape(str, Enum):
     BOX = "box"
 
 
-span_classes = {Shape.HORIZONTAL: Horizontal, Shape.VERTICAL: Vertical, Shape.BOX: Box}
-
-
 class BaseTool(EventedModel):
     """Base class for all drag tools."""
 
     visible: bool = False
+    finished: bool = False
     color: Array[float, (4,)] = (0.0, 0.0, 1.0, 1.0)
     opacity: float = 0.5
 
@@ -41,7 +41,7 @@ class MeshBaseTool(BaseTool):
     # private attributes
     _mesh: Mesh = Mesh(ndisplay=2)
 
-    @validator("position", pre=True)
+    @validator("position", pre=True, allow_reuse=True)
     def _validate_position(cls, v):
         assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
         x0, x1, y0, y1 = v
@@ -63,13 +63,22 @@ class MeshBaseTool(BaseTool):
         self._mesh.vertices_centers = np.append(self._mesh.vertices_centers, vertices, axis=0)
         vertices = np.zeros(box._face_vertices.shape)
         self._mesh.vertices_offsets = np.append(self._mesh.vertices_offsets, vertices, axis=0)
+
+        if self._mesh.vertices_index.ndim == 1:
+            self._mesh.vertices_index = np.empty((0, 2), dtype=int)
         index = np.repeat([[0, 0]], len(vertices), axis=0)
         self._mesh.vertices_index = np.append(self._mesh.vertices_index, index, axis=0)
 
+        if self._mesh.triangles.ndim == 1:
+            self._mesh.triangles = np.empty((0, 3), dtype=np.uint32)
         triangles = box._face_triangles + m
         self._mesh.triangles = np.append(self._mesh.triangles, triangles, axis=0)
+
+        if self._mesh.triangles_index.ndim == 1:
+            self._mesh.triangles_index = np.empty((0, 2), dtype=int)
         index = np.repeat([[0, 0]], len(triangles), axis=0)
         self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
+
         color_array = np.repeat([self.color], len(triangles), axis=0)
         self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
@@ -102,22 +111,26 @@ class BoxTool(MeshBaseTool):
         x0, x1, y0, y1 = self.position
         return np.asarray([[y0, x0], [y1, x0], [y1, x1], [y0, x1]])
 
-    @validator("color", pre=True)
+    @validator("color", pre=True, allow_reuse=True)
     def _coerce_color(cls, v):
         return transform_color(v)[0]
 
     @property
     def mesh(self):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
-        if self.shape == Shape.VERTICAL:
-            box = Vertical(self.position[0:2])
-        elif self.shape == Shape.HORIZONTAL:
-            box = Horizontal(self.position[2:])
-        else:
-            box = Box(self.position, edge_width=0)
         self._mesh.clear()
-        self._add(box)
+        self._add(Box(self.position, edge_width=0))
         return self._mesh
+
+    @property
+    def horizontal(self) -> list[tuple[float, float]]:
+        """Horizontal span."""
+        return [self.position[2], self.position[3]]
+
+    @property
+    def vertical(self) -> list[tuple[float, float]]:
+        """Vertical span."""
+        return [self.position[0], self.position[1]]
 
 
 class PolygonTool(MeshBaseTool):
@@ -126,7 +139,7 @@ class PolygonTool(MeshBaseTool):
     data: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     auto_reset: bool = False
 
-    @validator("data", pre=True)
+    @validator("data", pre=True, allow_reuse=True)
     def _validate_position(cls, v):
         v = np.asarray(v)
         assert v.ndim == 2
@@ -137,18 +150,14 @@ class PolygonTool(MeshBaseTool):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         self._mesh.clear()
         if len(self.data) >= 2:
-            if len(self.data) < 2:
-                poly = Path(self.data, edge_width=0)
-            else:
-                poly = Polygon(self.data, edge_width=0)
+            poly = Path(self.data, edge_width=0) if len(self.data) < 2 else Polygon(self.data, edge_width=0)
             self._add(poly)
         return self._mesh
 
     def add_point(self, point: ty.Tuple[float, float]):
         """Add point to the polygon."""
-        if len(self.data) > 0:
-            if np.all(self.data[-1] == point):
-                return
+        if len(self.data) > 0 and np.all(self.data[-1] == point):
+            return
         self.data = np.vstack((self.data, point))
 
     def remove_point(self, index: int):

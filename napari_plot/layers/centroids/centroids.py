@@ -1,5 +1,7 @@
 """Line layer"""
 
+from __future__ import annotations
+
 import numpy as np
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.utils.events import Event
@@ -66,7 +68,6 @@ class Centroids(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         width=2,
         method="gl",
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -83,7 +84,6 @@ class Centroids(BaseLayer):
         data = parse_centroids_data(data)
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -262,11 +262,11 @@ class Centroids(BaseLayer):
             return np.full((2, 2), np.nan)
         return get_extents(self.data, self.orientation)
 
-    # def _get_x_region_extent(self, x_min: float, x_max: float):
-    #     """Return data extents in the (xmin, xmax, ymin, ymax) format."""
-    #     from napari_plot.utils.utilities import find_nearest_index
-    #
-    #     if self.orientation == Orientation.VERTICAL:
-    #         idx_min, idx_max = find_nearest_index(self.data[:, 1], [x_min, x_max])
-    #         if idx_min == idx_max:
-    #             idx_max += 1
+    def _get_x_region_extent(self, x_min: float, x_max: float) -> tuple[float, float]:
+        """Return data extents in the (xmin, xmax, ymin, ymax) format."""
+        from napari_plot.utils.utilities import find_nearest_index, get_min_max
+
+        if self.data.size == 0:
+            return None, None
+        idx_min, idx_max = find_nearest_index(self.data[:, 0], [x_min, x_max])
+        return get_min_max(self.data[idx_min:idx_max, 1])

@@ -3,6 +3,7 @@
 import typing as ty
 
 import numpy as np
+from napari._vispy.camera import add_mouse_pan_zoom_toggles
 from vispy.geometry import Rect
 
 from napari_plot._vispy.components.camera import LimitedPanZoomCamera
@@ -32,11 +33,13 @@ class VispyCamera:
         self._viewer = viewer
 
         # Create camera
-        self._view.camera = LimitedPanZoomCamera(self._viewer)
+        self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
-        self._camera.events.interactive.connect(self._on_interactive_change)
+        self._camera.events.mouse_pan.connect(self._on_mouse_toggles_change)
+        self._camera.events.mouse_zoom.connect(self._on_mouse_toggles_change)
+        self._camera.events.aspect.connect(self._on_aspect_change)
         self._camera.events.zoom.connect(self._on_zoom_change)
         self._camera.events.rect.connect(self._on_rect_change)
         self._camera.events.extent.connect(self._on_extent_change)
@@ -44,6 +47,8 @@ class VispyCamera:
         self._camera.events.y_range.connect(self._on_range_change)
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
+        self._camera.events.force_rect.connect(self._on_force_rect_change)
+        self._camera.events.zoomed.connect(self._on_sync_rect)
 
         self._on_axis_mode_change(None)
         self._on_extent_mode_change(None)
@@ -82,9 +87,18 @@ class VispyCamera:
     def rect(self, rect: Rect):
         if self.rect == rect:
             return
-        _rect = Rect(self.camera.rect)
-        _rect.left, _rect.right, _rect.bottom, _rect.top = rect  # nicely unpack tuple
-        self.camera.rect = _rect
+        self._update_rect(rect)
+
+    def _on_sync_rect(self, event: ty.Any) -> None:
+        """Sync rect from the Camera object to the Camera model."""
+        with self._camera.events.rect.blocker(self._on_rect_change):
+            r = self._view.camera.rect
+            self._camera.rect = r.left, r.right, r.bottom, r.top
+
+    def _update_rect(self, rect: Rect) -> None:
+        rect_obj = Rect(self.camera.rect)
+        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = rect  # nicely unpack tuple
+        self.camera.rect = rect_obj
 
     @property
     def extent(self):
@@ -98,15 +112,25 @@ class VispyCamera:
         self.camera.extent = extent
         self.camera.set_default_state()
         self.camera.reset()
+        self._on_rect_change(None)
 
-    def _on_interactive_change(self):
-        self.camera.interactive = self._camera.interactive
+    def _on_aspect_change(self):
+        self.camera.aspect = self._camera.aspect
+
+    def _on_mouse_toggles_change(self):
+        self.mouse_pan = self._camera.mouse_pan
+        self.camera.mouse_pan = self._camera.mouse_pan
+        self.mouse_zoom = self._camera.mouse_zoom
+        self.camera.mouse_zoom = self._camera.mouse_zoom
 
     def _on_zoom_change(self):
         self.zoom = self._camera.zoom
 
     def _on_rect_change(self, event):
         self.rect = self._camera.rect
+
+    def _on_force_rect_change(self, event):
+        self._update_rect(self._camera.rect)
 
     def _on_extent_change(self, event):
         self.extent = self._camera.get_effective_extent()
@@ -124,10 +148,7 @@ class VispyCamera:
         self.camera.reset_view()
 
     def on_draw(self, event):
-        """Called whenever the canvas is drawn.
-
-        Update camera model rect.
-        """
+        """Called whenever the canvas is drawn. Update camera model rect."""
         with self._camera.events.rect.blocker(self._on_rect_change):
             self._camera.rect = self.rect
         with self._camera.events.zoom.blocker(self._on_zoom_change):
@@ -143,3 +164,6 @@ def viewbox_key_event(event):
         The vispy event that triggered this method.
     """
     return
+
+
+MouseToggledLimitedPanZoomCamera = add_mouse_pan_zoom_toggles(LimitedPanZoomCamera)

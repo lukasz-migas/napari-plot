@@ -9,10 +9,10 @@ from warnings import warn
 
 import napari
 import numpy as np
+import qtextra.helpers as hp
 from napari.layers import Image
 
 from napari_plot._plot_widget import NapariPlotWidget
-from napari_plot.utils.utilities import connect
 
 __all__ = ["ScatterPlotWidget"]
 
@@ -28,7 +28,7 @@ class ScatterPlotWidget(NapariPlotWidget):
         super().__init__(napari_viewer)
         self.connect_events()
         # create layer which will be used to display the data
-        self.scatter_layer = self.viewer_plot.add_scatter(None, edge_color="orange")
+        self.scatter_layer = self.viewer_plot.add_scatter(None, border_color="orange")
         self.layers = []  # empty
 
         # get two layers
@@ -46,11 +46,7 @@ class ScatterPlotWidget(NapariPlotWidget):
     @staticmethod
     def _check_layers(layers: ty.List) -> bool:
         """Check whether layers of correct type."""
-        if len(layers) != 2:
-            return False
-        elif any([type(layer) != Image for layer in layers]):
-            return False
-        return True
+        return not (len(layers) != 2 or any(type(layer) != Image for layer in layers))
 
     def on_update_layers(self, event=None):
         """Update layer selection."""
@@ -78,10 +74,14 @@ class ScatterPlotWidget(NapariPlotWidget):
             self.viewer_plot.axis.y_label = self.layers[1].name
             self.viewer_plot.text_overlay.text = f"z={z}"
 
-    def connect_events(self, state: bool = True):
+    def connect_events(self, state: bool = True) -> None:
         """Connect events."""
-        connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
-        connect(self.viewer.layers.selection.events.changed, self.on_update_layers, state=state)
+        hp.connect(self.viewer.dims.events.current_step, self.on_update_scatter, state=state)
+        hp.connect(
+            self.viewer.layers.selection.events.changed,
+            self.on_update_layers,
+            state=state,
+        )
 
     def closeEvent(self, event) -> None:
         """Close event."""

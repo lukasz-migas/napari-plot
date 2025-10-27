@@ -153,6 +153,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 elif extent is not None:
                     x0, x1 = extent.left, extent.right
             return make_rect(x0, x1, y0, y1)
+        return None
 
     def _check_zoom_limit(self, rect: Rect) -> Rect:
         """Check whether new range is outside of the allowed window"""
@@ -204,15 +205,11 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     @rect.setter
     def rect(self, args):
-        if isinstance(args, tuple):
-            rect = Rect(*args)
-        else:
-            rect = Rect(args)
-
-        # ensure user never goes outside of allowed limits
+        rect = (Rect(*args) if isinstance(args, tuple) else Rect(args)) if not isinstance(args, Rect) else args
+        # ensure user never goes outside the allowed limits
         rect = self._check_zoom_limit(rect)
         rect = self._check_mode_limit(rect)
-
         if self._rect != rect:
             self._rect = rect
             self.view_changed()
+            self.viewer.camera.events.zoomed()

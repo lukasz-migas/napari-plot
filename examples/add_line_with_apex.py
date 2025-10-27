@@ -1,7 +1,8 @@
 """Example showing simple line and 'infinite' line to show the apex"""
 
-import napari_plot
 import numpy as np
+
+import napari_plot
 
 viewer1d = napari_plot.Viewer()
 x = np.arange(0.0, 10.0, 0.01)

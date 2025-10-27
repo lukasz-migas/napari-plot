@@ -1,10 +1,18 @@
 """Mouse bindings"""
 
+from __future__ import annotations
+
+import typing as ty
 from copy import copy
 
 import numpy as np
 
 from napari_plot.layers.infline._infline_constants import Orientation
+
+if ty.TYPE_CHECKING:
+    from vispy.app.canvas import MouseEvent
+
+    from napari_plot.layers.infline import InfLine
 
 
 def highlight(layer, event):
@@ -12,25 +20,21 @@ def highlight(layer, event):
     layer._set_highlight()
 
 
-def add(layer, event):
+def add(layer: InfLine, event: MouseEvent):
     """Add a new infinite line at the clicked position."""
     # on press
-    if event.type == "mouse_press":
-        start_pos = event.pos
-        yield
+    start_pos = event.pos
+    yield
 
     # on move
-    index = None
+    pos, orientation = None, None
     while event.type == "mouse_move":
         coordinates = layer.world_to_data(event.position)
-        shift = "Shift" in event.modifiers
-        ctrl = "Control" in event.modifiers
-
         # if the Ctrl key is pressed, orientation is vertical
-        if ctrl:
+        if "Control" in event.modifiers:
             orientation = Orientation.VERTICAL
         # if the Shift key is pressed, orientation is horizontal
-        elif shift:
+        elif "Shift" in event.modifiers:
             orientation = Orientation.HORIZONTAL
         # otherwise, it's based on distance
         else:
@@ -38,24 +42,21 @@ def add(layer, event):
             orientation = Orientation.HORIZONTAL if abs(x_dist) > abs(y_dist) else Orientation.VERTICAL
 
         pos = coordinates[1] if orientation == "vertical" else coordinates[0]
-        if index is None:
-            index = layer._add_creating(pos, orientation=orientation)
-        else:
-            layer.move(index, pos, orientation)
+        layer._add_move(pos, orientation=orientation)
         yield
 
     # on release
-    if index is not None:
-        layer.move(index, pos, orientation, True)
+    if pos:
+        layer._add_finish(pos, orientation=orientation)
 
 
-def move(layer, event):
+def move(layer: InfLine, event: MouseEvent):
     """Move currently selected line to new location."""
     # above, user should have selected single line and then can move it left-or-right or up-or-down
     index, data, orientation = None, None, None
     n = len(layer.selected_data)
     if n > 0:
-        index = list(layer.selected_data)[0]
+        index = next(iter(layer.selected_data))
         data, orientation = layer.data[index], layer.orientation[index]
         layer.selected_data = {index}
         layer._set_highlight()
@@ -66,19 +67,27 @@ def move(layer, event):
         if data is not None:
             coordinates = layer.world_to_data(event.position)
             layer._moving_coordinates = coordinates
-            layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=False)
+            layer.move(
+                index,
+                coordinates[1] if orientation == "vertical" else coordinates[0],
+                finished=False,
+            )
         yield
 
     # on release
     if data is not None:
         coordinates = layer.world_to_data(event.position)
         layer._moving_coordinates = coordinates
-        layer.move(index, coordinates[1] if orientation == "vertical" else coordinates[0], finished=True)
+        layer.move(
+            index,
+            coordinates[1] if orientation == "vertical" else coordinates[0],
+            finished=True,
+        )
         layer._set_highlight()
         layer._update_thumbnail()
 
 
-def select(layer, event):
+def select(layer: InfLine, event: MouseEvent):
     """Select lines in layer.
 
     This function should enable selection of infinite lines by either clicking on (or near) the line or dragging
@@ -119,7 +128,7 @@ def select(layer, event):
         layer._update_thumbnail()
 
 
-def _select(layer, event, shift: bool):
+def _select(layer: InfLine, event: MouseEvent, shift: bool):
     """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
     value = layer.get_value(event.position, world=True)
     layer._moving_value = copy(value)
@@ -139,7 +148,7 @@ def _select(layer, event, shift: bool):
     return line_under_cursor, vertex_under_cursor
 
 
-def _drag_selection_box(layer, coordinates):
+def _drag_selection_box(layer: InfLine, coordinates: tuple[int, int]) -> None:
     """Drag a selection box.
 
     Parameters
@@ -150,7 +159,7 @@ def _drag_selection_box(layer, coordinates):
         Position of mouse cursor in data coordinates.
     """
     # If something selected return
-    coord = [coordinates[i] for i in layer._dims_displayed]
+    coord = [coordinates[i] for i in layer._slice_input.displayed]
 
     # Create or extend a selection box
     layer._is_selecting = True

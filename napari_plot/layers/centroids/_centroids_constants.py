@@ -1,7 +1,8 @@
 """Line constants"""
 
-from enum import Enum, auto
+from enum import auto
 
+from napari.utils.compat import StrEnum
 from napari.utils.misc import StringEnum
 
 
@@ -23,14 +24,10 @@ class ColoringType(StringEnum):
     ALL = auto()
 
 
-COLORING_TRANSLATIONS = [
-    "single",
-    # "selection",
-    "all",
-]
+COLORING_TRANSLATIONS = ["single", "all"]
 
 
-class Orientation(str, Enum):
+class Orientation(StrEnum):
     """Orientation"""
 
     HORIZONTAL = "horizontal"

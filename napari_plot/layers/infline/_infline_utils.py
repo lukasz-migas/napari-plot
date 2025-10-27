@@ -7,7 +7,7 @@ import numpy as np
 from napari_plot.layers.infline._infline_constants import Orientation
 
 
-def make_infinite_line(
+def make_infinite_line_bounds_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
@@ -27,18 +27,19 @@ def make_infinite_line(
     indices : ty.List[int], optional
         List containing indices of lines to be included in the final display.
     """
-    assert (
-        len(data) == len(orientations) == len(colors)
-    ), "The number of points must match the number of orientations and colors."
+    assert len(data) == len(orientations) == len(colors), (
+        "The number of points must match the number of orientations and colors."
+    )
 
     if indices is None:
         indices = np.arange(len(data))
 
-    pos, connect, _colors = [], [], []
+    pos_, connect_, colors_ = [], [], []
     if len(indices) == 0:
         return np.zeros((0, 2)), np.zeros((0, 2)), np.zeros((0, 4))
 
-    min_val, max_val = np.iinfo(np.int64).min * 15, np.iinfo(np.int64).max * 15
+    # min_val, max_val = np.finfo(np.float32).min, np.finfo(np.float32).max
+    min_val, max_val = np.iinfo(np.int64).min * 5, np.iinfo(np.int64).max * 5
     i = 0
     for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
         if index in indices:
@@ -47,35 +48,87 @@ def make_infinite_line(
             else:
                 _pos = [[min_val, val], [max_val, val]]
 
-            _colors.extend([color, color])
-            pos.extend(_pos)
-            connect.append([i, i + 1])
+            colors_.extend([color, color])
+            pos_.extend(_pos)
+            connect_.append([i, i + 1])
             i += 2
-    if len(pos) == 0:
+    if len(pos_) == 0:
         return np.zeros((0, 2)), np.zeros((0, 2)), np.zeros((0, 4))
     return (
-        np.asarray(pos, dtype=np.float32),
-        np.asarray(connect, dtype=np.float32),
-        np.asarray(_colors, dtype=np.float32),
+        np.asarray(pos_, dtype=np.float32),
+        np.asarray(connect_, dtype=np.float32),
+        np.asarray(colors_, dtype=np.float32),
     )
 
 
-def make_infinite_pos(data: np.ndarray, orientations: ty.Iterable[Orientation]):
+def make_infinite_line_simple_data(
+    data: np.ndarray,
+    orientations: ty.Iterable[Orientation],
+    colors: np.ndarray,
+    indices: ty.Optional[ty.List[int]] = None,
+):
+    """Create all elements required to create infinite lines.
+
+    Parameters
+    ----------
+    data : np.ndarray
+        Array containing positions of each infinite line.
+    orientations : ty.Iterable[Orientation]
+        Iterable containing orientation of each line. Values are ordered in different manner depending on whether it is
+        a horizontal or vertical line.
+    colors : np.ndarray
+        Array containing color of each line.
+    indices : ty.List[int], optional
+        List containing indices of lines to be included in the final display.
+    """
+    assert len(data) == len(orientations) == len(colors), (
+        "The number of points must match the number of orientations and colors."
+    )
+    if indices is None:
+        indices = np.arange(len(data))
+    if len(indices) == 0:
+        return np.zeros(0), np.zeros(0), np.zeros((0, 4))
+
+    i = 0
+    pos_ = np.zeros(len(indices), dtype=np.float32)
+    orientation_ = np.zeros(len(indices), dtype=np.float32)
+    colors_ = np.zeros((len(indices), 4), dtype=np.float32)
+    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
+        if index in indices:
+            pos_[i] = val
+            orientation_[i] = 0 if orientation == Orientation.VERTICAL else 1
+            colors_[i] = color
+            i += 1
+
+    if len(pos_) == 0:
+        return np.zeros(0), np.zeros(0), np.zeros((0, 4))
+    return (
+        np.asarray(pos_, dtype=np.float32),
+        np.asarray(orientation_, dtype=np.float32),
+        np.asarray(colors_, dtype=np.float32),
+    )
+
+
+def make_infinite_line_pos(
+    data: np.ndarray,
+    orientations: ty.Iterable[Orientation],
+    indices: ty.Optional[ty.List[int]] = None,
+):
     """Create position in format x,y"""
     pos = []
     if len(data) == 0:
         return np.zeros((0, 2))
-    for val, orientation in zip(data, orientations):
-        if orientation == Orientation.VERTICAL:
-            _pos = [val, np.nan]
-        else:
-            _pos = [np.nan, val]
-        pos.extend([_pos])
+    if indices is None:
+        indices = np.arange(len(data))
 
+    for index, (val, orientation) in enumerate(zip(data, orientations)):
+        if index in indices:
+            pos_ = [val, np.nan] if orientation == Orientation.VERTICAL else [np.nan, val]
+            pos.extend([pos_])
     return np.asarray(pos, dtype=np.float32)
 
 
-def make_infinite_color(colors) -> np.ndarray:
+def make_infinite_line_color(colors) -> np.ndarray:
     """Create properly formatted colors."""
     _colors = []
     for color in colors:
@@ -83,13 +136,13 @@ def make_infinite_color(colors) -> np.ndarray:
     return np.asarray(_colors, dtype=object)
 
 
-def parse_infline_orientation(data, orientation=None):
+def parse_infinite_line_orientation(data, orientation=None):
     """Separate orientation from data if present and return both."""
     # Data is None so return empty array
     if data is None:
         data, orientation = [], []
     # Tuple for one shape or list of lines with orientation
-    elif isinstance(data, ty.Tuple):
+    elif isinstance(data, tuple):
         data, orientation = data
         data = [data]
         orientation = [orientation]
@@ -100,7 +153,6 @@ def parse_infline_orientation(data, orientation=None):
     # Iterable of position without orientation
     elif isinstance(data, ty.Iterable) and isinstance(orientation, (str, Orientation)):
         orientation = [orientation] * len(data)
-
     return np.asarray(data), orientation
 
 

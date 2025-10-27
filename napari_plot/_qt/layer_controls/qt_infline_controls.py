@@ -2,14 +2,12 @@
 
 import typing as ty
 
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+import qtextra.helpers as hp
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QButtonGroup, QHBoxLayout
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari_plot._qt.widgets.qt_icon_button import QtModePushButton, QtModeRadioButton
 from napari_plot.layers.infline._infline_constants import Mode
 
 if ty.TYPE_CHECKING:
@@ -30,8 +28,6 @@ class QtInfLineControls(QtLayerControls):
         An instance of a InfLine layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -42,16 +38,25 @@ class QtInfLineControls(QtLayerControls):
         Color swatch controlling the line color.
     """
 
+    MODE = Mode
+    PAN_ZOOM_ACTION_NAME = "activate_infline_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_infline_transform_mode"
+
     def __init__(self, layer: "InfLine"):
         super().__init__(layer)
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.width.connect(self._on_width_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.visible.connect(self._on_visible_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
-        self.width_slider = hp.make_slider(
-            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+        self.width_slider = hp.make_slider_with_text(
+            self,
+            1,
+            25,
+            value=self.layer.width,
+            tooltip="Line width.",
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
@@ -62,55 +67,57 @@ class QtInfLineControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_current_color)
         self._on_current_color_change(None)
 
-        self.add_button = QtModeRadioButton(layer, "add", Mode.ADD, tooltip="Add infinite line (A)")
-        self.select_button = QtModeRadioButton(
-            layer, "select_points", Mode.SELECT, tooltip="Select infinite line(s) (S)"
-        )
-        self.move_button = QtModeRadioButton(layer, "move", Mode.MOVE, tooltip="Move infinite line (M)")
-        self.panzoom_button = QtModeRadioButton(
+        self.add_button = self._radio_button(
             layer,
-            "pan_zoom",
-            Mode.PAN_ZOOM,
-            tooltip="Pan/zoom (Z)",
-            checked=True,
+            "add",
+            Mode.ADD,
+            True,
+            tooltip="Add infinite line (A)",
+            action_name="activate_infline_add_mode",
         )
-        self.delete_button = QtModePushButton(
+        self.select_button = self._radio_button(
+            layer,
+            "select_points",
+            Mode.SELECT,
+            True,
+            tooltip="Select infinite line(s) (S)",
+            action_name="activate_infline_select_mode",
+        )
+        self.move_button = self._radio_button(
+            layer,
+            "move",
+            Mode.MOVE,
+            True,
+            tooltip="Move infinite line (M)",
+            action_name="activate_infline_mode_mode",
+        )
+        self.delete_button = self._action_button(
             layer,
             "delete_shape",
-            slot=self.layer.remove_selected,
+            slot=layer.remove_selected,
             tooltip="Delete selected infinite lines (Backspace)",
+            edit_button=True,
         )
+        self.transform_button.hide()
 
-        self.button_group = QButtonGroup(self)
-        self.button_group.addButton(self.add_button)
-        self.button_group.addButton(self.select_button)
-        self.button_group.addButton(self.move_button)
-        self.button_group.addButton(self.panzoom_button)
-
-        button_row = QHBoxLayout()
-        button_row.addStretch(1)
-        button_row.addWidget(self.add_button)
-        button_row.addWidget(self.move_button)
-        button_row.addWidget(self.select_button)
-        button_row.addWidget(self.panzoom_button)
-        button_row.addWidget(self.delete_button)
-        button_row.setContentsMargins(0, 0, 0, 5)
-        button_row.setSpacing(4)
+        self.button_grid.addWidget(self.delete_button, 0, 2)
+        self.button_grid.addWidget(self.add_button, 0, 3)
+        self.button_grid.addWidget(self.select_button, 0, 4)
+        self.button_grid.addWidget(self.move_button, 0, 5)
 
         # add widgets to the layout
-        self.layout.addRow(button_row)
-        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self._on_editable_change()
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
+        self._on_visible_change()
         self._on_edit_mode_active()
 
     def _on_edit_mode_active(self, event=None):
         """Enable/disable `edit` mode when correct number of regions is selected."""
         show = len(self.layer.selected_data) == 1
-        disable_with_opacity(self, ["move_button"], show)
+        set_widgets_enabled_with_opacity(self, [self.move_button], show)
         if not show:
             self.move_button.setChecked(False)
 
@@ -137,6 +144,8 @@ class QtInfLineControls(QtLayerControls):
             self.select_button.setChecked(True)
         elif mode == Mode.PAN_ZOOM:
             self.panzoom_button.setChecked(True)
+        elif mode == Mode.TRANSFORM:
+            self.transform_button.setChecked(True)
         else:
             raise ValueError(f"Mode {mode} not recognized")
 
@@ -177,48 +186,41 @@ class QtInfLineControls(QtLayerControls):
         with qt_signals_blocked(self.color_swatch):
             self.color_swatch.setColor(self.layer.current_color)
 
-    def on_change_method(self, value):
-        """Change size of points on the layer model.
+    # def on_change_method(self, value):
+    #     """Change size of points on the layer model.
+    #
+    #     Parameters
+    #     ----------
+    #     value : float
+    #         Size of points.
+    #     """
+    #     self.layer.method = self.method_combobox.currentText()
+    #
+    # def _on_method_change(self, event):
+    #     """Receive marker symbol change event and update the dropdown menu.
+    #
+    #     Parameters
+    #     ----------
+    #     event : napari.utils.event.Event
+    #         The napari event that triggered this method.
+    #     """
+    #     with self.layer.events.method.blocker():
+    #         self.method_combobox.setCurrentText(self.layer.method)
 
-        Parameters
-        ----------
-        value : float
-            Size of points.
-        """
-        self.layer.method = self.method_combobox.currentText()
-
-    def _on_method_change(self, event):
-        """Receive marker symbol change event and update the dropdown menu.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        with self.layer.events.method.blocker():
-            self.method_combobox.setCurrentText(self.layer.method)
-
-    def _on_editable_change(self, event=None):
-        """Receive layer model editable change event & enable/disable buttons.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event, optional
-            The napari event that triggered this method, by default None.
-        """
-        disable_with_opacity(
+    def _on_visible_change(self, event=None):
+        """Receive layer model editable change event & enable/disable buttons."""
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "width_slider",
-                "color_swatch",
-                "opacity_slider",
-                "blending_combobox",
-                "add_button",
-                "move_button",
-                "select_button",
-                "panzoom_button",
-                "delete_button",
+                self.width_slider,
+                self.color_swatch,
+                self.opacity_slider,
+                self.blending_combobox,
+                self.add_button,
+                self.move_button,
+                self.select_button,
+                self.panzoom_button,
+                self.delete_button,
             ],
-            self.layer.editable,
+            self.layer.visible,
         )
-        super()._on_editable_change(event)

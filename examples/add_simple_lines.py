@@ -1,7 +1,8 @@
 """Example showing how to plot multiple line sand adjust axis labels."""
 
-import napari_plot
 import numpy as np
+
+import napari_plot
 
 viewer1d = napari_plot.Viewer()
 viewer1d.camera.extent_mode = "restricted"

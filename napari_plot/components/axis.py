@@ -2,10 +2,10 @@
 
 import typing as ty
 
+from napari._pydantic_compat import validator
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
-from pydantic import validator
 
 
 class Axis(EventedModel):

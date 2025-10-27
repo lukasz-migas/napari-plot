@@ -1,64 +1,60 @@
-"""Region based on Rectangle."""
+"""Infinite line."""
 
-from napari.layers.shapes._shapes_models.rectangle import Rectangle
+from __future__ import annotations
 
 from napari_plot.layers.region._region_constants import Orientation
-from napari_plot.layers.region._region_utils import preprocess_box, preprocess_region
 
 
-class Vertical(Rectangle):
-    """Class for vertical region"""
+class InfiniteRegion:
+    """Line."""
 
-    def __init__(
-        self,
-        data,
-        *,
-        z_index=0,
-        dims_order=None,
-        ndisplay=2,
-    ):
-        if len(data) == 2:
-            data = preprocess_region(data, "vertical")
+    _data: tuple[float, float]
 
-        super().__init__(data, edge_width=1, z_index=z_index, dims_order=dims_order, ndisplay=ndisplay)
-        self.name = "vertical"
+    def __init__(self, data: tuple[float, float], orientation: Orientation, z_index: int = 0):
+        self.name = ""
+        self.data = data
+        self.orientation = orientation
+        self.z_index = z_index
 
+    def __repr__(self) -> str:
+        return f"{self.name}<{self.data:.2f}>"
 
-class Horizontal(Rectangle):
-    """Class for horizontal region"""
+    @property
+    def data(self) -> tuple[float, float]:
+        """Return data."""
+        return self._data
 
-    def __init__(
-        self,
-        data,
-        *,
-        z_index=0,
-        dims_order=None,
-        ndisplay=2,
-    ):
-        if len(data) == 2:
-            data = preprocess_region(data, "horizontal")
+    @data.setter
+    def data(self, value: tuple[float, float]) -> None:
+        self._data = value
 
-        super().__init__(data, edge_width=1, z_index=z_index, dims_order=dims_order, ndisplay=ndisplay)
-        self.name = "horizontal"
+    @property
+    def z_index(self) -> int:
+        """int: z order priority of shape. Shapes with higher z order displayed on top of others."""
+        return self._z_index
+
+    @z_index.setter
+    def z_index(self, z_index: int) -> None:
+        self._z_index = z_index
 
 
-class Box(Rectangle):
-    """Class for rectangular box region."""
+class VerticalRegion(InfiniteRegion):
+    """Vertical infinite line."""
 
-    def __init__(
-        self,
-        data,
-        *,
-        edge_width=1,
-        z_index=0,
-        dims_order=None,
-        ndisplay=2,
-    ):
-        if len(data) != 4:
-            raise ValueError("Please provide 4 values in order: x_min, x_max, y_min, y_max.")
-        data = preprocess_box(data)
-        super().__init__(data, edge_width=edge_width, z_index=z_index, dims_order=dims_order, ndisplay=ndisplay)
-        self.name = "box"
+    def __init__(self, data: tuple[float, float], z_index: int = 0):
+        super().__init__(data, Orientation.VERTICAL, z_index=z_index)
+        self.name = "Vertical"
 
 
-region_classes = {Orientation.HORIZONTAL: Horizontal, Orientation.VERTICAL: Vertical}
+class HorizontalRegion(InfiniteRegion):
+    """Horizontal infinite line."""
+
+    def __init__(self, data: tuple[float, float], z_index: int = 0):
+        super().__init__(data, Orientation.HORIZONTAL, z_index=z_index)
+        self.name = "Horizontal"
+
+
+region_classes = {
+    Orientation.HORIZONTAL: HorizontalRegion,
+    Orientation.VERTICAL: VerticalRegion,
+}

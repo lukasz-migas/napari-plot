@@ -1,9 +1,47 @@
 """Layer buttons"""
 
-from napari._qt.widgets.qt_viewer_buttons import QtDeleteButton
-from qtpy.QtWidgets import QFrame, QHBoxLayout
+from __future__ import annotations
 
-from napari_plot._qt.widgets.qt_icon_button import QtViewerPushButton as QtQtaViewerPushButton
+import typing as ty
+from functools import partial
+
+import qtextra.helpers as hp
+from napari.utils.action_manager import action_manager
+from qtextra.widgets.qt_button_icon import QtImagePushButton
+from qtpy.QtWidgets import QFrame, QWidget
+
+
+def _add_new_points(viewer):
+    viewer.add_points(ndim=max(viewer.dims.ndim, 2), scale=viewer.layers.extent.step)
+
+
+def _add_new_shapes(viewer):
+    viewer.add_shapes(ndim=max(viewer.dims.ndim, 2), scale=viewer.layers.extent.step)
+
+
+def _add_new_region(viewer):
+    viewer.add_region(scale=viewer.layers.extent.step, opacity=0.75, name="Region")
+
+
+def _add_new_inf_line(viewer):
+    viewer.add_inf_line(scale=viewer.layers.extent.step, name="InfLine")
+
+
+def make_qta_btn(
+    parent: QWidget,
+    icon_name: str,
+    tooltip: str = "",
+    action: str = "",
+    extra_tooltip_text: str = "",
+    **kwargs: ty.Any,
+) -> QtImagePushButton:
+    """Make a button with an icon from QtAwesome."""
+    btn = hp.make_qta_btn(parent=parent, icon_name=icon_name, tooltip=tooltip, **kwargs)
+    btn.set_normal()
+    btn.setProperty("layer_button", True)
+    if action:
+        action_manager.bind_button(action, btn, extra_tooltip_text=extra_tooltip_text)
+    return btn
 
 
 class QtLayerButtons(QFrame):
@@ -25,55 +63,50 @@ class QtLayerButtons(QFrame):
     def __init__(self, viewer):
         super().__init__()
         self.viewer = viewer
-        self.delete_btn = QtDeleteButton(self.viewer)
+        self.delete_btn = make_qta_btn(
+            self,
+            "delete",
+            tooltip="Delete selected layers",
+            action="napari:delete_selected_layers",  # TODO: change to napari_plot
+        )
         self.delete_btn.setParent(self)
 
-        self.new_points_btn = QtQtaViewerPushButton(
+        self.new_points_btn = make_qta_btn(
+            self,
             "new_points",
             "Add new points layer",
-            slot=lambda: self.viewer.add_points(
-                ndim=2,
-                scale=self.viewer.layers.extent.step,
-            ),
+            func=partial(_add_new_points, self.viewer),
         )
 
-        self.new_shapes_btn = QtQtaViewerPushButton(
+        self.new_shapes_btn = make_qta_btn(
+            self,
             "new_shapes",
             "Add new shapes layer",
-            slot=lambda: self.viewer.add_shapes(
-                ndim=2,
-                scale=self.viewer.layers.extent.step,
-            ),
+            func=partial(_add_new_shapes, self.viewer),
         )
-        self.new_shapes_btn.setParent(self)
 
-        self.new_region_btn = QtQtaViewerPushButton(
+        self.new_region_btn = make_qta_btn(
+            self,
             "new_region",
             "Add new region layer",
-            slot=lambda: self.viewer.add_region(
-                scale=self.viewer.layers.extent.step,
-                opacity=0.75,
-                name="Region",
-            ),
+            func=partial(_add_new_region, self.viewer),
         )
-        self.new_region_btn.setParent(self)
 
-        self.new_infline_btn = QtQtaViewerPushButton(
+        self.new_infline_btn = make_qta_btn(
+            self,
             "new_inf_line",
-            "Add new region layer",
-            slot=lambda: self.viewer.add_inf_line(scale=self.viewer.layers.extent.step, name="InfLine"),
+            "Add new infinite line layer",
+            func=partial(_add_new_inf_line, self.viewer),
         )
         self.new_region_btn.setParent(self)
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
+        layout = hp.make_h_layout(parent=self, spacing=2, margin=0)
         layout.addWidget(self.new_shapes_btn)
         layout.addWidget(self.new_points_btn)
         layout.addWidget(self.new_region_btn)
         layout.addWidget(self.new_infline_btn)
         layout.addStretch(0)
         layout.addWidget(self.delete_btn)
-        self.setLayout(layout)
 
 
 class QtViewerButtons(QFrame):
@@ -99,21 +132,25 @@ class QtViewerButtons(QFrame):
 
         self.viewer = viewer
 
-        self.resetViewButton = QtQtaViewerPushButton(
+        self.resetViewButton = make_qta_btn(
+            self,
             "home",
-            "Reset view (Ctrl-R)",
-            lambda: self.viewer.reset_view(),
+            "Reset view",
+            action="napari:reset_view",
         )
+
         # only add console if its QtViewer
         self.consoleButton = None
         if kwargs.get("dock_console", False):
-            self.consoleButton = QtQtaViewerPushButton("ipython", "Show/hide console panel")
-            self.consoleButton.clicked.connect(lambda: parent.on_toggle_console_visibility())
+            self.consoleButton = make_qta_btn(
+                self,
+                "ipython",
+                "Show/hide console panel",
+                func=parent.on_toggle_console_visibility,
+            )
 
-        layout = QHBoxLayout()
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.resetViewButton)
+        layout = hp.make_h_layout(parent=self, spacing=2, margin=0)
         if self.consoleButton is not None:
             layout.addWidget(self.consoleButton)
+        layout.addWidget(self.resetViewButton)
         layout.addStretch(0)
-        self.setLayout(layout)

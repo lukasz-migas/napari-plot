@@ -2,8 +2,7 @@
 
 import numpy as np
 import vispy.visuals.axis
-from vispy.visuals.axis import Ticker as _Ticker
-from vispy.visuals.axis import _get_ticks_talbot
+from vispy.visuals.axis import Ticker as _Ticker, _get_ticks_talbot
 
 default_tick_formatter = lambda x: "%g" % x  # noqa
 
@@ -49,9 +48,7 @@ class Ticker(_Ticker):
             major_frac = major_frac[use_mask]
             labels = [label for index, label in enumerate(labels) if use_mask[index]]
             minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
-        elif self.axis.scale_type == "logarithmic":
-            return NotImplementedError
-        elif self.axis.scale_type == "power":
+        elif self.axis.scale_type == "logarithmic" or self.axis.scale_type == "power":
             return NotImplementedError
         return major_frac, minor_frac, labels
 

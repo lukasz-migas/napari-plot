@@ -66,7 +66,6 @@ class MultiLine(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         width=2,
         method="gl",
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -84,7 +83,6 @@ class MultiLine(BaseLayer):
 
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,

@@ -1,21 +1,36 @@
 """Napari-plot base layer"""
 
+import typing as ty
 import warnings
 from contextlib import contextmanager
 
 import numpy as np
 from napari.layers.base import Layer
-from napari.utils.events import EmitterGroup, Event
+from napari.utils.events import EmitterGroup
+
+
+def update_layer_attributes(layer: Layer, throw_exception: bool = True, **kwargs: ty.Any) -> None:
+    """Update attributes on the layer."""
+    for attr, value in kwargs.items():
+        if not hasattr(layer, attr):
+            if throw_exception:
+                raise AttributeError(f"'{layer.__class__.__name__}' has no attribute '{attr}'")
+            continue
+        try:
+            setattr(layer, attr, value)
+        except (AttributeError, ValueError):
+            if throw_exception:
+                raise
 
 
 class LayerMixin:
     """Mixin class."""
 
-    _label: str = ""
-
     # Set flag to 'False' to disable thumbnail update
     _allow_thumbnail_update = True
     events: EmitterGroup
+    _update_dims: ty.Callable
+    _update_draw: ty.Callable
 
     @property
     def data(self):
@@ -41,20 +56,10 @@ class LayerMixin:
     def _get_ndim(self):
         return 2
 
-    @property
-    def label(self) -> str:
-        """Get label."""
-        return self._label
-
-    @label.setter
-    def label(self, value: str):
-        self._label = value
-        self.events.label()
-
     def _emit_new_data(self):
         self._update_dims()
         self.events.data(value=self.data)
-        self._set_editable()
+        self._on_editable_changed()
 
     @contextmanager
     def block_thumbnail_update(self):
@@ -65,17 +70,7 @@ class LayerMixin:
 
     def update_attributes(self, throw_exception: bool = True, **kwargs):
         """Update attributes on the layer."""
-        for attr, value in kwargs.items():
-            if not hasattr(self, attr):
-                if throw_exception:
-                    raise AttributeError(f"'{self.__class__.__name__}' has no attribute '{attr}'")
-                else:
-                    continue
-            try:
-                setattr(self, attr, value)
-            except (AttributeError, ValueError) as err:
-                if throw_exception:
-                    raise err
+        update_layer_attributes(self, throw_exception=throw_exception, **kwargs)
 
     def _get_mask_from_path(self, vertices, as_indices: bool = False):
         """Return data contained for specified vertices. Only certain layers implement this."""
@@ -88,8 +83,6 @@ class BaseLayer(LayerMixin, Layer):
         self,
         data,
         *,
-        # napari-plot parameters
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -117,8 +110,6 @@ class BaseLayer(LayerMixin, Layer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(label=Event)
-        self._label = label
 
     def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold):
         """Update draw."""

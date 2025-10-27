@@ -15,7 +15,7 @@ def check_length(x: np.ndarray, y: np.ndarray):
 
 def check_keys(data: ty.Dict, keys: ty.Tuple):
     """Check whether keys exist in particular dictionary."""
-    return all([key in data for key in keys])
+    return all(key in data for key in keys)
 
 
 def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
@@ -25,16 +25,16 @@ def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarra
     if data is None:
         return xs, ys
     # Data is a tuple of two arrays
-    elif isinstance(data, ty.Tuple):
+    if isinstance(data, ty.Tuple):
         x, y = data
-        if all([isinstance(dat, np.ndarray) for dat in (x, y)]):
+        if all(isinstance(dat, np.ndarray) for dat in (x, y)):
             xs, ys = [x], [y]
-        elif all([isinstance(dat, ty.List) for dat in (x, y)]):
+        elif all(isinstance(dat, ty.List) for dat in (x, y)):
             xs, ys = x, y
     # Data is a dict with `xs` and `ys` keys
     elif isinstance(data, ty.Dict):
         # Dict with `xs` and `ys` lists of arrays
-        if check_keys(data, ("xs", "ys")) and all([isinstance(dat, ty.List) for dat in (data["xs"], data["ys"])]):
+        if check_keys(data, ("xs", "ys")) and all(isinstance(dat, ty.List) for dat in (data["xs"], data["ys"])):
             xs, ys = data["xs"], data["ys"]
             if len(xs) > len(ys):
                 raise ValueError(

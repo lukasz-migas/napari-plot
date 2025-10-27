@@ -6,10 +6,12 @@ This method does not do many checks so you must make sure that whatever data you
 characteristics as the original or at least it's valid.
 """
 
-import napari_plot
+import time
+
 import numpy as np
 from napari.qt import thread_worker
-import time
+
+import napari_plot
 
 
 def make_data():
@@ -29,7 +31,7 @@ def update_layer(data):
 @thread_worker(connect={"yielded": update_layer})
 def run_update(*_):
     """Function that will run for fair amount of time and try to update the canvas every 50ms."""
-    for i in range(100_000):
+    for _i in range(100_000):
         yield make_data()
         time.sleep(0.01)
 

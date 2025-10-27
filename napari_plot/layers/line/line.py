@@ -63,7 +63,6 @@ class Line(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         width=2,
         method="gl",
-        label="",
         # napari parameters
         name=None,
         metadata=None,
@@ -77,14 +76,10 @@ class Line(BaseLayer):
         visible=True,
     ):
         # sanitize data
-        if data is None:
-            data = np.empty((0, 2))
-        else:
-            data = np.asarray(data)
+        data = np.empty((0, 2)) if data is None else np.asarray(data)
 
         super().__init__(
             data,
-            label=label,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -220,3 +215,10 @@ class Line(BaseLayer):
             mins = np.min(self.data, axis=0)[::-1]
             extrema = np.vstack([mins, maxs])
         return extrema
+
+    def _get_x_region_extent(self, x_min: float, x_max: float) -> None:
+        """Return data extents in the (xmin, xmax, ymin, ymax) format."""
+        from napari_plot.utils.utilities import find_nearest_index, get_min_max
+
+        idx_min, idx_max = find_nearest_index(self.x, [x_min, x_max])
+        return get_min_max(self.y[idx_min:idx_max])

@@ -1,8 +1,8 @@
 """Dock widget"""
 
+from qtextra.helpers import get_parent
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 
-from napari_plot._qt.helpers import get_parent
 from napari_plot._qt.qt_viewer import QtViewer
 from napari_plot.components.viewer_model import ViewerModel as ViewerModelPlot
 

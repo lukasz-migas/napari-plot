@@ -27,11 +27,19 @@ y2err = 0.1 + 0.1 * np.sqrt(x / 2)
 
 viewer1d.add_line(np.c_[x, y1], name="Line 1", color="lightblue")
 viewer1d.add_centroids(
-    np.c_[x, y1 - y1err, y1 + y1err], orientation="vertical", color="lightblue", opacity=0.5, name="Line 1 (errors)"
+    np.c_[x, y1 - y1err, y1 + y1err],
+    orientation="vertical",
+    color="lightblue",
+    opacity=0.5,
+    name="Line 1 (errors)",
 )
 viewer1d.add_line(np.c_[x, y2], name="Line 2", color="orange")
 viewer1d.add_centroids(
-    np.c_[x, y2 - y2err, y2 + y2err], orientation="vertical", color="orange", opacity=0.5, name="Line 2 (errors)"
+    np.c_[x, y2 - y2err, y2 + y2err],
+    orientation="vertical",
+    color="orange",
+    opacity=0.5,
+    name="Line 2 (errors)",
 )
 viewer1d.camera.extent = (-0.1, 4.1, 1.0, -0.3)
 viewer1d.axis.x_label = ""

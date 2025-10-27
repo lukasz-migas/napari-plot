@@ -85,3 +85,4 @@ _version.py
 .project
 .pydevproject
 .settings/
+*.pkg

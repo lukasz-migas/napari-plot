@@ -1,27 +1,9 @@
 """Region constants"""
 
-from enum import Enum, auto
+from enum import auto
 
+from napari.utils.compat import StrEnum
 from napari.utils.misc import StringEnum
-
-
-class Mode(StringEnum):
-    """
-    Mode: Interactive mode. The normal, default mode is PAN_ZOOM
-
-    PAN_ZOOM which allows for normal interactivity with the canvas.
-
-    SELECT allows selection of new window
-
-    MOVE allows moving of the current window
-
-    ADD allows adding new line
-    """
-
-    ADD = auto()
-    MOVE = auto()
-    SELECT = auto()
-    PAN_ZOOM = auto()
 
 
 class Box:
@@ -39,7 +21,27 @@ class Box:
     LEN = 8
 
 
-class Orientation(str, Enum):
+class Mode(StringEnum):
+    """
+    Mode: Interactive mode. The normal, default mode is PAN_ZOOM
+
+    PAN_ZOOM which allows for normal interactivity with the canvas.
+
+    SELECT allows selection of new window
+
+    MOVE allows moving of the current window
+
+    ADD allows adding new line
+    """
+
+    PAN_ZOOM = auto()
+    TRANSFORM = auto()
+    ADD = auto()
+    MOVE = auto()
+    SELECT = auto()
+
+
+class Orientation(StrEnum):
     """Orientation"""
 
     HORIZONTAL = "horizontal"

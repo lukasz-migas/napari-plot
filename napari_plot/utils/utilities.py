@@ -1,12 +1,11 @@
 """Various utilities"""
 
 import typing as ty
-from contextlib import suppress
 
 import numpy as np
 
 
-def find_nearest_index(data: np.ndarray, value: ty.Union[int, float, np.ndarray, ty.Iterable]):
+def find_nearest_index(data: np.ndarray, value: ty.Union[float, np.ndarray, ty.Iterable]):
     """Find nearest index of asked value
 
     Parameters
@@ -22,6 +21,8 @@ def find_nearest_index(data: np.ndarray, value: ty.Union[int, float, np.ndarray,
         index value
     """
     data = np.asarray(data)
+    if data.size == 0:
+        return None
     if isinstance(value, ty.Iterable):
         return [np.argmin(np.abs(data - _value)) for _value in value]
     return np.argmin(np.abs(data - value))
@@ -29,11 +30,6 @@ def find_nearest_index(data: np.ndarray, value: ty.Union[int, float, np.ndarray,
 
 def get_min_max(values):
     """Get the minimum and maximum value of an array"""
+    if values is None or len(values) == 0:
+        return [None, None]
     return [np.min(values), np.max(values)]
-
-
-def connect(connectable, func: ty.Callable, state: bool = True):
-    """Function that connects/disconnects."""
-    with suppress(Exception):
-        connectable = getattr(connectable, "connect") if state else getattr(connectable, "disconnect")
-        connectable(func)

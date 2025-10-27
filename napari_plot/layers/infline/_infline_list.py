@@ -1,6 +1,9 @@
 """Infinite line list."""
 
+from __future__ import annotations
+
 import typing as ty
+from contextlib import suppress
 
 import numpy as np
 
@@ -8,9 +11,9 @@ from napari_plot.layers.infline._infline import InfiniteLine, infline_classes
 from napari_plot.layers.infline._infline_constants import Orientation
 from napari_plot.layers.infline._infline_utils import (
     lines_intersect_box,
-    make_infinite_color,
-    make_infinite_line,
-    make_infinite_pos,
+    make_infinite_line_color,
+    make_infinite_line_pos,
+    make_infinite_line_simple_data,
     nearby_line,
 )
 
@@ -40,9 +43,13 @@ class InfiniteLineList:
         """list of (M, D) array: data arrays for each shape."""
         return np.asarray([s.data for s in self.inflines])
 
-    def get_display_lines(self, indices=None):
-        """Return data to be displayed."""
-        return make_infinite_line(self.data, self.orientations, self.color, indices=indices)
+    def get_display_pos(self, indices=None):
+        """Return position of lines."""
+        return make_infinite_line_pos(self.data, self.orientations, indices=indices)
+
+    def get_simple_lines_and_colors(self, indices=None) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return position and color of infinite lines."""
+        return make_infinite_line_simple_data(self.data, self.orientations, self.color, indices=indices)
 
     @property
     def orientations(self):
@@ -65,7 +72,7 @@ class InfiniteLineList:
 
     def get_display_color(self):
         """Get display color."""
-        return make_infinite_color(self.color)
+        return make_infinite_line_color(self.color)
 
     def _set_color(self, colors):
         """Set the face_color or edge_color property
@@ -127,18 +134,15 @@ class InfiniteLineList:
             cur_line = self.inflines[index]
             if isinstance(new_orientation, (str, Orientation)):
                 orientation = Orientation(new_orientation)
-                if orientation in infline_classes.keys():
+                if orientation in infline_classes:
                     line_cls = infline_classes[orientation]
                 else:
                     raise ValueError(
                         f"{orientation} must be one of {infline_classes}",
                     )
             else:
-                line_cls = infline_classes
-            infline = line_cls(
-                data,
-                z_index=cur_line.z_index,
-            )
+                line_cls = orientation
+            infline = line_cls(data, z_index=cur_line.z_index)
         else:
             infline = self.inflines[index]
             infline.data = data
@@ -182,14 +186,16 @@ class InfiniteLineList:
 
     def inside(self, coord, max_dist: float = 0.1):
         """Determine if any line at given coord by looking at nearest line within defined limit."""
-        pos = make_infinite_pos(self.data, self.orientations)
-        indices = nearby_line(pos - coord[::-1], max_dist)
-        if len(indices) > 0:
-            z_list = [self._z_order[i] for i in indices]
-            return indices[np.argsort(z_list)][0]
+        pos = make_infinite_line_pos(self.data, self.orientations)
+        with suppress(IndexError):
+            indices = nearby_line(pos - coord[::-1], max_dist)
+            if len(indices) > 0:
+                z_list = [self._z_order[i] for i in indices]
+                return indices[np.argsort(z_list)][0]
+        return None
 
     def lines_in_box(self, corners):
         """Determines which lines, if any, are inside an axis aligned box."""
-        pos = make_infinite_pos(self.data, self.orientations)
+        pos = make_infinite_line_pos(self.data, self.orientations)
         indices = lines_intersect_box(pos, corners)
         return indices

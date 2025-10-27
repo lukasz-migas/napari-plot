@@ -1,7 +1,7 @@
 """Layer controls."""
 
 import napari._qt.layer_controls.qt_layer_controls_container
-from napari._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer  # noqa
+from napari._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 
 from napari_plot._qt.layer_controls.qt_centroids_controls import QtCentroidControls
 from napari_plot._qt.layer_controls.qt_infline_controls import QtInfLineControls
@@ -23,3 +23,14 @@ layer_to_controls = {
 
 # need to overwrite napari' default mapping of layer : control of layers to add our custom layers
 napari._qt.layer_controls.qt_layer_controls_container.layer_to_controls.update(layer_to_controls)
+
+__all__ = [
+    "QtCentroidControls",
+    "QtInfLineControls",
+    "QtLayerControlsContainer",
+    "QtLineControls",
+    "QtMultiLineControls",
+    "QtRegionControls",
+    "QtScatterControls",
+    "layer_to_controls",
+]

@@ -8,6 +8,7 @@ to server as a graphical user interface for napari.
 
 __all__ = ["Window"]
 
+
 try:
     from napari_plot._qt.qt_main_window import Window
 

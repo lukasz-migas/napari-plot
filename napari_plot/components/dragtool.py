@@ -1,16 +1,17 @@
 """Tool model."""
 
 import typing as ty
-from enum import Enum
 
 import numpy as np
+from napari._pydantic_compat import PrivateAttr
+from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 
 from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 
 
-class DragMode(str, Enum):
+class DragMode(StrEnum):
     """Interaction mode.
 
     No interaction tools:
@@ -33,6 +34,7 @@ class DragMode(str, Enum):
     NONE = "none"
     # Zoom-tools
     AUTO = "auto"
+    AUTO_TRIGGER = "auto_trigger"  # zoom + trigger
     VERTICAL_SPAN = "v_span"
     HORIZONTAL_SPAN = "h_span"
     BOX = "box"  # default interaction
@@ -43,7 +45,13 @@ class DragMode(str, Enum):
 
 
 # List of `modes` which utilize the `BoxTool` model
-BOX_ZOOM_TOOLS = [DragMode.AUTO, DragMode.BOX, DragMode.VERTICAL_SPAN, DragMode.HORIZONTAL_SPAN]
+BOX_ZOOM_TOOLS = [
+    DragMode.AUTO,
+    DragMode.AUTO_TRIGGER,
+    DragMode.BOX,
+    DragMode.VERTICAL_SPAN,
+    DragMode.HORIZONTAL_SPAN,
+]
 POLYGON_TOOLS = [DragMode.POLYGON, DragMode.LASSO]
 BOX_SELECT_TOOLS = [DragMode.BOX_SELECT]
 SELECT_TOOLS = [DragMode.POLYGON, DragMode.LASSO, DragMode.BOX_SELECT]
@@ -71,6 +79,7 @@ class DragTool(EventedModel):
 
     active: DragMode = DragMode.NONE
     tool: ty.Optional[BaseTool] = None
+    selection_active: bool = False
 
     vertices: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     shift: Array[float, (4,)] = (0, 0, 0, 0)
@@ -78,14 +87,38 @@ class DragTool(EventedModel):
     ctrl: Array[float, (4,)] = (0, 0, 0, 0)
 
     # instances of the the tools that are kept around - these are not evented
-    _box = BoxTool()
-    _polygon = PolygonTool()
+    _box = PrivateAttr(default_factory=BoxTool)
+    _polygon = PrivateAttr(default_factory=PolygonTool)
 
     @property
     def selecting(self) -> bool:
         """Flag to indicate whether the current tool is considered a `selecting` tool."""
-        return self.active in [
-            DragMode.BOX,
-            DragMode.VERTICAL_SPAN,
-            DragMode.HORIZONTAL_SPAN,
-        ]
+        return (
+            self.active
+            in [
+                DragMode.BOX,
+                DragMode.VERTICAL_SPAN,
+                DragMode.HORIZONTAL_SPAN,
+            ]
+            or self.selection_active
+        )
+
+    @property
+    def modifiers_active(self) -> bool:
+        """Flag to indicate whether any of the modifier keys are selected."""
+        return self.shift_active or self.alt_active or self.ctrl_active
+
+    @property
+    def shift_active(self) -> bool:
+        """Shift active."""
+        return not all(v == 0 for v in self.shift)
+
+    @property
+    def alt_active(self) -> bool:
+        """Alt active."""
+        return not all(v == 0 for v in self.alt)
+
+    @property
+    def ctrl_active(self) -> bool:
+        """Ctrl active."""
+        return not all(v == 0 for v in self.ctrl)

@@ -2,11 +2,11 @@
 
 import typing as ty
 
-from napari._qt.utils import disable_with_opacity, qt_signals_blocked
+import qtextra.helpers as hp
+from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
-import napari_plot._qt.helpers as hp
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 from napari_plot.layers.centroids._centroids_constants import COLORING_TRANSLATIONS
 
@@ -28,8 +28,6 @@ class QtCentroidControls(QtLayerControls):
         An instance of a napari-plot Line layer.
     layout : qtpy.QtWidgets.QFormLayout
         Layout of Qt widget controls for the layer.
-    editable_checkbox : qtpy.QtWidgets.QCheckBox
-        Checkbox widget to control editability of the layer.
     blending_combobox : qtpy.QtWidgets.QComboBox
         Dropdown widget to select blending mode of layer.
     opacity_slider : qtpy.QtWidgets.QSlider
@@ -40,19 +38,27 @@ class QtCentroidControls(QtLayerControls):
         Color swatch controlling the line color.
     """
 
+    PAN_ZOOM_ACTION_NAME = "activate_centroids_pan_zoom_mode"
+    TRANSFORM_ACTION_NAME = "activate_centroids_transform_mode"
+
     def __init__(self, layer: "Centroids"):
         super().__init__(layer)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
-        self.layer.events.editable.connect(self._on_editable_change)
+        self.layer.events.visible.connect(self._on_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
-        self.selection_spin = hp.make_int_spin(self, value=0, tooltip="Specify current index.")
+        self.selection_spin = hp.make_int_spin_box(self, value=0, tooltip="Specify current index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
-        self.width_slider = hp.make_slider(
-            self, 1, 25, value=self.layer.width, tooltip="Line width.", focus_policy=Qt.NoFocus
+        self.width_slider = hp.make_slider_with_text(
+            self,
+            1,
+            25,
+            value=self.layer.width,
+            tooltip="Line width.",
+            focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
 
@@ -68,14 +74,14 @@ class QtCentroidControls(QtLayerControls):
         self.color_swatch.color_changed.connect(self.on_change_color)
 
         # add widgets to layout
-        self.layout.addRow(hp.make_label(self, "Opacity"), self.opacity_slider)
-        self.layout.addRow(hp.make_label(self, "Blending"), self.blending_combobox)
-        self.layout.addRow(hp.make_label(self, "Width"), self.width_slider)
-        self.layout.addRow(hp.make_label(self, "Color choice"), self.coloring_choice)
-        self.layout.addRow(self.selection_text, self.selection_spin)
-        self.layout.addRow(hp.make_label(self, "Color"), self.color_swatch)
-        self.layout.addRow(hp.make_label(self, "Editable"), self.editable_checkbox)
-        self._on_editable_change()
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "color choice"), self.coloring_choice)
+        self.layout().addRow(self.selection_text, self.selection_spin)
+        self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
+        self._on_visible_change()
         self._on_data_change()
         self._on_color_change()
 
@@ -152,7 +158,7 @@ class QtCentroidControls(QtLayerControls):
         with self.layer.events.method.blocker():
             self.method_combobox.setCurrentText(self.layer.method)
 
-    def _on_editable_change(self, event=None):
+    def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
 
         Parameters
@@ -160,16 +166,15 @@ class QtCentroidControls(QtLayerControls):
         event : napari.utils.event.Event, optional
             The napari event that triggered this method, by default None.
         """
-        disable_with_opacity(
+        set_widgets_enabled_with_opacity(
             self,
             [
-                "width_slider",
-                "color_swatch",
-                "opacity_slider",
-                "blending_combobox",
-                "selection_spin",
-                "coloring_choice",
+                self.width_slider,
+                self.color_swatch,
+                self.opacity_slider,
+                self.blending_combobox,
+                self.selection_spin,
+                self.coloring_choice,
             ],
-            self.layer.editable,
+            self.layer.visible,
         )
-        super()._on_editable_change(event)
