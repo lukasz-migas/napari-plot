@@ -1,5 +1,7 @@
 """Infinite line list."""
 
+from __future__ import annotations
+
 import typing as ty
 
 import numpy as np
@@ -11,7 +13,6 @@ from napari_plot.layers.region._region_utils import (
     make_infinite_region_mean,
     make_infinite_region_pos,
     make_infinite_region_simple_data,
-    nearby_line,
     region_intersect_box,
 )
 
@@ -107,7 +108,7 @@ class InfiniteRegionList:
     def add(self, region, color=None, index=None, z_refresh: bool = False):
         """Adds a single InfiniteLine object"""
         if not isinstance(region, InfiniteRegion):
-            raise ValueError("Region must be a class of Rectangle")
+            raise TypeError("Region must be a class of Rectangle")
 
         if index is None:
             self.regions.append(region)
@@ -181,7 +182,7 @@ class InfiniteRegionList:
         """Updates the z order of the triangles given the z_index list"""
         self._z_order = np.argsort(self._z_index)
 
-    def update_z_index(self, index, z_index):
+    def update_z_index(self, index: int, z_index: int) -> None:
         """Update the z-index of a single shape located at index.
 
         Parameters
@@ -191,7 +192,7 @@ class InfiniteRegionList:
         z_index : int
             The new z-index for the shape.
         """
-        self._z_index[index] = z_index
+        self._z_index[index] = int(z_index)
         self._update_z_order()
 
     def inside(self, coord, max_dist: float = 0.1):

@@ -22,7 +22,7 @@ def find_nearest_index(data: np.ndarray, value: ty.Union[float, np.ndarray, ty.I
     """
     data = np.asarray(data)
     if data.size == 0:
-        return
+        return None
     if isinstance(value, ty.Iterable):
         return [np.argmin(np.abs(data - _value)) for _value in value]
     return np.argmin(np.abs(data - value))

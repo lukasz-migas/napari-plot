@@ -1,4 +1,5 @@
 """Scatter visual."""
+from __future__ import annotations
 
 from napari._vispy.visuals.markers import Markers
 from vispy.scene.visuals import Compound, Line, Text

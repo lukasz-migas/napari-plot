@@ -25,9 +25,9 @@ layer_to_controls = {
 napari._qt.layer_controls.qt_layer_controls_container.layer_to_controls.update(layer_to_controls)
 
 __all__ = [
-    "QtLayerControlsContainer",
     "QtCentroidControls",
     "QtInfLineControls",
+    "QtLayerControlsContainer",
     "QtLineControls",
     "QtMultiLineControls",
     "QtRegionControls",

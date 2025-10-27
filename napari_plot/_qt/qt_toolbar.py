@@ -61,7 +61,7 @@ class QtViewToolbar(QWidget):
             func=self._toggle_grid_lines_visible,
         )
         self.tools_tool_btn = toolbar_right.insert_qta_tool(
-            "zoom",
+            "tool",
             tooltip="Select current tool.",
             func=self._open_tools_menu,
         )

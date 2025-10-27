@@ -9,8 +9,8 @@ def test_vispy_text_visual(make_napari_plot_viewer):
 
     # change tool
     viewer.drag_tool.active = "polygon"
-    assert type(qt_widget.canvas.tool.tool) == VispyPolygonVisual
+    assert isinstance(qt_widget.canvas.tool.tool, VispyPolygonVisual)
     viewer.drag_tool.active = "none"
     assert qt_widget.canvas.tool.tool is None
     viewer.drag_tool.active = "box"
-    assert type(qt_widget.canvas.tool.tool) == VispyPolygonVisual
+    assert isinstance(qt_widget.canvas.tool.tool, VispyPolygonVisual)

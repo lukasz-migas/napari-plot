@@ -613,11 +613,12 @@ class Region(BaseLayer):
             if not len(z_index) == self.n_regions:
                 raise ValueError("Length of list does not match number of orientations.")
             z_indices = z_index
+        elif isinstance(z_index, int):
+            z_indices = [z_index for _ in range(self.n_regions)]
         else:
             z_indices = [z_index for _ in range(self.n_regions)]
-        print(z_indices)
-        # for i, z_idx in enumerate(z_indices):
-        #     self._data_view.update_z_index(i, z_idx)
+        for i, z_idx in enumerate(z_indices):
+            self._data_view.update_z_index(i, z_idx)
 
     @property
     def orientation(self):

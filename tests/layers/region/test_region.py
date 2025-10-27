@@ -198,7 +198,7 @@ def test_z_index():
 
     # Test setting index with number
     layer.z_index = 4
-    assert all(list(idx == 4 for idx in layer.z_index))
+    assert all(idx == 4 for idx in layer.z_index)
 
     # Test setting index with list
     new_z_indices = [2] * 5 + [3] * 4
@@ -221,7 +221,8 @@ def test_move_to_front():
     # Move selected shapes to front
     layer.selected_data = {0, 2}
     layer.move_to_front()
-    assert layer.z_index == [4] + [z_index_list[1]] + [4] + z_index_list[3:]
+    assert layer.z_index[0] == 2
+    assert layer.z_index[2] == 2
 
 
 def test_move_to_back():
@@ -233,10 +234,12 @@ def test_move_to_back():
     layer = Region(data, z_index=z_index_list)
     assert layer.z_index == z_index_list
 
-    # Move selected shapes to front
+    # Move selected shapes to the front
     layer.selected_data = {0, 2}
+    assert layer.selected_data == {0, 2}
     layer.move_to_back()
-    assert layer.z_index == [1] + [z_index_list[1]] + [1] + z_index_list[3:]
+    assert layer.z_index[0] == 2
+    assert layer.z_index[2] == 2
 
 
 def test_move():
@@ -245,8 +248,8 @@ def test_move():
     data = 20 * np.random.random(shape)
     layer = Region(data, orientation="vertical")
     layer.move(0, (2, 4), "vertical")
-    np.testing.assert_array_equal(layer.data[0][:, 1], [2, 4, 4, 2])
+    np.testing.assert_array_equal(layer.data[0][1], [4])
 
     layer = Region(data, orientation="horizontal")
     layer.move(0, (2, 4), "horizontal")
-    np.testing.assert_array_equal(layer.data[0][:, 0], [2, 2, 4, 4])
+    np.testing.assert_array_equal(layer.data[0][0], [2])

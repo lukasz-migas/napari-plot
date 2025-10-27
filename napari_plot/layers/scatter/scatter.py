@@ -1,4 +1,5 @@
 """Scatter layer."""
+from __future__ import annotations
 
 import typing as ty
 
@@ -118,12 +119,12 @@ class Scatter(Points, LayerMixin):
     """
 
     _modeclass = Mode
-    _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[["Scatter", Event], ty.Any]]] = {
+    _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: transform_with_box,
     }
 
-    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[["Scatter", Event], ty.Any]]] = {
+    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: highlight_box_handles,
     }
