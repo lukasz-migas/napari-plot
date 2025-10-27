@@ -13,9 +13,7 @@ from napari.layers.utils.layer_utils import (
 from napari_plot.layers.line.line import Line
 
 
-def register_line_action(
-    description: str, repeatable: bool = False
-) -> Callable[[Callable], Callable]:
+def register_line_action(description: str, repeatable: bool = False) -> Callable[[Callable], Callable]:
     return register_layer_action(Line, description, repeatable)
 
 

@@ -20,25 +20,17 @@ def test_scatter_controls_creation(qtbot, layer):
 
     # test face color
     target_color = layer.face_color[0]
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.face_color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.face_color_swatch.color)[0], target_color)
     layer.face_color = "red"
     target_color = layer.face_color[0]
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.face_color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.face_color_swatch.color)[0], target_color)
 
     # test edge color
     target_color = layer.border_color[0]
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.border_color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.border_color_swatch.color)[0], target_color)
     layer.border_color = "green"
     target_color = layer.border_color[0]
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.border_color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.border_color_swatch.color)[0], target_color)
 
     # test width
     assert qtctrl.border_width_slider.maximum() <= 1.0

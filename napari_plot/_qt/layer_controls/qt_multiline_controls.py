@@ -50,9 +50,7 @@ class QtMultiLineControls(QtLayerControls):
         self.layer.events.method.connect(self._on_method_change)
         self.layer.events.visible.connect(self._on_visible_change)
 
-        self.selection_spin = hp.make_int_spin_box(
-            self, 0, 65536, value=0, tooltip="Specify current line index."
-        )
+        self.selection_spin = hp.make_int_spin_box(self, 0, 65536, value=0, tooltip="Specify current line index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider_with_text(

@@ -20,13 +20,9 @@ def test_line_controls_creation(qtbot, layer):
 
     # test face color
     target_color = layer.color
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)
 
     # Update current face color
     layer.color = "red"
     target_color = layer.color
-    np.testing.assert_almost_equal(
-        transform_color(qtctrl.color_swatch.color)[0], target_color
-    )
+    np.testing.assert_almost_equal(transform_color(qtctrl.color_swatch.color)[0], target_color)

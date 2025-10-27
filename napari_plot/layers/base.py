@@ -9,16 +9,12 @@ from napari.layers.base import Layer
 from napari.utils.events import EmitterGroup
 
 
-def update_layer_attributes(
-    layer: Layer, throw_exception: bool = True, **kwargs: ty.Any
-) -> None:
+def update_layer_attributes(layer: Layer, throw_exception: bool = True, **kwargs: ty.Any) -> None:
     """Update attributes on the layer."""
     for attr, value in kwargs.items():
         if not hasattr(layer, attr):
             if throw_exception:
-                raise AttributeError(
-                    f"'{layer.__class__.__name__}' has no attribute '{attr}'"
-                )
+                raise AttributeError(f"'{layer.__class__.__name__}' has no attribute '{attr}'")
             continue
         try:
             setattr(layer, attr, value)

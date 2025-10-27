@@ -58,7 +58,7 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        pos, orientation, color = self.layer._data_view.get_simple_lines_and_colors()
+        pos, _orientation, color = self.layer._data_view.get_simple_lines_and_colors()
         selected = self.layer.selected_data
         for i in range(len(pos)):
             self.node._subvisuals[3 + i].set_data(

@@ -10,9 +10,7 @@ class InfiniteRegion:
 
     _data: tuple[float, float]
 
-    def __init__(
-        self, data: tuple[float, float], orientation: Orientation, z_index: int = 0
-    ):
+    def __init__(self, data: tuple[float, float], orientation: Orientation, z_index: int = 0):
         self.name = ""
         self.data = data
         self.orientation = orientation

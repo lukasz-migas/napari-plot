@@ -90,8 +90,7 @@ def parse_sys_argv():
     parser = argparse.ArgumentParser(
         usage=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,
-        epilog="optional layer-type-specific arguments (precede with '--'):\n"
-        + "\n".join(kwarg_options),
+        epilog="optional layer-type-specific arguments (precede with '--'):\n" + "\n".join(kwarg_options),
     )
     parser.add_argument(
         "-v",
@@ -144,14 +143,12 @@ def _run():
 
     from napari_plot import Viewer, run
 
-    args, kwargs = parse_sys_argv()
+    args, _kwargs = parse_sys_argv()
 
     # parse -v flags and set the appropriate logging level
     levels = [logging.WARNING, logging.INFO, logging.DEBUG]
     level = levels[min(2, args.verbose)]  # prevent index error
-    logging.basicConfig(
-        level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S"
-    )
+    logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
     # check whether Dev mode was requested
     if args.dev:
@@ -266,12 +263,7 @@ def _maybe_rerun_with_macos_fixes():
     # See https://github.com/napari/napari/pull/1554 and
     # https://github.com/napari/napari/issues/380#issuecomment-659656775
     # and https://github.com/ContinuumIO/anaconda-issues/issues/199
-    if (
-        _MACOS_AT_LEAST_CATALINA
-        and not _MACOS_AT_LEAST_BIG_SUR
-        and _RUNNING_CONDA
-        and not _RUNNING_PYTHONW
-    ):
+    if _MACOS_AT_LEAST_CATALINA and not _MACOS_AT_LEAST_BIG_SUR and _RUNNING_CONDA and not _RUNNING_PYTHONW:
         pythonw_path = Path(sys.exec_prefix) / "bin" / "pythonw"
         if pythonw_path.exists():
             # Use this one instead of sys.executable to relaunch

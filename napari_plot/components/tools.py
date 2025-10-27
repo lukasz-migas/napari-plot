@@ -43,9 +43,7 @@ class MeshBaseTool(BaseTool):
 
     @validator("position", pre=True, allow_reuse=True)
     def _validate_position(cls, v):
-        assert (
-            len(v) == 4
-        ), "Incorrect number of elements passed to the BoxTool position value."
+        assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
         x0, x1, y0, y1 = v
         x0, x1 = (x0, x1) if x0 < x1 else (x1, x0)
         y0, y1 = (y0, y1) if y0 < y1 else (y1, y0)
@@ -62,13 +60,9 @@ class MeshBaseTool(BaseTool):
         vertices = box._face_vertices
         self._mesh.vertices = np.append(self._mesh.vertices, vertices, axis=0)
         vertices = box._face_vertices
-        self._mesh.vertices_centers = np.append(
-            self._mesh.vertices_centers, vertices, axis=0
-        )
+        self._mesh.vertices_centers = np.append(self._mesh.vertices_centers, vertices, axis=0)
         vertices = np.zeros(box._face_vertices.shape)
-        self._mesh.vertices_offsets = np.append(
-            self._mesh.vertices_offsets, vertices, axis=0
-        )
+        self._mesh.vertices_offsets = np.append(self._mesh.vertices_offsets, vertices, axis=0)
 
         if self._mesh.vertices_index.ndim == 1:
             self._mesh.vertices_index = np.empty((0, 2), dtype=int)
@@ -83,14 +77,10 @@ class MeshBaseTool(BaseTool):
         if self._mesh.triangles_index.ndim == 1:
             self._mesh.triangles_index = np.empty((0, 2), dtype=int)
         index = np.repeat([[0, 0]], len(triangles), axis=0)
-        self._mesh.triangles_index = np.append(
-            self._mesh.triangles_index, index, axis=0
-        )
+        self._mesh.triangles_index = np.append(self._mesh.triangles_index, index, axis=0)
 
         color_array = np.repeat([self.color], len(triangles), axis=0)
-        self._mesh.triangles_colors = np.append(
-            self._mesh.triangles_colors, color_array, axis=0
-        )
+        self._mesh.triangles_colors = np.append(self._mesh.triangles_colors, color_array, axis=0)
 
 
 class BoxTool(MeshBaseTool):
@@ -160,11 +150,7 @@ class PolygonTool(MeshBaseTool):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         self._mesh.clear()
         if len(self.data) >= 2:
-            poly = (
-                Path(self.data, edge_width=0)
-                if len(self.data) < 2
-                else Polygon(self.data, edge_width=0)
-            )
+            poly = Path(self.data, edge_width=0) if len(self.data) < 2 else Polygon(self.data, edge_width=0)
             self._add(poly)
         return self._mesh
 

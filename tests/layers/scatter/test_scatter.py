@@ -147,14 +147,10 @@ def test_scatter_color():
     assert len(layer.face_color) == len(data)
     assert len(layer.border_color) == len(data)
     np.testing.assert_array_equal(layer.face_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
-    np.testing.assert_array_equal(
-        layer.border_color[5], np.asarray([1.0, 0.0, 0.0, 1.0])
-    )
+    np.testing.assert_array_equal(layer.border_color[5], np.asarray([1.0, 0.0, 0.0, 1.0]))
 
     layer.border_color = np.asarray([1.0, 1.0, 1.0, 1.0])
-    np.testing.assert_array_equal(
-        layer.border_color[0], np.asarray([1.0, 1.0, 1.0, 1.0])
-    )
+    np.testing.assert_array_equal(layer.border_color[0], np.asarray([1.0, 1.0, 1.0, 1.0]))
     layer.face_color = np.asarray([1.0, 0.0, 0.0, 1.0])
     np.testing.assert_array_equal(layer.face_color[4], np.asarray([1.0, 0.0, 0.0, 1.0]))
 

@@ -1,6 +1,6 @@
 """Test regions mouse bindings."""
 
-import collections
+import typing as ty
 
 import numpy as np
 import pytest
@@ -13,21 +13,6 @@ from napari.utils.interactions import (
 
 from napari_plot.layers import Region
 from napari_plot.layers.region.region import Mode, Orientation
-
-
-@pytest.fixture
-def Event():
-    """Create a subclass for simulating vispy mouse events.
-
-    Returns
-    -------
-    Event : Type
-        A new tuple subclass named Event that can be used to create a
-        NamedTuple object with fields "type", "is_dragging", and "modifiers".
-    """
-    return collections.namedtuple(
-        "Event", field_names=["type", "is_dragging", "modifiers", "position", "pos"]
-    )
 
 
 def _get_position(pos):
@@ -66,14 +51,14 @@ def create_known_region_layer():
     return data, layer, n_regions, known_non_region
 
 
-def test_add_region_vertical(create_known_region_layer, Event):
+def test_add_region_vertical(create_known_region_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, n_regions, known_non_region = create_known_region_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -86,7 +71,7 @@ def test_add_region_vertical(create_known_region_layer, Event):
     known_non_region_end = [100, 0]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -98,7 +83,7 @@ def test_add_region_vertical(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -113,14 +98,14 @@ def test_add_region_vertical(create_known_region_layer, Event):
     assert layer.orientation[-1] == Orientation.VERTICAL
 
 
-def test_add_region_horizontal(create_known_region_layer, Event):
+def test_add_region_horizontal(create_known_region_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, n_regions, known_non_region = create_known_region_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -133,7 +118,7 @@ def test_add_region_horizontal(create_known_region_layer, Event):
     known_non_region_end = [0, 100]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -145,7 +130,7 @@ def test_add_region_horizontal(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -160,14 +145,14 @@ def test_add_region_horizontal(create_known_region_layer, Event):
     assert layer.orientation[-1] == Orientation.HORIZONTAL
 
 
-def test_not_adding_or_selecting_region(create_known_region_layer, Event):
+def test_not_adding_or_selecting_region(create_known_region_layer, QtMouseEvent):
     """Don't add or select a shape by clicking on one in pan_zoom mode."""
-    data, layer, n_regions, _ = create_known_region_layer
+    _data, layer, n_regions, _ = create_known_region_layer
     layer.mode = "pan_zoom"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -179,7 +164,7 @@ def test_not_adding_or_selecting_region(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -195,16 +180,16 @@ def test_not_adding_or_selecting_region(create_known_region_layer, Event):
 
 
 @pytest.mark.xfail(reason="Need to fix.")
-def test_select_region(create_known_region_layer, Event):
+def test_select_region(create_known_region_layer, QtMouseEvent):
     """Select a shape by clicking on one in select mode."""
-    data, layer, n_regions, _ = create_known_region_layer
+    data, layer, _n_regions, _ = create_known_region_layer
 
     layer.mode = "select"
     position = _get_position(data[0][0])
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -216,7 +201,7 @@ def test_select_region(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -239,7 +224,7 @@ def test_select_region(create_known_region_layer, Event):
         "add",
     ],
 )
-def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
+def test_after_in_add_mode_region(mode, create_known_region_layer, QtMouseEvent):
     """Don't add or select a shape by clicking on one in pan_zoom mode."""
     data, layer, n_regions, _ = create_known_region_layer
 
@@ -249,7 +234,7 @@ def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -261,7 +246,7 @@ def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -277,9 +262,9 @@ def test_after_in_add_mode_region(mode, create_known_region_layer, Event):
 
 
 @pytest.mark.xfail(reason="Need to fix.")
-def test_unselect_select_region(create_known_region_layer, Event):
+def test_unselect_select_region(create_known_region_layer, QtMouseEvent):
     """Select a shape by clicking on one in select mode."""
-    data, layer, n_regions, _ = create_known_region_layer
+    data, layer, _n_regions, _ = create_known_region_layer
 
     layer.mode = "select"
     position = _get_position(data[0][0])
@@ -287,7 +272,7 @@ def test_unselect_select_region(create_known_region_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -299,7 +284,7 @@ def test_unselect_select_region(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -314,15 +299,15 @@ def test_unselect_select_region(create_known_region_layer, Event):
     assert layer.selected_data == {0}
 
 
-def test_not_selecting_region(create_known_region_layer, Event):
+def test_not_selecting_region(create_known_region_layer, QtMouseEvent):
     """Don't select a shape by not clicking on one in select mode."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, _n_regions, known_non_region = create_known_region_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -334,7 +319,7 @@ def test_not_selecting_region(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -348,9 +333,9 @@ def test_not_selecting_region(create_known_region_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_unselecting_regions(create_known_region_layer, Event):
+def test_unselecting_regions(create_known_region_layer, QtMouseEvent):
     """Unselect shapes by not clicking on one in select mode."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, _n_regions, known_non_region = create_known_region_layer
 
     layer.mode = "select"
     layer.selected_data = {0, 1}
@@ -358,7 +343,7 @@ def test_unselecting_regions(create_known_region_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -370,7 +355,7 @@ def test_unselecting_regions(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -384,15 +369,15 @@ def test_unselecting_regions(create_known_region_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_selecting_regions_with_drag(create_known_region_layer, Event):
+def test_selecting_regions_with_drag(create_known_region_layer, QtMouseEvent):
     """Select all shapes when drag box includes all of them."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, n_regions, known_non_region = create_known_region_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -404,7 +389,7 @@ def test_selecting_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate drag start
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -416,7 +401,7 @@ def test_selecting_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -428,7 +413,7 @@ def test_selecting_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=True,
             modifiers=[],
@@ -442,15 +427,15 @@ def test_selecting_regions_with_drag(create_known_region_layer, Event):
     assert len(layer.selected_data) == n_regions
 
 
-def test_selecting_no_regions_with_drag(create_known_region_layer, Event):
+def test_selecting_no_regions_with_drag(create_known_region_layer, QtMouseEvent):
     """Select all shapes when drag box includes all of them."""
-    data, layer, n_regions, known_non_region = create_known_region_layer
+    _data, layer, _n_regions, known_non_region = create_known_region_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -462,7 +447,7 @@ def test_selecting_no_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate drag start
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -474,7 +459,7 @@ def test_selecting_no_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -486,7 +471,7 @@ def test_selecting_no_regions_with_drag(create_known_region_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=True,
             modifiers=[],

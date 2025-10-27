@@ -96,9 +96,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             modifiers = event.mouse_event.modifiers
             # the left-button click on the mouse performs boxzoom (or whatever active tool is being used)
             if 1 in event.buttons:  # and not modifiers:
-                x0, y0, _, _ = self._transform.imap(
-                    np.asarray(event.press_event.pos[:2])
-                )
+                x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 self.viewer.drag_tool.tool.position = x0, x1, y0, y1
@@ -126,9 +124,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
             # here we check that the different between values is not too small (might not work for plots with small
             # values?) and whether the user is using modifiers.
-            if abs(x1 - x0) > 1e-3 and not (
-                self.viewer.drag_tool.selecting and modifiers
-            ):
+            if abs(x1 - x0) > 1e-3 and not (self.viewer.drag_tool.selecting and modifiers):
                 # this call makes sure that various axis/extent checks are performed
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 rect = self._make_zoom_rect(x0, x1, y0, y1)
@@ -161,9 +157,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     def _check_zoom_limit(self, rect: Rect) -> Rect:
         """Check whether new range is outside of the allowed window"""
-        rect.left, rect.right, rect.bottom, rect.top = self._check_range(
-            rect.left, rect.right, rect.bottom, rect.top
-        )
+        rect.left, rect.right, rect.bottom, rect.top = self._check_range(rect.left, rect.right, rect.bottom, rect.top)
         return rect
 
     def _check_mode_limit(self, rect: Rect) -> Rect:
@@ -183,9 +177,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             rect.right = limit_rect.right
         return rect
 
-    def _check_range(
-        self, x0: float, x1: float, y0: float, y1: float
-    ) -> ty.Tuple[float, float, float, float]:
+    def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
         """Check whether values are correct"""
         # check whether values are in correct order (low, high)
         if y1 < y0:
@@ -213,11 +205,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     @rect.setter
     def rect(self, args):
-        rect = (
-            (Rect(*args) if isinstance(args, tuple) else Rect(args))
-            if not isinstance(args, Rect)
-            else args
-        )
+        rect = (Rect(*args) if isinstance(args, tuple) else Rect(args)) if not isinstance(args, Rect) else args
         # ensure user never goes outside the allowed limits
         rect = self._check_zoom_limit(rect)
         rect = self._check_mode_limit(rect)

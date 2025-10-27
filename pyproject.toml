@@ -199,6 +199,7 @@ ignore = [
   "napari_plot/_version.py",  # added during build by setuptools_scm
   "scripts/*.bat",  # scripts
   "renovate.json",
+  "confest.py",
 ]
 
 

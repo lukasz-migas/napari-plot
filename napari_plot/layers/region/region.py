@@ -35,15 +35,9 @@ from napari_plot.layers.region._region_utils import (
 )
 
 REV_TOOL_HELP = {
-    "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {
-        Mode.MOVE
-    },
-    "Hold <space> to pan/zoom, drag along x-axis (horizontal); drag along y-axis (vertical)": {
-        Mode.ADD
-    },
-    "Hold <space> to pan/zoom, select region by clicking on it and then drag left-right or up-down": {
-        Mode.EDIT
-    },
+    "Hold <space> to pan/zoom, select region by clicking on it and then move mouse left-right or up-down": {Mode.MOVE},
+    "Hold <space> to pan/zoom, drag along x-axis (horizontal); drag along y-axis (vertical)": {Mode.ADD},
+    "Hold <space> to pan/zoom, select region by clicking on it and then drag left-right or up-down": {Mode.EDIT},
     "Hold <space> to pan/zoom, press <backspace> to remove selected": {Mode.SELECT},
     "Enter a selection mode to edit region properties": {Mode.PAN_ZOOM},
     "Enter transformation mode": {Mode.TRANSFORM},
@@ -210,9 +204,7 @@ class Region(BaseLayer):
         self._moving_value = (None, None)
         # responsible for handling creation of new infinite line
         self._is_creating = False
-        self._creating_value: tuple[
-            ty.Optional[tuple[float, float]], ty.Optional[Orientation]
-        ] = (None, None)
+        self._creating_value: tuple[ty.Optional[tuple[float, float]], ty.Optional[Orientation]] = (None, None)
 
         self._init_regions(data, orientation=orientation, color=color, z_index=z_index)
         # set the current_* properties
@@ -257,7 +249,7 @@ class Region(BaseLayer):
             applied to each shape otherwise the same value will be used for all
             shapes.
         """
-        data, shape_type = parse_infinite_region_orientation(data, orientation)
+        data, _shape_type = parse_infinite_region_orientation(data, orientation)
 
         n_new_shapes = len(data)
         if color is None:
@@ -268,9 +260,7 @@ class Region(BaseLayer):
             z_index = z_index or 0
 
         if n_new_shapes > 0:
-            self._add_regions(
-                data, orientation=orientation, color=color, z_index=z_index
-            )
+            self._add_regions(data, orientation=orientation, color=color, z_index=z_index)
             self.events.data(value=self.data)
 
     def move(
@@ -292,9 +282,7 @@ class Region(BaseLayer):
         self._creating_value = (pos, orientation)
         self.events.adding()
 
-    def _add_finish(
-        self, pos, *, orientation="vertical", color=None, z_index=None
-    ) -> int:
+    def _add_finish(self, pos, *, orientation="vertical", color=None, z_index=None) -> int:
         self.add(
             [pos],
             orientation=[orientation],
@@ -376,9 +364,7 @@ class Region(BaseLayer):
                 elem_name="color",
                 default="white",
             )
-            transformed_color = normalize_and_broadcast_colors(
-                len(data), transformed_fc
-            )
+            transformed_color = normalize_and_broadcast_colors(len(data), transformed_fc)
 
             # Turn input arguments into iterables
             region_inputs = zip(
@@ -611,10 +597,7 @@ class Region(BaseLayer):
         # more shapes, add attributes
         elif self.n_regions < n_new_regions:
             n_shapes_difference = n_new_regions - self.n_regions
-            orientation = (
-                orientation
-                + [get_default_region_type(orientation)] * n_shapes_difference
-            )
+            orientation = orientation + [get_default_region_type(orientation)] * n_shapes_difference
             z_indices = z_indices + [0] * n_shapes_difference
             colors = np.concatenate((colors, self._get_new_color(n_shapes_difference)))
         # create new instance of the data
@@ -643,9 +626,7 @@ class Region(BaseLayer):
         """
         if isinstance(z_index, list):
             if not len(z_index) == self.n_regions:
-                raise ValueError(
-                    "Length of list does not match number of orientations."
-                )
+                raise ValueError("Length of list does not match number of orientations.")
             z_indices = z_index
         elif isinstance(z_index, int):
             z_indices = [z_index for _ in range(self.n_regions)]

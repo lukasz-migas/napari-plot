@@ -110,10 +110,7 @@ LAYERLIST_CONTEXT_ACTIONS: list[Action] = [
         title="Convert to Labels",
         callback=_layer_actions._convert_to_labels,
         enablement=(
-            (
-                (LLSCK.num_selected_image_layers >= 1)
-                | (LLSCK.num_selected_shapes_layers >= 1)
-            )
+            ((LLSCK.num_selected_image_layers >= 1) | (LLSCK.num_selected_shapes_layers >= 1))
             & LLSCK.all_selected_layers_same_type
             & ~LLSCK.selected_empty_shapes_layer
         ),
@@ -123,10 +120,7 @@ LAYERLIST_CONTEXT_ACTIONS: list[Action] = [
         id="napari.layer.convert_to_image",
         title="Convert to Image",
         callback=_layer_actions._convert_to_image,
-        enablement=(
-            (LLSCK.num_selected_labels_layers >= 1)
-            & LLSCK.all_selected_layers_same_type
-        ),
+        enablement=((LLSCK.num_selected_labels_layers >= 1) & LLSCK.all_selected_layers_same_type),
         menus=[LAYERCTX_CONVERSION],
     ),
     Action(
@@ -155,9 +149,7 @@ LAYERLIST_CONTEXT_ACTIONS: list[Action] = [
         id="napari.layer.link_selected_layers",
         title="Link Layers",
         callback=_layer_actions._link_selected_layers,
-        enablement=(
-            (LLSCK.num_selected_layers > 1) & ~LLSCK.num_selected_layers_linked
-        ),
+        enablement=((LLSCK.num_selected_layers > 1) & ~LLSCK.num_selected_layers_linked),
         menus=[{**LAYERCTX_LINK, "when": ~LLSCK.num_selected_layers_linked}],
     ),
     Action(
@@ -235,9 +227,7 @@ for _dtype in (
             id=f"napari.layer.convert_to_{_dtype}",
             title=f"Convert to {_dtype}",
             callback=partial(_layer_actions._convert_dtype, mode=_dtype),
-            enablement=(
-                LLSCK.all_selected_layers_labels & (LLSCK.active_layer_dtype != _dtype)
-            ),
+            enablement=(LLSCK.all_selected_layers_labels & (LLSCK.active_layer_dtype != _dtype)),
             menus=[{"id": MenuId.LAYERS_CONTEXT_CONVERT_DTYPE}],
         )
     )

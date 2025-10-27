@@ -42,9 +42,7 @@ class VispyCentroidsLayer(VispyBaseLayer):
 
     def _on_data_change(self, _event=None):
         """Set data"""
-        pos, colors = make_centroids(
-            self.layer.data, self.layer.color, self.layer.orientation
-        )
+        pos, colors = make_centroids(self.layer.data, self.layer.color, self.layer.orientation)
         self.node.set_data(
             pos=pos,
             connect="segments",

@@ -91,11 +91,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self.node.scaling = self.layer.scaling
 
     def _on_symbol_change(self):
-        symbol = (
-            ["o"]
-            if len(self.layer._indices_view) == 0
-            else [str(x) for x in self.layer._view_symbol]
-        )
+        symbol = ["o"] if len(self.layer._indices_view) == 0 else [str(x) for x in self.layer._view_symbol]
         symbol = np.asarray(symbol)
         if np.unique(symbol).size == 1:
             self.node.symbol = symbol[0]

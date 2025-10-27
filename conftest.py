@@ -1,4 +1,7 @@
-import collections
+"""Conftest module for napari-plot tests."""
+
+from __future__ import annotations
+
 import gc
 import os
 import sys
@@ -6,6 +9,7 @@ import typing as ty
 import warnings
 from weakref import WeakSet
 
+import numpy as np
 import pytest
 
 if ty.TYPE_CHECKING:
@@ -62,7 +66,7 @@ def fail_obj_graph(Klass):
 
 
 @pytest.fixture
-def make_napari_plot_viewer(qtbot, request: "FixtureRequest"):
+def make_napari_plot_viewer(qtbot, request: FixtureRequest):
     """A fixture function that creates a napari viewer for use in testing.
 
     Use this fixture as a function in your tests:
@@ -112,9 +116,7 @@ def make_napari_plot_viewer(qtbot, request: "FixtureRequest"):
 
     initial = QApplication.topLevelWidgets()
     prior_exception = getattr(sys, "last_value", None)
-    is_internal_test = request.module.__name__.startswith(
-        "napari."
-    )  # this should use `napari_plot.`
+    is_internal_test = request.module.__name__.startswith("napari.")  # this should use `napari_plot.`
 
     def actual_factory(
         *model_args,
@@ -195,14 +197,38 @@ def MouseEvent():
         A new tuple subclass named Event that can be used to create a
         NamedTuple object with fields "type" and "is_dragging".
     """
-    return collections.namedtuple(
-        "Event",
-        field_names=[
-            "type",
-            "is_dragging",
-            "position",
-            "view_direction",
-            "dims_displayed",
-            "dims_point",
-        ],
-    )
+
+    class Event(ty.NamedTuple):
+        """Event."""
+
+        type: str
+        is_dragging: bool
+        position: ty.Union[tuple, list, np.ndarray]
+        view_direction: np.ndarray
+        dims_displayed: np.ndarray
+        dims_point: np.ndarray
+
+    return Event
+
+
+@pytest.fixture
+def QtMouseEvent():
+    """Create a subclass for simulating vispy mouse events.
+
+    Returns
+    -------
+    Event : Type
+        A new tuple subclass named Event that can be used to create a
+        NamedTuple object with fields "type", "is_dragging", and "modifiers".
+    """
+
+    class Event(ty.NamedTuple):
+        """Event."""
+
+        type: str
+        is_dragging: bool
+        modifiers: list[str]
+        pos: ty.Union[tuple, list, np.ndarray]
+        position: ty.Union[tuple, list, np.ndarray]
+
+    return Event

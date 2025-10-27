@@ -35,14 +35,10 @@ class QtAxisWidget(QWidget):
         viewer.axis.events.x_max_size.connect(self._on_max_size_change)
         viewer.axis.events.y_max_size.connect(self._on_max_size_change)
 
-        self.visible_checkbox = hp.make_checkbox(
-            self, "", val=viewer.axis.visible, tooltip="Show/hide x/y-axes"
-        )
+        self.visible_checkbox = hp.make_checkbox(self, "", val=viewer.axis.visible, tooltip="Show/hide x/y-axes")
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)
 
-        self.x_axis_edit = hp.make_line_edit(
-            self, viewer.axis.x_label, placeholder="X-axis label..."
-        )
+        self.x_axis_edit = hp.make_line_edit(self, viewer.axis.x_label, placeholder="X-axis label...")
         self.x_axis_edit.textChanged.connect(self.on_change_label)
 
         self.x_label_margin_spin = hp.make_slider_with_text(
@@ -54,9 +50,7 @@ class QtAxisWidget(QWidget):
         )
         self.x_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 
-        self.y_axis_edit = hp.make_line_edit(
-            self, viewer.axis.y_label, placeholder="Y-axis label..."
-        )
+        self.y_axis_edit = hp.make_line_edit(self, viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)
 
         self.y_label_margin_spin = hp.make_slider_with_text(
@@ -133,20 +127,12 @@ class QtAxisWidget(QWidget):
         layout = QFormLayout(self)
         layout.addRow(hp.make_label(self, "Visible"), self.visible_checkbox)
         layout.addRow(hp.make_label(self, "X-axis label"), self.x_axis_edit)
-        layout.addRow(
-            hp.make_label(self, "X-axis label margin"), self.x_label_margin_spin
-        )
-        layout.addRow(
-            hp.make_label(self, "X-axis tick margin"), self.x_tick_margin_spin
-        )
+        layout.addRow(hp.make_label(self, "X-axis label margin"), self.x_label_margin_spin)
+        layout.addRow(hp.make_label(self, "X-axis tick margin"), self.x_tick_margin_spin)
         layout.addRow(hp.make_h_line(self))
         layout.addRow(hp.make_label(self, "Y-axis label"), self.y_axis_edit)
-        layout.addRow(
-            hp.make_label(self, "Y-axis label margin"), self.y_label_margin_spin
-        )
-        layout.addRow(
-            hp.make_label(self, "Y-axis tick margin"), self.y_tick_margin_spin
-        )
+        layout.addRow(hp.make_label(self, "Y-axis label margin"), self.y_label_margin_spin)
+        layout.addRow(hp.make_label(self, "Y-axis tick margin"), self.y_tick_margin_spin)
         layout.addRow(hp.make_h_line(self))
         layout.addRow(hp.make_label(self, "Label color"), self.label_color_swatch)
         layout.addRow(hp.make_label(self, "Label font size"), self.label_font_size)
@@ -156,9 +142,7 @@ class QtAxisWidget(QWidget):
         layout.addRow(hp.make_label(self, "Max width"), self.y_max_size_spin)
         layout.setSpacing(2)
 
-        set_widgets_enabled_with_opacity(
-            self, [self.x_max_size_spin, self.y_max_size_spin], False
-        )
+        set_widgets_enabled_with_opacity(self, [self.x_max_size_spin, self.y_max_size_spin], False)
 
     def on_change_visible(self):
         """Change visibility of the axes."""

@@ -21,9 +21,7 @@ def test_adding_to_list():
     assert len(line_list.orientations) == 1
     assert line_list.inflines[0] == vert
     assert line_list.orientations[0] == "vertical"
-    assert (
-        len(line_list.orientations) == len(line_list.z_indices) == len(line_list.color)
-    )
+    assert len(line_list.orientations) == len(line_list.z_indices) == len(line_list.color)
 
     data = np.random.random(1)
     horz = HorizontalLine(data)

@@ -20,9 +20,7 @@ def add_centroids():
     """Centroids plot"""
     x = np.arange(N_POINTS)
     y = np.random.randint(N_MIN, N_MAX, N_POINTS)
-    viewer1d.add_centroids(
-        np.c_[x, y], color=(1.0, 0.0, 1.0, 1.0), name="Centroids (x)", visible=True
-    )
+    viewer1d.add_centroids(np.c_[x, y], color=(1.0, 0.0, 1.0, 1.0), name="Centroids (x)", visible=True)
     viewer1d.add_centroids(
         np.c_[y, x],
         color=(1.0, 0.0, 1.0, 1.0),
@@ -46,9 +44,7 @@ def add_region():
         ([50, 400], "horizontal"),
         ([80, 90], "vertical"),
     ]
-    viewer1d.add_region(
-        regions, color=["red", "green", "cyan"], opacity=0.5, name="Spans", visible=True
-    )
+    viewer1d.add_region(regions, color=["red", "green", "cyan"], opacity=0.5, name="Spans", visible=True)
 
 
 def add_infline():

@@ -65,7 +65,7 @@ def test_make_multiline_connect():
 
 
 def test_make_multiline_pos():
-    xs, ys, color = make_data()
+    xs, ys, _color = make_data()
 
     pos = make_multiline_pos(xs, ys)
 

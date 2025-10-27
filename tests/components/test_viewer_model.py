@@ -148,11 +148,7 @@ def test_camera():
     viewer.add_line(data)
     assert len(viewer.layers) == 1
     assert viewer.camera.extent == (x.min(), x.max(), y.min(), y.max())
-    assert (
-        viewer.camera.extent
-        == viewer.camera._extent
-        == viewer.camera.get_effective_extent()
-    )
+    assert viewer.camera.extent == viewer.camera._extent == viewer.camera.get_effective_extent()
 
     # check x-range and make sure that it is always respected
     viewer.camera.set_x_range(None, 10)

@@ -26,12 +26,8 @@ def run_update(*_):
 viewer1d = napari_plot.Viewer()
 x = np.arange(0.0, 10.0, 0.01)
 window = 0.2
-layer_sin = viewer1d.add_scatter(
-    np.c_[np.sin(2 * np.pi * x), x], name="Sin", face_color="magenta"
-)
-layer_cos = viewer1d.add_scatter(
-    np.c_[np.cos(2 * np.pi * x), x], name="Cos", face_color="springgreen"
-)
+layer_sin = viewer1d.add_scatter(np.c_[np.sin(2 * np.pi * x), x], name="Sin", face_color="magenta")
+layer_cos = viewer1d.add_scatter(np.c_[np.cos(2 * np.pi * x), x], name="Cos", face_color="springgreen")
 run_update()
 if __name__ == "__main__":
     napari_plot.run()

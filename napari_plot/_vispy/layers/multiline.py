@@ -34,9 +34,7 @@ class VispyMultiLineLayer(VispyBaseLayer):
 
     def _on_appearance_change(self, _event=None):
         """Change the appearance of the data"""
-        self.node._subvisuals[LINE_MAIN].set_data(
-            color=self.layer._data_view.get_display_color()
-        )
+        self.node._subvisuals[LINE_MAIN].set_data(color=self.layer._data_view.get_display_color())
         self.node.update()
 
     def _on_width_change(self, _event=None):

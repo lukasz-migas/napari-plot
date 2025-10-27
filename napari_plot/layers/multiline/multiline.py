@@ -94,9 +94,7 @@ class MultiLine(BaseLayer):
             blending=blending,
             visible=visible,
         )
-        self.events.add(
-            color=Event, width=Event, method=Event, highlight=Event, stream=Event
-        )
+        self.events.add(color=Event, width=Event, method=Event, highlight=Event, stream=Event)
         # Flag set to false to block thumbnail refresh
         self._allow_thumbnail_update = True
 

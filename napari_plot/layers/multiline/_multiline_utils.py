@@ -18,9 +18,7 @@ def check_keys(data: ty.Dict, keys: ty.Tuple):
     return all(key in data for key in keys)
 
 
-def parse_multiline_data(
-    data, check: bool = True
-) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
+def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
     """Parse data to be displayed in multiline layer."""
     xs, ys = [], []
     # Data can be None in which case return two empty lists.
@@ -36,9 +34,7 @@ def parse_multiline_data(
     # Data is a dict with `xs` and `ys` keys
     elif isinstance(data, ty.Dict):
         # Dict with `xs` and `ys` lists of arrays
-        if check_keys(data, ("xs", "ys")) and all(
-            isinstance(dat, ty.List) for dat in (data["xs"], data["ys"])
-        ):
+        if check_keys(data, ("xs", "ys")) and all(isinstance(dat, ty.List) for dat in (data["xs"], data["ys"])):
             xs, ys = data["xs"], data["ys"]
             if len(xs) > len(ys):
                 raise ValueError(
@@ -47,14 +43,10 @@ def parse_multiline_data(
                 )
         # Dict with `x` array and `ys` list of arrays
         elif check_keys(data, ("x", "ys")):
-            if all(
-                [isinstance(data["x"], np.ndarray), isinstance(data["ys"], ty.List)]
-            ):
+            if all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], ty.List)]):
                 xs = [data["x"]]
                 ys = data["ys"]
-            elif all(
-                [isinstance(data["x"], np.ndarray), isinstance(data["ys"], np.ndarray)]
-            ):
+            elif all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], np.ndarray)]):
                 xs = [data["x"]]
                 ys = np.atleast_2d(data["ys"])
                 if ys.shape[1] != xs[0].size:

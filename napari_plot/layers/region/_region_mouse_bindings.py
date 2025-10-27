@@ -43,17 +43,9 @@ def add(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         # otherwise, it's based on distance
         else:
             x_dist, y_dist = pos_start - event.pos
-            orientation = (
-                Orientation.HORIZONTAL
-                if abs(x_dist) < abs(y_dist)
-                else Orientation.VERTICAL
-            )
+            orientation = Orientation.HORIZONTAL if abs(x_dist) < abs(y_dist) else Orientation.VERTICAL
 
-        pos = (
-            [coord_start[1], coord_end[1]]
-            if orientation == "vertical"
-            else [coord_start[0], coord_end[0]]
-        )
+        pos = [coord_start[1], coord_end[1]] if orientation == "vertical" else [coord_start[0], coord_end[0]]
         layer._add_move(pos, orientation=orientation)
         yield
 
@@ -164,9 +156,7 @@ def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         del tmp
 
 
-def _select(
-    layer: Region, event: MouseEvent, shift: bool
-) -> ty.Tuple[ty.Optional[int], ty.Optional[int]]:
+def _select(layer: Region, event: MouseEvent, shift: bool) -> ty.Tuple[ty.Optional[int], ty.Optional[int]]:
     """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
     # TODO: update current_face_color
     value = layer.get_value(event.position, world=True)

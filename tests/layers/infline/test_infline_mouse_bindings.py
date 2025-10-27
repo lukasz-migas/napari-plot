@@ -1,7 +1,5 @@
 """Test regions mouse bindings."""
 
-import collections
-
 import numpy as np
 import pytest
 from napari.utils._proxies import ReadOnlyWrapper
@@ -13,21 +11,6 @@ from napari.utils.interactions import (
 
 from napari_plot.layers import InfLine
 from napari_plot.layers.infline._infline_constants import Mode, Orientation
-
-
-@pytest.fixture
-def Event():
-    """Create a subclass for simulating vispy mouse events.
-
-    Returns
-    -------
-    Event : Type
-        A new tuple subclass named Event that can be used to create a
-        NamedTuple object with fields "type", "is_dragging", and "modifiers".
-    """
-    return collections.namedtuple(
-        "Event", field_names=["type", "is_dragging", "modifiers", "position", "pos"]
-    )
 
 
 def _get_position(pos: float):
@@ -68,14 +51,14 @@ def create_known_infline_layer():
     return data, layer, n_inflines, known_non_infline
 
 
-def test_add_infline_vertical(create_known_infline_layer, Event):
+def test_add_infline_vertical(create_known_infline_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, n_inflines, known_non_infline = create_known_infline_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -88,7 +71,7 @@ def test_add_infline_vertical(create_known_infline_layer, Event):
     known_non_infline_end = [0, 100]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -100,7 +83,7 @@ def test_add_infline_vertical(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -115,14 +98,14 @@ def test_add_infline_vertical(create_known_infline_layer, Event):
     assert layer.orientation[-1] == Orientation.VERTICAL
 
 
-def test_add_infline_vertical_force_horizontal(create_known_infline_layer, Event):
+def test_add_infline_vertical_force_horizontal(create_known_infline_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, n_inflines, known_non_infline = create_known_infline_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -135,7 +118,7 @@ def test_add_infline_vertical_force_horizontal(create_known_infline_layer, Event
     known_non_infline_end = [0, 100]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=["Shift"],
@@ -147,7 +130,7 @@ def test_add_infline_vertical_force_horizontal(create_known_infline_layer, Event
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -162,14 +145,14 @@ def test_add_infline_vertical_force_horizontal(create_known_infline_layer, Event
     assert layer.orientation[-1] == Orientation.VERTICAL
 
 
-def test_add_infline_horizontal(create_known_infline_layer, Event):
+def test_add_infline_horizontal(create_known_infline_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, n_inflines, known_non_infline = create_known_infline_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -182,7 +165,7 @@ def test_add_infline_horizontal(create_known_infline_layer, Event):
     known_non_infline_end = [100, 0]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -194,7 +177,7 @@ def test_add_infline_horizontal(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -209,14 +192,14 @@ def test_add_infline_horizontal(create_known_infline_layer, Event):
     assert layer.orientation[-1] == Orientation.HORIZONTAL
 
 
-def test_add_infline_horizontal_force_vertical(create_known_infline_layer, Event):
+def test_add_infline_horizontal_force_vertical(create_known_infline_layer, QtMouseEvent):
     """Add new region by clicking in add mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, n_inflines, known_non_infline = create_known_infline_layer
     layer.mode = "add"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -229,7 +212,7 @@ def test_add_infline_horizontal_force_vertical(create_known_infline_layer, Event
     known_non_infline_end = [100, 0]
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=["Control"],
@@ -241,7 +224,7 @@ def test_add_infline_horizontal_force_vertical(create_known_infline_layer, Event
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -256,14 +239,14 @@ def test_add_infline_horizontal_force_vertical(create_known_infline_layer, Event
     assert layer.orientation[-1] == Orientation.VERTICAL
 
 
-def test_not_adding_or_selecting_infline(create_known_infline_layer, Event):
+def test_not_adding_or_selecting_infline(create_known_infline_layer, QtMouseEvent):
     """Don't add or select a shape by clicking on one in pan_zoom mode."""
-    data, layer, n_inflines, _ = create_known_infline_layer
+    _data, layer, n_inflines, _ = create_known_infline_layer
     layer.mode = "pan_zoom"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -275,7 +258,7 @@ def test_not_adding_or_selecting_infline(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -290,16 +273,16 @@ def test_not_adding_or_selecting_infline(create_known_infline_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_select_infline(create_known_infline_layer, Event):
+def test_select_infline(create_known_infline_layer, QtMouseEvent):
     """Select a shape by clicking on one in select mode."""
-    data, layer, n_inflines, _ = create_known_infline_layer
+    data, layer, _n_inflines, _ = create_known_infline_layer
 
     layer.mode = "select"
     position = _get_position(data[0][0])
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -311,7 +294,7 @@ def test_select_infline(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -334,7 +317,7 @@ def test_select_infline(create_known_infline_layer, Event):
         "add",
     ],
 )
-def test_after_in_add_mode_infline(mode, create_known_infline_layer, Event):
+def test_after_in_add_mode_infline(mode, create_known_infline_layer, QtMouseEvent):
     """Don't add or select a shape by clicking on one in pan_zoom mode."""
     data, layer, n_inflines, _ = create_known_infline_layer
 
@@ -344,7 +327,7 @@ def test_after_in_add_mode_infline(mode, create_known_infline_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -356,7 +339,7 @@ def test_after_in_add_mode_infline(mode, create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -371,9 +354,9 @@ def test_after_in_add_mode_infline(mode, create_known_infline_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_unselect_select_infline(create_known_infline_layer, Event):
+def test_unselect_select_infline(create_known_infline_layer, QtMouseEvent):
     """Select a shape by clicking on one in select mode."""
-    data, layer, n_inflines, _ = create_known_infline_layer
+    data, layer, _n_inflines, _ = create_known_infline_layer
 
     layer.mode = "select"
     position = _get_position(data[0][0])
@@ -381,7 +364,7 @@ def test_unselect_select_infline(create_known_infline_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -393,7 +376,7 @@ def test_unselect_select_infline(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -408,15 +391,15 @@ def test_unselect_select_infline(create_known_infline_layer, Event):
     assert layer.selected_data == {0}
 
 
-def test_not_selecting_infline(create_known_infline_layer, Event):
+def test_not_selecting_infline(create_known_infline_layer, QtMouseEvent):
     """Don't select a shape by not clicking on one in select mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, _n_inflines, known_non_infline = create_known_infline_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -428,7 +411,7 @@ def test_not_selecting_infline(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -442,9 +425,9 @@ def test_not_selecting_infline(create_known_infline_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_unselecting_inflines(create_known_infline_layer, Event):
+def test_unselecting_inflines(create_known_infline_layer, QtMouseEvent):
     """Unselect shapes by not clicking on one in select mode."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, _n_inflines, known_non_infline = create_known_infline_layer
 
     layer.mode = "select"
     layer.selected_data = {0, 1}
@@ -452,7 +435,7 @@ def test_unselecting_inflines(create_known_infline_layer, Event):
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -464,7 +447,7 @@ def test_unselecting_inflines(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=False,
             modifiers=[],
@@ -478,15 +461,15 @@ def test_unselecting_inflines(create_known_infline_layer, Event):
     assert len(layer.selected_data) == 0
 
 
-def test_selecting_inflines_with_drag(create_known_infline_layer, Event):
+def test_selecting_inflines_with_drag(create_known_infline_layer, QtMouseEvent):
     """Select all shapes when drag box includes all of them."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, n_inflines, known_non_infline = create_known_infline_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -498,7 +481,7 @@ def test_selecting_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate drag start
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -510,7 +493,7 @@ def test_selecting_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -522,7 +505,7 @@ def test_selecting_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=True,
             modifiers=[],
@@ -536,15 +519,15 @@ def test_selecting_inflines_with_drag(create_known_infline_layer, Event):
     assert len(layer.selected_data) == n_inflines
 
 
-def test_selecting_no_inflines_with_drag(create_known_infline_layer, Event):
+def test_selecting_no_inflines_with_drag(create_known_infline_layer, QtMouseEvent):
     """Select all shapes when drag box includes all of them."""
-    data, layer, n_inflines, known_non_infline = create_known_infline_layer
+    _data, layer, _n_inflines, known_non_infline = create_known_infline_layer
 
     layer.mode = "select"
 
     # Simulate click
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_press",
             is_dragging=False,
             modifiers=[],
@@ -556,7 +539,7 @@ def test_selecting_no_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate drag start
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -568,7 +551,7 @@ def test_selecting_no_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate drag end
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_move",
             is_dragging=True,
             modifiers=[],
@@ -580,7 +563,7 @@ def test_selecting_no_inflines_with_drag(create_known_infline_layer, Event):
 
     # Simulate release
     event = ReadOnlyWrapper(
-        Event(
+        QtMouseEvent(
             type="mouse_release",
             is_dragging=True,
             modifiers=[],

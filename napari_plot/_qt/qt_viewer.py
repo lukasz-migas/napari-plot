@@ -87,9 +87,7 @@ class QtViewer(QSplitter):
         self._instances.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setAcceptDrops(False)
-        QCoreApplication.setAttribute(
-            Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True
-        )
+        QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
 
         # handle to the viewer instance
         self.viewer = viewer
@@ -330,17 +328,13 @@ class QtViewer(QSplitter):
 
                 with warnings.catch_warnings():
                     warnings.filterwarnings("ignore")
-                    self.console = QtConsole(
-                        self.viewer, style_sheet=THEMES.get_theme_stylesheet()
-                    )
+                    self.console = QtConsole(self.viewer, style_sheet=THEMES.get_theme_stylesheet())
                     self.console.push({"napari": napari, "napari_plot": napari_plot})
                     with CallerFrame(_in_napari) as c:
                         if c.frame.f_globals.get("__name__", "") == "__main__":
                             self.console.push({"np": np})
             except ImportError:
-                warnings.warn(
-                    'napari-console not found. It can be installed with "pip install napari_console"'
-                )
+                warnings.warn('napari-console not found. It can be installed with "pip install napari_console"')
                 self._console = None
         return self._console
 
@@ -486,9 +480,7 @@ class QtViewer(QSplitter):
         if self._layers_controls_dialog is None:
             self.on_open_controls_dialog()
         else:
-            self._layers_controls_dialog.setVisible(
-                not self._layers_controls_dialog.isVisible()
-            )
+            self._layers_controls_dialog.setVisible(not self._layers_controls_dialog.isVisible())
 
     def on_toggle_console_visibility(self, event=None):
         """Toggle console visible and not visible.
@@ -519,9 +511,7 @@ class QtViewer(QSplitter):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self.canvas._scene_canvas._backend._keyEvent(
-            self.canvas._scene_canvas.events.key_press, event
-        )
+        self.canvas._scene_canvas._backend._keyEvent(self.canvas._scene_canvas.events.key_press, event)
         event.accept()
 
     def keyReleaseEvent(self, event):
@@ -532,9 +522,7 @@ class QtViewer(QSplitter):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self.canvas._scene_canvas._backend._keyEvent(
-            self.canvas._scene_canvas.events.key_release, event
-        )
+        self.canvas._scene_canvas._backend._keyEvent(self.canvas._scene_canvas.events.key_release, event)
         event.accept()
 
     def dragEnterEvent(self, event):
@@ -571,14 +559,10 @@ class QtViewer(QSplitter):
             return
         if cb.mimeData().hasUrls():
             show_info("No image in clipboard, trying to open link instead.")
-            self._open_from_list_of_urls_data(
-                cb.mimeData().urls(), stack=False, choose_plugin=False
-            )
+            self._open_from_list_of_urls_data(cb.mimeData().urls(), stack=False, choose_plugin=False)
             return
         if cb.mimeData().hasText():
-            show_info(
-                "No image in clipboard, trying to parse text in clipboard as a link."
-            )
+            show_info("No image in clipboard, trying to parse text in clipboard as a link.")
             url_list = []
             for line in cb.mimeData().text().split("\n"):
                 url = QUrl(line.strip())
@@ -590,9 +574,7 @@ class QtViewer(QSplitter):
                     break
                 url_list.append(url)
             else:
-                self._open_from_list_of_urls_data(
-                    url_list, stack=False, choose_plugin=False
-                )
+                self._open_from_list_of_urls_data(url_list, stack=False, choose_plugin=False)
                 return
         show_info("No image or link in clipboard.")
 
@@ -610,9 +592,7 @@ class QtViewer(QSplitter):
         event : qtpy.QtCore.QDropEvent
             Event from the Qt context.
         """
-        shift_down = (
-            QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier
-        )
+        shift_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier
         alt_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.AltModifier
 
         self._qt_open(
@@ -621,9 +601,7 @@ class QtViewer(QSplitter):
             choose_plugin=bool(alt_down),
         )
 
-    def _open_from_list_of_urls_data(
-        self, urls_list: list[QUrl], stack: bool, choose_plugin: bool
-    ):
+    def _open_from_list_of_urls_data(self, urls_list: list[QUrl], stack: bool, choose_plugin: bool):
         filenames = []
         for url in urls_list:
             if url.isLocalFile():

@@ -5,9 +5,7 @@ import typing as ty
 import numpy as np
 
 
-def find_nearest_index(
-    data: np.ndarray, value: ty.Union[float, np.ndarray, ty.Iterable]
-):
+def find_nearest_index(data: np.ndarray, value: ty.Union[float, np.ndarray, ty.Iterable]):
     """Find nearest index of asked value
 
     Parameters

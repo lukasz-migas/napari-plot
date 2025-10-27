@@ -51,25 +51,20 @@ class VispyPolygonVisual:
         self._viewer.drag_tool._polygon.events.opacity.connect(self._on_opacity_change)
         self._viewer.drag_tool._polygon.events.color.connect(self._on_data_change)
         self._viewer.drag_tool._polygon.events.data.connect(self._on_data_change)
-        self._viewer.drag_tool._polygon.events.finished.connect(
-            self._on_data_finished_change
-        )
+        self._viewer.drag_tool._polygon.events.finished.connect(self._on_data_finished_change)
 
         # box events
         self._viewer.drag_tool._box.events.visible.connect(self._on_visible_change)
         self._viewer.drag_tool._box.events.opacity.connect(self._on_opacity_change)
         self._viewer.drag_tool._box.events.color.connect(self._on_data_change)
-        self._viewer.drag_tool._box.events.position.connect(
-            self._on_data_finished_change
-        )
+        self._viewer.drag_tool._box.events.position.connect(self._on_data_finished_change)
 
         self._on_tool_change(None)
 
     def _on_tool_change(self, _evt=None):
         # only trigger an update if the tool is a polygon or boxtool
         if (
-            self._viewer.drag_tool.active not in POLYGON_TOOLS
-            or type(self._viewer.drag_tool.tool) != PolygonTool
+            self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool
         ) and type(self._viewer.drag_tool.tool) != BoxTool:
             return
 
@@ -122,9 +117,7 @@ class VispyPolygonVisual:
                 vertices = np.zeros((3, 2))
                 faces = np.array([[0, 1, 2]])
                 colors = np.array([[0, 0, 0, 0]])
-            self.node._subvisuals[MESH].set_data(
-                vertices=vertices, faces=faces, face_colors=colors
-            )
+            self.node._subvisuals[MESH].set_data(vertices=vertices, faces=faces, face_colors=colors)
             self.node._subvisuals[VERTICAL_SPAN].set_data(pos=[0, 0])
             self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=[0, 0])
         # handle vertical span
@@ -134,9 +127,7 @@ class VispyPolygonVisual:
                 faces=np.array([[0, 1, 2]]),
                 face_colors=np.array([[0, 0, 0, 0]]),
             )
-            self.node._subvisuals[VERTICAL_SPAN].set_data(
-                pos=self.tool.vertical, color=self.tool.color
-            )
+            self.node._subvisuals[VERTICAL_SPAN].set_data(pos=self.tool.vertical, color=self.tool.color)
             self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=[0, 0])
         # handle horizontal span
         elif shape == Shape.HORIZONTAL:
@@ -145,9 +136,7 @@ class VispyPolygonVisual:
                 faces=np.array([[0, 1, 2]]),
                 face_colors=np.array([[0, 0, 0, 0]]),
             )
-            self.node._subvisuals[HORIZONTAL_SPAN].set_data(
-                pos=self.tool.horizontal, color=self.tool.color
-            )
+            self.node._subvisuals[HORIZONTAL_SPAN].set_data(pos=self.tool.horizontal, color=self.tool.color)
             self.node._subvisuals[VERTICAL_SPAN].set_data(pos=[0, 0])
 
         # Note that the indices of the vertices need to be reversed to

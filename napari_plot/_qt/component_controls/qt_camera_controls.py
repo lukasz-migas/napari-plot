@@ -32,14 +32,10 @@ class QtCameraWidget(QWidget):
         viewer.camera.events.extent_mode.connect(self._on_extent_mode_changed)
         viewer.camera.events.axis_mode.connect(self._on_axis_mode_changed)
 
-        self.mouse_pan_checkbox = hp.make_checkbox(
-            self, "", tooltip="Enable/disable mouse pan"
-        )
+        self.mouse_pan_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable mouse pan")
         self.mouse_pan_checkbox.setChecked(viewer.camera.mouse_pan)
         self.mouse_pan_checkbox.stateChanged.connect(self.on_change_interactive)
-        self.mouse_zoom_checkbox = hp.make_checkbox(
-            self, "", tooltip="Enable/disable mouse pan"
-        )
+        self.mouse_zoom_checkbox = hp.make_checkbox(self, "", tooltip="Enable/disable mouse pan")
         self.mouse_zoom_checkbox.setChecked(viewer.camera.mouse_zoom)
         self.mouse_zoom_checkbox.stateChanged.connect(self.on_change_interactive)
 
@@ -160,9 +156,7 @@ class QtCameraWidget(QWidget):
             func=self.on_change_y_range,
         )
 
-        self.axis_mode_all = hp.make_btn(
-            self, "Unlock all", func=self.on_change_axis_mode
-        )
+        self.axis_mode_all = hp.make_btn(self, "Unlock all", func=self.on_change_axis_mode)
         self.axis_mode_bottom = hp.make_checkbox(
             self,
             tooltip="Lock to bottom. Whenever you zoom-in or out, the bottom x-axis value will be at the minimum.",
@@ -247,9 +241,7 @@ class QtCameraWidget(QWidget):
     def _on_extent_mode_changed(self, _event=None):
         """Update interactive checkbox."""
         with self.ref_viewer().camera.events.extent_mode.blocker():
-            hp.set_combobox_current_index(
-                self.extent_mode, self.ref_viewer().camera.extent_mode
-            )
+            hp.set_combobox_current_index(self.extent_mode, self.ref_viewer().camera.extent_mode)
 
     def on_reset_axis_mode(self):
         """Reset axis mode."""
@@ -282,30 +274,18 @@ class QtCameraWidget(QWidget):
         """Update interactive checkbox."""
         with self.ref_viewer().camera.events.axis_mode.blocker():
             with hp.qt_signals_blocked(self.axis_mode_top):
-                self.axis_mode_top.setChecked(
-                    CameraMode.LOCK_TO_TOP in self.ref_viewer().camera.axis_mode
-                )
+                self.axis_mode_top.setChecked(CameraMode.LOCK_TO_TOP in self.ref_viewer().camera.axis_mode)
             with hp.qt_signals_blocked(self.axis_mode_bottom):
-                self.axis_mode_bottom.setChecked(
-                    CameraMode.LOCK_TO_BOTTOM in self.ref_viewer().camera.axis_mode
-                )
+                self.axis_mode_bottom.setChecked(CameraMode.LOCK_TO_BOTTOM in self.ref_viewer().camera.axis_mode)
             with hp.qt_signals_blocked(self.axis_mode_left):
-                self.axis_mode_left.setChecked(
-                    CameraMode.LOCK_TO_LEFT in self.ref_viewer().camera.axis_mode
-                )
+                self.axis_mode_left.setChecked(CameraMode.LOCK_TO_LEFT in self.ref_viewer().camera.axis_mode)
             with hp.qt_signals_blocked(self.axis_mode_right):
-                self.axis_mode_right.setChecked(
-                    CameraMode.LOCK_TO_RIGHT in self.ref_viewer().camera.axis_mode
-                )
+                self.axis_mode_right.setChecked(CameraMode.LOCK_TO_RIGHT in self.ref_viewer().camera.axis_mode)
 
     def _on_aspect_changed(self, _event=None):
         """Update aspect."""
         with self.ref_viewer().camera.events.aspect.blocker():
-            self.aspect.setValue(
-                0
-                if self.ref_viewer().camera.aspect is None
-                else self.ref_viewer().camera.aspect
-            )
+            self.aspect.setValue(0 if self.ref_viewer().camera.aspect is None else self.ref_viewer().camera.aspect)
 
     def on_change_aspect(self):
         """Update aspect."""
@@ -352,9 +332,7 @@ class QtCameraWidget(QWidget):
 
     def on_change_x_range(self):
         """Update x-range"""
-        min_val, max_val = parse_widget_to_value(
-            self.x_range_min
-        ), parse_widget_to_value(self.x_range_max)
+        min_val, max_val = parse_widget_to_value(self.x_range_min), parse_widget_to_value(self.x_range_max)
         self.ref_viewer().camera.set_x_range(min_val, max_val)
 
     def _on_x_range_changed(self, _event=None):
@@ -366,9 +344,7 @@ class QtCameraWidget(QWidget):
 
     def on_change_y_range(self):
         """Update y-range."""
-        min_val, max_val = parse_widget_to_value(
-            self.y_range_min
-        ), parse_widget_to_value(self.y_range_max)
+        min_val, max_val = parse_widget_to_value(self.y_range_min), parse_widget_to_value(self.y_range_max)
         self.ref_viewer().camera.set_y_range(min_val, max_val)
 
     def _on_y_range_changed(self, _event=None):

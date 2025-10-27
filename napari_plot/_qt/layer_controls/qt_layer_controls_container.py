@@ -24,9 +24,7 @@ layer_to_controls = {
 
 
 # need to overwrite napari' default mapping of layer : control of layers to add our custom layers
-napari._qt.layer_controls.qt_layer_controls_container.layer_to_controls.update(
-    layer_to_controls
-)
+napari._qt.layer_controls.qt_layer_controls_container.layer_to_controls.update(layer_to_controls)
 
 __all__ = [
     "QtCentroidControls",

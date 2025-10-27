@@ -49,9 +49,7 @@ class QtCentroidControls(QtLayerControls):
         self.layer.events.visible.connect(self._on_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
-        self.selection_spin = hp.make_int_spin_box(
-            self, value=0, tooltip="Specify current index."
-        )
+        self.selection_spin = hp.make_int_spin_box(self, value=0, tooltip="Specify current index.")
         self.selection_spin.valueChanged.connect(self._on_color_change)
 
         self.width_slider = hp.make_slider_with_text(

@@ -12,9 +12,7 @@ from napari_plot.layers.region._region_constants import Mode
 from napari_plot.layers.region.region import Region
 
 
-def register_region_action(
-    description: str, repeatable: bool = False
-) -> Callable[[Callable], Callable]:
+def register_region_action(description: str, repeatable: bool = False) -> Callable[[Callable], Callable]:
     return register_layer_action(Region, description, repeatable)
 
 

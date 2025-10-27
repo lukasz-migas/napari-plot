@@ -28,9 +28,7 @@ from qtpy.QtWidgets import QApplication
 from napari_plot import __version__
 from napari_plot.viewer import Viewer
 
-NAPARI_PLOT_ICON_PATH = os.path.join(
-    os.path.dirname(__file__), "..", "resources", "logo.png"
-)
+NAPARI_PLOT_ICON_PATH = os.path.join(os.path.dirname(__file__), "..", "resources", "logo.png")
 NAPARI_APP_ID = f"napari_plot.napari_plot.viewer.{__version__}"
 
 
@@ -166,9 +164,7 @@ def get_app(
         _try_enable_ipython_gui("qt" if ipy_interactive else None)
 
     if not _ipython_has_eventloop():
-        notification_manager.notification_ready.connect(
-            NapariQtNotification.show_notification
-        )
+        notification_manager.notification_ready.connect(NapariQtNotification.show_notification)
         notification_manager.notification_ready.connect(show_console_notification)
 
     # necessary to ensure that the theme svgs are rebuilt

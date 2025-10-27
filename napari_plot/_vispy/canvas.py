@@ -98,7 +98,7 @@ class NapariSceneCanvas(SceneCanvas_):
         else:
             x, y = event.pos
             x_x, x_y = self.x_axis.node.pos
-            y_x, y_y = self.y_axis.node.pos
+            y_x, _y_y = self.y_axis.node.pos
             # if clicked on the x-axis, reset x-range
             if x > y_x and y > x_y:
                 self.events.reset_x()
@@ -162,9 +162,7 @@ class VispyCanvas:
         # connect events
         # Connecting events from SceneCanvas
         self._scene_canvas.events.key_press.connect(self._key_map_handler.on_key_press)
-        self._scene_canvas.events.key_release.connect(
-            self._key_map_handler.on_key_release
-        )
+        self._scene_canvas.events.key_release.connect(self._key_map_handler.on_key_release)
 
         # self._scene_canvas.events.draw.connect(self.enable_dims_play)
         self._scene_canvas.events.draw.connect(self.camera.on_draw)
@@ -172,12 +170,8 @@ class VispyCanvas:
         self._scene_canvas.events.reset_x.connect(self.viewer.reset_x_view)
         self._scene_canvas.events.reset_y.connect(self.viewer.reset_y_view)
 
-        self._scene_canvas.events.mouse_double_click.connect(
-            self._on_mouse_double_click
-        )
-        self._scene_canvas.events.mouse_move.connect(
-            qthrottled(self._on_mouse_move, timeout=5)
-        )
+        self._scene_canvas.events.mouse_double_click.connect(self._on_mouse_double_click)
+        self._scene_canvas.events.mouse_move.connect(qthrottled(self._on_mouse_move, timeout=5))
         self._scene_canvas.events.mouse_press.connect(self._on_mouse_press)
         self._scene_canvas.events.mouse_release.connect(self._on_mouse_release)
         self._scene_canvas.events.mouse_wheel.connect(self._on_mouse_wheel)
@@ -368,9 +362,7 @@ class VispyCanvas:
     def _on_interactive(self) -> None:
         """Link interactive attributes of view and viewer."""
         # Is this should be changed or renamed?
-        self.view.interactive = (
-            self.viewer.camera.mouse_zoom or self.viewer.camera.mouse_pan
-        )
+        self.view.interactive = self.viewer.camera.mouse_zoom or self.viewer.camera.mouse_pan
 
     def _map_canvas2world(self, position):
         """Map position from canvas pixels into world coordinates.
@@ -535,9 +527,7 @@ class VispyCanvas:
         """Called whenever canvas is resized."""
         self.viewer._canvas_size = self.size
 
-    def add_layer_visual_mapping(
-        self, napari_layer: Layer, vispy_layer: VispyBaseLayer
-    ) -> None:
+    def add_layer_visual_mapping(self, napari_layer: Layer, vispy_layer: VispyBaseLayer) -> None:
         """Maps a napari layer to its corresponding vispy layer and sets the parent scene of the vispy layer.
 
         Parameters
