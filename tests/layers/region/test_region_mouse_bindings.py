@@ -1,7 +1,5 @@
 """Test regions mouse bindings."""
 
-import typing as ty
-
 import numpy as np
 import pytest
 from napari.utils._proxies import ReadOnlyWrapper
