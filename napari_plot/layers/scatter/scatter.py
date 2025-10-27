@@ -8,10 +8,7 @@ import numpy as np
 from napari.layers import Points
 from napari.layers.base import Layer, no_op
 from napari.layers.base._base_constants import Mode
-from napari.layers.base._base_mouse_bindings import (
-    highlight_box_handles,
-    transform_with_box,
-)
+from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument

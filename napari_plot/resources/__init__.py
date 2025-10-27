@@ -6,12 +6,7 @@ from pathlib import Path
 
 from napari._qt.qt_resources import STYLES as STYLES_
 from napari.resources._icons import ICONS as ICONS_
-from qtextra.assets import (
-    get_stylesheet,
-    update_icon_mapping,
-    update_icons,
-    update_styles,
-)
+from qtextra.assets import get_stylesheet, update_icon_mapping, update_icons, update_styles
 
 __all__ = ["get_stylesheet", "load_assets"]
 

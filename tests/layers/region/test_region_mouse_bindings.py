@@ -1,15 +1,10 @@
 """Test regions mouse bindings."""
 
-import typing as ty
 
 import numpy as np
 import pytest
 from napari.utils._proxies import ReadOnlyWrapper
-from napari.utils.interactions import (
-    mouse_move_callbacks,
-    mouse_press_callbacks,
-    mouse_release_callbacks,
-)
+from napari.utils.interactions import mouse_move_callbacks, mouse_press_callbacks, mouse_release_callbacks
 
 from napari_plot.layers import Region
 from napari_plot.layers.region.region import Mode, Orientation

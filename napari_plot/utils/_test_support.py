@@ -8,17 +8,7 @@ import pytest
 from napari.utils.misc import camel_to_snake
 
 from napari_plot import Viewer
-from napari_plot.layers import (
-    Centroids,
-    Image,
-    InfLine,
-    Line,
-    MultiLine,
-    Points,
-    Region,
-    Scatter,
-    Shapes,
-)
+from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Points, Region, Scatter, Shapes
 
 # data to be used by pytest during various tests
 layer_test_data = [

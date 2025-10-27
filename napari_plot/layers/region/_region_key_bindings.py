@@ -3,10 +3,7 @@
 from typing import Callable
 
 from app_model.types import KeyCode
-from napari.layers.utils.layer_utils import (
-    register_layer_action,
-    register_layer_attr_action,
-)
+from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action
 
 from napari_plot.layers.region._region_constants import Mode
 from napari_plot.layers.region.region import Region

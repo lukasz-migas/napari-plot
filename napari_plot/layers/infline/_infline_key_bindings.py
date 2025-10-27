@@ -2,10 +2,7 @@
 
 from typing import Callable
 
-from napari.layers.utils.layer_utils import (
-    register_layer_action,
-    register_layer_attr_action,
-)
+from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action
 
 from napari_plot.layers.infline._infline_constants import Mode
 from napari_plot.layers.infline.infline import InfLine

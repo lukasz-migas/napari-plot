@@ -3,14 +3,7 @@ from __future__ import annotations
 from napari.utils.translations import trans
 from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QPainter
-from qtpy.QtWidgets import (
-    QLabel,
-    QStackedWidget,
-    QStyle,
-    QStyleOption,
-    QVBoxLayout,
-    QWidget,
-)
+from qtpy.QtWidgets import QLabel, QStackedWidget, QStyle, QStyleOption, QVBoxLayout, QWidget
 
 
 class QtWelcomeLabel(QLabel):
