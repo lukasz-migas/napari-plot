@@ -92,7 +92,7 @@ jobs:
             backend: "pyqt5==5.14.*"
 
   test_examples:
-    name: test examples
+    name: Test examples
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
