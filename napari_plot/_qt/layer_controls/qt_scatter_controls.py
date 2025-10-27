@@ -1,6 +1,5 @@
 """Scatter layer controls"""
 
-import contextlib
 import typing as ty
 
 import numpy as np
@@ -75,9 +74,9 @@ class QtScatterControls(QtLayerControls):
         self.size_slider.valueChanged.connect(self.on_change_size)
 
         self.face_color_swatch = QColorSwatch(
-            initial_color=self.layer.face_color[-1]
-            if self.layer.face_color.size > 0
-            else self.layer._default_face_color,
+            initial_color=(
+                self.layer.face_color[-1] if self.layer.face_color.size > 0 else self.layer._default_face_color
+            ),
             tooltip="Click to set face color",
         )
         self.face_color_swatch.color_changed.connect(self.on_change_face_color)
