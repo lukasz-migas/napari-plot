@@ -327,6 +327,7 @@ class Scatter(Points, LayerMixin):
         """Return data contained for specified vertices. Only certain layers implement this."""
         from matplotlib.path import Path
 
+        # swap x and y coordinates of the vertices to match the [y, x] format of the data
         path = Path(vertices)
         mask = path.contains_points(self.data)
         if as_indices:

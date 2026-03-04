@@ -1,4 +1,4 @@
-"""This module defines actions (functions) that operate on layers and its submenus.
+""""Module defines actions (functions) that operate on layers and its submenus.
 
 Among other potential uses, these will populate the menu when you right-click
 on a layer in the LayerList.

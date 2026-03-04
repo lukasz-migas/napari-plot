@@ -379,7 +379,7 @@ class _QtMainWindow(QMainWindow):
         super().resizeEvent(event)
 
     def closeEvent(self, event):
-        """This method will be called when the main window is closing.
+        """"Method will be called when the main window is closing.
 
         Regardless of whether cmd Q, cmd W, or the close button is used...
         """

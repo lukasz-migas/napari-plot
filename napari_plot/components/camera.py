@@ -123,7 +123,7 @@ class Camera(EventedModel):
         # self.events.force_rect()
 
     def get_effective_extent(self) -> tuple[float, float, float, float]:
-        """This function returns extent based on current values of `x_range` and `y_range`."""
+        """Function returns extent based on current values of `x_range` and `y_range`."""
         x0, x1, y0, y1 = self._extent
         if self.x_range is not None:
             x0, x1 = self.x_range
