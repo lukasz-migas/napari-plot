@@ -19,7 +19,7 @@ jobs:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v6
       - run: uvx check-manifest
 
@@ -130,7 +130,7 @@ jobs:
     name: Test examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v6
         with:
           python-version: 3.11
