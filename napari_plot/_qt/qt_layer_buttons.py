@@ -67,7 +67,8 @@ class QtLayerButtons(QFrame):
             self,
             "delete",
             tooltip="Delete selected layers",
-            action="napari:delete_selected_layers",  # TODO: change to napari_plot
+            func=self.viewer.layers.remove_selected,
+            # action="napari:delete_selected_layers",  # TODO: change to napari_plot
         )
         self.delete_btn.setParent(self)
 
@@ -136,7 +137,8 @@ class QtViewerButtons(QFrame):
             self,
             "home",
             "Reset view",
-            action="napari:reset_view",
+            action=self.viewer.reset_view,
+            # action="napari:reset_view",
         )
 
         # only add console if its QtViewer
