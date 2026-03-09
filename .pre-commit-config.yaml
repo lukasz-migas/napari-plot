@@ -10,20 +10,20 @@ repos:
     -   id: absolufy-imports
         exclude: _vendor|vendored|examples|examples_with_napari
 -   repo: https://github.com/hadialqattan/pycln
-    rev: v2.5.0
+    rev: v2.6.0
     hooks:
     - id: pycln
 -   repo: https://github.com/pycqa/isort
-    rev: 7.0.0
+    rev: 8.0.1
     hooks:
     - id: isort
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.2
+    rev: v0.15.5
     hooks:
       - id: ruff
         exclude: _vendor|vendored
 -   repo: https://github.com/seddonym/import-linter
-    rev: v2.5.2
+    rev: v2.11
     hooks:
     - id: import-linter
       stages: [manual]
