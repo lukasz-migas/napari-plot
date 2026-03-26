@@ -3,20 +3,16 @@
 from __future__ import annotations
 
 import importlib
+import typing as ty
 
 try:
     from napari_plot._version import version as __version__
 except ImportError:
     __version__ = "unknown"
+    from napari_plot.resources import load_assets
 
-# Need to import to ensure that `napari_plot` is included in the auto-class generator
-from napari_plot.utils import _register  # isort:skip noqa
+    load_assets()
 
-from napari_plot.resources import load_assets
-
-del _register
-
-load_assets()
 
 __all__ = (
     "NapariPlotWidget",
@@ -41,6 +37,10 @@ _LAZY_IMPORTS = {
 
 def __getattr__(name: str) -> ty.Any:
     """Lazily import objects when accessed."""
+    # Need to import to ensure that `napari_plot` is included in the auto-class generator
+    from napari_plot.utils import _register  # isort:skip noqa
+
+    del _register
     try:
         module_name, attr_name = _LAZY_IMPORTS[name]
     except KeyError:

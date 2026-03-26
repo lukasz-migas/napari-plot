@@ -151,12 +151,12 @@ def _run():
     logging.basicConfig(level=level, format="%(asctime)s %(levelname)s %(message)s", datefmt="%H:%M:%S")
 
     # check whether Dev mode was requested
-    if args.dev:
+    if hasattr(args, "dev") and args.dev:
         os.environ["NAPARI_PLOT_DEV"] = "1"
         install_debugger_hook()
         logging.info("Activated development mode.")
     # check if additional dev modules were requested
-    if args.dev_module:
+    if hasattr(args, "dev_module") and args.dev_module:
         dev_module = list(args.dev_module)
         os.environ["NAPARI_PLOT_DEV_MODULES"] = ",".join(dev_module)
 

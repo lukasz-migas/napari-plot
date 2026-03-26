@@ -137,7 +137,7 @@ class QtViewerButtons(QFrame):
             self,
             "home",
             "Reset view",
-            action=self.viewer.reset_view,
+            func=self.viewer.reset_view,
             # action="napari:reset_view",
         )
 

@@ -258,7 +258,7 @@ class Scatter(Points, LayerMixin):
             "edge_color_cycle",
             "edge_colormap",
             "edge_contrast_limits",
-            "current_edge_color",
+            "current_border_color",
             "edge_color_mode",
         ]
         for old_property in deprecated_properties:

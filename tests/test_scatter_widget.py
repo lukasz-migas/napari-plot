@@ -6,7 +6,7 @@ import pytest
 from napari_plot._scatter_widget import ScatterPlotWidget
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail()
 def test_scatter_init(make_napari_viewer):
     # Check that two images are automatically selected
     viewer = make_napari_viewer(strict_qt=False)
@@ -16,7 +16,7 @@ def test_scatter_init(make_napari_viewer):
     assert len(widget.layers) == 2
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail()
 def test_scatter_select_event(make_napari_viewer):
     # Check that two images are automatically selected
     viewer = make_napari_viewer(strict_qt=False)
@@ -28,7 +28,7 @@ def test_scatter_select_event(make_napari_viewer):
     assert len(widget.layers) == 2
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail()
 def test_scatter_diff_shape(make_napari_viewer):
     # Check that two images are automatically selected
     viewer = make_napari_viewer(strict_qt=False)
@@ -40,7 +40,7 @@ def test_scatter_diff_shape(make_napari_viewer):
     assert len(widget.layers) == 2
 
 
-@pytest.mark.xfail
+@pytest.mark.xfail()
 def test_scatter_select_good_layer(make_napari_viewer):
     # Check that two images are automatically selected
     viewer = make_napari_viewer(strict_qt=False)

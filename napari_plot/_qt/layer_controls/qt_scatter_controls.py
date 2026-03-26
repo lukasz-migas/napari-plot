@@ -276,7 +276,7 @@ class QtScatterControls(QtLayerControls):
         self.layer.border_color = color
 
     def _on_edge_color_change(self, _event):
-        """Receive layer.current_edge_color() change event and update view."""
+        """Receive layer.current_border_color() change event and update view."""
         with qt_signals_blocked(self.border_color_swatch):
             self.border_color_swatch.setColor(
                 self.layer.border_color[-1] if self.layer.border_color.size > 0 else self.layer._default_border_color
@@ -293,7 +293,7 @@ class QtScatterControls(QtLayerControls):
         self.layer.border_width_is_relative = state
 
     def _on_edge_width_is_relative_change(self, _event):
-        """Receive layer.current_edge_color() change event and update view."""
+        """Receive layer.current_border_color() change event and update view."""
         if self.layer.border_width_is_relative:
             self.border_width_slider.setPageStep(0.05)
             self.border_width_slider.setRange(0, 1)
