@@ -12,7 +12,6 @@ import numpy as np
 # with undefined Context.
 from app_model.expressions import Context
 from napari import layers as n_layers
-from napari._pydantic_compat import Extra, Field, PrivateAttr, validator
 from napari.components import Dims
 from napari.components._layer_slicer import _LayerSlicer
 from napari.components.cursor import Cursor, CursorStyle
@@ -25,6 +24,7 @@ from napari.utils.events import Event, EventedDict, EventedModel, disconnect_eve
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import is_sequence
 from napari.utils.mouse_bindings import MousemapProvider
+from pydantic import Field, PrivateAttr, field_validator
 
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
@@ -78,19 +78,19 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         The title of the viewer window.
     """
 
-    # Using allow_mutation=False means these attributes aren't settable and don't
+    # Using frozen=True means these attributes aren't settable and don't
     # have an event emitter associated with them
-    camera: Camera = Field(default_factory=Camera, allow_mutation=False)
-    cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
-    dims: Dims = Field(default_factory=Dims, allow_mutation=False)
-    layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
-    axis: Axis = Field(default_factory=Axis, allow_mutation=False)
-    drag_tool: DragTool = Field(default_factory=DragTool, allow_mutation=False)
+    camera: Camera = Field(default_factory=Camera, frozen=True)
+    cursor: Cursor = Field(default_factory=Cursor, frozen=True)
+    dims: Dims = Field(default_factory=Dims, frozen=True)
+    layers: LayerList = Field(default_factory=LayerList, frozen=True)
+    axis: Axis = Field(default_factory=Axis, frozen=True)
+    drag_tool: DragTool = Field(default_factory=DragTool, frozen=True)
 
     # Attributes
     help: str = ""
     status: ty.Union[str, dict] = "Ready"
-    tooltip: Tooltip = Field(default_factory=Tooltip, allow_mutation=False)
+    tooltip: Tooltip = Field(default_factory=Tooltip, frozen=True)
     theme: str = "dark"
     title: str = "napari-plot"
 
@@ -115,17 +115,12 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # elsewhere.  The app should know about the ViewerModel, but not vice versa.
         self._ctx = create_context(self, max_depth=0)
         # allow extra attributes during model initialization, useful for mixins
-        self.__config__.extra = Extra.allow
-        super().__init__(title=title)
-        self.__config__.extra = Extra.ignore
+        self.model_config["extra"] = "allow"
+        super().__init__()  # title=title)
+        self.model_config["extra"] = "ignore"
 
         # Add extra events
-        self.events.add(
-            layers_change=Event,
-            reset_view=Event,
-            span=Event,
-            clear_canvas=Event,
-        )
+        self.events.add(layers_change=Event, reset_view=Event, span=Event, clear_canvas=Event)
 
         # Connect events
         # dims
@@ -168,7 +163,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     def _brush_circle_overlay(self):
         return self._overlays["brush_circle"]
 
-    @validator("theme", allow_reuse=True)
+    @field_validator("theme")
+    @classmethod
     def _valid_theme(cls, v):
         from napari.utils.theme import available_themes, is_theme_available
 
@@ -176,6 +172,20 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             themes = ", ".join(available_themes())
             raise ValueError(f"Theme '{v}' not found; options are {themes}.")
         return v
+
+    def model_dump(self, **kwargs) -> dict:
+        """Convert to a dictionary."""
+        # Manually exclude the layer list and active layer which cannot be serialized at this point
+        # and mouse and keybindings don't belong on model
+        # https://github.com/samuelcolvin/pydantic/pull/2231
+        # https://github.com/samuelcolvin/pydantic/issues/660#issuecomment-642211017
+        exclude = kwargs.pop("exclude", set())
+        exclude = exclude.union(EXCLUDE_DICT)
+        return super().model_dump(exclude=exclude, **kwargs)
+
+    def dict(self, **kwargs):
+        """Convert to a dictionary."""
+        return self.model_dump(**kwargs)
 
     def json(self, **kwargs):
         """Serialize to json."""
@@ -185,17 +195,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # https://github.com/samuelcolvin/pydantic/issues/660#issuecomment-642211017
         exclude = kwargs.pop("exclude", set())
         exclude = exclude.union(EXCLUDE_JSON)
-        return super().json(exclude=exclude, **kwargs)
-
-    def dict(self, **kwargs):
-        """Convert to a dictionary."""
-        # Manually exclude the layer list and active layer which cannot be serialized at this point
-        # and mouse and keybindings don't belong on model
-        # https://github.com/samuelcolvin/pydantic/pull/2231
-        # https://github.com/samuelcolvin/pydantic/issues/660#issuecomment-642211017
-        exclude = kwargs.pop("exclude", set())
-        exclude = exclude.union(EXCLUDE_DICT)
-        return super().dict(exclude=exclude, **kwargs)
+        return super().model_dump_json(exclude=exclude, **kwargs)
 
     def __hash__(self):
         return id(self)

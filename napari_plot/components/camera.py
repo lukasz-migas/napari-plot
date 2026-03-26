@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import typing as ty
 
-from napari._pydantic_compat import validator
 from napari.utils.compat import StrEnum
 from napari.utils.events import Event, EventedModel
 from napari.utils.misc import ensure_n_tuple
+from pydantic import field_validator
 
 
 class CameraMode(StrEnum):
@@ -101,17 +101,20 @@ class Camera(EventedModel):
         self.events.add(force_rect=Event, zoomed=Event)
 
     # validators
-    @validator("x_range", "y_range", pre=True)
+    @field_validator("x_range", "y_range", mode="before")
+    @classmethod
     def _ensure_2_tuple(cls, v) -> ty.Optional[tuple[float, float]]:
         if v is None:
             return v
         return ensure_n_tuple(v, n=2)
 
-    @validator("rect", "extent", pre=True)
+    @field_validator("rect", "extent", mode="before")
+    @classmethod
     def _ensure_4_tuple(cls, v) -> tuple[float, float, float, float]:
         return ensure_n_tuple(v, n=4)
 
-    @validator("axis_mode", pre=True)
+    @field_validator("axis_mode", mode="before")
+    @classmethod
     def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, tuple[CameraMode]]) -> tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)

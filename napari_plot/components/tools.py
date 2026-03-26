@@ -5,13 +5,13 @@ from __future__ import annotations
 import typing as ty
 
 import numpy as np
-from napari._pydantic_compat import validator
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Path, Polygon, Rectangle
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import field_validator
 
 from napari_plot.utils._tool import Box
 
@@ -41,7 +41,8 @@ class MeshBaseTool(BaseTool):
     # private attributes
     _mesh: Mesh = Mesh(ndisplay=2)
 
-    @validator("position", pre=True, allow_reuse=True)
+    @field_validator("position", mode="before")
+    @classmethod
     def _validate_position(cls, v):
         assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
         x0, x1, y0, y1 = v
@@ -111,7 +112,8 @@ class BoxTool(MeshBaseTool):
         x0, x1, y0, y1 = self.position
         return np.asarray([[y0, x0], [y1, x0], [y1, x1], [y0, x1]])
 
-    @validator("color", pre=True, allow_reuse=True)
+    @field_validator("color", mode="before")
+    @classmethod
     def _coerce_color(cls, v):
         return transform_color(v)[0]
 
@@ -139,8 +141,9 @@ class PolygonTool(MeshBaseTool):
     data: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     auto_reset: bool = False
 
-    @validator("data", pre=True, allow_reuse=True)
-    def _validate_position(cls, v):
+    @field_validator("data", mode="before")
+    @classmethod
+    def _validate_data(cls, v):
         v = np.asarray(v)
         assert v.ndim == 2
         return v

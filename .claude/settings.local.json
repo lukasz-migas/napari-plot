@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(grep -r \"from qtextra._pydantic_compat\\\\|from qtextra import.*validator\\\\|from qtextra import.*Field\" /Users/lgmigas/Documents/GitHub/napari-plot --include=*.py)",
+      "Bash(ls -la /Users/lgmigas/Documents/GitHub/napari-plot/venv5/lib/python*/site-packages/napari/)",
+      "Bash(grep -E \"^-.*\\\\.\\(md|txt|yaml|toml\\)$|^d\")",
+      "Bash(python3 -c \"from qtextra._pydantic_compat import *; import inspect; import qtextra._pydantic_compat; print\\(inspect.getsource\\(qtextra._pydantic_compat\\)\\)\")",
+      "Bash(python3:*)",
+      "Bash(git stash:*)",
+      "Bash(pytest tests/components/ -v --no-header -x)",
+      "Bash(pip show:*)",
+      "Bash(source /Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/activate)",
+      "Bash(pip install:*)",
+      "Bash(/Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/python -c \"import sys; print\\(sys.executable\\)\")",
+      "Bash(/Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/python -m ensurepip)",
+      "Bash(/Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/python -m pip install pytest pytest-qt --quiet)",
+      "Bash(/Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/python -m pytest tests/components/ -v --no-header -x)",
+      "Bash(/Users/lgmigas/Documents/GitHub/napari-plot/venv/bin/python -m pytest tests/components/test_camera.py -x)"
+    ]
+  }
+}

@@ -3,10 +3,10 @@
 import typing as ty
 
 import numpy as np
-from napari._pydantic_compat import PrivateAttr
 from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import PrivateAttr
 
 from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 
