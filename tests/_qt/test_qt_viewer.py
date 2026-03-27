@@ -48,7 +48,7 @@ def test_screenshot(make_napari_plot_viewer):
     "Test taking a screenshot"
     viewer = make_napari_plot_viewer()
 
-    np.random.seed(0)
+    np.random.default_rng(0)
     # Add points
     data = 20 * np.random.random((10, 2))
     viewer.add_points(data)

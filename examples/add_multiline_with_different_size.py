@@ -15,7 +15,7 @@ def update_fps(fps):
 
 
 n_lines = 20
-n_pts = np.random.randint(1000, 5000, n_lines)
+n_pts = np.random.default_rng().integers(1000, 5000, n_lines)
 xs = []
 ys = []
 for i in range(n_lines):

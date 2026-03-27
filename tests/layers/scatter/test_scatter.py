@@ -236,7 +236,7 @@ def test_empty_layer_with_text_formatted():
 def test_properties_dataframe():
     """Test if properties can be provided as a DataFrame"""
     shape = (10, 2)
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = 20 * np.random.random(shape)
     properties = {"point_type": _make_cycled_properties(["A", "B"], shape[0])}
     properties_df = pd.DataFrame(properties)

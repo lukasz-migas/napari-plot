@@ -8,7 +8,7 @@ from napari_plot._qt.layer_controls.qt_line_controls import QtLineControls
 from napari_plot.layers import Line
 
 # Test data
-np.random.seed(0)
+np.random.default_rng(0)
 _LINE = np.random.random((10, 2))
 
 

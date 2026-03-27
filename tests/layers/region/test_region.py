@@ -229,7 +229,7 @@ def test_move_to_front():
 def test_move_to_back():
     """Test moving shapes to back."""
     shape = (10, 2)
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = 20 * np.random.random(shape)
     z_index_list = [2, 3] * 5
     layer = Region(data, z_index=z_index_list)
@@ -245,7 +245,7 @@ def test_move_to_back():
 
 def test_move():
     shape = (10, 2)
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = 20 * np.random.random(shape)
     layer = Region(data, orientation="vertical")
     layer.move(0, (2, 4), "vertical")

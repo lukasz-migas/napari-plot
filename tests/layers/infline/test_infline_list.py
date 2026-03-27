@@ -13,7 +13,7 @@ def test_empty_infline_list():
 
 
 def test_adding_to_list():
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = np.random.random(1)
     vert = VerticalLine(data)
     line_list = InfiniteLineList()
@@ -33,7 +33,7 @@ def test_adding_to_list():
 
 def test_bad_color_array():
     """Test adding shapes to InfiniteLineList."""
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = np.random.random(1)
     vert = VerticalLine(data)
     line_list = InfiniteLineList()

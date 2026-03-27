@@ -5,7 +5,7 @@ import numpy as np
 import napari_plot
 
 viewer1d = napari_plot.Viewer()
-viewer1d.add_line(np.c_[np.arange(1000), np.random.randint(0, 1000, 1000)], name="line")
+viewer1d.add_line(np.c_[np.arange(1000), np.random.default_rng().integers(0, 1000, 1000)], name="line")
 
 # You can add infinite lines providing different orientations and colors
 layer = viewer1d.add_inf_line(

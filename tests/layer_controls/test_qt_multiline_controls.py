@@ -8,7 +8,7 @@ from napari_plot._qt.layer_controls.qt_multiline_controls import QtMultiLineCont
 from napari_plot.layers import MultiLine
 
 # Test data
-np.random.seed(0)
+np.random.default_rng(0)
 _MULTILINE = {"x": np.random.random(10), "ys": np.random.random((10, 4))}
 
 

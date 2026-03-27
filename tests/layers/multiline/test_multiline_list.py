@@ -12,7 +12,7 @@ def test_empty_infline_list():
 
 
 def test_adding_to_list():
-    np.random.seed(0)
+    np.random.default_rng(0)
 
     # add single line
     xs = [np.random.random(10)]

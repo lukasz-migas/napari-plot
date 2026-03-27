@@ -9,7 +9,7 @@ from napari_plot.layers import Region
 from napari_plot.layers.region._region_constants import Mode
 
 # Test data
-np.random.seed(0)
+np.random.default_rng(0)
 _REGION = [[50, 100], [100, 200]]
 
 

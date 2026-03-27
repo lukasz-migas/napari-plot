@@ -8,7 +8,7 @@ import numpy as np
 
 import napari_plot
 
-image = np.random.randint(0, 255, (100, 100))
+image = np.random.default_rng().integers(0, 255, (100, 100))
 
 viewer1d = napari_plot.Viewer()
 viewer1d.add_image(image)

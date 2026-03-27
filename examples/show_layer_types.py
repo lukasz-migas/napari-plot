@@ -12,14 +12,14 @@ N_MAX = 300
 def add_line():
     """Line plot"""
     x = np.arange(N_POINTS)
-    y = np.random.randint(N_MIN, N_MAX, N_POINTS)
+    y = np.random.default_rng().integers(N_MIN, N_MAX, N_POINTS)
     viewer1d.add_line(np.c_[x, y], name="Line", visible=True)
 
 
 def add_centroids():
     """Centroids plot"""
     x = np.arange(N_POINTS)
-    y = np.random.randint(N_MIN, N_MAX, N_POINTS)
+    y = np.random.default_rng().integers(N_MIN, N_MAX, N_POINTS)
     viewer1d.add_centroids(np.c_[x, y], color=(1.0, 0.0, 1.0, 1.0), name="Centroids (x)", visible=True)
     viewer1d.add_centroids(
         np.c_[y, x],
@@ -32,8 +32,8 @@ def add_centroids():
 
 def add_scatter():
     """Centroids plot"""
-    x = np.random.randint(N_MIN, N_MAX, N_POINTS // 2)
-    y = np.random.randint(N_MIN, N_POINTS, N_POINTS // 2)
+    x = np.random.default_rng().integers(N_MIN, N_MAX, N_POINTS // 2)
+    y = np.random.default_rng().integers(N_MIN, N_POINTS, N_POINTS // 2)
     viewer1d.add_scatter(np.c_[y, x], size=5, name="Scatter", visible=True)
 
 

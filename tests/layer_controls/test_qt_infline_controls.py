@@ -9,7 +9,7 @@ from napari_plot.layers import InfLine
 from napari_plot.layers.infline._infline_constants import Mode
 
 # Test data
-np.random.seed(0)
+np.random.default_rng(0)
 _INFLINE = [50, 100, 230]
 
 

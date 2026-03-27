@@ -19,7 +19,7 @@ def test_viewer_model():
 def test_add_image():
     """Test adding image."""
     viewer = ViewerModel()
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = np.random.random((10, 15))
     viewer.add_image(data)
     assert len(viewer.layers) == 1
@@ -29,7 +29,7 @@ def test_add_image():
 def test_add_points():
     """Test adding points."""
     viewer = ViewerModel()
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = 20 * np.random.random((10, 2))
     viewer.add_points(data)
     assert len(viewer.layers) == 1
@@ -53,7 +53,7 @@ def test_add_empty_shapes_layer():
 def test_add_shapes():
     """Test adding shapes."""
     viewer = ViewerModel()
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = 20 * np.random.random((10, 4, 2))
     layer = viewer.add_shapes(data)
     assert len(viewer.layers) == 1
@@ -70,7 +70,7 @@ def test_new_shapes():
 
     # Add points with image already present
     viewer = ViewerModel()
-    np.random.seed(0)
+    np.random.default_rng(0)
     data = np.random.random((10, 15))
     viewer.add_image(data)
     layer = viewer.add_shapes()
@@ -113,7 +113,7 @@ def test_selection():
 def test_active_layer():
     """Test active layer is correct as layer selections change."""
     viewer = ViewerModel()
-    np.random.seed(0)
+    np.random.default_rng(0)
     # Check no active layer present
     assert viewer.layers.selection.active is None
 
