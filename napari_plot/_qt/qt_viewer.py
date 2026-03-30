@@ -7,6 +7,7 @@ import sys
 import typing as ty
 import warnings
 import weakref
+from contextlib import suppress
 from functools import partial
 from pathlib import Path
 from types import FrameType
@@ -22,6 +23,7 @@ from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
 from qtpy.QtGui import QGuiApplication
+from qtpy.QtGui import QFocusEvent
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
@@ -85,6 +87,7 @@ class QtViewer(QSplitter):
         self._instances.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setAcceptDrops(False)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
 
         # handle to the viewer instance
@@ -138,6 +141,7 @@ class QtViewer(QSplitter):
         NapariQtViewer._leave_canvas(self)
 
     def _enter_canvas(self):
+        self._make_current()
         NapariQtViewer._enter_canvas(self)
 
     def _on_active_change(self):
@@ -163,8 +167,17 @@ class QtViewer(QSplitter):
     @classmethod
     def current_viewer(cls):
         """Return current viewer instance."""
-        window = cls.current()
-        return window._qt_viewer.viewer if window else None
+        qt_viewer = cls.current()
+        return qt_viewer.viewer if qt_viewer else None
+
+    def _make_current(self):
+        """Move this viewer to the end of the instance list."""
+        with suppress(ValueError):
+            self._instances.append(self._instances.pop(self._instances.index(self)))
+
+    def focusInEvent(self, event: QFocusEvent) -> None:
+        self._make_current()
+        super().focusInEvent(event)
 
     def __getattr__(self, name):
         return object.__getattribute__(self, name)
