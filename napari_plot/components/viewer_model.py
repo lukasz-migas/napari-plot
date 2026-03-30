@@ -24,6 +24,7 @@ from napari.utils.colormaps import ensure_colormap
 from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import is_sequence
+from napari.utils.misc import camel_to_snake
 from napari.utils.mouse_bindings import MousemapProvider
 
 from napari_plot import layers as np_layers
@@ -66,6 +67,40 @@ DEFAULT_OVERLAYS = {
     "grid_lines": GridLinesOverlay,
     "brush_circle": BrushCircleOverlay,
 }
+
+
+def _create_custom_add_method(layer_type):
+    """Create an ``add_*`` method for custom napari-plot layers.
+
+    napari's dynamic helper compiles a function with a return annotation
+    pointing at the fully-qualified layer class. That works for built-in
+    napari layers because ``napari`` is injected into the exec namespace,
+    but it fails for local layer classes such as
+    ``napari_plot.layers.line.line.Line``. For custom layers we can avoid the
+    exec-based path entirely and expose the same public signature via
+    ``__signature__``.
+    """
+
+    name = f"add_{camel_to_snake(layer_type.__name__)}"
+    signature = inspect.signature(layer_type)
+    signature_with_self = signature.replace(
+        parameters=[
+            inspect.Parameter("self", inspect.Parameter.POSITIONAL_OR_KEYWORD),
+            *signature.parameters.values(),
+        ],
+        return_annotation=layer_type,
+    )
+
+    def _add_layer(self, *args, **kwargs):
+        layer = layer_type(*args, **kwargs)
+        self.layers.append(layer)
+        return layer
+
+    _add_layer.__name__ = name
+    _add_layer.__qualname__ = f"ViewerModel.{name}"
+    _add_layer.__doc__ = getattr(layer_type, "__doc__", None)
+    _add_layer.__signature__ = signature_with_self
+    return _add_layer
 
 
 class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
@@ -903,5 +938,8 @@ for _layer in [
     np_layers.Centroids,
     np_layers.MultiLine,
 ]:
-    func = create_add_method(_layer)
+    if _layer.__module__.startswith("napari_plot."):
+        func = _create_custom_add_method(_layer)
+    else:
+        func = create_add_method(_layer)
     setattr(ViewerModel, func.__name__, func)

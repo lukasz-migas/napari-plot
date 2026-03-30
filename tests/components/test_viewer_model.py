@@ -1,5 +1,7 @@
 """Test ViewerModel"""
 
+import inspect
+
 import numpy as np
 import pytest
 
@@ -169,6 +171,20 @@ def test_camera():
     assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -20, y.max())
     viewer.camera.y_range = (-10, 15)
     assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -10, 15)
+
+
+def test_custom_add_methods_are_registered():
+    """Test custom napari-plot layer add methods can be imported and called."""
+    signature = inspect.signature(ViewerModel.add_line)
+    assert list(signature.parameters)[:2] == ["self", "data"]
+    assert signature.return_annotation.__name__ == "Line"
+
+    viewer = ViewerModel()
+    data = np.array([[0, 0], [1, 1]])
+    layer = viewer.add_line(data, color="red")
+
+    assert layer is viewer.layers[0]
+    assert np.array_equal(layer.data, data)
 
 
 @pytest.mark.parametrize(
