@@ -6,7 +6,7 @@ from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
 from napari_plot.components.grid_lines import GridLinesOverlay
 
 
-def register_vispy_overlays():
+def register_vispy_overlays() -> None:
     """Register vispy overlays."""
     overlay_to_visual.update(
         {

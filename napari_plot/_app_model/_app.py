@@ -30,7 +30,19 @@ class NapariPlotApplication(Application):
 
     @classmethod
     def get_app_model(cls, app_name: str = APP_NAME) -> NapariPlotApplication:
-        return Application.get_app(app_name) or cls()  # type: ignore[return-value]
+        """Get the Napari Application singleton.
+
+        This class method that returns the singleton instance of the
+        NapariApplication. It relies on the parent class's Application.get_app()
+        method (provided by the app_model library) to retrieve the application
+        instance by name.
+        """
+        app = Application.get_app(app_name)
+        if app is None:
+            return cls()
+        if not isinstance(app, NapariPlotApplication):
+            raise TypeError(f"Application `{app_name}` is not a NapariPlotApplication")
+        return app
 
 
 @lru_cache(maxsize=1)

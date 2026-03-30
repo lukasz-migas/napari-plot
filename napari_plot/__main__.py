@@ -10,7 +10,7 @@ from ast import literal_eval
 from pathlib import Path
 from textwrap import wrap
 
-from koyo.utilities import is_installed
+from koyo.system import is_installed
 
 
 class InfoAction(argparse.Action):
@@ -204,7 +204,7 @@ def _run():
     run()
 
 
-def _maybe_rerun_with_macos_fixes():
+def _maybe_rerun_with_macos_fixes() -> None:
     """
     Apply some fixes needed in macOS, which might involve
     running this script again using a different sys.executable.
@@ -230,7 +230,7 @@ def _maybe_rerun_with_macos_fixes():
         # This function already ran, do not recurse!
         # We also restore sys.executable to its initial value,
         # if we used a symlink
-        if exe := os.environ.pop("_NAPARI_SYMLINKED_EXECUTABLE", ""):
+        if exe := os.environ.pop("_NAPARI_PLOT_SYMLINKED_EXECUTABLE", ""):
             sys.executable = exe
         return
 

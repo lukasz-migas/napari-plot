@@ -2,7 +2,11 @@
 
 import numpy as np
 import pytest
+from qtpy.QtWidgets import QWidget, QVBoxLayout
 
+from napari_plot._qt._qapp_model._qproviders import _provide_qt_viewer, _provide_viewer
+from napari_plot._qt.qt_viewer import QtViewer
+from napari_plot.components.viewer_model import ViewerModel
 from napari_plot.utils._test_support import add_layer_by_type, layer_test_data, skip_on_win_ci
 
 
@@ -103,3 +107,28 @@ def test_remove_image(make_napari_plot_viewer):
     viewer.add_image(np.random.rand(10, 10))
     del viewer.layers[0]
     viewer.add_image(np.random.rand(10, 10))
+
+
+def test_injection_uses_focused_embedded_qt_viewer(qtbot, qapp):
+    host = QWidget()
+    layout = QVBoxLayout(host)
+    viewer1 = ViewerModel(title="viewer-1")
+    viewer2 = ViewerModel(title="viewer-2")
+    qt_viewer1 = QtViewer(viewer1, parent=host)
+    qt_viewer2 = QtViewer(viewer2, parent=host)
+    layout.addWidget(qt_viewer1)
+    layout.addWidget(qt_viewer2)
+    qtbot.addWidget(host)
+    host.show()
+
+    assert QtViewer.current() is qt_viewer2
+
+    qt_viewer1.setFocus()
+    qapp.processEvents()
+    assert _provide_qt_viewer() is qt_viewer1
+    assert _provide_viewer(public_proxy=False) is viewer1
+
+    qt_viewer2._enter_canvas()
+    qapp.processEvents()
+    assert _provide_qt_viewer() is qt_viewer2
+    assert _provide_viewer(public_proxy=False) is viewer2

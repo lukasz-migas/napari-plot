@@ -26,10 +26,10 @@ def init_qactions() -> None:
     - registering provider functions for the names added to the namespace
     - registering Qt-dependent actions with app-model (i.e. Q_*_ACTIONS actions).
     """
-    from napari._app_model import get_app_model
     from napari._qt._qapp_model.qactions._layers_actions import LAYERS_ACTIONS
-    from napari._qt.qt_main_window import Window
 
+    from napari_plot._app_model import get_app_model
+    from napari_plot._qt.qt_main_window import Window
     from napari_plot._qt.qt_viewer import QtViewer
     from napari_plot.viewer import Viewer
 
@@ -51,7 +51,7 @@ def init_qactions() -> None:
     app.register_actions(chain(LAYERS_ACTIONS))
 
 
-def reset_default_keymap():
+def reset_default_keymap() -> None:
     """Reset default keymap."""
     from napari.settings import get_settings
     from napari.utils.shortcuts import default_shortcuts
