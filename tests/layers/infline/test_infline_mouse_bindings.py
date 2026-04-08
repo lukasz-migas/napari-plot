@@ -13,7 +13,7 @@ def _get_position(pos: float):
     return 50, pos
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_known_infline_layer():
     """Create region layer with known coordinates
 
