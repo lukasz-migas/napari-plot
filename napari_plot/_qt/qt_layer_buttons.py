@@ -37,7 +37,7 @@ def make_qta_btn(
 ) -> QtImagePushButton:
     """Make a button with an icon from QtAwesome."""
     btn = hp.make_qta_btn(parent=parent, icon_name=icon_name, tooltip=tooltip, **kwargs)
-    btn.set_normal()
+    btn.set_qta_size_preset("normal")
     btn.setProperty("layer_button", True)
     if action:
         action_manager.bind_button(action, btn, extra_tooltip_text=extra_tooltip_text)
