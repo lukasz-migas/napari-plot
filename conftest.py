@@ -65,7 +65,7 @@ def fail_obj_graph(Klass):
         raise AssertionError(len(Klass._instances))
 
 
-@pytest.fixture()
+@pytest.fixture
 def make_napari_plot_viewer(qtbot, request: FixtureRequest):
     """A fixture function that creates a napari viewer for use in testing.
 
@@ -187,7 +187,7 @@ def make_napari_plot_viewer(qtbot, request: FixtureRequest):
                 warnings.warn(msg)
 
 
-@pytest.fixture()
+@pytest.fixture
 def MouseEvent():
     """Create a subclass for simulating vispy mouse events.
 
@@ -211,7 +211,7 @@ def MouseEvent():
     return Event
 
 
-@pytest.fixture()
+@pytest.fixture
 def QtMouseEvent():
     """Create a subclass for simulating vispy mouse events.
 
