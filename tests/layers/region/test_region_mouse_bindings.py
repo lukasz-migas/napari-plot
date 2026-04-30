@@ -13,7 +13,7 @@ def _get_position(pos):
     return 50, pos[1] - (pos[1] - pos[0]) / 2
 
 
-@pytest.fixture()
+@pytest.fixture
 def create_known_region_layer():
     """Create region layer with known coordinates
 
