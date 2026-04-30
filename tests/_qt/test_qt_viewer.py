@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from qtpy.QtWidgets import QWidget, QVBoxLayout
+from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from napari_plot._qt._qapp_model._qproviders import _provide_qt_viewer, _provide_viewer
 from napari_plot._qt.qt_viewer import QtViewer
