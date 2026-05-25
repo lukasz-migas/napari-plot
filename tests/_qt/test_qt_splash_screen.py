@@ -3,7 +3,7 @@ import pytest
 from napari_plot._qt.widgets.qt_splash_screen import QtSplashScreen
 
 
-@pytest.fixture()
+@pytest.fixture
 def setup_widget(qtbot):
     """Setup panel"""
 
