@@ -19,12 +19,12 @@ jobs:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - run: uvx check-manifest
 
   test_uv:
-    name: Test UV (${{ matrix.backend } py${{ matrix.python-version }} ${{ matrix.os }})
+    name: Test UV (${{ matrix.backend }} py${{ matrix.python-version }} ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       UV_NO_SYNC: "1"
@@ -130,8 +130,8 @@ jobs:
     name: Test examples
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
           python-version: 3.11
 
