@@ -24,7 +24,7 @@ jobs:
       - run: uvx check-manifest
 
   test_uv:
-    name: Test UV (${{ matrix.backend }} py${{ matrix.python-version }} ${{ matrix.os }})
+    name: Test UV (${{ matrix.backend }} ${{ matrix.python-version }} ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       UV_NO_SYNC: "1"
@@ -34,7 +34,7 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
-        backend: [PySide6, PyQt6]
+        backend: [pyside6, pyqt6]
         include:
           - os: windows-latest
             python-version: "3.10"
@@ -53,6 +53,27 @@ jobs:
             python-version: "3.10"
             backend: PyQt5
 
+    steps:
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+
+      - run: uv sync --no-dev --group test --extra ${{ matrix.backend }} --extra all
+      - uses: pyvista/setup-headless-display-action@v4
+        with:
+          qt: true
+
+      - name: Test
+        run: uv run coverage run -p -m pytest -v --color=yes
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v7
+        with:
+          name: covreport-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.backend }}
+          path: ./.coverage*
+          include-hidden-files: true
 
   test:
     name: Test
