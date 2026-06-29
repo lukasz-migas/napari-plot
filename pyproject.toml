@@ -71,23 +71,24 @@ Documentation = "https://github.com/lukasz-migas/napari-plot#README.md"
 
 [project.optional-dependencies]
 pyside2 = [
-    "PySide2>=5.13.2,!=5.15.0 ; python_version < '3.11' and platform_machine != 'arm64'",
+    "pyside2>=5.13.2,!=5.15.0 ; python_version < '3.11' and platform_machine != 'arm64'",
 ]
-pyside6_experimental = [
-    "PySide6 < 6.5 ; python_version < '3.12'"
-]
-pyqt6 = [
-    "PyQt6 > 6.5",
-    "PyQt6 != 6.6.1 ; platform_system == 'Darwin'"
+pyside6 = [
+    "pyside6>6.9.0; platform_system == 'Windows'",
+    "pyside6; platform_system != 'Windows'"
 ]
 pyside = [
-    "napari_plot[pyside2]"
+    "napari_plot[pyside6]"
 ]
 pyqt5 = [
     "PyQt5>=5.13.2,!=5.15.0",
 ]
+pyqt6 = [
+    "pyqt6 >= 6.9.0",
+    "pyqt6 != 6.6.1 ; platform_system == 'Darwin'"
+]
 pyqt = [
-    "napari_plot[pyqt5]"
+    "napari_plot[pyqt6]"
 ]
 qt = [
     "napari_plot[pyqt]"
@@ -101,7 +102,7 @@ optional = [
     "numba>=0.57.1",
     "zarr>=2.12.0", # needed by `builtins` (dask.array.from_zarr) to open zarr
 ]
-testing = [
+test = [
     "babel>=2.9.0",
     "fsspec>=2023.10.0",
     "hypothesis>=6.8.0",
@@ -119,13 +120,13 @@ testing = [
     "tensorstore>=0.1.13",
     "virtualenv>=20.17",
     "xarray>=0.16.2",
-    "zarr>=2.12.0",
+    "zarr>=2.12.0, <3.0.0",
     "IPython>=7.25.0",
     "qtconsole>=4.5.1",
     "rich>=12.0.0",
     "napari-plugin-manager >=0.1.0a2, <0.2.0",
 ]
-testing_extra = [
+test_extra = [
     "torch>=1.7",
 ]
 release = [
@@ -140,7 +141,7 @@ dev = [
     "check-manifest>=0.42",
     "pre-commit>=2.9.0",
     "pydantic[dotenv]",
-    "napari_plot[testing]",
+    "napari_plot[test]",
 ]
 build = [
     "ruff",
