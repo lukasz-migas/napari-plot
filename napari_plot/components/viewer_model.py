@@ -23,8 +23,7 @@ from napari.utils._register import create_func as create_add_method
 from napari.utils.colormaps import ensure_colormap
 from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
-from napari.utils.misc import is_sequence
-from napari.utils.misc import camel_to_snake
+from napari.utils.misc import camel_to_snake, is_sequence
 from napari.utils.mouse_bindings import MousemapProvider
 
 from napari_plot import layers as np_layers

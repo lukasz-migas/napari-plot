@@ -22,8 +22,7 @@ from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
-from qtpy.QtGui import QGuiApplication
-from qtpy.QtGui import QFocusEvent
+from qtpy.QtGui import QFocusEvent, QGuiApplication
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 

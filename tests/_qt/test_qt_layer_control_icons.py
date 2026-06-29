@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
-from napari.layers import Shapes
 from napari._qt.layer_controls.qt_shapes_controls import QtShapesControls
+from napari.layers import Shapes
 from qtpy.QtGui import QColor
 from qtpy.QtWidgets import QPushButton
 
