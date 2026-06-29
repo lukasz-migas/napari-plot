@@ -32,7 +32,8 @@ class VispyInfLineLayer(VispyBaseLayer):
         self.reset()
         self._on_data_change()
 
-    def _on_adding_change(self, _event=None):
+    def _on_adding_change(self, _event=None) -> None:
+        """Update the temporary line shown while adding a new line."""
         # update temporary
         pos, orientation = self.layer._creating_value
         color = self.layer.current_color
@@ -51,56 +52,41 @@ class VispyInfLineLayer(VispyBaseLayer):
 
     def _on_remove_change(self, event) -> None:
         """Remove lines."""
-        to_remove = event.value
-        for index in to_remove:
-            self.node.remove(index)
+        self._update_lines_visual()
+
+    def _on_appearance_change(self, _event=None) -> None:
+        """Change the appearance of the data."""
+        self._update_lines_visual()
+
+    def _on_width_change(self, _event=None) -> None:
+        """Change the line width."""
+        self.node.lines_visual.line_width = self.layer.width
+        self.node.horizontal_visual.line_width = self.layer.width
+        self.node.vertical_visual.line_width = self.layer.width
         self.node.update()
 
-    def _on_appearance_change(self, _event=None):
-        """Change the appearance of the data"""
-        pos, _orientation, color = self.layer._data_view.get_simple_lines_and_colors()
-        selected = self.layer.selected_data
-        for i in range(len(pos)):
-            self.node._subvisuals[3 + i].set_data(
-                pos=pos[i],
-                color=self.layer._highlight_color if i in selected else color[i],
-            )
+    def _on_data_change(self, _event=None) -> None:
+        """Set data."""
+        self._update_lines_visual()
 
-    def _on_width_change(self, _event=None):
-        """Change the appearance of the data"""
-        for visual in self.node._subvisuals[3:]:
-            visual.line_width = self.layer.width
-        self.node.update()
-
-    def _on_data_change(self, _event=None):
-        """Set data"""
+    def _update_lines_visual(self) -> None:
+        """Update the batched visual with current line data and highlight colors."""
         pos, orientation, color = self.layer._data_view.get_simple_lines_and_colors()
-
-        # add new visuals
         selected = self.layer.selected_data
-        n_in_visual = len(self.node._subvisuals) - 3
-        added = []
-        if n_in_visual < len(pos):
-            for i in range(n_in_visual, len(pos)):
-                self.node.create(
-                    pos[i],
-                    color=self.layer._highlight_color if i in selected else color[i],
-                    vertical=orientation[i] == 0,
-                )
-                added.append(i)
-
-        # update position and color
-        for i in range(len(pos)):
-            # was just added so no need to update
-            if i in added:
-                continue
-            self.node._subvisuals[3 + i].set_data(
-                pos=pos[i],
-                color=self.layer._highlight_color if i in selected else color[i],
-            )
+        if selected:
+            color = color.copy()
+            for index in selected:
+                if index < len(color):
+                    color[index] = self.layer._highlight_color
+        self.node.lines_visual.set_data(
+            pos=pos,
+            orientation=orientation,
+            color=color,
+            width=self.layer.width,
+        )
         self.node.update()
 
-    def _on_highlight_change(self, _event=None):
+    def _on_highlight_change(self, _event=None) -> None:
         """Highlight."""
         # TODO: this is actually quite dumb since it will constantly update the highlight
         self._on_appearance_change()
@@ -116,7 +102,11 @@ class VispyInfLineLayer(VispyBaseLayer):
         self.node.select_box.set_data(pos=pos, color=edge_color, width=width)
         self.node.update()
 
-    def close(self):
+    def close(self) -> None:
         """Vispy visual is closing."""
-        self.node.remove_all()
+        self.node.lines_visual.set_data(
+            pos=np.zeros(0, dtype=np.float32),
+            orientation=np.zeros(0, dtype=np.float32),
+            color=np.zeros((0, 4), dtype=np.float32),
+        )
         super().close()
