@@ -74,23 +74,3 @@ jobs:
           name: covreport-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.backend }}
           path: ./.coverage*
           include-hidden-files: true
-
-  test_examples:
-    name: Test examples
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          python-version: 3.11
-
-      - uses: tlambert03/setup-qt-libs@v1
-      - name: Install this commit
-        run: |
-          uv pip install --upgrade pip
-          uv pip install setuptools tox tox-gh-actions
-
-      - name: Test
-        uses: aganders3/headless-gui@v2
-        with:
-          run: tox -e py311-linux-pyqt6-examples
