@@ -40,19 +40,6 @@ jobs:
           - os: windows-latest
             python-version: "3.10"
             backend: pyside2
-          - os: windows-latest
-            python-version: "3.11"
-            backend: pyside6
-          - os: windows-latest
-            python-version: "3.12"
-            backend: pyqt6
-          # MacOS legacy Qt
-          - os: macos-13
-            python-version: "3.10"
-            backend: pyside2
-          - os: macos-13
-            python-version: "3.10"
-            backend: pyqt5
 
     steps:
       - uses: actions/checkout@v6
