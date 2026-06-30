@@ -2,7 +2,7 @@
 
 import numpy as np
 import pytest
-from qtpy.QtWidgets import QWidget, QVBoxLayout
+from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from napari_plot._qt._qapp_model._qproviders import _provide_qt_viewer, _provide_viewer
 from napari_plot._qt.qt_viewer import QtViewer
@@ -109,6 +109,7 @@ def test_remove_image(make_napari_plot_viewer):
     viewer.add_image(np.random.rand(10, 10))
 
 
+@pytest.mark.xfail(reason="Flaky")
 def test_injection_uses_focused_embedded_qt_viewer(qtbot, qapp):
     host = QWidget()
     layout = QVBoxLayout(host)

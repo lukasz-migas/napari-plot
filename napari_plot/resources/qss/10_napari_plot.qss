@@ -1,4 +1,8 @@
 /* ----------------- Widgets ----------------- */
+QtModePushButton {
+  padding: 0px;
+}
+
 QLabel#logo_silhouette_plot {
   image: url("theme_{{ id }}:/logo_silhouette_plot.svg");
 }

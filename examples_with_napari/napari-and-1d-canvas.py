@@ -11,7 +11,7 @@ from napari_plot._qt.qt_viewer import QtViewer
 viewer = napari.view_image(data.astronaut(), rgb=True)
 
 
-viewer1d = napari_plot.ViewerModel1D()
+viewer1d = napari_plot.ViewerModel()
 widget = QtViewer(viewer1d)
 viewer.window.add_dock_widget(widget, area="bottom", name="Line Widget")
 

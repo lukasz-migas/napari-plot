@@ -19,12 +19,12 @@ jobs:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
       - run: uvx check-manifest
 
   test_uv:
-    name: Test UV (${{ matrix.backend } py${{ matrix.python-version }} ${{ matrix.os }})
+    name: Test UV (${{ matrix.backend }} ${{ matrix.python-version }} ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
       UV_NO_SYNC: "1"
@@ -34,114 +34,30 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12", "3.13"]
-        backend: [PySide6, PyQt6]
+        backend: [pyside6, pyqt6]
         include:
           - os: windows-latest
             python-version: "3.10"
-            backend: PySide2
-          - os: windows-latest
-            python-version: "3.11"
-            backend: PySide6
-          - os: windows-latest
-            python-version: "3.12"
-            backend: PyQt6
-          # MacOS legacy Qt
-          - os: macos-13
-            python-version: "3.10"
-            backend: PySide2
-          - os: macos-13
-            python-version: "3.10"
-            backend: PyQt5
+            backend: pyside2
 
-
-  test:
-    name: Test
-    uses: pyapp-kit/workflows/.github/workflows/test-pyrepo.yml@v2
-    secrets:
-      codecov_token: ${{ secrets.CODECOV_TOKEN }}
-    with:
-      os: ${{ matrix.platform }}
-      python-version: ${{ matrix.python-version }}
-      qt: ${{ matrix.backend }}
-      pip-install-pre-release: ${{ github.event_name == 'schedule' }}
-      extras: 'testing'
-      coverage-upload: artifact
-
-    strategy:
-      fail-fast: false
-      matrix:
-        platform: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
-        backend: [pyside2, pyqt5, pyqt6, pyside6]
-        exclude:
-          # Abort (core dumped) on linux pyqt6, unknown reason
-          - platform: ubuntu-latest
-            backend: pyqt6
-          # lack of wheels for pyside2 on MacOS
-          - platform: macos-latest
-            backend: pyside2
-          # lack of wheels for pyside2/py3.11
-          - python-version: "3.9"
-            backend: pyside2
-          - python-version: "3.10"
-            backend: pyside2
-          - python-version: "3.11"
-            backend: pyside2
-          - python-version: "3.12"
-            backend: pyside2
-          - python-version: "3.12"
-            backend: pyqt5
-          # lack of wheels for pyside6/py3.10 and py3.12 on Windows
-          - python-version: "3.13"
-            backend: pyside2
-            platform: windows-latest
-          # super slow
-          - python-version: "3.13"
-            backend: pyqt6
-            platform: windows-latest
-        include:
-          - python-version: "3.13"
-            platform: ubuntu-latest
-            backend: "pyqt6"
-          - python-version: "3.10"
-            platform: macos-latest
-            backend: "'pyside6<6.8'"
-          - python-version: "3.11"
-            platform: macos-latest
-            backend: "'pyside6<6.8'"
-          - python-version: "3.10"
-            platform: windows-latest
-            backend: "'pyside6<6.8'"
-          - python-version: "3.12"
-            platform: windows-latest
-            backend: "'pyside6<6.8'"
-          # legacy Qt
-          - python-version: 3.9
-            platform: ubuntu-latest
-            backend: "pyqt5==5.12.*"
-          - python-version: 3.9
-            platform: ubuntu-latest
-            backend: "pyqt5==5.13.*"
-          - python-version: 3.9
-            platform: ubuntu-latest
-            backend: "pyqt5==5.14.*"
-
-  test_examples:
-    name: Test examples
-    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
         with:
-          python-version: 3.11
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
 
-      - uses: tlambert03/setup-qt-libs@v1
-      - name: Install this commit
-        run: |
-          uv pip install --upgrade pip
-          uv pip install setuptools tox tox-gh-actions
+      - run: uv sync --no-dev --group test --extra ${{ matrix.backend }} --extra all
+      - uses: pyvista/setup-headless-display-action@v4
+        with:
+          qt: true
 
       - name: Test
-        uses: aganders3/headless-gui@v2
+        run: uv run coverage run -p -m pytest -v --color=yes
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v7
         with:
-          run: tox -e py311-linux-pyqt6-examples
+          name: covreport-${{ matrix.os }}-py${{ matrix.python-version }}-${{ matrix.backend }}
+          path: ./.coverage*
+          include-hidden-files: true

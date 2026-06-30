@@ -24,7 +24,7 @@ shapes_layer = viewer.add_shapes(
 )
 shapes_layer.mode = "select"
 
-viewer1d = napari_plot.ViewerModel1D()
+viewer1d = napari_plot.ViewerModel()
 viewer1d.axis.y_label = "Intensity"
 viewer1d.axis.x_label = ""
 viewer1d.text_overlay.visible = True
