@@ -155,6 +155,43 @@ docs = [
     "markdown-changelog"
 ]
 
+[dependency-groups]
+test = [
+    "babel>=2.9.0",
+    "fsspec>=2023.10.0",
+    "hypothesis>=6.8.0",
+    "lxml[html_clean]>5",
+    "matplotlib >= 3.6.1",
+    "numba>=0.57.1",
+    "pooch>=1.6.0",
+    "coverage>7",
+    "docstring_parser>=0.15",
+    "pretend>=1.0.9",
+    "pyautogui>=0.9.54",
+    "pytest-qt>=4.3.1",
+    "pytest-pretty>=1.1.0",
+    "pytest>=8.1.0",
+    "tensorstore>=0.1.13",
+    "virtualenv>=20.17",
+    "xarray>=0.16.2",
+    "zarr>=2.12.0, <3.0.0",
+    "IPython>=7.25.0",
+    "qtconsole>=4.5.1",
+    "rich>=12.0.0",
+    "napari-plugin-manager >=0.1.0a2, <0.2.0",
+]
+test_extra = [
+    "torch>=1.7",
+]
+dev = [
+    "ruff",
+    "pdbpp",
+    "check-manifest>=0.42",
+    "pre-commit>=2.9.0",
+    "pydantic",
+    "napari_plot[test]",
+]
+
 #[project.entry-points.pytest11]
 #napari_plot = "napari_plot.utils._testsupport"
 
