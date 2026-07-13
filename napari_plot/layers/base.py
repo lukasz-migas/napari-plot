@@ -5,7 +5,7 @@ import warnings
 from contextlib import contextmanager
 
 import numpy as np
-from napari.layers.base import Layer
+from napari.layers.base import ActionType, Layer
 from napari.utils.events import EmitterGroup
 
 
@@ -56,9 +56,9 @@ class LayerMixin:
     def _get_ndim(self):
         return 2
 
-    def _emit_new_data(self):
+    def _emit_new_data(self, action_type: ActionType = ActionType.CHANGING):
         self._update_dims()
-        self.events.data(value=self.data)
+        self.events.data(value=self.data, action=action_type)
         self._on_editable_changed()
 
     @contextmanager

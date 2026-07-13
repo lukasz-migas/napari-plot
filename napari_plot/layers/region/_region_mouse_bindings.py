@@ -101,6 +101,7 @@ def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         yield
 
         # on move
+        pos = None
         while event.type == "mouse_move":
             current_coordinates = layer.world_to_data(event.position)
             if orientation == Orientation.HORIZONTAL:
@@ -111,6 +112,8 @@ def edit(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
             yield
 
         # on release
+        if pos is not None:
+            layer.move(index, pos, orientation=orientation, finished=True)
         layer._set_highlight()
         layer._update_thumbnail()
         layer.mode = "select"
