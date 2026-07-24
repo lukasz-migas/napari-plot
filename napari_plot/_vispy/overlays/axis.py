@@ -50,6 +50,11 @@ class VispyAxisVisual:
         """Change node size"""
         self.node.axis.tick_font_size = self._viewer.axis.tick_size
         self.node.axis.axis_font_size = self._viewer.axis.label_size
+        self._refresh_tick_layout()
+
+    def _refresh_tick_layout(self) -> None:
+        """Recalculate tick positions and labels on the next draw."""
+        self.node.axis._need_update = True
         self.node.axis.update()
 
     def on_tick_formatter_change(self, _evt=None):
@@ -101,6 +106,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         """Change tick formatter."""
         if self._viewer.axis.x_tick_formatter is not None:
             self.node.axis.ticker.tick_format_func = self._viewer.axis.x_tick_formatter
+            self._refresh_tick_layout()
 
 
 class VispyYAxisVisual(VispyAxisVisual):
@@ -135,3 +141,4 @@ class VispyYAxisVisual(VispyAxisVisual):
         """Change tick formatter."""
         if self._viewer.axis.y_tick_formatter is not None:
             self.node.axis.ticker.tick_format_func = self._viewer.axis.y_tick_formatter
+            self._refresh_tick_layout()

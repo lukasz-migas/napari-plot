@@ -7,9 +7,15 @@ import typing as ty
 
 import numpy as np
 import vispy.visuals.axis
+from qtpy.QtGui import QFont, QFontMetricsF
 from vispy.visuals.axis import Ticker as _Ticker, _get_ticks_talbot
 
 default_tick_formatter = lambda x: "%g" % x  # noqa
+
+_INITIAL_TICK_DENSITY = 2.0
+_DENSITY_REDUCTION = 0.75
+_MAX_DENSITY_PASSES = 8
+_MIN_LABEL_GAP = 4.0
 
 
 def _accepts_tick_spacing(formatter: ty.Callable[..., str]) -> bool:
@@ -36,6 +42,101 @@ def _format_ticks(
     return [formatter(float(value)) for value in values]
 
 
+def _visible_tick_mask(values: np.ndarray, domain: np.ndarray) -> np.ndarray:
+    """Return ticks that fall within the visible domain."""
+    scale = float(domain[1] - domain[0])
+    if scale == 0:
+        return np.ones(len(values), dtype=bool)
+    fractions = (values - domain[0]) / scale
+    return (fractions > -0.0001) & (fractions < 1.0001)
+
+
+def _tick_label_extents(axis: ty.Any, labels: list[str]) -> np.ndarray:
+    """Measure label extents projected along the axis in logical pixels."""
+    text = axis._text
+    font = QFont(text.face)
+    font.setPointSizeF(float(axis.tick_font_size))
+    font.setBold(bool(text.bold))
+    font.setItalic(bool(text.italic))
+    metrics = QFontMetricsF(font)
+
+    font_dpi = float(metrics.fontDpi())
+    dpi_scale = float(axis.transforms.dpi) / font_dpi if font_dpi > 0 else 1.0
+    widths = np.asarray([metrics.horizontalAdvance(label) for label in labels], dtype=float)
+    height = float(metrics.height())
+
+    axis_vector = np.asarray(axis.pos[1] - axis.pos[0], dtype=float)
+    axis_length = float(np.linalg.norm(axis_vector))
+    if axis_length == 0:
+        return np.zeros(len(labels), dtype=float)
+    direction = np.abs(axis_vector[:2]) / axis_length
+    return (direction[0] * widths + direction[1] * height) * dpi_scale
+
+
+def _tick_labels_overlap(
+    axis: ty.Any,
+    values: np.ndarray,
+    labels: list[str],
+    domain: np.ndarray,
+) -> bool:
+    """Return whether adjacent visible tick labels overlap."""
+    visible = _visible_tick_mask(values, domain)
+    visible &= np.asarray([bool(label) for label in labels], dtype=bool)
+    if np.count_nonzero(visible) < 2:
+        return False
+
+    visible_values = values[visible]
+    visible_labels = [label for label, is_visible in zip(labels, visible, strict=True) if is_visible]
+    extents = _tick_label_extents(axis, visible_labels)
+    axis_length = float(np.linalg.norm(axis.pos[1] - axis.pos[0]))
+    scale = float(domain[1] - domain[0])
+    if scale == 0:
+        return False
+    positions = (visible_values - domain[0]) / scale * axis_length
+    gaps = np.abs(np.diff(positions))
+    required_gaps = (extents[:-1] + extents[1:]) / 2 + _MIN_LABEL_GAP
+    return bool(np.any(gaps < required_gaps))
+
+
+def _thin_overlapping_labels(
+    axis: ty.Any,
+    major: np.ndarray,
+    formatter: ty.Callable[..., str],
+    domain: np.ndarray,
+) -> list[str]:
+    """Deterministically hide labels until the remaining labels fit."""
+    base_step = float(abs(major[1] - major[0]))
+    visible_indices = np.flatnonzero(_visible_tick_mask(major, domain))
+    if len(visible_indices) == 0:
+        return [""] * len(major)
+
+    for stride in range(2, len(major) + 1):
+        labels = _format_ticks(formatter, major, base_step * stride)
+        phase = int(visible_indices[0] % stride)
+        labels = [label if index % stride == phase else "" for index, label in enumerate(labels)]
+        if not _tick_labels_overlap(axis, major, labels, domain):
+            return labels
+    return [""] * len(major)
+
+
+def _get_major_ticks(
+    axis: ty.Any,
+    formatter: ty.Callable[..., str],
+    domain: np.ndarray,
+    n_inches: float,
+) -> tuple[np.ndarray, list[str]]:
+    """Return nice major ticks with labels adapted to the available space."""
+    density = _INITIAL_TICK_DENSITY
+    for _ in range(_MAX_DENSITY_PASSES):
+        major = _get_ticks_talbot(domain[0], domain[1], n_inches, density)
+        spacing = float(abs(major[1] - major[0]))
+        labels = _format_ticks(formatter, major, spacing)
+        if not _tick_labels_overlap(axis, major, labels, domain):
+            return major, labels
+        density *= _DENSITY_REDUCTION
+    return major, _thin_overlapping_labels(axis, major, formatter, domain)
+
+
 class Ticker(_Ticker):
     """Monkey-patched Ticker class"""
 
@@ -60,9 +161,8 @@ class Ticker(_Ticker):
             length = self.axis.pos[1] - self.axis.pos[0]  # in logical coords
             n_inches = np.sqrt(np.sum(length**2)) / transforms.dpi
 
-            major = _get_ticks_talbot(domain[0], domain[1], n_inches, 2)
+            major, labels = _get_major_ticks(self.axis, self.tick_format_func, domain, n_inches)
             majstep = major[1] - major[0]
-            labels = _format_ticks(self.tick_format_func, major, float(abs(majstep)))
             minor = []
             minstep = majstep / (minor_num + 1)
             minstart = 0 if self.axis._stop_at_major[0] else -1
@@ -72,7 +172,9 @@ class Ticker(_Ticker):
                 minor.extend(np.linspace(maj + minstep, maj + majstep - minstep, minor_num))
             major_frac = (major - offset) / scale
             minor_frac = (np.array(minor) - offset) / scale
-            major_frac = major_frac[::-1] if flip else major_frac
+            if flip:
+                major_frac = 1 - major_frac
+                minor_frac = 1 - minor_frac
             use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
             major_frac = major_frac[use_mask]
             labels = [label for index, label in enumerate(labels) if use_mask[index]]
