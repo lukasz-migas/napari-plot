@@ -42,7 +42,7 @@ from napari_plot.components._viewer_utils import (
     get_layers_y_region_extent,
     get_range_extent,
 )
-from napari_plot.components.axis import Axis
+from napari_plot.components.axis import Axis, AxisScale
 from napari_plot.components.camera import Camera
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
@@ -289,7 +289,58 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         xmin, xmax = get_min_max(extent[:, 1])
         if self.camera.x_range is not None:
             xmin, xmax = self.camera.x_range
+        xmin, xmax = self._sanitize_log_extent(xmin, xmax, "x")
+        ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
         return xmin, xmax, ymin, ymax
+
+    def _sanitize_log_extent(
+        self,
+        lower: float,
+        upper: float,
+        axis: ty.Literal["x", "y"],
+    ) -> tuple[float, float]:
+        """Return positive limits for a logarithmic axis."""
+        scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
+        if scale is AxisScale.LINEAR:
+            return lower, upper
+
+        positive_min = self._get_positive_axis_min(axis, upper)
+        lower = lower if lower > 0 else positive_min
+        upper = upper if upper > lower else lower * 10.0
+        return lower, upper
+
+    def _get_positive_axis_min(
+        self,
+        axis: ty.Literal["x", "y"],
+        fallback_max: float,
+    ) -> float:
+        """Return the smallest positive layer coordinate on an axis."""
+        candidates: list[float] = []
+        world_axis = 1 if axis == "x" else 0
+        for layer in self.layers:
+            if not layer.visible:
+                continue
+            values = getattr(layer, axis, None)
+            if values is None and hasattr(layer, "_data_view"):
+                values = getattr(layer._data_view, f"{axis}s", None)
+            if values is not None:
+                arrays = values if isinstance(values, (list, tuple)) else [values]
+                for value in arrays:
+                    array = np.asarray(value, dtype=float)
+                    positive = array[np.isfinite(array) & (array > 0)]
+                    if positive.size:
+                        candidates.append(float(np.min(positive)))
+                continue
+
+            layer_extent = layer.extent.world[:, world_axis]
+            if np.isfinite(layer_extent[0]) and layer_extent[0] > 0:
+                candidates.append(float(layer_extent[0]))
+
+        if candidates:
+            return min(candidates)
+        if np.isfinite(fallback_max) and fallback_max > 0:
+            return float(fallback_max) * 1e-6
+        return 1.0
 
     def _get_y_range_extent_for_x(
         self,
@@ -336,6 +387,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     ):
         """Set view on specified x-axis"""
         ymin, ymax = self._get_y_range_extent_for_x(xmin, xmax, ymin, y_multiplier=y_multiplier, auto_scale=auto_scale)
+        xmin, xmax = self._sanitize_log_extent(xmin, xmax, "x")
+        ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
         self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_view(self, _event: Event = None) -> None:
@@ -352,6 +405,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     def set_y_view(self, ymin: float, ymax: float):
         """Set view on specified y-axis"""
         xmin, xmax, _, _ = self._get_rect_extent()
+        ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
         self.camera.set_rect(xmin, xmax, ymin, ymax)
 
     def reset_y_view(self, _event=None):

@@ -11,6 +11,7 @@ import napari_plot._vispy.components.axis as axis_module
 from napari_plot._vispy.components.axis import (
     Ticker,
     _format_ticks,
+    _get_log_ticks,
     _get_major_ticks,
     _tick_label_extents,
     _tick_labels_overlap,
@@ -23,13 +24,14 @@ def _make_axis(
     length: float = 1275.0,
     tick_font_size: float = 24.0,
     vertical: bool = False,
+    scale_type: str = "linear",
 ) -> SimpleNamespace:
     """Create the minimal axis interface needed by the custom ticker."""
     end = [0.0, length] if vertical else [length, 0.0]
     return SimpleNamespace(
         domain=np.asarray(domain),
         pos=np.asarray([[0.0, 0.0], end]),
-        scale_type="linear",
+        scale_type=scale_type,
         transforms=SimpleNamespace(dpi=96.0),
         _stop_at_major=(False, False),
         _text=SimpleNamespace(face="Arial", bold=False, italic=False),
@@ -196,3 +198,55 @@ def test_ticker_thins_labels_when_lower_density_still_overlaps(monkeypatch) -> N
     np.testing.assert_allclose(major, major_ticks)
     assert sum(bool(label) for label in labels) == 1
     assert not _tick_labels_overlap(axis, major, labels, axis.domain)
+
+
+def test_log_ticker_places_decades_at_equal_intervals(monkeypatch) -> None:
+    monkeypatch.setattr(axis_module, "_tick_label_extents", lambda _axis, labels: np.zeros(len(labels)))
+    axis = _make_axis(domain=(0.0, 3.0), scale_type="logarithmic")
+
+    fractions, minor, labels = Ticker(axis)._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [0.0, 1 / 3, 2 / 3, 1.0])
+    assert labels == ["1", "10", "100", "1000"]
+    assert np.any(np.isclose(minor, np.log10(2.0) / 3.0))
+    assert np.all((minor >= 0.0) & (minor <= 1.0))
+
+
+def test_log_ticker_preserves_reversed_domain(monkeypatch) -> None:
+    monkeypatch.setattr(axis_module, "_tick_label_extents", lambda _axis, labels: np.zeros(len(labels)))
+    axis = _make_axis(domain=(3.0, 0.0), scale_type="logarithmic")
+
+    fractions, _minor, labels = Ticker(axis)._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [1.0, 2 / 3, 1 / 3, 0.0])
+    assert labels == ["1", "10", "100", "1000"]
+
+
+def test_log_ticker_uses_subdivisions_within_one_decade(monkeypatch) -> None:
+    monkeypatch.setattr(axis_module, "_tick_label_extents", lambda _axis, labels: np.zeros(len(labels)))
+    domain = np.log10(np.asarray([2.0, 8.0]))
+    axis = _make_axis(domain=tuple(domain), scale_type="logarithmic")
+
+    major, _minor, labels = _get_log_ticks(axis, axis_module.default_tick_formatter, domain)
+    visible = axis_module._visible_tick_mask(major, domain)
+
+    np.testing.assert_allclose(np.power(10.0, major[visible]), [2.0, 5.0])
+    assert [label for label, keep in zip(labels, visible, strict=True) if keep] == ["2", "5"]
+
+
+def test_log_ticker_uses_nice_values_for_a_narrow_range(monkeypatch) -> None:
+    monkeypatch.setattr(axis_module, "_tick_label_extents", lambda _axis, labels: np.zeros(len(labels)))
+    domain = np.log10(np.asarray([2.1, 2.2]))
+    axis = _make_axis(domain=tuple(domain), scale_type="logarithmic")
+    spacings: list[float | None] = []
+
+    def formatter(value: float, *, tick_spacing: float | None = None) -> str:
+        spacings.append(tick_spacing)
+        return f"{value:g}"
+
+    major, _minor, labels = _get_log_ticks(axis, formatter, domain)
+    visible = axis_module._visible_tick_mask(major, domain)
+
+    assert np.count_nonzero(visible) >= 2
+    assert all(label for label, keep in zip(labels, visible, strict=True) if keep)
+    assert all(spacing is not None for spacing in spacings)

@@ -34,12 +34,31 @@ def _accepts_tick_spacing(formatter: ty.Callable[..., str]) -> bool:
 def _format_ticks(
     formatter: ty.Callable[..., str],
     values: np.ndarray,
-    tick_spacing: float,
+    tick_spacing: float | None,
 ) -> list[str]:
     """Format tick values, providing spacing to formatters that request it."""
     if _accepts_tick_spacing(formatter):
         return [formatter(float(value), tick_spacing=tick_spacing) for value in values]
     return [formatter(float(value)) for value in values]
+
+
+def _thin_label_sequence(
+    axis: ty.Any,
+    positions: np.ndarray,
+    labels: list[str],
+    domain: np.ndarray,
+) -> list[str]:
+    """Hide labels at a stable stride until the remaining labels fit."""
+    visible_indices = np.flatnonzero(_visible_tick_mask(positions, domain))
+    if len(visible_indices) == 0:
+        return [""] * len(labels)
+
+    for stride in range(2, len(labels) + 1):
+        phase = int(visible_indices[0] % stride)
+        thinned = [label if index % stride == phase else "" for index, label in enumerate(labels)]
+        if not _tick_labels_overlap(axis, positions, thinned, domain):
+            return thinned
+    return [""] * len(labels)
 
 
 def _visible_tick_mask(values: np.ndarray, domain: np.ndarray) -> np.ndarray:
@@ -137,6 +156,57 @@ def _get_major_ticks(
     return major, _thin_overlapping_labels(axis, major, formatter, domain)
 
 
+def _get_log_ticks(
+    axis: ty.Any,
+    formatter: ty.Callable[..., str],
+    domain: np.ndarray,
+) -> tuple[np.ndarray, np.ndarray, list[str]]:
+    """Return base-10 logarithmic major ticks, minor ticks, and labels."""
+    start, stop = float(domain[0]), float(domain[1])
+    major = np.arange(np.ceil(start), np.floor(stop) + 1.0)
+    if np.count_nonzero(_visible_tick_mask(major, domain)) < 2:
+        decades = np.arange(np.floor(start) - 1.0, np.ceil(stop) + 1.0)
+        subdivisions = np.log10(np.asarray([1.0, 2.0, 5.0]))
+        major = np.sort((decades[:, None] + subdivisions).ravel())
+
+    if np.count_nonzero(_visible_tick_mask(major, domain)) < 2:
+        raw_domain = np.power(10.0, domain)
+        length = np.linalg.norm(axis.pos[1] - axis.pos[0])
+        n_inches = float(length / axis.transforms.dpi)
+        density = _INITIAL_TICK_DENSITY
+        for _ in range(_MAX_DENSITY_PASSES):
+            raw_major = _get_ticks_talbot(*raw_domain, n_inches, density)
+            raw_major = raw_major[raw_major > 0]
+            major = np.log10(raw_major)
+            spacing = float(abs(raw_major[1] - raw_major[0]))
+            labels = _format_ticks(formatter, raw_major, spacing)
+            if not _tick_labels_overlap(axis, major, labels, domain):
+                break
+            density *= _DENSITY_REDUCTION
+        else:
+            labels = _thin_label_sequence(axis, major, labels, domain)
+
+        minor_values = np.concatenate(
+            [
+                np.linspace(left, right, 6)[1:-1]
+                for left, right in zip(raw_major[:-1], raw_major[1:], strict=True)
+            ]
+        )
+        return major, np.log10(minor_values), labels
+
+    values = np.power(10.0, major)
+    labels = _format_ticks(formatter, values, None)
+    if _tick_labels_overlap(axis, major, labels, domain):
+        labels = _thin_label_sequence(axis, major, labels, domain)
+
+    decades = np.arange(np.floor(start) - 1.0, np.ceil(stop) + 1.0)
+    subdivisions = np.log10(np.arange(2.0, 10.0))
+    minor = np.sort((decades[:, None] + subdivisions).ravel())
+    for position in major:
+        minor = minor[~np.isclose(minor, position)]
+    return major, minor, labels
+
+
 class Ticker(_Ticker):
     """Monkey-patched Ticker class"""
 
@@ -179,7 +249,25 @@ class Ticker(_Ticker):
             major_frac = major_frac[use_mask]
             labels = [label for index, label in enumerate(labels) if use_mask[index]]
             minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
-        elif self.axis.scale_type == "logarithmic" or self.axis.scale_type == "power":
+        elif self.axis.scale_type == "logarithmic":
+            domain = np.asarray(self.axis.domain, dtype=float)
+            if domain[1] < domain[0]:
+                flip = True
+                domain = domain[::-1]
+            else:
+                flip = False
+            major, minor, labels = _get_log_ticks(self.axis, self.tick_format_func, domain)
+            scale = domain[1] - domain[0]
+            major_frac = (major - domain[0]) / scale
+            minor_frac = (minor - domain[0]) / scale
+            if flip:
+                major_frac = 1 - major_frac
+                minor_frac = 1 - minor_frac
+            use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
+            major_frac = major_frac[use_mask]
+            labels = [label for index, label in enumerate(labels) if use_mask[index]]
+            minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
+        elif self.axis.scale_type == "power":
             return NotImplementedError
         return major_frac, minor_frac, labels
 
