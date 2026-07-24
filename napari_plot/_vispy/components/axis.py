@@ -1,10 +1,39 @@
 """Reimplementation of axis-visual"""
 
+from __future__ import annotations
+
+import inspect
+import typing as ty
+
 import numpy as np
 import vispy.visuals.axis
 from vispy.visuals.axis import Ticker as _Ticker, _get_ticks_talbot
 
 default_tick_formatter = lambda x: "%g" % x  # noqa
+
+
+def _accepts_tick_spacing(formatter: ty.Callable[..., str]) -> bool:
+    """Return whether a formatter opts into tick-spacing context."""
+    try:
+        parameters = inspect.signature(formatter).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(
+        parameter.kind is inspect.Parameter.VAR_KEYWORD
+        or (parameter.name == "tick_spacing" and parameter.kind is not inspect.Parameter.POSITIONAL_ONLY)
+        for parameter in parameters
+    )
+
+
+def _format_ticks(
+    formatter: ty.Callable[..., str],
+    values: np.ndarray,
+    tick_spacing: float,
+) -> list[str]:
+    """Format tick values, providing spacing to formatters that request it."""
+    if _accepts_tick_spacing(formatter):
+        return [formatter(float(value), tick_spacing=tick_spacing) for value in values]
+    return [formatter(float(value)) for value in values]
 
 
 class Ticker(_Ticker):
@@ -32,8 +61,8 @@ class Ticker(_Ticker):
             n_inches = np.sqrt(np.sum(length**2)) / transforms.dpi
 
             major = _get_ticks_talbot(domain[0], domain[1], n_inches, 2)
-            labels = [self.tick_format_func(x) for x in major]
             majstep = major[1] - major[0]
+            labels = _format_ticks(self.tick_format_func, major, float(abs(majstep)))
             minor = []
             minstep = majstep / (minor_num + 1)
             minstart = 0 if self.axis._stop_at_major[0] else -1
