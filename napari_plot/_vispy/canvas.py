@@ -201,8 +201,8 @@ class VispyCanvas:
         y_base = 10.0 if self.viewer.axis.y_scale is AxisScale.LOG else 0.0
         if self.viewer.layers:
             self.viewer._on_update_extent()
-            self.camera.extent = self.viewer.camera.extent
             self.viewer.reset_view()
+            self.camera.extent = self.viewer.camera.extent
         self._data_scene.transform = LogTransform((x_base, y_base, 0.0))
         if self.x_axis is not None:
             self.x_axis.node._view_changed()
