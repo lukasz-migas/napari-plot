@@ -7,7 +7,7 @@ import warnings
 from copy import copy
 
 import numpy as np
-from napari.layers.base import no_op
+from napari.layers.base import ActionType, no_op
 from napari.layers.utils.color_transformations import (
     ColorType,
     normalize_and_broadcast_colors,
@@ -232,7 +232,7 @@ class InfLine(BaseLayer):
 
         if n_new > 0:
             self._add_lines(data, orientation=orientation, color=color, z_index=z_index)
-            self.events.data(value=self.data)
+            self.events.data(value=self.data, action=ActionType.ADDED)
 
     def move(self, index: int, pos: float, orientation=None, finished: bool = False):
         """Move line to new location.
@@ -252,9 +252,9 @@ class InfLine(BaseLayer):
         if index > len(self.data):
             raise ValueError("Selected index is larger than total number of elements.")
         self._data_view.edit(index, data=pos, new_orientation=orientation)
-        self._emit_new_data()
+        self._emit_new_data(action_type=ActionType.CHANGING)
         if finished:
-            self.events.shifted(index=index)
+            self.events.shifted(index=index, action=ActionType.CHANGED)
 
     def _add_move(self, pos: float, *, orientation="vertical"):
         """Add a new line at the clicked position."""
@@ -569,7 +569,7 @@ class InfLine(BaseLayer):
         self.add(data, orientation=orientation, color=color, z_index=z_indices)
 
         self._update_dims()
-        self.events.data(value=self.data)
+        self.events.data(value=self.data, action=ActionType.CHANGED)
         self._on_editable_changed()
 
     @property
@@ -583,7 +583,7 @@ class InfLine(BaseLayer):
         to_remove = sorted(index, reverse=True)
         for ind in to_remove:
             self._data_view.remove(ind)
-        self.events.removed(value=to_remove)
+        self.events.removed(value=to_remove, action=ActionType.REMOVED)
         self.selected_data = set()
         self._emit_new_data()
 

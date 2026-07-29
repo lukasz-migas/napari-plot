@@ -2,6 +2,8 @@
 
 from vispy.scene import AxisWidget
 
+from napari_plot.components.axis import AxisScale
+
 
 class VispyAxisVisual:
     """Axes visual"""
@@ -50,6 +52,11 @@ class VispyAxisVisual:
         """Change node size"""
         self.node.axis.tick_font_size = self._viewer.axis.tick_size
         self.node.axis.axis_font_size = self._viewer.axis.label_size
+        self._refresh_tick_layout()
+
+    def _refresh_tick_layout(self) -> None:
+        """Recalculate tick positions and labels on the next draw."""
+        self.node.axis._need_update = True
         self.node.axis.update()
 
     def on_tick_formatter_change(self, _evt=None):
@@ -81,6 +88,8 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.x_tick_margin.connect(self._on_margin_change)
         self._viewer.axis.events.x_max_size.connect(self._on_max_size_change)
         self._viewer.axis.events.x_tick_formatter.connect(self.on_tick_formatter_change)
+        self._viewer.axis.events.x_scale.connect(self._on_scale_change)
+        self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
         """Change label"""
@@ -101,6 +110,14 @@ class VispyXAxisVisual(VispyAxisVisual):
         """Change tick formatter."""
         if self._viewer.axis.x_tick_formatter is not None:
             self.node.axis.ticker.tick_format_func = self._viewer.axis.x_tick_formatter
+            self._refresh_tick_layout()
+
+    def _on_scale_change(self, _evt=None) -> None:
+        """Update the x-axis tick layout scale."""
+        self.node.axis.scale_type = (
+            "logarithmic" if self._viewer.axis.x_scale is AxisScale.LOG else "linear"
+        )
+        self._refresh_tick_layout()
 
 
 class VispyYAxisVisual(VispyAxisVisual):
@@ -115,6 +132,8 @@ class VispyYAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.y_tick_margin.connect(self._on_margin_change)
         self._viewer.axis.events.y_max_size.connect(self._on_max_size_change)
         self._viewer.axis.events.y_tick_formatter.connect(self.on_tick_formatter_change)
+        self._viewer.axis.events.y_scale.connect(self._on_scale_change)
+        self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
         """Change label"""
@@ -135,3 +154,11 @@ class VispyYAxisVisual(VispyAxisVisual):
         """Change tick formatter."""
         if self._viewer.axis.y_tick_formatter is not None:
             self.node.axis.ticker.tick_format_func = self._viewer.axis.y_tick_formatter
+            self._refresh_tick_layout()
+
+    def _on_scale_change(self, _evt=None) -> None:
+        """Update the y-axis tick layout scale."""
+        self.node.axis.scale_type = (
+            "logarithmic" if self._viewer.axis.y_scale is AxisScale.LOG else "linear"
+        )
+        self._refresh_tick_layout()
