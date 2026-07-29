@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-import typing as ty
+from enum import StrEnum
 
 import numpy as np
-from napari._pydantic_compat import validator
 from napari.layers.shapes._mesh import Mesh
 from napari.layers.shapes._shapes_models import Path, Polygon, Rectangle
 from napari.utils.colormaps.standardize_color import transform_color
-from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import field_validator
 
 from napari_plot.utils._tool import Box
 
@@ -41,7 +40,8 @@ class MeshBaseTool(BaseTool):
     # private attributes
     _mesh: Mesh = Mesh(ndisplay=2)
 
-    @validator("position", pre=True, allow_reuse=True)
+    @field_validator("position", mode="before")
+    @classmethod
     def _validate_position(cls, v):
         assert len(v) == 4, "Incorrect number of elements passed to the BoxTool position value."
         x0, x1, y0, y1 = v
@@ -54,7 +54,7 @@ class MeshBaseTool(BaseTool):
         """Retrieve Mesh. Each time the instance of Mesh is accessed, it is updated with most recent box positions."""
         raise NotImplementedError("Must implement method")
 
-    def _add(self, box: ty.Union[Path, Polygon, Rectangle]):
+    def _add(self, box: Path | Polygon | Rectangle):
         # Add faces to mesh
         m = len(self._mesh.vertices)
         vertices = box._face_vertices
@@ -111,7 +111,8 @@ class BoxTool(MeshBaseTool):
         x0, x1, y0, y1 = self.position
         return np.asarray([[y0, x0], [y1, x0], [y1, x1], [y0, x1]])
 
-    @validator("color", pre=True, allow_reuse=True)
+    @field_validator("color", mode="before")
+    @classmethod
     def _coerce_color(cls, v):
         return transform_color(v)[0]
 
@@ -139,8 +140,9 @@ class PolygonTool(MeshBaseTool):
     data: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     auto_reset: bool = False
 
-    @validator("data", pre=True, allow_reuse=True)
-    def _validate_position(cls, v):
+    @field_validator("data", mode="before")
+    @classmethod
+    def _validate_data(cls, v):
         v = np.asarray(v)
         assert v.ndim == 2
         return v
@@ -154,7 +156,7 @@ class PolygonTool(MeshBaseTool):
             self._add(poly)
         return self._mesh
 
-    def add_point(self, point: ty.Tuple[float, float]):
+    def add_point(self, point: tuple[float, float]):
         """Add point to the polygon."""
         if len(self.data) > 0 and np.all(self.data[-1] == point):
             return
@@ -167,7 +169,7 @@ class PolygonTool(MeshBaseTool):
         data = np.delete(self.data, index, axis=0)
         self.data = data
 
-    def remove_nearby_point(self, point: ty.Tuple[float, float]):
+    def remove_nearby_point(self, point: tuple[float, float]):
         """Remove point that is nearby to the specified point."""
         from scipy.spatial.distance import cdist
 

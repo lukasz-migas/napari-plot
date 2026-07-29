@@ -19,6 +19,7 @@ from napari._qt.qt_viewer import QtViewer as NapariQtViewer
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_dims import QtDims
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+from napari._vispy.utils.qt_font import QtFontManager
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
@@ -65,7 +66,7 @@ class QtViewer(QSplitter):
     # We use this instead of QApplication.activeWindow for compatibility with
     # IPython usage. When you activate IPython, it will appear that there are
     # *no* active windows, so we want to track the most recently active windows
-    _instances: ty.ClassVar[ty.List[QtViewer]] = []
+    _instances: ty.ClassVar[list[QtViewer]] = []
     _console = None
 
     def __init__(
@@ -105,11 +106,17 @@ class QtViewer(QSplitter):
         # create ui widgets
         self._create_widgets(**kwargs)
 
+        # font manager/family shared by all overlay text visuals
+        self._font_manager = QtFontManager()
+        self._overlay_font = QGuiApplication.font().family()
+
         # create main vispy canvas
         self.canvas = VispyCanvas(
             viewer=self.viewer,
             parent=self,
             key_map_handler=self._key_map_handler,
+            font_manager=self._font_manager,
+            font_family=self._overlay_font,
             size=self.viewer._canvas_size,
             autoswap=True,
         )
@@ -432,7 +439,7 @@ class QtViewer(QSplitter):
         layer : napari.layers.Layer
             Layer to be added.
         """
-        vispy_layer = create_vispy_layer(layer)
+        vispy_layer = create_vispy_layer(layer, font_info=self.canvas.font_info())
         self.canvas.add_layer_visual_mapping(layer, vispy_layer)
 
     def on_save_figure(self, path=None):
@@ -627,10 +634,10 @@ class QtViewer(QSplitter):
     def _qt_open(
         self,
         filenames: list[str],
-        stack: ty.Union[bool, list[list[str]]],
+        stack: bool | list[list[str]],
         choose_plugin: bool = False,
-        plugin: ty.Optional[str] = None,
-        layer_type: ty.Optional[str] = None,
+        plugin: str | None = None,
+        layer_type: str | None = None,
         **kwargs,
     ):
         """Open files, potentially popping reader dialog for plugin selection.

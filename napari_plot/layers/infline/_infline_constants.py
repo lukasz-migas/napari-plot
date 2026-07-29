@@ -1,8 +1,7 @@
 """Region constants"""
 
-from enum import auto
+from enum import StrEnum, auto
 
-from napari.utils.compat import StrEnum
 from napari.utils.misc import StringEnum
 
 

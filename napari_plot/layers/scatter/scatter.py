@@ -239,6 +239,7 @@ class Scatter(Points, LayerMixin):
         self._mode = Mode.PAN_ZOOM
         self.events.add(scaling=Event)
         self.scaling = scaling
+        self._loaded = True
 
     def _mode_setter_helper(self, mode):
         mode = Layer._mode_setter_helper(self, mode)

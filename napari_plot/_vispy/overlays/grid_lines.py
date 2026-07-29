@@ -6,6 +6,8 @@ from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from vispy.scene.visuals import GridLines
 
 if ty.TYPE_CHECKING:
+    from napari._vispy.utils.qt_font import FontInfo
+
     from napari_plot.components.grid_lines import GridLinesOverlay
     from napari_plot.components.viewer_model import ViewerModel
 
@@ -13,8 +15,15 @@ if ty.TYPE_CHECKING:
 class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
     """Grid lines visual."""
 
-    def __init__(self, *, viewer: "ViewerModel", overlay: "GridLinesOverlay", parent=None) -> None:
-        super().__init__(node=GridLines(), viewer=viewer, overlay=overlay, parent=parent)
+    def __init__(
+        self,
+        *,
+        viewer: "ViewerModel",
+        overlay: "GridLinesOverlay",
+        font_info: "FontInfo",
+        parent=None,
+    ) -> None:
+        super().__init__(node=GridLines(), viewer=viewer, overlay=overlay, font_info=font_info, parent=parent)
 
         self.viewer.grid_lines.events.visible.connect(self._on_visible_change)
         self._on_visible_change(None)

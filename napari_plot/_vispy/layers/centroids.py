@@ -17,9 +17,9 @@ class VispyCentroidsLayer(VispyBaseLayer):
     layer: "Centroids"
     node: CentroidsVisual
 
-    def __init__(self, layer: "Centroids"):
+    def __init__(self, layer: "Centroids", font_info) -> None:
         node = CentroidsVisual()
-        super().__init__(layer, node)
+        super().__init__(layer, node, font_info=font_info)
 
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.width.connect(self._on_appearance_change)

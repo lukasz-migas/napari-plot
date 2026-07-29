@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from napari._vispy.utils.qt_font import FontInfo
 
 from napari_plot._vispy.layers.region import VispyRegionLayer
 from napari_plot.layers import Region
@@ -25,7 +26,7 @@ def layer() -> Region:
 
 def test_vispy_region_layer_uses_fixed_subvisual_count(layer: Region) -> None:
     """Test stored regions are rendered by one batched visual."""
-    visual = VispyRegionLayer(layer)
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
 
     assert len(visual.node._subvisuals) == 4
     np.testing.assert_allclose(visual.node.regions_visual.pos, [[1.0, 3.0], [2.0, 5.0], [6.0, 7.0]])
@@ -35,7 +36,7 @@ def test_vispy_region_layer_uses_fixed_subvisual_count(layer: Region) -> None:
 
 def test_vispy_region_layer_builds_batched_vertices_and_indices(layer: Region) -> None:
     """Test vertex data matches vertical and horizontal infinite-region layout."""
-    visual = VispyRegionLayer(layer)
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
 
     np.testing.assert_allclose(
         visual.node.regions_visual.vertex_pos,
@@ -66,7 +67,7 @@ def test_vispy_region_layer_builds_batched_vertices_and_indices(layer: Region) -
 
 def test_vispy_region_layer_refreshes_after_remove(layer: Region) -> None:
     """Test removing a region refreshes batched data without removing subvisuals."""
-    visual = VispyRegionLayer(layer)
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
 
     layer.selected_data = {1}
     layer.remove_selected()
@@ -78,7 +79,7 @@ def test_vispy_region_layer_refreshes_after_remove(layer: Region) -> None:
 
 def test_vispy_region_layer_highlight_updates_batched_colors(layer: Region) -> None:
     """Test selected regions are colored with the layer highlight color."""
-    visual = VispyRegionLayer(layer)
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
 
     layer.selected_data = {1}
     visual._on_appearance_change()
@@ -92,7 +93,7 @@ def test_vispy_region_layer_highlight_updates_batched_colors(layer: Region) -> N
 
 def test_vispy_region_layer_opacity_propagates(layer: Region) -> None:
     """Test opacity is applied to batched and temporary region visuals."""
-    visual = VispyRegionLayer(layer)
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
 
     visual.node.opacity = 0.25
 

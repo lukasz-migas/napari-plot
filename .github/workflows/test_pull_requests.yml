@@ -33,12 +33,8 @@ jobs:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
         backend: [pyside6, pyqt6]
-        include:
-          - os: windows-latest
-            python-version: "3.10"
-            backend: pyside2
 
     steps:
       - uses: actions/checkout@v6

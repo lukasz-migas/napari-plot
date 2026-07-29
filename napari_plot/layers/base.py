@@ -5,7 +5,8 @@ import warnings
 from contextlib import contextmanager
 
 import numpy as np
-from napari.layers.base import Layer
+from napari.layers.base import Layer, _LayerSlicingState
+from napari.types import LayerDataType
 from napari.utils.events import EmitterGroup
 
 
@@ -76,6 +77,22 @@ class LayerMixin:
         """Return data contained for specified vertices. Only certain layers implement this."""
 
 
+class _BaseLayerSlicingState(_LayerSlicingState):
+    """Generic layer-slicing state for napari-plot layers.
+
+    napari's built-in layers (e.g. Points, Image) each define their own `_LayerSlicingState`
+    subclass with a dedicated slice-request/response pipeline to support multiscale data and
+    async slicing. napari-plot layers are simple, non-multiscale, 2D-only layers, so instead
+    of replicating that machinery we just delegate straight to the layer's own
+    `_set_view_slice` implementation.
+    """
+
+    layer: "BaseLayer"
+
+    def _set_view_slice(self) -> None:
+        self.layer._set_view_slice()
+
+
 class BaseLayer(LayerMixin, Layer):
     """Base layer that overrides certain napari Layer characteristics."""
 
@@ -116,3 +133,6 @@ class BaseLayer(LayerMixin, Layer):
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value encountered in cast")
             super()._update_draw(scale_factor, corner_pixels_displayed, shape_threshold)
+
+    def _get_layer_slicing_state(self, data: LayerDataType, cache: bool) -> _BaseLayerSlicingState:
+        return _BaseLayerSlicingState(layer=self, data=data, cache=cache)

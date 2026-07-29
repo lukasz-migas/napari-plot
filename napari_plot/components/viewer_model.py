@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import inspect
-import typing as ty
 from functools import lru_cache
 
 import numpy as np
@@ -12,7 +11,6 @@ import numpy as np
 # with undefined Context.
 from app_model.expressions import Context
 from napari import layers as n_layers
-from napari._pydantic_compat import Extra, Field, PrivateAttr, validator
 from napari.components import Dims
 from napari.components._layer_slicer import _LayerSlicer
 from napari.components.cursor import Cursor, CursorStyle
@@ -24,7 +22,8 @@ from napari.utils.colormaps import ensure_colormap
 from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import camel_to_snake, is_sequence
-from napari.utils.mouse_bindings import MousemapProvider
+from napari.utils.mouse_bindings import MousemapProviderPydantic
+from pydantic import Field, PrivateAttr, field_validator
 
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
@@ -102,7 +101,7 @@ def _create_custom_add_method(layer_type):
     return _add_layer
 
 
-class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
+class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     """Viewer containing the rendered scene, layers, and controlling elements
     including dimension sliders, and control bars for color limits.
 
@@ -112,25 +111,25 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         The title of the viewer window.
     """
 
-    # Using allow_mutation=False means these attributes aren't settable and don't
+    # Using frozen=True means these attributes aren't settable and don't
     # have an event emitter associated with them
-    camera: Camera = Field(default_factory=Camera, allow_mutation=False)
-    cursor: Cursor = Field(default_factory=Cursor, allow_mutation=False)
-    dims: Dims = Field(default_factory=Dims, allow_mutation=False)
-    layers: LayerList = Field(default_factory=LayerList, allow_mutation=False)
-    axis: Axis = Field(default_factory=Axis, allow_mutation=False)
-    drag_tool: DragTool = Field(default_factory=DragTool, allow_mutation=False)
+    camera: Camera = Field(default_factory=Camera, frozen=True)
+    cursor: Cursor = Field(default_factory=Cursor, frozen=True)
+    dims: Dims = Field(default_factory=Dims, frozen=True)
+    layers: LayerList = Field(default_factory=LayerList, frozen=True)
+    axis: Axis = Field(default_factory=Axis, frozen=True)
+    drag_tool: DragTool = Field(default_factory=DragTool, frozen=True)
 
     # Attributes
     help: str = ""
-    status: ty.Union[str, dict] = "Ready"
-    tooltip: Tooltip = Field(default_factory=Tooltip, allow_mutation=False)
+    status: str | dict = "Ready"
+    tooltip: Tooltip = Field(default_factory=Tooltip, frozen=True)
     theme: str = "dark"
     title: str = "napari-plot"
 
     # private track of overlays, only expose the old ones for backward compatibility
     _overlays: EventedDict[str, Overlay] = PrivateAttr(default_factory=EventedDict)
-    _canvas_size: ty.Tuple[int, int] = (400, 400)
+    _canvas_size: tuple[int, int] = (400, 400)
     _ctx: Context
 
     # To check if mouse is over canvas to avoid race conditions between
@@ -149,9 +148,9 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # elsewhere.  The app should know about the ViewerModel, but not vice versa.
         self._ctx = create_context(self, max_depth=0)
         # allow extra attributes during model initialization, useful for mixins
-        self.__config__.extra = Extra.allow
+        self.model_config["extra"] = "allow"
         super().__init__(title=title)
-        self.__config__.extra = Extra.ignore
+        self.model_config["extra"] = "ignore"
 
         # Add extra events
         self.events.add(
@@ -202,7 +201,8 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
     def _brush_circle_overlay(self):
         return self._overlays["brush_circle"]
 
-    @validator("theme", allow_reuse=True)
+    @field_validator("theme")
+    @classmethod
     def _valid_theme(cls, v):
         from napari.utils.theme import available_themes, is_theme_available
 
@@ -221,7 +221,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         exclude = exclude.union(EXCLUDE_JSON)
         return super().json(exclude=exclude, **kwargs)
 
-    def dict(self, **kwargs):
+    def model_dump(self, **kwargs) -> dict:
         """Convert to a dictionary."""
         # Manually exclude the layer list and active layer which cannot be serialized at this point
         # and mouse and keybindings don't belong on model
@@ -229,7 +229,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         # https://github.com/samuelcolvin/pydantic/issues/660#issuecomment-642211017
         exclude = kwargs.pop("exclude", set())
         exclude = exclude.union(EXCLUDE_DICT)
-        return super().dict(exclude=exclude, **kwargs)
+        return super().model_dump(exclude=exclude, **kwargs)
 
     def __hash__(self):
         return id(self)
@@ -280,7 +280,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
             return np.vstack([np.full(self.dims.ndim, -0.5), np.full(self.dims.ndim, 511.5)])
         return self.layers._extent_world_augmented[:, self.dims.displayed]
 
-    def _get_rect_extent(self) -> ty.Tuple[float, ...]:
+    def _get_rect_extent(self) -> tuple[float, ...]:
         """Get data extent"""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
@@ -499,7 +499,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
     def _calc_status_from_cursor(
         self,
-    ) -> ty.Optional[tuple[ty.Union[str, ty.Dict], str]]:
+    ) -> tuple[str | dict, str] | None:
         if not self.mouse_over_canvas:
             return None
         active = self.layers.selection.active
@@ -704,7 +704,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
         translate=None,
         units=None,
         visible=True,
-    ) -> ty.Union[n_layers.Image, list[n_layers.Image]]:
+    ) -> n_layers.Image | list[n_layers.Image]:
         """Add one or more Image layers to the layer list.
 
         Parameters
@@ -909,7 +909,7 @@ class ViewerModel(KeymapProvider, MousemapProvider, EventedModel):
 
 
 @lru_cache(maxsize=1)
-def valid_add_kwargs() -> ty.Dict[str, ty.Set[str]]:
+def valid_add_kwargs() -> dict[str, set[str]]:
     """Return a dict where keys are layer types & values are valid kwargs."""
     valid = {}
     for meth in dir(ViewerModel):

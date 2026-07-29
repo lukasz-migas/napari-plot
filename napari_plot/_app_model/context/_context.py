@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import collections.abc
-from typing import TYPE_CHECKING, Any, Final, Optional
+from typing import TYPE_CHECKING, Any, Final
 
 from app_model.expressions import Context, create_context as _create_context, get_context as _get_context
 
@@ -78,12 +78,14 @@ class SettingsAwareContext(Context):
             if splits:
                 while splits:
                     val = getattr(val, splits.pop(0))
-                if hasattr(val, "dict"):
+                if hasattr(val, "model_dump"):
+                    val = val.model_dump()
+                elif hasattr(val, "dict"):
                     val = val.dict()
                 return val
         return super().__missing__(key)
 
-    def new_child(self, m: Optional[dict] = None) -> Context:  # type: ignore
+    def new_child(self, m: dict | None = None) -> Context:  # type: ignore
         """New ChainMap with a new map followed by all previous maps.
 
         If no map is provided, an empty dict is used.
@@ -108,7 +110,7 @@ def create_context(
     obj: object,
     max_depth: int = 20,
     start: int = 2,
-    root: Optional[Context] = None,
+    root: Context | None = None,
 ) -> Context:
     return _create_context(
         obj=obj,

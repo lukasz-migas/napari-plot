@@ -201,7 +201,7 @@ def test_not_mutable_fields(field):
     assert not hasattr(viewer.events, field)
 
     # Check attribute is not settable
-    with pytest.raises(TypeError) as err:
+    with pytest.raises((TypeError, ValueError)) as err:
         setattr(viewer, field, "test")
 
-    assert "has allow_mutation set to False and cannot be assigned" in str(err.value)
+    assert "Field is frozen" in str(err.value)

@@ -25,9 +25,9 @@ class VispyScatterLayer(VispyBaseLayer):
     _highlight_color = (0, 0.6, 1)
     _highlight_width = 3
 
-    def __init__(self, layer: "Scatter"):
+    def __init__(self, layer: "Scatter", font_info) -> None:
         node = ScatterVisual()
-        super().__init__(layer, node)
+        super().__init__(layer, node, font_info=font_info)
 
         self.layer.events.size.connect(self._on_data_change)
         self.layer.events.scaling.connect(self._on_data_change)

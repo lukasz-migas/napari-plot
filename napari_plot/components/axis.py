@@ -2,10 +2,10 @@
 
 import typing as ty
 
-from napari._pydantic_compat import validator
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import field_validator
 
 
 class Axis(EventedModel):
@@ -24,9 +24,10 @@ class Axis(EventedModel):
     y_tick_margin: int = 10
     x_max_size: int = 60
     y_max_size: int = 120
-    x_tick_formatter: ty.Optional[ty.Callable] = None
-    y_tick_formatter: ty.Optional[ty.Callable] = None
+    x_tick_formatter: ty.Callable | None = None
+    y_tick_formatter: ty.Callable | None = None
 
-    @validator("label_color", "tick_color", pre=True)
+    @field_validator("label_color", "tick_color", mode="before")
+    @classmethod
     def _coerce_color(cls, v):
         return transform_color(v)[0]

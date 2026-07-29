@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import typing as ty
+from enum import StrEnum
 
-from napari._pydantic_compat import validator
-from napari.utils.compat import StrEnum
 from napari.utils.events import Event, EventedModel
 from napari.utils.misc import ensure_n_tuple
+from pydantic import field_validator
 
 
 class CameraMode(StrEnum):
@@ -82,12 +81,12 @@ class Camera(EventedModel):
     # fields
     mouse_pan: bool = True
     mouse_zoom: bool = True
-    aspect: ty.Optional[float] = None
+    aspect: float | None = None
     zoom: float = 1.0
     rect: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
     extent: tuple[float, float, float, float] = (0.0, 0.0, 0.0, 0.0)
-    x_range: ty.Optional[tuple[float, float]] = None
-    y_range: ty.Optional[tuple[float, float]] = None
+    x_range: tuple[float, float] | None = None
+    y_range: tuple[float, float] | None = None
     extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
 
@@ -101,18 +100,21 @@ class Camera(EventedModel):
         self.events.add(force_rect=Event, zoomed=Event)
 
     # validators
-    @validator("x_range", "y_range", pre=True)
-    def _ensure_2_tuple(cls, v) -> ty.Optional[tuple[float, float]]:
+    @field_validator("x_range", "y_range", mode="before")
+    @classmethod
+    def _ensure_2_tuple(cls, v) -> tuple[float, float] | None:
         if v is None:
             return v
         return ensure_n_tuple(v, n=2)
 
-    @validator("rect", "extent", pre=True)
+    @field_validator("rect", "extent", mode="before")
+    @classmethod
     def _ensure_4_tuple(cls, v) -> tuple[float, float, float, float]:
         return ensure_n_tuple(v, n=4)
 
-    @validator("axis_mode", pre=True)
-    def _ensure_axis_tuple(cls, v: ty.Union[CameraMode, tuple[CameraMode]]) -> tuple[CameraMode]:
+    @field_validator("axis_mode", mode="before")
+    @classmethod
+    def _ensure_axis_tuple(cls, v: CameraMode | tuple[CameraMode]) -> tuple[CameraMode]:
         if not isinstance(v, tuple):
             return (v,)
         return tuple(v)
@@ -131,7 +133,7 @@ class Camera(EventedModel):
             y0, y1 = self.y_range
         return x0, x1, y0, y1
 
-    def set_x_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+    def set_x_range(self, min_val: float | None = None, max_val: float | None = None):
         """Set x-axis range."""
         if min_val is None and max_val is None:
             self.x_range = None
@@ -142,7 +144,7 @@ class Camera(EventedModel):
                 max_val if max_val is not None else x1,
             )
 
-    def set_y_range(self, min_val: ty.Optional[float] = None, max_val: ty.Optional[float] = None):
+    def set_y_range(self, min_val: float | None = None, max_val: float | None = None):
         """Set y-axis range."""
         if min_val is None and max_val is None:
             self.y_range = None

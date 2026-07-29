@@ -22,7 +22,6 @@ classifiers = [
     "Programming Language :: C",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -37,13 +36,13 @@ classifiers = [
     "Operating System :: MacOS",
     "Framework :: napari"
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
   	"napari-plugin-engine>=0.2.0",
 	"numpy",
 	"qtpy",
 	"qtawesome>=1.2.0",
-	"napari==0.6.6",
+	"napari==0.8.0",
 	"matplotlib",
 	"vispy",
 	"koyo",
@@ -69,9 +68,6 @@ Documentation = "https://github.com/lukasz-migas/napari-plot#README.md"
 
 
 [project.optional-dependencies]
-pyside2 = [
-    "pyside2>=5.13.2,!=5.15.0 ; python_version < '3.11' and platform_machine != 'arm64'",
-]
 pyside6 = [
     "pyside6>6.9.0; platform_system == 'Windows'",
     "pyside6; platform_system != 'Windows'"
@@ -94,7 +90,7 @@ qt = [
 ]
 all = [
     "napari_plot[pyqt,optional]",
-    "napari-plugin-manager >=0.1.3, <0.2.0",
+    "napari-plugin-manager >=0.1.10, <0.2.0",
 ]
 optional = [
     "triangle ; platform_machine != 'arm64'",
@@ -123,7 +119,7 @@ test = [
     "IPython>=7.25.0",
     "qtconsole>=4.5.1",
     "rich>=12.0.0",
-    "napari-plugin-manager >=0.1.0a2, <0.2.0",
+    "napari-plugin-manager >=0.1.10, <0.2.0",
 ]
 test_extra = [
     "torch>=1.7",
@@ -178,7 +174,7 @@ test = [
     "IPython>=7.25.0",
     "qtconsole>=4.5.1",
     "rich>=12.0.0",
-    "napari-plugin-manager >=0.1.0a2, <0.2.0",
+    "napari-plugin-manager >=0.1.10, <0.2.0",
 ]
 test_extra = [
     "torch>=1.7",
@@ -243,7 +239,7 @@ ignore = [
 
 [tool.ruff]
 line-length = 120
-target-version = "py38"
+target-version = "py311"
 fix = true
 exclude = [
   ".bzr",

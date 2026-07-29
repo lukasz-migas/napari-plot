@@ -1,12 +1,11 @@
 """Tool model."""
 
-import typing as ty
+from enum import StrEnum
 
 import numpy as np
-from napari._pydantic_compat import PrivateAttr
-from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import PrivateAttr
 
 from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 
@@ -78,7 +77,7 @@ class DragTool(EventedModel):
     """
 
     active: DragMode = DragMode.NONE
-    tool: ty.Optional[BaseTool] = None
+    tool: BaseTool | None = None
     selection_active: bool = False
 
     vertices: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
