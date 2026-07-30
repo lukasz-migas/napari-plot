@@ -58,8 +58,6 @@ class Region(BaseLayer):
         Specifier of z order priority. Regions with higher z order are displayed on top of others. If a list is
         supplied it must be the same length as the length of `data` and each element will be applied to each region
         otherwise the same value will be used for all regions.
-    label : str
-        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
@@ -136,6 +134,7 @@ class Region(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         z_index=0,
         # napari parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -145,12 +144,16 @@ class Region(BaseLayer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         # sanitize data
         data, orientation = parse_infinite_region_orientation(data, orientation)
         super().__init__(
             data,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -160,6 +163,9 @@ class Region(BaseLayer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
         self.events.add(
@@ -523,7 +529,14 @@ class Region(BaseLayer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "color": self.color, "label": self.label})
+        state.update(
+            {
+                "data": self.data,
+                "orientation": self.orientation,
+                "color": self.color,
+                "z_index": self.z_index,
+            }
+        )
         return state
 
     def _update_thumbnail(self):

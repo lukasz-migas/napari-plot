@@ -101,6 +101,7 @@ class BaseLayer(LayerMixin, Layer):
         data,
         *,
         # napari parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -110,12 +111,16 @@ class BaseLayer(LayerMixin, Layer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         Layer.__init__(
             self,
             data,
             ndim=2,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -125,6 +130,9 @@ class BaseLayer(LayerMixin, Layer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
 

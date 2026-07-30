@@ -115,8 +115,6 @@ class Scatter(Points, LayerMixin):
         Whether to show each point.
     scaling : bool
         Whether to scale the points with the zoom level.
-    label : str
-        Label to be used with legend - currently does not do anything.
     """
 
     _modeclass = Mode
@@ -159,7 +157,10 @@ class Scatter(Points, LayerMixin):
     def __init__(
         self,
         data=None,
+        ndim=None,
         *,
+        axis_labels=None,
+        feature_defaults=None,
         features=None,
         properties=None,
         text=None,
@@ -175,6 +176,7 @@ class Scatter(Points, LayerMixin):
         face_color_cycle=None,
         face_colormap="viridis",
         face_contrast_limits=None,
+        n_dimensional=None,
         out_of_slice_display=False,
         name=None,
         metadata=None,
@@ -189,12 +191,16 @@ class Scatter(Points, LayerMixin):
         cache=True,
         property_choices=None,
         experimental_clipping_planes=None,
+        projection_mode="all",
         shading="none",
         shown=True,
         scaling=True,
         canvas_size_limits=(2, 10000),
         antialiasing=1,
+        units=None,
     ):
+        if ndim not in (None, 2):
+            raise ValueError("Scatter layer only supports 2D data.")
         data, ndim = fix_data_points(data, 2)
         if ndim > 2:
             raise ValueError("Scatter layer only supports 2D data.")
@@ -202,6 +208,8 @@ class Scatter(Points, LayerMixin):
             self,
             data=data,
             ndim=ndim,
+            axis_labels=axis_labels,
+            feature_defaults=feature_defaults,
             features=features,
             properties=properties,
             text=text,
@@ -217,6 +225,7 @@ class Scatter(Points, LayerMixin):
             face_color_cycle=face_color_cycle,
             face_colormap=face_colormap,
             face_contrast_limits=face_contrast_limits,
+            n_dimensional=n_dimensional,
             out_of_slice_display=out_of_slice_display,
             name=name,
             metadata=metadata,
@@ -231,10 +240,12 @@ class Scatter(Points, LayerMixin):
             cache=cache,
             property_choices=property_choices,
             experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
             shading=shading,
             shown=shown,
             canvas_size_limits=canvas_size_limits,
             antialiasing=antialiasing,
+            units=units,
         )
         self._mode = Mode.PAN_ZOOM
         self.events.add(scaling=Event)
@@ -280,6 +291,12 @@ class Scatter(Points, LayerMixin):
     def scaling(self, value):
         self._scaling = value
         self.events.scaling()
+
+    def _get_state(self):
+        """Get the serializable layer state."""
+        state = super()._get_state()
+        state["scaling"] = self.scaling
+        return state
 
     @property
     def data(self) -> np.ndarray:

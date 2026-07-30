@@ -86,9 +86,9 @@ class MultiLineList:
         self._data["ys"] = value
 
     @property
-    def data(self):
-        """Return nicely formatted data."""
-        return
+    def data(self) -> dict[str, ty.List[np.ndarray]]:
+        """Return the x and y arrays in a constructor-compatible mapping."""
+        return {"xs": self.xs, "ys": self.ys}
 
     @property
     def extent_data(self) -> np.ndarray:

@@ -54,8 +54,6 @@ class InfLine(BaseLayer):
         be 1-dimensional array with 3 or 4 elements.
     width : float
         Width of the line in pixel units.
-    label : str
-        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
@@ -121,6 +119,7 @@ class InfLine(BaseLayer):
         width=1,
         z_index=0,
         # base parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -130,6 +129,9 @@ class InfLine(BaseLayer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         # sanitize data
@@ -139,6 +141,7 @@ class InfLine(BaseLayer):
 
         super().__init__(
             data,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -148,6 +151,9 @@ class InfLine(BaseLayer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
         self.events.add(
@@ -515,7 +521,15 @@ class InfLine(BaseLayer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "color": self.color, "label": self.label})
+        state.update(
+            {
+                "data": self.data,
+                "orientation": self.orientation,
+                "color": self.color,
+                "width": self.width,
+                "z_index": self._data_view.z_indices,
+            }
+        )
         return state
 
     def _update_thumbnail(self):
