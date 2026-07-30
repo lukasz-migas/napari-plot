@@ -23,3 +23,150 @@ QtViewerPushButton[mode="new_region"] {
 QtViewerPushButton[mode="new_scatter"] {
   image: url("theme_{{ id }}:/new_scatter.svg");
 }
+
+/* Restore napari layer controls after qtextra's generic widget rules. */
+QFrame[napari_builtin="true"] QtModeRadioButton {
+  min-height: 28px;
+  min-width: 28px;
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton::indicator {
+  min-height: 28px;
+  min-width: 28px;
+  border-radius: 3px;
+  border: 1px solid {{ primary }};
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton::indicator:unchecked {
+  padding: 0px;
+  background-color: {{ primary }};
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton::indicator:checked {
+  padding: 0px;
+  background-color: {{ current }};
+  border-color: {{ current }};
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton::indicator:disabled {
+  background-color: {{ foreground }};
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton::indicator:unchecked:hover {
+  background-color: {{ highlight }};
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="pan"]::indicator {
+  image: url("theme_{{ id }}:/pan_arrows.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="transform"]::indicator {
+  image: url("theme_{{ id }}:/transform.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="select"]::indicator {
+  image: url("theme_{{ id }}:/select.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="direct"]::indicator {
+  image: url("theme_{{ id }}:/direct.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="rectangle"]::indicator {
+  image: url("theme_{{ id }}:/rectangle.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="ellipse"]::indicator {
+  image: url("theme_{{ id }}:/ellipse.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="line"]::indicator {
+  image: url("theme_{{ id }}:/line.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="polyline"]::indicator {
+  image: url("theme_{{ id }}:/polyline.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="path"]::indicator {
+  image: url("theme_{{ id }}:/path.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="polygon"]::indicator,
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="labels_polygon"]::indicator {
+  image: url("theme_{{ id }}:/polygon.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="polygon_lasso"]::indicator {
+  image: url("theme_{{ id }}:/polygon_lasso.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="vertex_insert"]::indicator {
+  image: url("theme_{{ id }}:/vertex_insert.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="vertex_remove"]::indicator {
+  image: url("theme_{{ id }}:/vertex_remove.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="paint"]::indicator {
+  image: url("theme_{{ id }}:/paint.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="fill"]::indicator {
+  image: url("theme_{{ id }}:/fill.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="picker"]::indicator {
+  image: url("theme_{{ id }}:/picker.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="erase"]::indicator {
+  image: url("theme_{{ id }}:/erase.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="pan_zoom"]::indicator {
+  image: url("theme_{{ id }}:/zoom.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="select_points"]::indicator {
+  image: url("theme_{{ id }}:/select.svg");
+}
+
+QFrame[napari_builtin="true"] QtModeRadioButton[mode="add_points"]::indicator {
+  image: url("theme_{{ id }}:/add.svg");
+}
+
+QFrame[napari_builtin="true"] QSlider {
+  background-color: none;
+}
+
+QFrame[napari_builtin="true"] QSlider::groove:horizontal {
+  border: 0px;
+  background-color: {{ primary }};
+  height: 6px;
+  border-radius: 2px;
+}
+
+QFrame[napari_builtin="true"] QSlider::handle:horizontal {
+  background-color: {{ secondary }};
+  border: 0px;
+  width: 16px;
+  margin-top: -5px;
+  margin-bottom: -5px;
+  border-radius: 8px;
+}
+
+QFrame[napari_builtin="true"] QSlider::handle:hover {
+  background-color: {{ highlight }};
+}
+
+QFrame[napari_builtin="true"] QSlider::sub-page:horizontal {
+  background: {{ secondary }};
+  border-radius: 0px;
+}
+
+QFrame[napari_builtin="true"] QSlider::add-page:horizontal {
+  background: {{ primary }};
+  border-radius: 0px;
+}

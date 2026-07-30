@@ -129,6 +129,7 @@ class QtViewer(QSplitter):
         self._set_layout(**kwargs)
 
         # setup events
+        self.viewer._layer_slicer.events.ready.connect(self._on_slice_ready)
         # self.viewer.layers.events.inserted.connect(self._update_camera_depth)
         # self.viewer.layers.events.removed.connect(self._update_camera_depth)
         # self.viewer.dims.events.ndisplay.connect(self._update_camera_depth)
@@ -368,21 +369,25 @@ class QtViewer(QSplitter):
         This only gets triggered on the async slicing path.
         """
         responses: dict[weakref.ReferenceType[n_layers.Layer], ty.Any] = event.value
-        logging.debug("QtViewer._on_slice_ready: %s", responses)
+        logging.getLogger("napari").debug("QtViewer._on_slice_ready: %s", responses)
         for weak_layer, response in responses.items():
             if layer := weak_layer():
                 # Update the layer slice state to temporarily support behavior
                 # that depends on it.
-                layer._update_slice_response(response)
+                layer._slicing_state._update_slice_response(response)
                 # Update the layer's loaded state before everything else,
                 # because they may rely on its updated value.
-                layer._update_loaded_slice_id(response.request_id)
+                layer._slicing_state._update_loaded_slice_id(response.request_id)
                 # The rest of `Layer.refresh` after `set_view_slice`, where
                 # `set_data` notifies the corresponding vispy layer of the new
                 # slice.
                 layer.events.set_data()
-                layer._update_thumbnail()
-                layer._set_highlight(force=True)
+                layer._refresh_sync(
+                    data_displayed=False,
+                    thumbnail=True,
+                    highlight=True,
+                    extent=True,
+                )
 
     def add_to_console_backlog(self, variables):
         """Save variables for pushing to console when it is instantiated.

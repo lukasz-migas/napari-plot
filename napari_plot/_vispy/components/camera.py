@@ -25,7 +25,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
     """Slightly customized pan zoom camera that prevents zooming outside of specified region"""
 
     _extent = None
-    _axis_mode: ty.Tuple[CameraMode, ...] = (CameraMode.ALL,)
+    _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
 
     def __init__(self, viewer: "ViewerModel", *args, **kwargs):
@@ -33,12 +33,12 @@ class LimitedPanZoomCamera(PanZoomCamera):
         super().__init__(*args, **kwargs)
 
     @property
-    def axis_mode(self) -> ty.Tuple[CameraMode, ...]:
+    def axis_mode(self) -> tuple[CameraMode, ...]:
         """Return axis mode."""
         return self._axis_mode
 
     @axis_mode.setter
-    def axis_mode(self, value: ty.Tuple[CameraMode, ...]):
+    def axis_mode(self, value: tuple[CameraMode, ...]):
         self._axis_mode = value
 
     @property
@@ -53,12 +53,12 @@ class LimitedPanZoomCamera(PanZoomCamera):
         self._default_state["rect"] = None
 
     @property
-    def extent(self) -> ty.Tuple[float, float, float, float]:
+    def extent(self) -> tuple[float, float, float, float]:
         """Return extent values."""
         return self._extent
 
     @extent.setter
-    def extent(self, extent: ty.Tuple[float, float, float, float]):
+    def extent(self, extent: tuple[float, float, float, float]):
         rect = Rect()
         rect.left, rect.right, rect.bottom, rect.top = extent
         self._extent = rect
@@ -118,7 +118,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             self.viewer.drag_tool.tool.position = x1, x1, y1, y1
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
-        elif event.type == "mouse_release" and 1 in event.buttons:
+        elif event.type == "mouse_release" and event.button == 1:
             modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
@@ -177,7 +177,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
             rect.right = limit_rect.right
         return rect
 
-    def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> ty.Tuple[float, float, float, float]:
+    def _check_range(self, x0: float, x1: float, y0: float, y1: float) -> tuple[float, float, float, float]:
         """Check whether values are correct"""
         # check whether values are in correct order (low, high)
         if y1 < y0:
