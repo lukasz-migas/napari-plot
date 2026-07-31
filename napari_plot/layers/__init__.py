@@ -5,7 +5,9 @@ Custom layers must inherit from Layer and pass along the
 to the super constructor.
 """
 
-from napari import layers as _napari_layers
+from typing import NewType
+
+from napari import layers as _napari_layers, types as _napari_types
 from napari.layers.image import Image
 from napari.layers.points import Points
 from napari.layers.shapes import Shapes
@@ -19,11 +21,17 @@ from napari_plot.layers.scatter import Scatter
 
 
 def _register_custom_layer_types() -> None:
-    """Register napari-plot layers with napari's layer-data factory."""
+    """Register custom layers and their data types with napari."""
     for layer_type in (Centroids, InfLine, Line, MultiLine, Region, Scatter):
         type_name = layer_type.__name__.lower()
+        data_type_name = f"{type_name.title()}Data"
         _napari_layers.NAMES.add(type_name)
         setattr(_napari_layers, type_name.title(), layer_type)
+        setattr(
+            _napari_types,
+            data_type_name,
+            NewType(data_type_name, object),
+        )
 
 
 _register_custom_layer_types()

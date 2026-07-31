@@ -21,7 +21,9 @@ def test_qt_viewer(make_napari_plot_viewer):
 
     assert viewer.title == "napari-plot"
     assert view.viewer == viewer
-    assert view._on_slice_ready in viewer._layer_slicer.events.ready.callbacks
+    emitter = viewer._layer_slicer.events.ready
+    callback, _ = emitter._normalize_cb(view._on_slice_ready)
+    assert callback in emitter.callbacks
 
     assert len(viewer.layers) == 0
     assert view.layers.model().rowCount() == 0
