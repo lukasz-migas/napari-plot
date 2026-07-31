@@ -1,11 +1,14 @@
 """Specialized camera for 1d data"""
 
+from __future__ import annotations
+
 import typing as ty
 
 import numpy as np
 from vispy.geometry import Rect
 from vispy.scene import BaseCamera, PanZoomCamera
 
+from napari_plot.components.axis import transform_axis_values
 from napari_plot.components.camera import CameraMode, ExtentMode
 from napari_plot.components.dragtool import BOX_ZOOM_TOOLS
 from napari_plot.components.tools import Shape
@@ -28,9 +31,16 @@ class LimitedPanZoomCamera(PanZoomCamera):
     _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
 
-    def __init__(self, viewer: "ViewerModel", *args, **kwargs):
+    def __init__(self, viewer: ViewerModel, *args, **kwargs):
         self.viewer = viewer
         super().__init__(*args, **kwargs)
+
+    def _to_data_coordinates(self, x: float, y: float) -> tuple[float, float]:
+        """Convert displayed camera coordinates to layer data coordinates."""
+        return (
+            transform_axis_values(x, self.viewer.axis.x_scale, inverse=True),
+            transform_axis_values(y, self.viewer.axis.y_scale, inverse=True),
+        )
 
     @property
     def axis_mode(self) -> tuple[CameraMode, ...]:
@@ -99,7 +109,9 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
-                self.viewer.drag_tool.tool.position = x0, x1, y0, y1
+                data_x0, data_y0 = self._to_data_coordinates(x0, y0)
+                data_x1, data_y1 = self._to_data_coordinates(x1, y1)
+                self.viewer.drag_tool.tool.position = data_x0, data_x1, data_y0, data_y1
                 event.handled = True
             # the right-button click moves the canvas in x/y direction
             elif 2 in event.buttons and not modifiers:  # right-button click
@@ -115,7 +127,8 @@ class LimitedPanZoomCamera(PanZoomCamera):
         elif event.type == "mouse_press":
             # accept the event if it is button 1 or 2.
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
-            self.viewer.drag_tool.tool.position = x1, x1, y1, y1
+            data_x, data_y = self._to_data_coordinates(x1, y1)
+            self.viewer.drag_tool.tool.position = data_x, data_x, data_y, data_y
             # This is required in order to receive future events
             event.handled = event.button in [1, 2]
         elif event.type == "mouse_release" and event.button == 1:

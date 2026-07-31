@@ -43,7 +43,7 @@ class VispyPolygonVisual:
         )
         self.node.order = order
         if parent:
-            parent.add(self.node)
+            self.node.parent = parent
 
         self._viewer.drag_tool.events.tool.connect(self._on_tool_change)
         # polygon events

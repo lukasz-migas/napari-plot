@@ -24,12 +24,14 @@ from napari.utils.interactions import (
 )
 from qtpy.QtCore import QSize
 from superqt.utils import qthrottled
-from vispy.scene import SceneCanvas as SceneCanvas_, Widget
+from vispy.scene import Node, SceneCanvas as SceneCanvas_, Widget
 from vispy.util.event import Event
+from vispy.visuals.transforms import LogTransform
 
 from napari_plot._vispy.camera import VispyCamera
 from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 from napari_plot._vispy.tools.drag import VispyDragTool
+from napari_plot.components.axis import AxisScale, transform_axis_values
 
 if ty.TYPE_CHECKING:
     import numpy.typing as npt
@@ -130,7 +132,10 @@ class VispyCanvas:
         self._background_color_override = None
         self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self._scene_canvas = NapariSceneCanvas(*args, keys=None, vsync=True, **kwargs)
+        self._data_scene = Node(parent=self.view.scene)
         self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer)
+        self.viewer.axis.events.x_scale.connect(self._on_axis_scale_change)
+        self.viewer.axis.events.y_scale.connect(self._on_axis_scale_change)
 
         self.layer_to_visual: dict[Layer, VispyBaseLayer] = {}
         self._overlay_to_visual: dict[Overlay, VispyBaseOverlay] = {}
@@ -141,7 +146,7 @@ class VispyCanvas:
         self.max_texture_sizes = get_max_texture_sizes()
 
         # drag tool
-        self.tool = VispyDragTool(self.viewer, view=self.view, order=1e6)
+        self.tool = VispyDragTool(self.viewer, view=self._data_scene, order=1e6)
 
         # add x-axis widget
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
@@ -193,6 +198,22 @@ class VispyCanvas:
         self.viewer.layers.events.removed.connect(self._remove_layer)
 
         self.destroyed.connect(self._disconnect_theme)
+        self._on_axis_scale_change()
+
+    def _on_axis_scale_change(self, _event: Event | None = None) -> None:
+        """Apply the selected logarithmic transforms to scene data."""
+        x_base = 10.0 if self.viewer.axis.x_scale is AxisScale.LOG else 0.0
+        y_base = 10.0 if self.viewer.axis.y_scale is AxisScale.LOG else 0.0
+        if self.viewer.layers:
+            self.viewer._on_update_extent()
+            self.viewer.reset_view()
+            self.camera.extent = self.viewer.camera.extent
+        self._data_scene.transform = LogTransform((x_base, y_base, 0.0))
+        if self.x_axis is not None:
+            self.x_axis.node._view_changed()
+        if self.y_axis is not None:
+            self.y_axis.node._view_changed()
+        self._scene_canvas.update()
 
     @property
     def events(self):
@@ -392,6 +413,16 @@ class VispyCanvas:
         position[1] -= self.view.pos[1]
         transform = self.view.camera.transform.inverse
         mapped_position = transform.map(position)[:2]
+        mapped_position[0] = transform_axis_values(
+            mapped_position[0],
+            self.viewer.axis.x_scale,
+            inverse=True,
+        )
+        mapped_position[1] = transform_axis_values(
+            mapped_position[1],
+            self.viewer.axis.y_scale,
+            inverse=True,
+        )
         position_world_slice = mapped_position[::-1]
 
         position_world = [0, 0]
@@ -551,7 +582,7 @@ class VispyCanvas:
         None
         """
 
-        vispy_layer.node.parent = self.view.scene
+        vispy_layer.node.parent = self._data_scene
         self.layer_to_visual[napari_layer] = vispy_layer
         napari_layer.events.visible.connect(self._reorder_layers)
         # self.viewer.camera.events.angles.connect(vispy_layer._on_camera_move)
@@ -592,7 +623,7 @@ class VispyCanvas:
         if isinstance(overlay, CanvasOverlay):
             vispy_overlay.node.parent = self.view
         elif isinstance(overlay, SceneOverlay):
-            vispy_overlay.node.parent = self.view.scene
+            vispy_overlay.node.parent = self._data_scene
         self._overlay_to_visual[overlay] = vispy_overlay
 
     def screenshot(self) -> QImage:

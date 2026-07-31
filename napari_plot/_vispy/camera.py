@@ -1,5 +1,7 @@
 """Camera model"""
 
+from __future__ import annotations
+
 import typing as ty
 
 import numpy as np
@@ -7,6 +9,7 @@ from napari._vispy.camera import add_mouse_pan_zoom_toggles
 from vispy.geometry import Rect
 
 from napari_plot._vispy.components.camera import LimitedPanZoomCamera
+from napari_plot.components.axis import transform_axis_values
 
 if ty.TYPE_CHECKING:
     from napari_plot.components.camera import Camera
@@ -27,7 +30,7 @@ class VispyCamera:
 
     """
 
-    def __init__(self, view, camera: "Camera", viewer: "ViewerModel"):
+    def __init__(self, view, camera: Camera, viewer: ViewerModel):
         self._view = view
         self._camera = camera
         self._viewer = viewer
@@ -75,16 +78,45 @@ class VispyCamera:
         scale = np.array(self._view.canvas.size) / zoom
         # Set view rectangle, as left, right, width, height
         corner = np.subtract(self._view.camera.center[:2], scale / 2)
-        self.rect = tuple(corner) + tuple(scale)
+        display_rect = (
+            corner[0],
+            corner[0] + scale[0],
+            corner[1],
+            corner[1] + scale[1],
+        )
+        self.rect = self._transform_rect(display_rect, inverse=True)
+
+    def _transform_rect(
+        self,
+        rect: Rect | ty.Iterable[float],
+        *,
+        inverse: bool,
+    ) -> tuple[float, float, float, float]:
+        """Transform a camera rectangle between data and display coordinates."""
+        values = (
+            (rect.left, rect.right, rect.bottom, rect.top)
+            if isinstance(rect, Rect)
+            else tuple(rect)
+        )
+        xmin, xmax, ymin, ymax = values
+        return (
+            transform_axis_values(xmin, self._viewer.axis.x_scale, inverse=inverse),
+            transform_axis_values(xmax, self._viewer.axis.x_scale, inverse=inverse),
+            transform_axis_values(ymin, self._viewer.axis.y_scale, inverse=inverse),
+            transform_axis_values(ymax, self._viewer.axis.y_scale, inverse=inverse),
+        )
 
     @property
     def rect(self) -> ty.Tuple[float, float, float, float]:
         """Get rect"""
         rect = self.camera.rect
-        return rect.left, rect.right, rect.bottom, rect.top
+        return self._transform_rect(
+            (rect.left, rect.right, rect.bottom, rect.top),
+            inverse=True,
+        )
 
     @rect.setter
-    def rect(self, rect: Rect):
+    def rect(self, rect: Rect | ty.Iterable[float]):
         if self.rect == rect:
             return
         self._update_rect(rect)
@@ -92,24 +124,30 @@ class VispyCamera:
     def _on_sync_rect(self, event: ty.Any) -> None:
         """Sync rect from the Camera object to the Camera model."""
         with self._camera.events.rect.blocker(self._on_rect_change):
-            r = self._view.camera.rect
-            self._camera.rect = r.left, r.right, r.bottom, r.top
+            self._camera.rect = self.rect
 
-    def _update_rect(self, rect: Rect) -> None:
+    def _update_rect(self, rect: Rect | ty.Iterable[float]) -> None:
+        display_rect = self._transform_rect(rect, inverse=False)
         rect_obj = Rect(self.camera.rect)
-        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = rect  # nicely unpack tuple
+        rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = display_rect
         self.camera.rect = rect_obj
 
     @property
     def extent(self):
         """Get rect"""
-        return self.camera._extent
+        extent = self.camera._extent
+        if extent is None:
+            return None
+        return self._transform_rect(
+            (extent.left, extent.right, extent.bottom, extent.top),
+            inverse=True,
+        )
 
     @extent.setter
     def extent(self, extent):
         if self.extent == extent:
             return
-        self.camera.extent = extent
+        self.camera.extent = self._transform_rect(extent, inverse=False)
         self.camera.set_default_state()
         self.camera.reset()
         self._on_rect_change(None)
