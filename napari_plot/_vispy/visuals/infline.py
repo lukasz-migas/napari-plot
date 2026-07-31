@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
-
 import numpy as np
 from vispy import gloo
 from vispy.scene.visuals import Compound, InfiniteLine, Line, create_visual_node
@@ -74,10 +72,10 @@ class _BatchedInfiniteLineVisual(Visual):
 
     def set_data(
         self,
-        pos: ty.Optional[np.ndarray] = None,
-        orientation: ty.Optional[np.ndarray] = None,
-        color: ty.Optional[np.ndarray] = None,
-        width: ty.Optional[float] = None,
+        pos: np.ndarray | None = None,
+        orientation: np.ndarray | None = None,
+        color: np.ndarray | None = None,
+        width: float | None = None,
     ) -> None:
         """Set the positions, orientations, colors, or width of the batched lines."""
         if width is not None:
@@ -170,7 +168,7 @@ class _BatchedInfiniteLineVisual(Visual):
         self._vertex_pos[0::2, 1] = np.where(horizontal, self._line_pos, -1.0)
         self._vertex_pos[1::2, 1] = np.where(horizontal, self._line_pos, 1.0)
 
-    def _compute_bounds(self, axis: int, view) -> ty.Optional[tuple[float, float]]:
+    def _compute_bounds(self, axis: int, view) -> tuple[float, float] | None:
         """Return finite bounds for the constrained line axis."""
         if len(self._line_pos) == 0:
             return None

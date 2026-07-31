@@ -3,7 +3,6 @@
 This widget is inspired by ScatterWidget in https://github.com/dstansby/napari-matplotlib
 """
 
-import typing as ty
 from contextlib import suppress
 from warnings import warn
 
@@ -44,7 +43,7 @@ class ScatterPlotWidget(NapariPlotWidget):
         return self.viewer.dims.current_step[0]
 
     @staticmethod
-    def _check_layers(layers: ty.List) -> bool:
+    def _check_layers(layers: list) -> bool:
         """Check whether layers of correct type."""
         return not (len(layers) != 2 or any(type(layer) != Image for layer in layers))
 

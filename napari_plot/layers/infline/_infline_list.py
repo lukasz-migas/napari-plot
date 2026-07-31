@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
 from contextlib import suppress
 
 import numpy as np
@@ -30,7 +29,7 @@ class InfiniteLineList:
     def __init__(self, data=(), ndisplay=2):
         self._ndisplay = ndisplay
 
-        self.inflines: ty.List[InfiniteLine] = []
+        self.inflines: list[InfiniteLine] = []
         self._z_index = np.empty(0, dtype=int)
         self._z_order = np.empty(0, dtype=int)
         self._color = np.empty((0, 4))
@@ -57,7 +56,7 @@ class InfiniteLineList:
         return [s.orientation for s in self.inflines]
 
     @property
-    def z_indices(self) -> ty.List[int]:
+    def z_indices(self) -> list[int]:
         """list of int: z-index for each shape."""
         return [s.z_index for s in self.inflines]
 

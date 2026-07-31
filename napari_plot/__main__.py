@@ -23,7 +23,7 @@ class InfoAction(argparse.Action):
         sys.exit()
 
 
-def validate_unknown_args(unknown: ty.List[str]) -> ty.Dict[str, ty.Any]:
+def validate_unknown_args(unknown: list[str]) -> dict[str, ty.Any]:
     """Convert a list of strings into a dict of valid kwargs for add_* methods.
 
     Will exit program if any of the arguments are unrecognized, or are
@@ -43,7 +43,7 @@ def validate_unknown_args(unknown: ty.List[str]) -> ty.Dict[str, ty.Any]:
 
     from napari.components.viewer_model import valid_add_kwargs
 
-    out: ty.Dict[str, ty.Any] = {}
+    out: dict[str, ty.Any] = {}
     valid = set.union(*valid_add_kwargs().values())
     for i, arg in enumerate(unknown):
         if not arg.startswith("--"):

@@ -1,6 +1,5 @@
 """Utilities."""
 
-import typing as ty
 
 import numpy as np
 
@@ -13,28 +12,28 @@ def check_length(x: np.ndarray, y: np.ndarray):
         raise ValueError("Make sure to provide two arrays of equal size and shape.")
 
 
-def check_keys(data: ty.Dict, keys: ty.Tuple):
+def check_keys(data: dict, keys: tuple):
     """Check whether keys exist in particular dictionary."""
     return all(key in data for key in keys)
 
 
-def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarray], ty.List[np.ndarray]]:
+def parse_multiline_data(data, check: bool = True) -> tuple[list[np.ndarray], list[np.ndarray]]:
     """Parse data to be displayed in multiline layer."""
     xs, ys = [], []
     # Data can be None in which case return two empty lists.
     if data is None:
         return xs, ys
     # Data is a tuple of two arrays
-    if isinstance(data, ty.Tuple):
+    if isinstance(data, tuple):
         x, y = data
         if all(isinstance(dat, np.ndarray) for dat in (x, y)):
             xs, ys = [x], [y]
-        elif all(isinstance(dat, ty.List) for dat in (x, y)):
+        elif all(isinstance(dat, list) for dat in (x, y)):
             xs, ys = x, y
     # Data is a dict with `xs` and `ys` keys
-    elif isinstance(data, ty.Dict):
+    elif isinstance(data, dict):
         # Dict with `xs` and `ys` lists of arrays
-        if check_keys(data, ("xs", "ys")) and all(isinstance(dat, ty.List) for dat in (data["xs"], data["ys"])):
+        if check_keys(data, ("xs", "ys")) and all(isinstance(dat, list) for dat in (data["xs"], data["ys"])):
             xs, ys = data["xs"], data["ys"]
             if len(xs) > len(ys):
                 raise ValueError(
@@ -43,7 +42,7 @@ def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarra
                 )
         # Dict with `x` array and `ys` list of arrays
         elif check_keys(data, ("x", "ys")):
-            if all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], ty.List)]):
+            if all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], list)]):
                 xs = [data["x"]]
                 ys = data["ys"]
             elif all([isinstance(data["x"], np.ndarray), isinstance(data["ys"], np.ndarray)]):
@@ -52,7 +51,7 @@ def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarra
                 if ys.shape[1] != xs[0].size:
                     ys = ys.T
         # Dict with `ys` list of arrays
-        elif check_keys(data, ("ys",)) and isinstance(data["ys"], ty.List):
+        elif check_keys(data, ("ys",)) and isinstance(data["ys"], list):
             ys = data["ys"]
     else:
         raise NotImplementedError("Could not parse provided data.")
@@ -67,7 +66,7 @@ def parse_multiline_data(data, check: bool = True) -> ty.Tuple[ty.List[np.ndarra
     return xs, ys
 
 
-def make_multiline_line(xs: ty.List, ys: ty.List, colors: np.ndarray):
+def make_multiline_line(xs: list, ys: list, colors: np.ndarray):
     """Create all elements required to create multiline lines."""
     pos, connect, _colors = [], [], []
     if len(xs) == 1:
@@ -94,7 +93,7 @@ def make_multiline_line(xs: ty.List, ys: ty.List, colors: np.ndarray):
     return pos, connect, colors
 
 
-def make_multiline_pos(xs: ty.List, ys: ty.List):
+def make_multiline_pos(xs: list, ys: list):
     """Create array of how points should be connected."""
     pos = []
 
@@ -106,7 +105,7 @@ def make_multiline_pos(xs: ty.List, ys: ty.List):
     return np.vstack(pos)
 
 
-def make_multiline_connect(ys: ty.List):
+def make_multiline_connect(ys: list):
     """Create array of how points should be connected."""
     connect = []
     start = 0
@@ -121,7 +120,7 @@ def make_multiline_connect(ys: ty.List):
     return np.vstack(connect)
 
 
-def make_multiline_color(ys: ty.List, colors: np.ndarray):
+def make_multiline_color(ys: list, colors: np.ndarray):
     """Create all elements required to create multiline lines."""
     _colors = []
     for y, color in zip(ys, colors):
@@ -130,7 +129,7 @@ def make_multiline_color(ys: ty.List, colors: np.ndarray):
     return colors
 
 
-def get_data_limits(xs: ty.List, ys: ty.List) -> np.ndarray:
+def get_data_limits(xs: list, ys: list) -> np.ndarray:
     """Get data limits along both axes."""
     x = [(np.min(v), np.max(v)) for v in xs]
     y = [(np.min(v), np.max(v)) for v in ys]

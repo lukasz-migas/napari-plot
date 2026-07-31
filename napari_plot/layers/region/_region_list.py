@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
-
 import numpy as np
 
 from napari_plot.layers.region._region import InfiniteRegion, region_classes
@@ -29,7 +27,7 @@ class InfiniteRegionList:
     def __init__(self, data=(), ndisplay=2):
         self._ndisplay = ndisplay
 
-        self.regions: ty.List[InfiniteRegion] = []
+        self.regions: list[InfiniteRegion] = []
         self._z_index = np.empty(0, dtype=int)
         self._z_order = np.empty(0, dtype=int)
         self._color = np.empty((0, 4))
@@ -56,7 +54,7 @@ class InfiniteRegionList:
         return [s.orientation for s in self.regions]
 
     @property
-    def z_indices(self) -> ty.List[int]:
+    def z_indices(self) -> list[int]:
         """list of int: z-index for each shape."""
         return [s.z_index for s in self.regions]
 

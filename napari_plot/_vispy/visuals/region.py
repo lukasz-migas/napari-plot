@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
-
 import numpy as np
 from vispy import gloo
 from vispy.scene.visuals import Compound, Line, LinearRegion, create_visual_node
@@ -75,9 +73,9 @@ class _BatchedLinearRegionVisual(Visual):
 
     def set_data(
         self,
-        pos: ty.Optional[np.ndarray] = None,
-        orientation: ty.Optional[np.ndarray] = None,
-        color: ty.Optional[np.ndarray] = None,
+        pos: np.ndarray | None = None,
+        orientation: np.ndarray | None = None,
+        color: np.ndarray | None = None,
     ) -> None:
         """Set the bounds, orientations, or colors of the batched regions."""
         if pos is not None:
@@ -171,7 +169,7 @@ class _BatchedLinearRegionVisual(Visual):
             ]
         )
 
-    def _compute_bounds(self, axis: int, view) -> ty.Optional[tuple[float, float]]:
+    def _compute_bounds(self, axis: int, view) -> tuple[float, float] | None:
         """Return finite bounds for the constrained region axis."""
         if len(self._region_pos) == 0:
             return None

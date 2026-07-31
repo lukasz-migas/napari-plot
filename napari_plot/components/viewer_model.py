@@ -297,7 +297,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self,
         lower: float,
         upper: float,
-        axis: ty.Literal["x", "y"],
+        axis: ty.Literal[x, y],
     ) -> tuple[float, float]:
         """Return positive limits for a logarithmic axis."""
         scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
@@ -311,7 +311,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _get_positive_axis_min(
         self,
-        axis: ty.Literal["x", "y"],
+        axis: ty.Literal[x, y],
         fallback_max: float,
     ) -> float:
         """Return the smallest positive layer coordinate on an axis."""

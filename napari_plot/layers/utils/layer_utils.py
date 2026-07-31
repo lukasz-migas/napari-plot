@@ -12,7 +12,7 @@ def register_layer_action(
     keymapprovider,
     description: str,
     repeatable: bool = False,
-    shortcuts: ty.Optional[ty.Union[str, list[str]]] = None,
+    shortcuts: str | list[str] | None = None,
 ) -> ty.Callable[[ty.Callable], ty.Callable]:
     """
     Convenient decorator to register an action with the current Layers
