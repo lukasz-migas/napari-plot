@@ -1,6 +1,6 @@
 """Add keybindings to the layer"""
 
-from typing import Callable
+from collections.abc import Callable
 
 from app_model.types import KeyCode
 from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action

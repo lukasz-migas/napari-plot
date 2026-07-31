@@ -1,10 +1,7 @@
 """Regression tests for native napari layer-list context expressions."""
 
 import numpy as np
-from napari._app_model.actions._layerlist_context_actions import (
-    LAYERLIST_CONTEXT_ACTIONS,
-    LAYERLIST_CONTEXT_SUBMENUS,
-)
+from napari._app_model.actions._layerlist_context_actions import LAYERLIST_CONTEXT_ACTIONS, LAYERLIST_CONTEXT_SUBMENUS
 from napari._app_model.context import get_context
 from napari.layers.base import LayerLock
 

@@ -11,7 +11,7 @@ def make_infinite_line_bounds_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create all elements required to create infinite lines.
 
@@ -65,7 +65,7 @@ def make_infinite_line_simple_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create all elements required to create infinite lines.
 
@@ -112,7 +112,7 @@ def make_infinite_line_simple_data(
 def make_infinite_line_pos(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create position in format x,y"""
     pos = []
@@ -147,7 +147,7 @@ def parse_infinite_line_orientation(data, orientation=None):
         data = [data]
         orientation = [orientation]
     # List of (position, orientation) tuples
-    elif len(data) != 0 and all(isinstance(dat, ty.Tuple) for dat in data):
+    elif len(data) != 0 and all(isinstance(dat, tuple) for dat in data):
         orientation = [dat[1] for dat in data]
         data = [dat[0] for dat in data]
     # Iterable of position without orientation

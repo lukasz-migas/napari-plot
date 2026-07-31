@@ -203,7 +203,7 @@ def MouseEvent():
 
         type: str
         is_dragging: bool
-        position: ty.Union[tuple, list, np.ndarray]
+        position: tuple | list | np.ndarray
         view_direction: np.ndarray
         dims_displayed: np.ndarray
         dims_point: np.ndarray
@@ -228,7 +228,7 @@ def QtMouseEvent():
         type: str
         is_dragging: bool
         modifiers: list[str]
-        pos: ty.Union[tuple, list, np.ndarray]
-        position: ty.Union[tuple, list, np.ndarray]
+        pos: tuple | list | np.ndarray
+        position: tuple | list | np.ndarray
 
     return Event

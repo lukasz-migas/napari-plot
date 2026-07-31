@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
 import warnings
 from copy import copy
 
@@ -189,7 +188,7 @@ class InfLine(BaseLayer):
         self._moving_value = (None, None)
         # responsible for handling creation of new infinite line
         self._is_creating = False
-        self._creating_value: tuple[ty.Optional[float], ty.Optional[Orientation]] = (
+        self._creating_value: tuple[float | None, Orientation | None] = (
             None,
             None,
         )
@@ -379,7 +378,7 @@ class InfLine(BaseLayer):
         return str(self._mode)
 
     @mode.setter
-    def mode(self, mode: ty.Union[str, Mode]):
+    def mode(self, mode: str | Mode):
         mode: Mode = self._mode_setter_helper(mode)
         if mode == self._mode:
             return
@@ -587,7 +586,7 @@ class InfLine(BaseLayer):
         self._on_editable_changed()
 
     @property
-    def orientation(self) -> ty.List[Orientation]:
+    def orientation(self) -> list[Orientation]:
         """Return list of orientations."""
         return self._data_view.orientations
 
@@ -649,7 +648,7 @@ class InfLine(BaseLayer):
         self._drag_box_stored = copy(self._drag_box)
         self.events.highlight()
 
-    def _compute_box(self) -> tuple[ty.Union[str, np.ndarray], np.ndarray, float]:
+    def _compute_box(self) -> tuple[str | np.ndarray, np.ndarray, float]:
         """Compute location of highlight vertices and box for rendering.
 
         Returns

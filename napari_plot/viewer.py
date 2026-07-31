@@ -72,7 +72,7 @@ class Viewer(ViewerModel):
 
     def export_figure(
         self,
-        path: ty.Optional[str] = None,
+        path: str | None = None,
         *,
         scale_factor: float = 1,
         flash: bool = False,
@@ -126,8 +126,8 @@ class Viewer(ViewerModel):
     def export_rois(
         self,
         rois: list[np.ndarray],
-        paths: ty.Optional[ty.Union[str, Path, list[ty.Union[str, Path]]]] = None,
-        scale: ty.Optional[float] = None,
+        paths: str | Path | list[str | Path] | None = None,
+        scale: float | None = None,
     ):
         """Export the given rectangular rois to specified file paths.
 
@@ -171,10 +171,10 @@ class Viewer(ViewerModel):
 
     def screenshot(
         self,
-        path: ty.Optional[str] = None,
+        path: str | None = None,
         *,
-        size: ty.Optional[tuple[str, str]] = None,
-        scale: ty.Optional[float] = None,
+        size: tuple[str, str] | None = None,
+        scale: float | None = None,
         canvas_only: bool = True,
         flash: bool = False,
     ):
@@ -252,7 +252,7 @@ class Viewer(ViewerModel):
         return ret
 
 
-def current_viewer() -> ty.Optional[Viewer]:
+def current_viewer() -> Viewer | None:
     """Return the currently active napari viewer."""
     try:
         from napari._qt.qt_main_window import _QtMainWindow

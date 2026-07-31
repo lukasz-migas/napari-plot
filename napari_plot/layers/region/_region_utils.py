@@ -55,7 +55,7 @@ def make_infinite_region_simple_data(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
     colors: np.ndarray,
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create all elements required to create infinite region.
 
@@ -102,7 +102,7 @@ def make_infinite_region_simple_data(
 def make_infinite_region_pos(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create position in format x,y"""
     pos = []
@@ -125,7 +125,7 @@ def make_infinite_region_pos(
 def make_infinite_region_mean(
     data: np.ndarray,
     orientations: ty.Iterable[Orientation],
-    indices: ty.Optional[ty.List[int]] = None,
+    indices: list[int] | None = None,
 ):
     """Create position in format x,y"""
     pos = []
