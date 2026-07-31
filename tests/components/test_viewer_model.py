@@ -206,6 +206,16 @@ def test_camera():
     assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -10, 15)
 
 
+def test_log_extent_uses_smallest_positive_values() -> None:
+    viewer = ViewerModel()
+    viewer.add_line(np.asarray([[0.0, 0.0], [1.0, 0.1], [10.0, 100.0]]))
+
+    viewer.axis.x_scale = "log"
+    viewer.axis.y_scale = "log"
+
+    assert viewer._get_rect_extent() == (1.0, 10.0, 0.1, 100.0)
+
+
 def test_custom_add_methods_are_registered():
     """Test custom napari-plot layer add methods can be imported and called."""
     signature = inspect.signature(ViewerModel.add_line)

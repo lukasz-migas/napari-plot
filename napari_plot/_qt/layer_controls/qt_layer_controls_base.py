@@ -4,7 +4,6 @@ import typing as ty
 
 import qtextra.helpers as hp
 from napari.layers.base._base_constants import BLENDING_TRANSLATIONS, Blending, Mode
-from napari.utils.action_manager import action_manager
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QButtonGroup, QFormLayout, QFrame, QGridLayout
@@ -207,9 +206,7 @@ class QtLayerControls(QFrame):
         When shortcuts are modifed/added/removed via the action manager, the
         tooltip will be updated to reflect the new shortcut.
         """
-        action_name = f"napari:{action_name}"
         btn = QtModeRadioButton(layer, btn_name, mode, **kwargs)
-        action_manager.bind_button(action_name, btn, extra_tooltip_text=extra_tooltip_text)
         self._MODE_BUTTONS[mode] = btn
         self.button_group.addButton(btn)
         if edit_button:
