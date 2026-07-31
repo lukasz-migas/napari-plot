@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import typing as ty
+from enum import StrEnum
 
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
-from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 from pydantic import field_validator
