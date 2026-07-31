@@ -6,9 +6,8 @@ from napari._vispy.overlays.text import CanvasPosition, VispyTextOverlay as _Vis
 class VispyTextOverlay(_VispyTextOverlay):
     """Overwrite text position"""
 
-    def __init__(self, *, viewer, overlay, parent=None) -> None:
-        # self._ref_qt_viewer = ref(qt_viewer)
-        super().__init__(viewer=viewer, overlay=overlay, parent=parent)
+    def __init__(self, *, viewer, overlay, font_info, parent=None) -> None:
+        super().__init__(viewer=viewer, overlay=overlay, font_info=font_info, parent=parent)
 
     def _on_position_change(self, event=None):
         """Change position of text visual.

@@ -19,6 +19,7 @@ from napari._qt.qt_viewer import QtViewer as NapariQtViewer
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_dims import QtDims
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
+from napari._vispy.utils.qt_font import QtFontManager
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
@@ -65,7 +66,7 @@ class QtViewer(QSplitter):
     # We use this instead of QApplication.activeWindow for compatibility with
     # IPython usage. When you activate IPython, it will appear that there are
     # *no* active windows, so we want to track the most recently active windows
-    _instances: ty.ClassVar[ty.List[QtViewer]] = []
+    _instances: ty.ClassVar[list[QtViewer]] = []
     _console = None
 
     def __init__(
@@ -105,11 +106,17 @@ class QtViewer(QSplitter):
         # create ui widgets
         self._create_widgets(**kwargs)
 
+        # font manager/family shared by all overlay text visuals
+        self._font_manager = QtFontManager()
+        self._overlay_font = QGuiApplication.font().family()
+
         # create main vispy canvas
         self.canvas = VispyCanvas(
             viewer=self.viewer,
             parent=self,
             key_map_handler=self._key_map_handler,
+            font_manager=self._font_manager,
+            font_family=self._overlay_font,
             size=self.viewer._canvas_size,
             autoswap=True,
         )
@@ -122,6 +129,7 @@ class QtViewer(QSplitter):
         self._set_layout(**kwargs)
 
         # setup events
+        self.viewer._layer_slicer.events.ready.connect(self._on_slice_ready)
         # self.viewer.layers.events.inserted.connect(self._update_camera_depth)
         # self.viewer.layers.events.removed.connect(self._update_camera_depth)
         # self.viewer.dims.events.ndisplay.connect(self._update_camera_depth)
@@ -361,21 +369,25 @@ class QtViewer(QSplitter):
         This only gets triggered on the async slicing path.
         """
         responses: dict[weakref.ReferenceType[n_layers.Layer], ty.Any] = event.value
-        logging.debug("QtViewer._on_slice_ready: %s", responses)
+        logging.getLogger("napari").debug("QtViewer._on_slice_ready: %s", responses)
         for weak_layer, response in responses.items():
             if layer := weak_layer():
                 # Update the layer slice state to temporarily support behavior
                 # that depends on it.
-                layer._update_slice_response(response)
+                layer._slicing_state._update_slice_response(response)
                 # Update the layer's loaded state before everything else,
                 # because they may rely on its updated value.
-                layer._update_loaded_slice_id(response.request_id)
+                layer._slicing_state._update_loaded_slice_id(response.request_id)
                 # The rest of `Layer.refresh` after `set_view_slice`, where
                 # `set_data` notifies the corresponding vispy layer of the new
                 # slice.
                 layer.events.set_data()
-                layer._update_thumbnail()
-                layer._set_highlight(force=True)
+                layer._refresh_sync(
+                    data_displayed=False,
+                    thumbnail=True,
+                    highlight=True,
+                    extent=True,
+                )
 
     def add_to_console_backlog(self, variables):
         """Save variables for pushing to console when it is instantiated.
@@ -432,7 +444,7 @@ class QtViewer(QSplitter):
         layer : napari.layers.Layer
             Layer to be added.
         """
-        vispy_layer = create_vispy_layer(layer)
+        vispy_layer = create_vispy_layer(layer, font_info=self.canvas.font_info())
         self.canvas.add_layer_visual_mapping(layer, vispy_layer)
 
     def on_save_figure(self, path=None):
@@ -627,10 +639,10 @@ class QtViewer(QSplitter):
     def _qt_open(
         self,
         filenames: list[str],
-        stack: ty.Union[bool, list[list[str]]],
+        stack: bool | list[list[str]],
         choose_plugin: bool = False,
-        plugin: ty.Optional[str] = None,
-        layer_type: ty.Optional[str] = None,
+        plugin: str | None = None,
+        layer_type: str | None = None,
         **kwargs,
     ):
         """Open files, potentially popping reader dialog for plugin selection.

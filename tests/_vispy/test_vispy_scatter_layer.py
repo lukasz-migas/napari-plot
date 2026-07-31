@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from napari._vispy.utils.qt_font import FontInfo
 
 from napari_plot._vispy.layers.scatter import VispyScatterLayer
 from napari_plot.layers import Scatter
@@ -9,5 +10,5 @@ from napari_plot.layers import Scatter
 def test_VispyScatterLayer(opacity):
     points = np.array([[100, 100], [200, 200], [300, 100]])
     layer = Scatter(points, size=30, opacity=opacity)
-    visual = VispyScatterLayer(layer)
+    visual = VispyScatterLayer(layer, font_info=FontInfo())
     assert visual.node.opacity == opacity

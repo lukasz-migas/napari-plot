@@ -17,9 +17,9 @@ class VispyRegionLayer(VispyBaseLayer):
     layer: "Region"
     node: RegionVisual
 
-    def __init__(self, layer: "Region"):
+    def __init__(self, layer: "Region", font_info) -> None:
         node = RegionVisual()
-        super().__init__(layer, node)
+        super().__init__(layer, node, font_info=font_info)
         self.node.opacity = layer.opacity
 
         # connect events

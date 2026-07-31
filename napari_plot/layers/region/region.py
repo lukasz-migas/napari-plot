@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
 import warnings
 from copy import copy
 
@@ -58,8 +57,6 @@ class Region(BaseLayer):
         Specifier of z order priority. Regions with higher z order are displayed on top of others. If a list is
         supplied it must be the same length as the length of `data` and each element will be applied to each region
         otherwise the same value will be used for all regions.
-    label : str
-        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
@@ -136,6 +133,7 @@ class Region(BaseLayer):
         color=(1.0, 1.0, 1.0, 1.0),
         z_index=0,
         # napari parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -145,12 +143,16 @@ class Region(BaseLayer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         # sanitize data
         data, orientation = parse_infinite_region_orientation(data, orientation)
         super().__init__(
             data,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -160,6 +162,9 @@ class Region(BaseLayer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
         self.events.add(
@@ -195,7 +200,7 @@ class Region(BaseLayer):
         self._moving_value = (None, None)
         # responsible for handling creation of new infinite line
         self._is_creating = False
-        self._creating_value: tuple[ty.Optional[tuple[float, float]], ty.Optional[Orientation]] = (None, None)
+        self._creating_value: tuple[tuple[float, float] | None, Orientation | None] = (None, None)
 
         self._init_regions(data, orientation=orientation, color=color, z_index=z_index)
         # set the current_* properties
@@ -523,7 +528,14 @@ class Region(BaseLayer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "color": self.color, "label": self.label})
+        state.update(
+            {
+                "data": self.data,
+                "orientation": self.orientation,
+                "color": self.color,
+                "z_index": self.z_index,
+            }
+        )
         return state
 
     def _update_thumbnail(self):
@@ -600,12 +612,12 @@ class Region(BaseLayer):
         self._on_editable_changed()
 
     @property
-    def z_index(self) -> ty.List[int]:
+    def z_index(self) -> list[int]:
         """list of int: z_index for each shape."""
         return self._data_view.z_indices
 
     @z_index.setter
-    def z_index(self, z_index: ty.Union[int, ty.List[int]]):
+    def z_index(self, z_index: int | list[int]):
         """Set z_index of shape using either int or list of int.
 
         When list of int is provided, must be of equal length to n shapes.
@@ -707,7 +719,7 @@ class Region(BaseLayer):
             self._data_view.update_z_index(index, new_z_index)
         self.refresh()
 
-    def _compute_box(self) -> tuple[ty.Union[str, np.ndarray], np.ndarray, float]:
+    def _compute_box(self) -> tuple[str | np.ndarray, np.ndarray, float]:
         """Compute location of highlight vertices and box for rendering.
 
         Returns

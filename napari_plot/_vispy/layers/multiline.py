@@ -20,9 +20,9 @@ class VispyMultiLineLayer(VispyBaseLayer):
     layer: "MultiLine"
     node: MultiLineVisual
 
-    def __init__(self, layer: "MultiLine"):
+    def __init__(self, layer: "MultiLine", font_info) -> None:
         node = MultiLineVisual()
-        super().__init__(layer, node)
+        super().__init__(layer, node, font_info=font_info)
 
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.width.connect(self._on_width_change)

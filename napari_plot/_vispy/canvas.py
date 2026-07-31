@@ -11,6 +11,7 @@ from napari._vispy import create_vispy_overlay
 from napari._vispy.mouse_event import NapariMouseEvent
 from napari._vispy.utils.cursor import QtCursorVisual
 from napari._vispy.utils.gl import get_max_texture_sizes
+from napari._vispy.utils.qt_font import FontInfo
 from napari.components.overlays import CanvasOverlay, Overlay, SceneOverlay
 from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.colormaps.standardize_color import transform_color
@@ -36,6 +37,7 @@ if ty.TYPE_CHECKING:
     import numpy.typing as npt
     from napari._vispy.layers.base import VispyBaseLayer
     from napari._vispy.overlays.base import VispyBaseOverlay
+    from napari._vispy.utils.qt_font import QtFontManager
     from napari.layers import Layer
     from napari.utils.key_bindings import KeymapHandler
     from qtpy.QtCore import Qt, pyqtBoundSignal
@@ -119,6 +121,8 @@ class VispyCanvas:
         self,
         viewer: ViewerModel,
         key_map_handler: KeymapHandler,
+        font_manager: QtFontManager,
+        font_family: str,
         *args,
         **kwargs,
     ):
@@ -126,6 +130,7 @@ class VispyCanvas:
         self._last_theme_color = None
         self.viewer = viewer
         self._background_color_override = None
+        self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self._scene_canvas = NapariSceneCanvas(*args, keys=None, vsync=True, **kwargs)
         self._data_scene = Node(parent=self.view.scene)
         self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer)
@@ -232,7 +237,7 @@ class VispyCanvas:
         return self._scene_canvas._backend.screen_changed
 
     @property
-    def background_color_override(self) -> ty.Optional[str]:
+    def background_color_override(self) -> str | None:
         """Background color of VispyCanvas.view returned as hex string. When not None, color is shown instead of
         VispyCanvas.bgcolor. The setter expects str (any in vispy.color.get_color_names) or hex starting
         with # or a tuple | np.array ({3,4},) with values between 0 and 1.
@@ -243,7 +248,7 @@ class VispyCanvas:
         return None
 
     @background_color_override.setter
-    def background_color_override(self, value: ty.Union[str, np.ndarray, None]) -> None:
+    def background_color_override(self, value: str | np.ndarray | None) -> None:
         if value:
             self.view.bgcolor = value
         else:
@@ -258,6 +263,10 @@ class VispyCanvas:
     def grid(self):
         """Canvas grid."""
         return self._scene_canvas.grid
+
+    def font_info(self) -> FontInfo:
+        """Get the shared font information used by overlay/layer text visuals."""
+        return self._font_info
 
     def _on_theme_change(self, event: Event) -> None:
         self._set_theme_change(event.value)
@@ -274,7 +283,7 @@ class VispyCanvas:
         self.bgcolor = self._last_theme_color
 
     @property
-    def background_color_override(self) -> ty.Optional[str]:
+    def background_color_override(self) -> str | None:
         """Get background color"""
         return self._background_color_override
 
@@ -308,7 +317,7 @@ class VispyCanvas:
         return self._scene_canvas.bgcolor.hex
 
     @bgcolor.setter
-    def bgcolor(self, value: ty.Union[str, npt.ArrayLike]) -> None:
+    def bgcolor(self, value: str | npt.ArrayLike) -> None:
         self._scene_canvas.bgcolor = value
 
     @property
@@ -338,7 +347,7 @@ class VispyCanvas:
         return self.native.cursor()
 
     @cursor.setter
-    def cursor(self, q_cursor: ty.Union[QCursor, Qt.CursorShape]):
+    def cursor(self, q_cursor: QCursor | Qt.CursorShape):
         """Setting the cursor of the native widget"""
         self.native.setCursor(q_cursor)
 
@@ -610,7 +619,7 @@ class VispyCanvas:
 
     def _add_overlay_to_visual(self, overlay: Overlay) -> None:
         """Create vispy overlay and add to dictionary of overlay visuals"""
-        vispy_overlay = create_vispy_overlay(overlay=overlay, viewer=self.viewer)
+        vispy_overlay = create_vispy_overlay(overlay=overlay, viewer=self.viewer, font_info=self._font_info)
         if isinstance(overlay, CanvasOverlay):
             vispy_overlay.node.parent = self.view
         elif isinstance(overlay, SceneOverlay):

@@ -1,6 +1,5 @@
 """Container class for MultiLine data."""
 
-import typing as ty
 
 import numpy as np
 
@@ -19,7 +18,7 @@ class MultiLineList:
         self._data = {"xs": [], "ys": []}
         self._color = np.empty((0, 4))
 
-    def add(self, xs: ty.List, ys: ty.List[np.ndarray], color: np.ndarray):
+    def add(self, xs: list, ys: list[np.ndarray], color: np.ndarray):
         """Add data to store."""
         if len(ys) != len(color):
             raise ValueError("The number of `ys` must be equal to the number of colors.")
@@ -68,7 +67,7 @@ class MultiLineList:
         return len(self._data["xs"]) == len(self._data["ys"])
 
     @property
-    def xs(self) -> ty.List[np.ndarray]:
+    def xs(self) -> list[np.ndarray]:
         """Get x-axis arrays."""
         return self._data["xs"]
 
@@ -77,7 +76,7 @@ class MultiLineList:
         self._data["xs"] = value
 
     @property
-    def ys(self) -> ty.List[np.ndarray]:
+    def ys(self) -> list[np.ndarray]:
         """Get y-axis arrays."""
         return self._data["ys"]
 
@@ -86,9 +85,9 @@ class MultiLineList:
         self._data["ys"] = value
 
     @property
-    def data(self):
-        """Return nicely formatted data."""
-        return
+    def data(self) -> dict[str, list[np.ndarray]]:
+        """Return the x and y arrays in a constructor-compatible mapping."""
+        return {"xs": self.xs, "ys": self.ys}
 
     @property
     def extent_data(self) -> np.ndarray:

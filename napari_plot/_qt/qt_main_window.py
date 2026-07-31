@@ -29,6 +29,7 @@ from napari.settings import get_settings
 from napari.utils.events import Event
 from napari.utils.misc import in_jupyter, running_as_constructor_app
 from napari.utils.notifications import Notification
+from napari.utils.task_status import Status, TaskStatusManager
 from qtpy.QtCore import QEvent, QEventLoop, QPoint, QProcess, QRect, Qt, Slot
 from qtpy.QtGui import QHideEvent, QIcon, QImage, QKeySequence, QShowEvent
 from qtpy.QtWidgets import (
@@ -52,6 +53,8 @@ from napari_plot.components.dragtool import DragMode
 from napari_plot.resources import get_stylesheet
 
 if ty.TYPE_CHECKING:
+    import uuid
+
     from magicgui.widgets import Widget
 
     from napari_plot.viewer import Viewer
@@ -73,7 +76,7 @@ class _QtMainWindow(QMainWindow):
     # We use this instead of QApplication.activeWindow for compatibility with
     # IPython usage. When you activate IPython, it will appear that there are
     # *no* active windows, so we want to track the most recently active windows
-    _instances: ty.ClassVar[ty.List[_QtMainWindow]] = []
+    _instances: ty.ClassVar[list[_QtMainWindow]] = []
 
     def __init__(self, viewer: Viewer, window: Window, parent=None) -> None:
         super().__init__(parent)
@@ -178,7 +181,7 @@ class _QtMainWindow(QMainWindow):
         self.status_thread.terminate()
         super().hideEvent(event)
 
-    def set_status_and_tooltip(self, status_and_tooltip: ty.Optional[tuple[ty.Union[str, dict], str]]):
+    def set_status_and_tooltip(self, status_and_tooltip: tuple[str | dict, str] | None):
         if status_and_tooltip is None:
             return
         self._qt_viewer.viewer.status = status_and_tooltip[0]
@@ -471,8 +474,10 @@ class Window:
         qapp = get_app()
 
         # Dictionary holding dock widgets
-        self._dock_widgets: ty.Dict[str, QtViewerDockWidget] = WeakValueDictionary()
+        self._dock_widgets: dict[str, QtViewerDockWidget] = WeakValueDictionary()
         self._unnamed_dockwidget_count = 1
+
+        self._task_status_manager = TaskStatusManager()
 
         # Connect the Viewer and create the Main Window
         self._qt_window: QMainWindow = _QtMainWindow(viewer, self)
@@ -556,14 +561,14 @@ class Window:
 
     def add_dock_widget(
         self,
-        widget: ty.Union[QWidget, Widget],
+        widget: QWidget | Widget,
         *,
         name: str = "",
-        area: ty.Optional[str] = None,
-        allowed_areas: ty.Optional[ty.Sequence[str]] = None,
+        area: str | None = None,
+        allowed_areas: ty.Sequence[str] | None = None,
         add_vertical_stretch=True,
         tabify: bool = False,
-        menu: ty.Optional[QMenu] = None,
+        menu: QMenu | None = None,
     ):
         """Convenience method to add a QDockWidget to the main window.
 
@@ -1218,8 +1223,8 @@ class Window:
 
     def _screenshot(
         self,
-        size: ty.Optional[tuple[int, int]] = None,
-        scale: ty.Optional[float] = None,
+        size: tuple[int, int] | None = None,
+        scale: float | None = None,
         flash: bool = True,
         canvas_only: bool = False,
         fit_to_data_extent: bool = False,
@@ -1300,7 +1305,7 @@ class Window:
 
     def export_figure(
         self,
-        path: ty.Optional[str] = None,
+        path: str | None = None,
         scale: float = 1,
         flash=True,
     ) -> np.ndarray:
@@ -1349,8 +1354,8 @@ class Window:
     def export_rois(
         self,
         rois: list[np.ndarray],
-        paths: ty.Optional[ty.Union[str, Path, list[ty.Union[str, Path]]]] = None,
-        scale: ty.Optional[float] = None,
+        paths: str | Path | list[str | Path] | None = None,
+        scale: float | None = None,
     ):
         """Export the given rectangular rois to specified file paths.
 
@@ -1490,3 +1495,26 @@ class Window:
 
         if dial.exec_():
             pass
+
+    def _register_task_status(
+        self,
+        provider: str,
+        task_status: Status,
+        description: str,
+        cancel_callback: ty.Callable | None = None,
+    ) -> uuid.UUID:
+        """
+        Register a long running task status.
+        """
+        return self._task_status_manager.register_task_status(provider, task_status, description, cancel_callback)
+
+    def _update_task_status(
+        self,
+        task_status_id: uuid.UUID,
+        status: Status,
+        description: str = "",
+    ) -> bool:
+        """
+        Update a long running task status.
+        """
+        return self._task_status_manager.update_task_status(task_status_id, status, description)

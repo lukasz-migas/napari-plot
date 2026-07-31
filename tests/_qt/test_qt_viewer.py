@@ -1,5 +1,9 @@
 """Check QtViewer"""
 
+import weakref
+from types import SimpleNamespace
+from unittest.mock import Mock
+
 import numpy as np
 import pytest
 from qtpy.QtWidgets import QVBoxLayout, QWidget
@@ -17,9 +21,31 @@ def test_qt_viewer(make_napari_plot_viewer):
 
     assert viewer.title == "napari-plot"
     assert view.viewer == viewer
+    emitter = viewer._layer_slicer.events.ready
+    callback, _ = emitter._normalize_cb(view._on_slice_ready)
+    assert callback in emitter.callbacks
 
     assert len(viewer.layers) == 0
     assert view.layers.model().rowCount() == 0
+
+
+def test_on_slice_ready_uses_layer_slicing_state():
+    """Completed async slices are applied through napari's slicing state."""
+    layer = Mock()
+    response = SimpleNamespace(request_id=7)
+    event = SimpleNamespace(value={weakref.ref(layer): response})
+
+    QtViewer._on_slice_ready.__wrapped__(object(), event)
+
+    layer._slicing_state._update_slice_response.assert_called_once_with(response)
+    layer._slicing_state._update_loaded_slice_id.assert_called_once_with(7)
+    layer.events.set_data.assert_called_once_with()
+    layer._refresh_sync.assert_called_once_with(
+        data_displayed=False,
+        thumbnail=True,
+        highlight=True,
+        extent=True,
+    )
 
 
 def test_qt_viewer_with_console(make_napari_plot_viewer):

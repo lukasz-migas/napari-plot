@@ -96,8 +96,14 @@ pip install -e '.[all]'
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are very welcome. Install the test environment and run the tests with [uv]:
+
+```shell
+uv sync --no-dev --group test --extra pyqt6 --extra optional
+uv run --no-sync pytest
+```
+
+Please ensure the coverage at least stays the same before you submit a pull request.
 
 ## License
 
@@ -120,6 +126,6 @@ This project is supported by a Chan-Zuckerberg Initiative [napari](https://chanz
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 [file an issue]: https://github.com/lukasz-migas/napari-plot/issues
 [napari]: https://github.com/napari/napari
-[tox]: https://tox.readthedocs.io/en/latest/
+[uv]: https://docs.astral.sh/uv/
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/

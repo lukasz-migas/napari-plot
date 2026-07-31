@@ -107,7 +107,7 @@ class VispyCamera:
         )
 
     @property
-    def rect(self) -> ty.Tuple[float, float, float, float]:
+    def rect(self) -> tuple[float, float, float, float]:
         """Get rect"""
         rect = self.camera.rect
         return self._transform_rect(

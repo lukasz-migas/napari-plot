@@ -1,4 +1,3 @@
-import typing as ty
 
 import numpy as np
 from napari.layers import Layer
@@ -7,7 +6,7 @@ from napari_plot import layers
 from napari_plot.utils.utilities import find_nearest_index, get_min_max
 
 
-def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty.Optional[float], ...]:
+def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> tuple[float | None, ...]:
     """Get extent for specified range"""
     if not layer.visible:
         return None, None
@@ -18,7 +17,7 @@ def get_x_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty
     return None, None
 
 
-def get_layers_x_region_extent(x_min: float, x_max: float, layer_list) -> ty.Tuple[ty.Optional[float], ...]:
+def get_layers_x_region_extent(x_min: float, x_max: float, layer_list) -> tuple[float | None, ...]:
     """Get layer extents"""
     extents = []
     for layer in layer_list:
@@ -32,7 +31,7 @@ def get_layers_x_region_extent(x_min: float, x_max: float, layer_list) -> ty.Tup
     return None, None
 
 
-def get_y_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty.Optional[float], ...]:
+def get_y_region_extent(x_min: float, x_max: float, layer: Layer) -> tuple[float | None, ...]:
     """Get extent for specified range"""
     if not layer.visible:
         return None, None
@@ -61,7 +60,7 @@ def get_y_region_extent(x_min: float, x_max: float, layer: Layer) -> ty.Tuple[ty
     return None, None
 
 
-def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> ty.Tuple[ty.Optional[float], ...]:
+def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> tuple[float | None, ...]:
     """Get layer extents"""
     extents = []
     for layer in layer_list:
@@ -76,8 +75,8 @@ def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> ty.Tup
 
 
 def get_range_extent(
-    full_min, full_max, range_min, range_max, min_val: ty.Optional[float] = None
-) -> ty.Tuple[float, float]:
+    full_min, full_max, range_min, range_max, min_val: float | None = None
+) -> tuple[float, float]:
     """Get tuple of specified range"""
     if range_min is None:
         range_min = full_min

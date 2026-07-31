@@ -13,7 +13,7 @@ menus for plugins to contribute commands and submenu items to.
 
 from __future__ import annotations
 
-from napari.utils.compat import StrEnum
+from enum import StrEnum
 
 
 class MenuId(StrEnum):

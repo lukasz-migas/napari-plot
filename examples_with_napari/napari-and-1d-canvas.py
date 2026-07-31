@@ -8,7 +8,7 @@ import napari_plot
 from napari_plot._qt.qt_viewer import QtViewer
 
 # create the viewer with an image
-viewer = napari.view_image(data.astronaut(), rgb=True)
+viewer, _ = napari.imshow(data.astronaut(), rgb=True)
 
 
 viewer1d = napari_plot.ViewerModel()

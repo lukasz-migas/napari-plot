@@ -159,7 +159,7 @@ def move(layer: Region, event: MouseEvent) -> ty.Generator[None, None, None]:
         del tmp
 
 
-def _select(layer: Region, event: MouseEvent, shift: bool) -> ty.Tuple[ty.Optional[int], ty.Optional[int]]:
+def _select(layer: Region, event: MouseEvent, shift: bool) -> tuple[int | None, int | None]:
     """Select region(s) on mouse press. Allow for multiple selection if `shift=True`"""
     # TODO: update current_face_color
     value = layer.get_value(event.position, world=True)

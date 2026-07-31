@@ -265,8 +265,8 @@ def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     # on release
     viewer.drag_tool.tool.color = color
     viewer.drag_tool.tool.visible = False
-    viewer.drag_tool.tool.position = (0, 0, 0, 0)
     position = viewer.drag_tool.tool.position
+    viewer.drag_tool.tool.position = (0, 0, 0, 0)
     _set_event_range()
     viewer.events.span(position=position)
 

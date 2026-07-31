@@ -29,8 +29,6 @@ class MultiLine(BaseLayer):
         Width of the line in pixel units.
     method : str or Method
         Rendering method. Either `gl` or `agg`.
-    label : str
-        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
@@ -67,6 +65,7 @@ class MultiLine(BaseLayer):
         width=2,
         method="gl",
         # napari parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -76,6 +75,9 @@ class MultiLine(BaseLayer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         # sanitize data
@@ -83,6 +85,7 @@ class MultiLine(BaseLayer):
 
         super().__init__(
             data,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -92,6 +95,9 @@ class MultiLine(BaseLayer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
         self.events.add(color=Event, width=Event, method=Event, highlight=Event, stream=Event)
@@ -325,9 +331,9 @@ class MultiLine(BaseLayer):
         state = self._get_base_state()
         state.update(
             {
+                "color": self.color,
                 "width": self.width,
                 "method": self.method,
-                "label": self.label,
             }
         )
         return state

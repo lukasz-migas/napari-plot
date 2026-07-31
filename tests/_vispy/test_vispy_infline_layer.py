@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+from napari._vispy.utils.qt_font import FontInfo
 
 from napari_plot._vispy.layers.infline import VispyInfLineLayer
 from napari_plot.layers import InfLine
@@ -23,7 +24,7 @@ def layer() -> InfLine:
 
 def test_vispy_infline_layer_uses_fixed_subvisual_count(layer: InfLine) -> None:
     """Test stored infinite lines are rendered by one batched visual."""
-    visual = VispyInfLineLayer(layer)
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
 
     assert len(visual.node._subvisuals) == 4
     np.testing.assert_allclose(visual.node.lines_visual.pos, [1.0, 2.0, 3.0])
@@ -33,7 +34,7 @@ def test_vispy_infline_layer_uses_fixed_subvisual_count(layer: InfLine) -> None:
 
 def test_vispy_infline_layer_builds_batched_vertices(layer: InfLine) -> None:
     """Test vertex data matches vertical and horizontal infinite-line layout."""
-    visual = VispyInfLineLayer(layer)
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
 
     np.testing.assert_allclose(
         visual.node.lines_visual.vertex_pos,
@@ -54,7 +55,7 @@ def test_vispy_infline_layer_builds_batched_vertices(layer: InfLine) -> None:
 
 def test_vispy_infline_layer_refreshes_after_remove(layer: InfLine) -> None:
     """Test removing a line refreshes batched data without removing subvisuals."""
-    visual = VispyInfLineLayer(layer)
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
 
     layer.selected_data = {1}
     layer.remove_selected()
@@ -66,7 +67,7 @@ def test_vispy_infline_layer_refreshes_after_remove(layer: InfLine) -> None:
 
 def test_vispy_infline_layer_highlight_updates_batched_colors(layer: InfLine) -> None:
     """Test selected lines are colored with the layer highlight color."""
-    visual = VispyInfLineLayer(layer)
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
 
     layer.selected_data = {1}
     visual._on_appearance_change()
@@ -80,7 +81,7 @@ def test_vispy_infline_layer_highlight_updates_batched_colors(layer: InfLine) ->
 
 def test_vispy_infline_layer_width_and_opacity_propagate(layer: InfLine) -> None:
     """Test width and opacity are applied to batched and temporary line visuals."""
-    visual = VispyInfLineLayer(layer)
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
 
     layer.width = 5
     visual.node.opacity = 0.25

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 from napari.layers.base._base_constants import Mode
 from napari.layers.utils.layer_utils import register_layer_action, register_layer_attr_action

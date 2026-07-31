@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import typing as ty
 import warnings
 from copy import copy
 
@@ -54,8 +53,6 @@ class InfLine(BaseLayer):
         be 1-dimensional array with 3 or 4 elements.
     width : float
         Width of the line in pixel units.
-    label : str
-        Label to be displayed in the plot legend. (unused at the moment)
     name : str
         Name of the layer.
     metadata : dict
@@ -121,6 +118,7 @@ class InfLine(BaseLayer):
         width=1,
         z_index=0,
         # base parameters
+        axis_labels=None,
         name=None,
         metadata=None,
         scale=None,
@@ -130,6 +128,9 @@ class InfLine(BaseLayer):
         affine=None,
         opacity=1.0,
         blending="translucent",
+        experimental_clipping_planes=None,
+        projection_mode="none",
+        units=None,
         visible=True,
     ):
         # sanitize data
@@ -139,6 +140,7 @@ class InfLine(BaseLayer):
 
         super().__init__(
             data,
+            axis_labels=axis_labels,
             name=name,
             metadata=metadata,
             scale=scale,
@@ -148,6 +150,9 @@ class InfLine(BaseLayer):
             affine=affine,
             opacity=opacity,
             blending=blending,
+            experimental_clipping_planes=experimental_clipping_planes,
+            projection_mode=projection_mode,
+            units=units,
             visible=visible,
         )
         self.events.add(
@@ -183,7 +188,7 @@ class InfLine(BaseLayer):
         self._moving_value = (None, None)
         # responsible for handling creation of new infinite line
         self._is_creating = False
-        self._creating_value: tuple[ty.Optional[float], ty.Optional[Orientation]] = (
+        self._creating_value: tuple[float | None, Orientation | None] = (
             None,
             None,
         )
@@ -373,7 +378,7 @@ class InfLine(BaseLayer):
         return str(self._mode)
 
     @mode.setter
-    def mode(self, mode: ty.Union[str, Mode]):
+    def mode(self, mode: str | Mode):
         mode: Mode = self._mode_setter_helper(mode)
         if mode == self._mode:
             return
@@ -515,7 +520,15 @@ class InfLine(BaseLayer):
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()
-        state.update({"data": self.data, "color": self.color, "label": self.label})
+        state.update(
+            {
+                "data": self.data,
+                "orientation": self.orientation,
+                "color": self.color,
+                "width": self.width,
+                "z_index": self._data_view.z_indices,
+            }
+        )
         return state
 
     def _update_thumbnail(self):
@@ -573,7 +586,7 @@ class InfLine(BaseLayer):
         self._on_editable_changed()
 
     @property
-    def orientation(self) -> ty.List[Orientation]:
+    def orientation(self) -> list[Orientation]:
         """Return list of orientations."""
         return self._data_view.orientations
 
@@ -635,7 +648,7 @@ class InfLine(BaseLayer):
         self._drag_box_stored = copy(self._drag_box)
         self.events.highlight()
 
-    def _compute_box(self) -> tuple[ty.Union[str, np.ndarray], np.ndarray, float]:
+    def _compute_box(self) -> tuple[str | np.ndarray, np.ndarray, float]:
         """Compute location of highlight vertices and box for rendering.
 
         Returns

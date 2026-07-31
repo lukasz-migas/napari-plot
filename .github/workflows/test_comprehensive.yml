@@ -1,6 +1,4 @@
-# The full test suite, which will be run anytime anything is merged into master.
-# See test_pull_request.yml for the tests that will be run
-name: Full Test
+name: Test
 
 on:
   push:
@@ -9,37 +7,44 @@ on:
       - "v*x"
     tags:
       - "v*" # Push events to matching v*, i.e. v1.0, v20.15.10
-  # Allows you to run this workflow manually from the Actions tab
+  pull_request:
+    branches:
+      - main
+      - "v*x"
   workflow_dispatch:
 
 concurrency:
-  group: comprehensive-test
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  COLUMNS: 120
 
 jobs:
   check-manifest:
     name: Check Manifest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/checkout@v6
+      - uses: astral-sh/setup-uv@v7
       - run: uvx check-manifest
 
   test_uv:
     name: Test UV (${{ matrix.backend }} ${{ matrix.python-version }} ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     env:
+      QT_API: ${{ matrix.backend }}
       UV_NO_SYNC: "1"
       UV_MANAGED_PYTHON: "1"
     strategy:
       fail-fast: false
       matrix:
         os: [macos-latest, windows-latest, ubuntu-latest]
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13"]
         backend: [pyside6, pyqt6]
-        include:
-          - os: windows-latest
-            python-version: "3.10"
-            backend: pyside2
 
     steps:
       - uses: actions/checkout@v6
@@ -48,7 +53,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
           enable-cache: true
 
-      - run: uv sync --no-dev --group test --extra ${{ matrix.backend }} --extra all
+      - name: Install dependencies
+        run: uv sync --no-dev --group test --extra ${{ matrix.backend }} --extra optional
+
       - uses: pyvista/setup-headless-display-action@v4
         with:
           qt: true

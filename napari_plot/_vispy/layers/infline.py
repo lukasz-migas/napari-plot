@@ -17,9 +17,9 @@ class VispyInfLineLayer(VispyBaseLayer):
     layer: "InfLine"
     node: InfLineVisual
 
-    def __init__(self, layer: "InfLine"):
+    def __init__(self, layer: "InfLine", font_info) -> None:
         node = InfLineVisual()
-        super().__init__(layer, node)
+        super().__init__(layer, node, font_info=font_info)
         self.node.opacity = layer.opacity
 
         # connect events

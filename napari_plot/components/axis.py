@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 import typing as ty
+from enum import StrEnum
 
 import numpy as np
-from napari._pydantic_compat import validator
 from napari.utils.colormaps.standardize_color import transform_color
-from napari.utils.compat import StrEnum
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
+from pydantic import field_validator
 
 
 class AxisScale(StrEnum):
@@ -59,11 +59,12 @@ class Axis(EventedModel):
     y_tick_margin: int = 10
     x_max_size: int = 60
     y_max_size: int = 120
-    x_tick_formatter: ty.Optional[ty.Callable] = None
-    y_tick_formatter: ty.Optional[ty.Callable] = None
+    x_tick_formatter: ty.Callable | None = None
+    y_tick_formatter: ty.Callable | None = None
     x_scale: AxisScale = AxisScale.LINEAR
     y_scale: AxisScale = AxisScale.LINEAR
 
-    @validator("label_color", "tick_color", pre=True)
+    @field_validator("label_color", "tick_color", mode="before")
+    @classmethod
     def _coerce_color(cls, v):
         return transform_color(v)[0]

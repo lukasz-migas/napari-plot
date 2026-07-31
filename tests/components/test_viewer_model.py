@@ -28,6 +28,39 @@ def test_add_image():
     assert np.all(viewer.layers[0].data == data)
 
 
+def test_status_from_cursor_uses_layer_slicing_state():
+    """Status lookup supports napari's slicing-state based layers."""
+    viewer = ViewerModel()
+    viewer.add_image(np.arange(9).reshape(3, 3))
+    viewer.mouse_over_canvas = True
+    viewer.cursor.position = (1, 2)
+
+    status, tooltip = viewer._calc_status_from_cursor()
+
+    assert status["value"] == "5"
+    assert tooltip == ""
+
+
+def test_status_from_cursor_while_layer_is_unloaded():
+    """Status and tooltip are hidden until the active slice is loaded."""
+    viewer = ViewerModel()
+    layer = viewer.add_labels(
+        np.zeros((3, 3), dtype=np.uint8),
+        features={"a": [1]},
+    )
+    viewer.mouse_over_canvas = True
+    viewer.tooltip.visible = True
+    viewer.cursor.position = (1, 2)
+    loaded_status = viewer._calc_status_from_cursor()
+
+    layer._slicing_state._set_loaded(False)
+    assert viewer._calc_status_from_cursor() == ("Ready", "")
+
+    layer._slicing_state._set_loaded(True)
+    assert viewer._calc_status_from_cursor() == loaded_status
+    assert loaded_status[1] == "0\na: 1"
+
+
 def test_add_points():
     """Test adding points."""
     viewer = ViewerModel()
@@ -211,7 +244,7 @@ def test_not_mutable_fields(field):
     assert not hasattr(viewer.events, field)
 
     # Check attribute is not settable
-    with pytest.raises(TypeError) as err:
+    with pytest.raises((TypeError, ValueError)) as err:
         setattr(viewer, field, "test")
 
-    assert "has allow_mutation set to False and cannot be assigned" in str(err.value)
+    assert "Field is frozen" in str(err.value)
