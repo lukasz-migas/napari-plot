@@ -113,7 +113,6 @@ test = [
     "pytest-pretty>=1.1.0",
     "pytest>=8.1.0",
     "tensorstore>=0.1.13",
-    "virtualenv>=20.17",
     "xarray>=0.16.2",
     "zarr>=2.12.0, <3.0.0",
     "IPython>=7.25.0",
@@ -168,7 +167,6 @@ test = [
     "pytest-pretty>=1.1.0",
     "pytest>=8.1.0",
     "tensorstore>=0.1.13",
-    "virtualenv>=20.17",
     "xarray>=0.16.2",
     "zarr>=2.12.0, <3.0.0",
     "IPython>=7.25.0",
@@ -227,7 +225,6 @@ ignore = [
   "Makefile",
   "mypy.ini",
   "tools/minreq.py",
-  "tox.ini",
   ".deepsource.toml",
   "*.pyi",  # added by make typestubs
   "napari_plot/_version.py",  # added during build by setuptools_scm
@@ -250,7 +247,6 @@ exclude = [
     ".pants.d",
     ".ruff_cache",
     ".svn",
-    ".tox",
     ".venv",
     "__pypackages__",
     "_build",
