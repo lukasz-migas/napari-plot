@@ -10,10 +10,11 @@ from napari_plot._vispy.layers.line import VispyLineLayer
 from napari_plot._vispy.layers.multiline import VispyMultiLineLayer
 from napari_plot._vispy.layers.region import VispyRegionLayer
 from napari_plot._vispy.layers.scatter import VispyScatterLayer
+from napari_plot._vispy.layers.text import VispyTextLayer
 from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
 from napari_plot._vispy.overlays.text import VispyTextOverlay
 from napari_plot.components.grid_lines import GridLinesOverlay
-from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
+from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
 
 layer_to_visual = {
     Line: VispyLineLayer,
@@ -22,6 +23,7 @@ layer_to_visual = {
     Region: VispyRegionLayer,
     InfLine: VispyInfLineLayer,
     MultiLine: VispyMultiLineLayer,
+    Text: VispyTextLayer,
 }
 layer_to_visual.update(napari._vispy.utils.visual.layer_to_visual)
 napari._vispy.utils.visual.layer_to_visual = layer_to_visual
