@@ -301,7 +301,11 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     ) -> tuple[float, float]:
         """Return positive limits for a logarithmic axis."""
         scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
+<<<<<<< Updated upstream
         if scale is AxisScale.LINEAR:
+=======
+        if scale is not AxisScale.LOG:
+>>>>>>> Stashed changes
             return lower, upper
 
         positive_min = self._get_positive_axis_min(axis, upper)
@@ -990,6 +994,7 @@ for _layer in [
     np_layers.InfLine,
     np_layers.Centroids,
     np_layers.MultiLine,
+    np_layers.Text,
 ]:
     if _layer.__module__.startswith("napari_plot."):
         func = _create_custom_add_method(_layer)
