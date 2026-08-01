@@ -302,6 +302,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         """Return positive limits for a logarithmic axis."""
         scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
         if scale is AxisScale.LINEAR:
+        if scale is not AxisScale.LOG:
             return lower, upper
 
         positive_min = self._get_positive_axis_min(axis, upper)
