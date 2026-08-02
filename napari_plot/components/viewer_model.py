@@ -6,7 +6,6 @@ import inspect
 from functools import lru_cache
 
 import numpy as np
-
 # This cannot be condition to TYPE_CHECKING or the stubgen fails
 # with undefined Context.
 from app_model.expressions import Context
@@ -19,7 +18,8 @@ from napari.components.tooltip import Tooltip
 from napari.layers.utils.stack_utils import split_channels
 from napari.utils._register import create_func as create_add_method
 from napari.utils.colormaps import ensure_colormap
-from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
+from napari.utils.events import (Event, EventedDict, EventedModel,
+                                 disconnect_events)
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import camel_to_snake, is_sequence
 from napari.utils.mouse_bindings import MousemapProviderPydantic
@@ -27,20 +27,11 @@ from pydantic import Field, PrivateAttr, field_validator
 
 from napari_plot import layers as np_layers
 from napari_plot.components._viewer_mouse_bindings import (
-    box_select,
-    box_zoom_auto,
-    box_zoom_auto_trigger,
-    box_zoom_box,
-    box_zoom_horz,
-    box_zoom_vert,
-    lasso_select,
-    polygon_select,
-)
-from napari_plot.components._viewer_utils import (
-    get_layers_x_region_extent,
-    get_layers_y_region_extent,
-    get_range_extent,
-)
+    box_select, box_zoom_auto, box_zoom_auto_trigger, box_zoom_box,
+    box_zoom_horz, box_zoom_vert, lasso_select, polygon_select)
+from napari_plot.components._viewer_utils import (get_layers_x_region_extent,
+                                                  get_layers_y_region_extent,
+                                                  get_range_extent)
 from napari_plot.components.axis import Axis, AxisScale
 from napari_plot.components.camera import Camera
 from napari_plot.components.dragtool import DragMode, DragTool
@@ -426,7 +417,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _on_update_tool(self, event):
         """Update drag method based on currently active tool."""
-        from napari_plot.components.dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
+        from napari_plot.components.dragtool import (BOX_ZOOM_TOOLS,
+                                                     SELECT_TOOLS, DragMode)
         from napari_plot.components.tools import Shape
 
         # if self.drag_tool.tool not in BOX_ZOOM_TOOLS:
@@ -628,18 +620,25 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     def _layer_help_from_mode(layer: n_layers.Layer):
         """Update layer help text base on layer mode."""
         from napari.layers.image._image_key_bindings import image_fun_to_mode
-        from napari.layers.labels._labels_key_bindings import labels_fun_to_mode
-        from napari.layers.points._points_key_bindings import points_fun_to_mode
-        from napari.layers.shapes._shapes_key_bindings import shapes_fun_to_mode
+        from napari.layers.labels._labels_key_bindings import \
+            labels_fun_to_mode
+        from napari.layers.points._points_key_bindings import \
+            points_fun_to_mode
+        from napari.layers.shapes._shapes_key_bindings import \
+            shapes_fun_to_mode
         from napari.settings import get_settings
 
-        from napari_plot.layers.centroids._centroids_key_bindings import centroids_fun_to_mode
-        from napari_plot.layers.infline._infline_key_bindings import infline_fun_to_mode
+        from napari_plot.layers.centroids._centroids_key_bindings import \
+            centroids_fun_to_mode
+        from napari_plot.layers.infline._infline_key_bindings import \
+            infline_fun_to_mode
         from napari_plot.layers.line._line_key_bindings import line_fun_to_mode
-        from napari_plot.layers.multiline._multiline_key_bindings import multiline_fun_to_mode
-        from napari_plot.layers.region._region_key_bindings import region_fun_to_mode
-        from napari_plot.layers.scatter._scatter_key_bindings import scatter_fun_to_mode
-
+        from napari_plot.layers.multiline._multiline_key_bindings import \
+            multiline_fun_to_mode
+        from napari_plot.layers.region._region_key_bindings import \
+            region_fun_to_mode
+        from napari_plot.layers.scatter._scatter_key_bindings import \
+            scatter_fun_to_mode
         # from napari.layers.surface._surface_key_bindings import surface_fun_to_mode
         # from napari.layers.tracks._tracks_key_bindings import tracks_fun_to_mode
         # from napari.layers.vectors._vectors_key_bindings import vectors_fun_to_mode
