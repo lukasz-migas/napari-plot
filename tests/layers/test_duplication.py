@@ -72,10 +72,10 @@ from napari_plot.layers.base import LayerMixin
             lambda: Text(
                 [[1, 2], [3, 4]],
                 ["first", "second"],
-                size=[10, 20],
+                size=20,
                 color=["red", "blue"],
-                alignment=["left", "right"],
-                vertical_alignment=["top", "bottom"],
+                alignment="right",
+                vertical_alignment="bottom",
                 rotation=[0, 15],
                 offset=[[1, 0], [0, 1]],
                 font_face="Arial",

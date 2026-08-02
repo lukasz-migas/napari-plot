@@ -21,8 +21,8 @@ if TYPE_CHECKING:
 class QtTextControls(QtLayerControls):
     """Provide common layer and font controls for text annotations.
 
-    Per-label properties display the first label's value. Changing one of
-    those controls applies the selected value to every label in the layer.
+    Per-label colors display the first label's value. Changing the color
+    control applies the selected value to every label in the layer.
     """
 
     def __init__(self, layer: Text) -> None:
@@ -37,7 +37,6 @@ class QtTextControls(QtLayerControls):
         self.layer.events.vertical_alignment.connect(self._on_vertical_alignment_change)
         self.layer.events.visible.connect(self._on_visible_change)
 
-        tooltip_suffix = " Changing this control applies the value to every label."
         self.font_face_combobox = QFontComboBox(self)
         self.font_face_combobox.setToolTip("Font family for every label.")
         self.font_face_combobox.setCurrentFont(QFont(self._current_font_face()))
@@ -50,7 +49,7 @@ class QtTextControls(QtLayerControls):
             step_size=1,
             value=self._current_size(),
             n_decimals=1,
-            tooltip="Font size in screen points." + tooltip_suffix,
+            tooltip="Layer-wide font size in screen points.",
             focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.size_slider.valueChanged.connect(self.on_change_size)
@@ -84,7 +83,7 @@ class QtTextControls(QtLayerControls):
 
         self.alignment_combobox = hp.make_combobox(
             self,
-            tooltip="Horizontal text alignment." + tooltip_suffix,
+            tooltip="Layer-wide horizontal text alignment.",
         )
         self.alignment_combobox.addItems(["left", "center", "right"])
         self.alignment_combobox.setCurrentText(self._current_alignment())
@@ -92,7 +91,7 @@ class QtTextControls(QtLayerControls):
 
         self.vertical_alignment_combobox = hp.make_combobox(
             self,
-            tooltip="Vertical text alignment." + tooltip_suffix,
+            tooltip="Layer-wide vertical text alignment.",
         )
         self.vertical_alignment_combobox.addItems(["top", "center", "baseline", "bottom"])
         self.vertical_alignment_combobox.setCurrentText(self._current_vertical_alignment())
@@ -115,22 +114,20 @@ class QtTextControls(QtLayerControls):
         self._on_visible_change()
 
     def _current_size(self) -> float:
-        """Return the first label size or the empty-layer default."""
-        return float(self.layer.size[0]) if len(self.layer.size) else self.layer._default_size
+        """Return the layer-wide font size."""
+        return self.layer.size
 
     def _current_color(self) -> np.ndarray:
         """Return the first label color or the empty-layer default."""
         return self.layer.color[0] if len(self.layer.color) else self.layer._default_color
 
     def _current_alignment(self) -> str:
-        """Return the first horizontal alignment or the layer default."""
-        return str(self.layer.alignment[0]) if len(self.layer.alignment) else self.layer._default_alignment
+        """Return the layer-wide horizontal alignment."""
+        return self.layer.alignment
 
     def _current_vertical_alignment(self) -> str:
-        """Return the first vertical alignment or the layer default."""
-        if len(self.layer.vertical_alignment):
-            return str(self.layer.vertical_alignment[0])
-        return self.layer._default_vertical_alignment
+        """Return the layer-wide vertical alignment."""
+        return self.layer.vertical_alignment
 
     def _current_font_face(self) -> str:
         """Return the configured font family or the application default."""

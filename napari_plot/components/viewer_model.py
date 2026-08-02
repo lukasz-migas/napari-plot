@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 from functools import lru_cache
+from typing import Literal
 
 import numpy as np
 
@@ -297,15 +298,11 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self,
         lower: float,
         upper: float,
-        axis: ty.Literal[x, y],
+        axis: Literal["x", "y"],
     ) -> tuple[float, float]:
         """Return positive limits for a logarithmic axis."""
         scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
-<<<<<<< Updated upstream
-        if scale is AxisScale.LINEAR:
-=======
         if scale is not AxisScale.LOG:
->>>>>>> Stashed changes
             return lower, upper
 
         positive_min = self._get_positive_axis_min(axis, upper)
@@ -315,7 +312,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _get_positive_axis_min(
         self,
-        axis: ty.Literal[x, y],
+        axis: Literal["x", "y"],
         fallback_max: float,
     ) -> float:
         """Return the smallest positive layer coordinate on an axis."""

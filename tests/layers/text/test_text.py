@@ -17,23 +17,23 @@ def test_text_empty() -> None:
     assert layer.ndim == 2
 
 
-def test_text_scalar_and_array_styles() -> None:
-    """Scalar values broadcast while arrays remain per-label."""
+def test_text_layer_and_per_label_styles() -> None:
+    """Typography is layer-wide while color, rotation, and offset are per-label."""
     layer = Text(
         [[1, 2], [3, 4]],
         ["first", "second"],
-        size=[10, 20],
+        size=20,
         color=["red", "blue"],
-        alignment=["left", "right"],
+        alignment="right",
         vertical_alignment="bottom",
         rotation=[0, 45],
         offset=(1, -1),
     )
 
     np.testing.assert_array_equal(layer.text, ["first", "second"])
-    np.testing.assert_array_equal(layer.size, [10, 20])
-    np.testing.assert_array_equal(layer.alignment, ["left", "right"])
-    np.testing.assert_array_equal(layer.vertical_alignment, ["bottom", "bottom"])
+    assert layer.size == 20
+    assert layer.alignment == "right"
+    assert layer.vertical_alignment == "bottom"
     np.testing.assert_array_equal(layer.rotation, [0, 45])
     np.testing.assert_array_equal(layer.offset, [[1, -1], [1, -1]])
     np.testing.assert_array_equal(layer.color[0], [1, 0, 0, 1])
@@ -73,8 +73,21 @@ def test_text_scaling_defaults_on_and_emits_event() -> None:
     ],
 )
 def test_text_rejects_invalid_styles(kwargs: dict, match: str) -> None:
-    """Per-label values must match the coordinate count and valid choices."""
+    """Styles must use valid scalar values or correctly sized vectors."""
     with pytest.raises(ValueError, match=match):
+        Text([[1, 2], [3, 4]], ["a", "b"], **kwargs)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"alignment": ["left", "right"]},
+        {"vertical_alignment": ["top", "bottom"]},
+    ],
+)
+def test_text_rejects_per_label_alignment(kwargs: dict) -> None:
+    """One native Text visual requires layer-wide alignment values."""
+    with pytest.raises(TypeError, match="must be a string"):
         Text([[1, 2], [3, 4]], ["a", "b"], **kwargs)
 
 
@@ -97,7 +110,7 @@ def test_text_property_events() -> None:
 
     assert received == ["text", "size"]
     np.testing.assert_array_equal(layer.text, ["after"])
-    np.testing.assert_array_equal(layer.size, [18])
+    assert layer.size == 18
 
 
 def test_text_data_resize_preserves_and_extends_attributes() -> None:
@@ -105,18 +118,18 @@ def test_text_data_resize_preserves_and_extends_attributes() -> None:
     layer = Text(
         [[1, 2], [3, 4]],
         ["a", "b"],
-        size=[10, 20],
-        alignment=["left", "right"],
+        size=20,
+        alignment="right",
     )
 
     layer.data = [[1, 2], [3, 4], [5, 6]]
     np.testing.assert_array_equal(layer.text, ["a", "b", ""])
-    np.testing.assert_array_equal(layer.size, [10, 20, 20])
-    np.testing.assert_array_equal(layer.alignment, ["left", "right", "right"])
+    assert layer.size == 20
+    assert layer.alignment == "right"
 
     layer.data = [[1, 2]]
     np.testing.assert_array_equal(layer.text, ["a"])
-    np.testing.assert_array_equal(layer.size, [10])
+    assert layer.size == 20
 
 
 def test_text_xy_properties() -> None:

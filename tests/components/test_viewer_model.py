@@ -75,12 +75,12 @@ def test_add_text():
     """Test adding text through the generated viewer API."""
     viewer = ViewerModel()
     data = np.array([[1, 2], [3, 4]])
-    layer = viewer.add_text(data, ["a", "b"], size=[10, 20])
+    layer = viewer.add_text(data, ["a", "b"], size=20)
 
     assert len(viewer.layers) == 1
     np.testing.assert_array_equal(layer.data, data)
     np.testing.assert_array_equal(layer.text, ["a", "b"])
-    np.testing.assert_array_equal(layer.size, [10, 20])
+    assert layer.size == 20
 
 
 def test_add_empty_points_to_empty_viewer():

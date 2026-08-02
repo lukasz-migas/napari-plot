@@ -53,31 +53,27 @@ def _broadcast_numeric(
     return array, float(np.asarray(value)) if scalar else None
 
 
-def _broadcast_strings(
-    value: str | Sequence[str],
-    length: int,
-    name: str,
-    valid: frozenset[str],
-) -> tuple[np.ndarray, str | None]:
-    """Broadcast a string or validate one string per label."""
-    scalar = isinstance(value, str)
-    if scalar and value not in valid:
+def _coerce_scalar(value: Any, name: str, *, positive: bool = False) -> float:
+    """Return one finite numeric style value."""
+    array = np.asarray(value, dtype=float)
+    if array.ndim != 0:
+        raise ValueError(f"'{name}' must be a scalar value.")
+    result = float(array)
+    if not np.isfinite(result):
+        raise ValueError(f"'{name}' must be finite.")
+    if positive and result <= 0:
+        raise ValueError(f"'{name}' must be greater than zero.")
+    return result
+
+
+def _coerce_choice(value: Any, name: str, valid: frozenset[str]) -> str:
+    """Return one validated string style value."""
+    if not isinstance(value, str):
+        raise TypeError(f"'{name}' must be a string.")
+    if value not in valid:
         choices = ", ".join(sorted(valid))
         raise ValueError(f"Invalid '{name}' value {value!r}; expected one of: {choices}.")
-    if scalar:
-        array = np.full(length, value, dtype=object)
-    else:
-        array = np.asarray(value, dtype=object)
-        if array.ndim != 1 or len(array) != length:
-            raise ValueError(f"'{name}' must be a string or an array with one value per label.")
-        if not all(isinstance(item, str) for item in array):
-            raise TypeError(f"'{name}' values must be strings.")
-        array = array.copy()
-    invalid = set(array) - valid
-    if invalid:
-        choices = ", ".join(sorted(valid))
-        raise ValueError(f"Invalid '{name}' value(s) {sorted(invalid)}; expected one of: {choices}.")
-    return array, value if scalar else None
+    return value
 
 
 def _broadcast_text(value: str | Sequence[str] | None, length: int) -> np.ndarray:
@@ -140,14 +136,14 @@ class Text(BaseLayer):
         Label positions in ``[x, y]`` order.
     text : str or sequence of str, optional
         Text to display. A string is broadcast to every coordinate.
-    size : float or array-like of float
-        Font size in screen points, either shared or one value per label.
+    size : float
+        Layer-wide font size in screen points.
     color : color-like or sequence of color-like
         Text color, either shared or one color per label.
-    alignment : str or sequence of str
-        Horizontal anchor: ``left``, ``center``, or ``right``.
-    vertical_alignment : str or sequence of str
-        Vertical anchor: ``top``, ``center``, ``baseline``, or ``bottom``.
+    alignment : str
+        Layer-wide horizontal anchor: ``left``, ``center``, or ``right``.
+    vertical_alignment : str
+        Layer-wide vertical anchor: ``top``, ``center``, ``baseline``, or ``bottom``.
     rotation : float or array-like of float
         Clockwise rotation in degrees, either shared or one value per label.
     offset : array-like, shape (2,) or (N, 2)
@@ -168,10 +164,10 @@ class Text(BaseLayer):
         data: Any = None,
         text: str | Sequence[str] | None = None,
         *,
-        size: float | Sequence[float] = 12,
+        size: float = 12,
         color: Any = "white",
-        alignment: str | Sequence[str] = "center",
-        vertical_alignment: str | Sequence[str] = "center",
+        alignment: str = "center",
+        vertical_alignment: str = "center",
         rotation: float | Sequence[float] = 0,
         offset: Any = (0, 0),
         font_face: str | None = None,
@@ -196,17 +192,11 @@ class Text(BaseLayer):
         coordinates = _coerce_data(data)
         n_labels = len(coordinates)
         labels = _broadcast_text(text, n_labels)
-        sizes, default_size = _broadcast_numeric(size, n_labels, "size", positive=True)
+        size = _coerce_scalar(size, "size", positive=True)
         colors, default_color = _broadcast_colors(color, n_labels)
-        alignments, default_alignment = _broadcast_strings(
-            alignment,
-            n_labels,
-            "alignment",
-            HORIZONTAL_ALIGNMENTS,
-        )
-        vertical_alignments, default_vertical_alignment = _broadcast_strings(
+        alignment = _coerce_choice(alignment, "alignment", HORIZONTAL_ALIGNMENTS)
+        vertical_alignment = _coerce_choice(
             vertical_alignment,
-            n_labels,
             "vertical_alignment",
             VERTICAL_ALIGNMENTS,
         )
@@ -248,10 +238,10 @@ class Text(BaseLayer):
 
         self._data = coordinates
         self._text = labels
-        self._size = sizes
+        self._size = size
         self._color = colors
-        self._alignment = alignments
-        self._vertical_alignment = vertical_alignments
+        self._alignment = alignment
+        self._vertical_alignment = vertical_alignment
         self._rotation = rotations
         self._offset = offsets
         self._font_face = font_face
@@ -259,12 +249,7 @@ class Text(BaseLayer):
         self._italic = bool(italic)
         self._scaling = bool(scaling)
 
-        self._default_size = 12.0 if default_size is None else default_size
         self._default_color = transform_color("white")[0] if default_color is None else default_color
-        self._default_alignment = "center" if default_alignment is None else default_alignment
-        self._default_vertical_alignment = (
-            "center" if default_vertical_alignment is None else default_vertical_alignment
-        )
         self._default_rotation = 0.0 if default_rotation is None else default_rotation
         self._default_offset = np.zeros(2) if default_offset is None else default_offset
 
@@ -309,14 +294,7 @@ class Text(BaseLayer):
         self._text = self._text[:length].copy()
         if length > current:
             self._text = np.concatenate((self._text, np.full(length - current, "", dtype=object)))
-        self._size = _resize_array(self._size, length, self._default_size)
         self._color = _resize_array(self._color, length, self._default_color)
-        self._alignment = _resize_array(self._alignment, length, self._default_alignment)
-        self._vertical_alignment = _resize_array(
-            self._vertical_alignment,
-            length,
-            self._default_vertical_alignment,
-        )
         self._rotation = _resize_array(self._rotation, length, self._default_rotation)
         self._offset = _resize_array(self._offset, length, self._default_offset)
 
@@ -331,17 +309,14 @@ class Text(BaseLayer):
         self.events.text(value=self._text)
 
     @property
-    def size(self) -> np.ndarray:
-        """Return font sizes in screen points."""
+    def size(self) -> float:
+        """Return the layer-wide font size in screen points."""
         return self._size
 
     @size.setter
-    def size(self, value: float | Sequence[float]) -> None:
-        array, scalar = _broadcast_numeric(value, len(self.data), "size", positive=True)
-        self._size = array
-        if scalar is not None:
-            self._default_size = scalar
-        self.events.size(value=array)
+    def size(self, value: float) -> None:
+        self._size = _coerce_scalar(value, "size", positive=True)
+        self.events.size(value=self._size)
 
     @property
     def color(self) -> np.ndarray:
@@ -357,40 +332,28 @@ class Text(BaseLayer):
         self.events.color(value=array)
 
     @property
-    def alignment(self) -> np.ndarray:
-        """Return horizontal alignments."""
+    def alignment(self) -> str:
+        """Return the layer-wide horizontal alignment."""
         return self._alignment
 
     @alignment.setter
-    def alignment(self, value: str | Sequence[str]) -> None:
-        array, scalar = _broadcast_strings(
-            value,
-            len(self.data),
-            "alignment",
-            HORIZONTAL_ALIGNMENTS,
-        )
-        self._alignment = array
-        if scalar is not None:
-            self._default_alignment = scalar
-        self.events.alignment(value=array)
+    def alignment(self, value: str) -> None:
+        self._alignment = _coerce_choice(value, "alignment", HORIZONTAL_ALIGNMENTS)
+        self.events.alignment(value=self._alignment)
 
     @property
-    def vertical_alignment(self) -> np.ndarray:
-        """Return vertical alignments."""
+    def vertical_alignment(self) -> str:
+        """Return the layer-wide vertical alignment."""
         return self._vertical_alignment
 
     @vertical_alignment.setter
-    def vertical_alignment(self, value: str | Sequence[str]) -> None:
-        array, scalar = _broadcast_strings(
+    def vertical_alignment(self, value: str) -> None:
+        self._vertical_alignment = _coerce_choice(
             value,
-            len(self.data),
             "vertical_alignment",
             VERTICAL_ALIGNMENTS,
         )
-        self._vertical_alignment = array
-        if scalar is not None:
-            self._default_vertical_alignment = scalar
-        self.events.vertical_alignment(value=array)
+        self.events.vertical_alignment(value=self._vertical_alignment)
 
     @property
     def rotation(self) -> np.ndarray:

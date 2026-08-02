@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-from collections import defaultdict
 from typing import TYPE_CHECKING
 
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
-
-from napari_plot._vispy.visuals.text import TextVisual
+from vispy.scene.visuals import Text as TextVisual
 
 if TYPE_CHECKING:
     from napari._vispy.utils.qt_font import FontInfo
@@ -23,8 +21,12 @@ class VispyTextLayer(VispyBaseLayer):
     node: TextVisual
 
     def __init__(self, layer: Text, font_info: FontInfo) -> None:
-        node = TextVisual()
+        node = TextVisual(
+            face=layer.font_face or font_info.face,
+            font_manager=font_info.font_manager,
+        )
         super().__init__(layer, node, font_info=font_info)
+        self._scale_reference: float | None = None
 
         for emitter in (
             self.layer.events.text,
@@ -46,51 +48,41 @@ class VispyTextLayer(VispyBaseLayer):
         self._on_data_change()
 
     def _on_data_change(self, _event=None) -> None:
-        """Rebuild native text batches after model data or style changes."""
-        grouped_indices: dict[tuple[float, str, str], list[int]] = defaultdict(list)
-        for index, key in enumerate(
-            zip(
-                self.layer.size,
-                self.layer.alignment,
-                self.layer.vertical_alignment,
-                strict=True,
-            )
-        ):
-            grouped_indices[(float(key[0]), str(key[1]), str(key[2]))].append(index)
+        """Update the single native text visual from the layer model."""
+        if len(self.layer.data):
+            self.node.text = self.layer.text.tolist()
+            self.node.pos = self.layer.data + self.layer.offset
+            self.node.color = self.layer.color
+            self.node.rotation = self.layer.rotation
+        else:
+            self.node.text = [""]
+            self.node.pos = np.zeros((1, 2), dtype=float)
+            self.node.color = np.zeros((1, 4), dtype=float)
+            self.node.rotation = 0
 
-        positions = self.layer.data + self.layer.offset
-        groups = []
-        for (size, alignment, vertical_alignment), indices in grouped_indices.items():
-            selected = np.asarray(indices, dtype=int)
-            groups.append(
-                {
-                    "text": self.layer.text[selected].tolist(),
-                    "pos": positions[selected],
-                    "color": self.layer.color[selected],
-                    "size": size,
-                    "rotation": self.layer.rotation[selected],
-                    "alignment": alignment,
-                    "vertical_alignment": vertical_alignment,
-                }
-            )
-
-        self.node.set_groups(
-            groups,
-            face=self.layer.font_face or self.font_info.face,
-            bold=self.layer.bold,
-            italic=self.layer.italic,
-            font_manager=self.font_info.font_manager,
-            scale_factor=self.layer.scale_factor,
-            scaling=self.layer.scaling,
+        self.node.anchors = (
+            self.layer.alignment,
+            self.layer.vertical_alignment,
         )
+        self.node.face = self.layer.font_face or self.font_info.face
+        self.node.bold = self.layer.bold
+        self.node.italic = self.layer.italic
+        self._update_font_size()
         self._on_blending_change()
 
     def _on_scale_change(self, _event=None) -> None:
-        """Update screen-space font sizes when zoom scaling changes."""
-        self.node.update_scale(
-            scale_factor=self.layer.scale_factor,
-            scaling=self.layer.scaling,
-        )
+        """Update font size relative to the first rendered canvas scale."""
+        if self.layer.scaling and self._scale_reference is None:
+            self._scale_reference = self.layer.scale_factor
+        self._update_font_size()
+
+    def _update_font_size(self) -> None:
+        """Apply the configured font size at the current relative zoom."""
+        size = self.layer.size
+        if self.layer.scaling and self._scale_reference is not None:
+            size *= self._scale_reference / self.layer.scale_factor
+        self.node.font_size = size
+        self.node.update()
 
 
 __all__ = ["VispyTextLayer"]

@@ -14,10 +14,10 @@ def test_text_controls_creation(qtbot) -> None:
     layer = Text(
         [[1, 2], [3, 4]],
         ["first", "second"],
-        size=[14, 24],
+        size=14,
         color=["red", "blue"],
-        alignment=["left", "right"],
-        vertical_alignment=["top", "bottom"],
+        alignment="left",
+        vertical_alignment="top",
         font_face="Arial",
         bold=True,
         italic=True,
@@ -43,15 +43,15 @@ def test_text_controls_creation(qtbot) -> None:
     assert layer_to_controls[Text] is QtTextControls
 
 
-def test_text_controls_apply_values_to_all_labels(qtbot) -> None:
-    """Editing a per-label control intentionally replaces the whole array."""
+def test_text_controls_apply_layer_styles_and_uniform_color(qtbot) -> None:
+    """Typography updates the layer while color replaces the per-label array."""
     layer = Text(
         [[1, 2], [3, 4]],
         ["first", "second"],
-        size=[14, 24],
+        size=14,
         color=["red", "blue"],
-        alignment=["left", "right"],
-        vertical_alignment=["top", "bottom"],
+        alignment="left",
+        vertical_alignment="top",
     )
     controls = QtTextControls(layer)
     qtbot.addWidget(controls)
@@ -65,13 +65,13 @@ def test_text_controls_apply_values_to_all_labels(qtbot) -> None:
     controls.scaling_checkbox.setChecked(False)
     controls.on_change_font_face(QFont("Arial"))
 
-    np.testing.assert_array_equal(layer.size, [18, 18])
+    assert layer.size == 18
     np.testing.assert_array_equal(
         layer.color,
         np.broadcast_to(transform_color("green"), (2, 4)),
     )
-    np.testing.assert_array_equal(layer.alignment, ["center", "center"])
-    np.testing.assert_array_equal(layer.vertical_alignment, ["baseline", "baseline"])
+    assert layer.alignment == "center"
+    assert layer.vertical_alignment == "baseline"
     assert layer.bold is True
     assert layer.italic is True
     assert layer.scaling is False
