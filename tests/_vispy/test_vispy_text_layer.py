@@ -3,15 +3,22 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 from napari._vispy.utils.qt_font import FontInfo
+from qtpy.QtWidgets import QApplication
 from vispy.scene.visuals import Text as VispyTextVisual
 
 from napari_plot._vispy.layers.text import VispyTextLayer
 from napari_plot.layers import Text
 
 
-def _make_visual(monkeypatch, layer: Text) -> VispyTextLayer:
+def _make_visual(
+    monkeypatch: pytest.MonkeyPatch,
+    layer: Text,
+    qapp: QApplication,
+) -> VispyTextLayer:
     """Construct a layer adapter without requesting a platform GL context."""
+    assert QApplication.instance() is qapp
     monkeypatch.setattr(
         "napari._vispy.layers.base.get_max_texture_sizes",
         lambda: (2048, 2048),
@@ -19,7 +26,10 @@ def _make_visual(monkeypatch, layer: Text) -> VispyTextLayer:
     return VispyTextLayer(layer, font_info=FontInfo())
 
 
-def test_vispy_text_uses_single_visual_and_updates(monkeypatch) -> None:
+def test_vispy_text_uses_single_visual_and_updates(
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+) -> None:
     """All labels and vectorized styles are assigned to one native visual."""
     layer = Text(
         [[1, 2], [3, 4], [5, 6]],
@@ -33,7 +43,7 @@ def test_vispy_text_uses_single_visual_and_updates(monkeypatch) -> None:
         bold=True,
         italic=True,
     )
-    visual = _make_visual(monkeypatch, layer)
+    visual = _make_visual(monkeypatch, layer, qapp)
 
     assert isinstance(visual, VispyTextLayer)
     assert isinstance(visual.node, VispyTextVisual)
@@ -57,9 +67,12 @@ def test_vispy_text_uses_single_visual_and_updates(monkeypatch) -> None:
     visual.close()
 
 
-def test_vispy_text_empty_layer(monkeypatch) -> None:
+def test_vispy_text_empty_layer(
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+) -> None:
     """An empty layer uses one transparent dummy label."""
-    visual = _make_visual(monkeypatch, Text())
+    visual = _make_visual(monkeypatch, Text(), qapp)
 
     assert isinstance(visual, VispyTextLayer)
     assert isinstance(visual.node, VispyTextVisual)
