@@ -25,7 +25,6 @@ viewer1d.add_text(
     vertical_alignment="bottom",
     rotation=[0, -10, 10, 0],
     offset=(0, 0.05),
-    scaling=True,
     name="Annotations",
 )
 

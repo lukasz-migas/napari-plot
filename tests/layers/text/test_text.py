@@ -47,19 +47,6 @@ def test_text_string_broadcasts() -> None:
     np.testing.assert_array_equal(layer.text, ["same", "same"])
 
 
-def test_text_scaling_defaults_on_and_emits_event() -> None:
-    """Zoom scaling is enabled by default and remains event-driven."""
-    layer = Text([[1, 2]], "label")
-    received: list[bool] = []
-    layer.events.scaling.connect(lambda event: received.append(event.value))
-
-    assert layer.scaling is True
-    layer.scaling = False
-
-    assert layer.scaling is False
-    assert received == [False]
-
-
 @pytest.mark.parametrize(
     ("kwargs", "match"),
     [

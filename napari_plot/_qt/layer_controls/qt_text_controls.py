@@ -32,7 +32,6 @@ class QtTextControls(QtLayerControls):
         self.layer.events.font_face.connect(self._on_font_face_change)
         self.layer.events.bold.connect(self._on_bold_change)
         self.layer.events.italic.connect(self._on_italic_change)
-        self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.events.alignment.connect(self._on_alignment_change)
         self.layer.events.vertical_alignment.connect(self._on_vertical_alignment_change)
         self.layer.events.visible.connect(self._on_visible_change)
@@ -74,13 +73,6 @@ class QtTextControls(QtLayerControls):
         )
         self.italic_checkbox.toggled.connect(self.on_change_italic)
 
-        self.scaling_checkbox = hp.make_checkbox(
-            self,
-            value=self.layer.scaling,
-            tooltip="Scale font sizes with zoom so labels shrink while zooming out.",
-        )
-        self.scaling_checkbox.toggled.connect(self.on_change_scaling)
-
         self.alignment_combobox = hp.make_combobox(
             self,
             tooltip="Layer-wide horizontal text alignment.",
@@ -105,7 +97,6 @@ class QtTextControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "font color"), self.color_swatch)
         self.layout().addRow(hp.make_label(self, "bold"), self.bold_checkbox)
         self.layout().addRow(hp.make_label(self, "italic"), self.italic_checkbox)
-        self.layout().addRow(hp.make_label(self, "scale with zoom"), self.scaling_checkbox)
         self.layout().addRow(hp.make_label(self, "alignment"), self.alignment_combobox)
         self.layout().addRow(
             hp.make_label(self, "vertical alignment"),
@@ -181,15 +172,6 @@ class QtTextControls(QtLayerControls):
         with qt_signals_blocked(self.italic_checkbox):
             self.italic_checkbox.setChecked(self.layer.italic)
 
-    def on_change_scaling(self, checked: bool) -> None:
-        """Set whether font sizes scale with zoom."""
-        self.layer.scaling = checked
-
-    def _on_scaling_change(self, _event=None) -> None:
-        """Update the zoom-scaling control after a model change."""
-        with qt_signals_blocked(self.scaling_checkbox):
-            self.scaling_checkbox.setChecked(self.layer.scaling)
-
     def on_change_alignment(self, value: str) -> None:
         """Apply a horizontal alignment to every label."""
         self.layer.alignment = value
@@ -220,7 +202,6 @@ class QtTextControls(QtLayerControls):
                 self.color_swatch,
                 self.bold_checkbox,
                 self.italic_checkbox,
-                self.scaling_checkbox,
                 self.alignment_combobox,
                 self.vertical_alignment_combobox,
             ],

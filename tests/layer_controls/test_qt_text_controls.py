@@ -2,7 +2,7 @@
 
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
-from qtpy.QtGui import QFont
+from qtpy.QtGui import QFont, QGuiApplication
 
 from napari_plot._qt.layer_controls.qt_layer_controls_container import layer_to_controls
 from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
@@ -11,6 +11,7 @@ from napari_plot.layers import Text
 
 def test_text_controls_creation(qtbot) -> None:
     """Text controls initialize from the first label and layer-wide styles."""
+    font_face = QGuiApplication.font().family()
     layer = Text(
         [[1, 2], [3, 4]],
         ["first", "second"],
@@ -18,7 +19,7 @@ def test_text_controls_creation(qtbot) -> None:
         color=["red", "blue"],
         alignment="left",
         vertical_alignment="top",
-        font_face="Arial",
+        font_face=font_face,
         bold=True,
         italic=True,
         opacity=0.5,
@@ -34,10 +35,9 @@ def test_text_controls_creation(qtbot) -> None:
         transform_color(controls.color_swatch.color)[0],
         transform_color("red")[0],
     )
-    assert controls.font_face_combobox.currentFont().family() == "Arial"
+    assert controls.font_face_combobox.currentFont().family() == font_face
     assert controls.bold_checkbox.isChecked()
     assert controls.italic_checkbox.isChecked()
-    assert controls.scaling_checkbox.isChecked()
     assert controls.alignment_combobox.currentText() == "left"
     assert controls.vertical_alignment_combobox.currentText() == "top"
     assert layer_to_controls[Text] is QtTextControls
@@ -62,8 +62,8 @@ def test_text_controls_apply_layer_styles_and_uniform_color(qtbot) -> None:
     controls.vertical_alignment_combobox.setCurrentText("baseline")
     controls.bold_checkbox.setChecked(True)
     controls.italic_checkbox.setChecked(True)
-    controls.scaling_checkbox.setChecked(False)
-    controls.on_change_font_face(QFont("Arial"))
+    font_face = QGuiApplication.font().family()
+    controls.on_change_font_face(QFont(font_face))
 
     assert layer.size == 18
     np.testing.assert_array_equal(
@@ -74,8 +74,7 @@ def test_text_controls_apply_layer_styles_and_uniform_color(qtbot) -> None:
     assert layer.vertical_alignment == "baseline"
     assert layer.bold is True
     assert layer.italic is True
-    assert layer.scaling is False
-    assert layer.font_face == "Arial"
+    assert layer.font_face == font_face
 
 
 def test_text_controls_follow_model_changes(qtbot) -> None:
@@ -90,7 +89,6 @@ def test_text_controls_follow_model_changes(qtbot) -> None:
     layer.vertical_alignment = "bottom"
     layer.bold = True
     layer.italic = True
-    layer.scaling = False
 
     assert controls.size_slider.value() == 22
     np.testing.assert_array_equal(
@@ -101,4 +99,3 @@ def test_text_controls_follow_model_changes(qtbot) -> None:
     assert controls.vertical_alignment_combobox.currentText() == "bottom"
     assert controls.bold_checkbox.isChecked()
     assert controls.italic_checkbox.isChecked()
-    assert not controls.scaling_checkbox.isChecked()

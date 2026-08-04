@@ -54,14 +54,6 @@ def test_vispy_text_uses_single_visual_and_updates(monkeypatch) -> None:
     layer.alignment = "center"
     assert visual.node.font_size == 12
     assert visual.node.anchors == ("center", "center")
-
-    layer.scale_factor = 0.25
-    assert visual.node.font_size == 12
-    layer.scale_factor = 0.5
-    assert visual.node.font_size == 6
-
-    layer.scaling = False
-    assert visual.node.font_size == 12
     visual.close()
 
 

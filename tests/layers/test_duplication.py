@@ -92,7 +92,6 @@ from napari_plot.layers.base import LayerMixin
                 "font_face",
                 "bold",
                 "italic",
-                "scaling",
             ),
             id="text",
         ),

@@ -154,9 +154,6 @@ class Text(BaseLayer):
         Whether to render the layer text in bold.
     italic : bool
         Whether to render the layer text in italics.
-    scaling : bool
-        Whether font sizes scale with zoom. When enabled, labels shrink while
-        zooming out instead of retaining a fixed screen size.
     """
 
     def __init__(
@@ -173,7 +170,6 @@ class Text(BaseLayer):
         font_face: str | None = None,
         bold: bool = False,
         italic: bool = False,
-        scaling: bool = True,
         axis_labels: Sequence[str] | None = None,
         name: str | None = None,
         metadata: dict | None = None,
@@ -233,7 +229,6 @@ class Text(BaseLayer):
             font_face=Event,
             bold=Event,
             italic=Event,
-            scaling=Event,
         )
 
         self._data = coordinates
@@ -247,7 +242,6 @@ class Text(BaseLayer):
         self._font_face = font_face
         self._bold = bool(bold)
         self._italic = bool(italic)
-        self._scaling = bool(scaling)
 
         self._default_color = transform_color("white")[0] if default_color is None else default_color
         self._default_rotation = 0.0 if default_rotation is None else default_rotation
@@ -269,7 +263,6 @@ class Text(BaseLayer):
                 "font_face": self.font_face,
                 "bold": self.bold,
                 "italic": self.italic,
-                "scaling": self.scaling,
             }
         )
         return state
@@ -412,16 +405,6 @@ class Text(BaseLayer):
     def italic(self, value: bool) -> None:
         self._italic = bool(value)
         self.events.italic(value=self._italic)
-
-    @property
-    def scaling(self) -> bool:
-        """Return whether font sizes scale with zoom."""
-        return self._scaling
-
-    @scaling.setter
-    def scaling(self, value: bool) -> None:
-        self._scaling = bool(value)
-        self.events.scaling(value=self._scaling)
 
     @property
     def x(self) -> np.ndarray:

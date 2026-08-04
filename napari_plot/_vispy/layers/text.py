@@ -26,7 +26,6 @@ class VispyTextLayer(VispyBaseLayer):
             font_manager=font_info.font_manager,
         )
         super().__init__(layer, node, font_info=font_info)
-        self._scale_reference: float | None = None
 
         for emitter in (
             self.layer.events.text,
@@ -41,8 +40,6 @@ class VispyTextLayer(VispyBaseLayer):
             self.layer.events.italic,
         ):
             emitter.connect(self._on_data_change)
-        self.layer.events.scaling.connect(self._on_scale_change)
-        self.layer.events.scale_factor.connect(self._on_scale_change)
 
         self.reset()
         self._on_data_change()
@@ -67,22 +64,9 @@ class VispyTextLayer(VispyBaseLayer):
         self.node.face = self.layer.font_face or self.font_info.face
         self.node.bold = self.layer.bold
         self.node.italic = self.layer.italic
-        self._update_font_size()
-        self._on_blending_change()
-
-    def _on_scale_change(self, _event=None) -> None:
-        """Update font size relative to the first rendered canvas scale."""
-        if self.layer.scaling and self._scale_reference is None:
-            self._scale_reference = self.layer.scale_factor
-        self._update_font_size()
-
-    def _update_font_size(self) -> None:
-        """Apply the configured font size at the current relative zoom."""
-        size = self.layer.size
-        if self.layer.scaling and self._scale_reference is not None:
-            size *= self._scale_reference / self.layer.scale_factor
-        self.node.font_size = size
+        self.node.font_size = self.layer.size
         self.node.update()
+        self._on_blending_change()
 
 
 __all__ = ["VispyTextLayer"]
