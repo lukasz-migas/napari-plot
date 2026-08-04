@@ -27,6 +27,7 @@ viewer1d.add_text(
     offset=(0, 0.05),
     name="Annotations",
 )
+viewer1d.reset_view()
 
 if __name__ == "__main__":
     napari_plot.run()

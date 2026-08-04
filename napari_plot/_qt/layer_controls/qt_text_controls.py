@@ -103,7 +103,7 @@ class QtTextControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "font color"), self.color_swatch)
         self.layout().addRow(hp.make_label(self, "bold"), self.bold_checkbox)
         self.layout().addRow(hp.make_label(self, "italic"), self.italic_checkbox)
-        self.layout().addRow(hp.make_label(self, "alignment"), self.alignment_combobox)
+        self.layout().addRow(hp.make_label(self, "horizontal alignment"), self.alignment_combobox)
         self.layout().addRow(
             hp.make_label(self, "vertical alignment"),
             self.vertical_alignment_combobox,

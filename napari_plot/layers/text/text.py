@@ -14,6 +14,17 @@ from napari_plot.layers.base import BaseLayer
 HORIZONTAL_ALIGNMENTS = frozenset({"left", "center", "right"})
 VERTICAL_ALIGNMENTS = frozenset({"top", "center", "baseline", "bottom"})
 
+# VisPy renders text in screen points. Estimate its data-space footprint using
+# the viewer's default 400 px viewport at 96 DPI and common font proportions.
+_AVERAGE_GLYPH_WIDTH = 0.6
+_LINE_HEIGHT = 1.1
+# Leave room for font-specific metrics and clipping at the viewport boundary.
+_TEXT_BOUNDS_PADDING = 1.25
+_NOMINAL_VIEWPORT_SIZE = 400.0
+_POINT_TO_PIXEL = 4.0 / 3.0
+_BASELINE_DESCENT = 0.2
+_MAX_EXTENT_REFINEMENTS = 8
+
 
 def _coerce_data(data: Any) -> np.ndarray:
     """Return xy coordinates as an ``(N, 2)`` floating-point array."""
@@ -125,6 +136,48 @@ def _resize_array(array: np.ndarray, length: int, fallback: Any) -> np.ndarray:
     fill = array[-1] if current else fallback
     extra = np.broadcast_to(fill, (length - current, *array.shape[1:])).copy()
     return np.concatenate((array, extra), axis=0)
+
+
+def _anchor_bounds(length: float, alignment: str, *, baseline: bool = False) -> tuple[float, float]:
+    """Return bounds relative to an anchor for one text dimension."""
+    if alignment in {"left", "top"}:
+        return 0.0, length
+    if alignment in {"right", "bottom"}:
+        return -length, 0.0
+    if baseline:
+        return -_BASELINE_DESCENT * length, (1.0 - _BASELINE_DESCENT) * length
+    return -length / 2.0, length / 2.0
+
+
+def _label_bounds(
+    text: str,
+    alignment: str,
+    vertical_alignment: str,
+    rotation: float,
+) -> np.ndarray:
+    """Estimate one label's rotated bounds in font-em units."""
+    if not text:
+        return np.zeros((4, 2), dtype=float)
+
+    lines = text.splitlines() or [""]
+    width = max(map(len, lines)) * _AVERAGE_GLYPH_WIDTH * _TEXT_BOUNDS_PADDING
+    height = len(lines) * _LINE_HEIGHT * _TEXT_BOUNDS_PADDING
+    x_min, x_max = _anchor_bounds(width, alignment)
+    y_min, y_max = _anchor_bounds(
+        height,
+        vertical_alignment,
+        baseline=vertical_alignment == "baseline",
+    )
+    corners = np.array(
+        [[x_min, y_min], [x_min, y_max], [x_max, y_min], [x_max, y_max]],
+        dtype=float,
+    )
+
+    angle = np.deg2rad(rotation)
+    cosine = np.cos(angle)
+    sine = np.sin(angle)
+    clockwise_rotation = np.array([[cosine, -sine], [sine, cosine]])
+    return corners @ clockwise_rotation
 
 
 class Text(BaseLayer):
@@ -299,6 +352,7 @@ class Text(BaseLayer):
     @text.setter
     def text(self, value: str | Sequence[str] | None) -> None:
         self._text = _broadcast_text(value, len(self.data))
+        self._clear_extent()
         self.events.text(value=self._text)
 
     @property
@@ -309,6 +363,7 @@ class Text(BaseLayer):
     @size.setter
     def size(self, value: float) -> None:
         self._size = _coerce_scalar(value, "size", positive=True)
+        self._clear_extent()
         self.events.size(value=self._size)
 
     @property
@@ -332,6 +387,7 @@ class Text(BaseLayer):
     @alignment.setter
     def alignment(self, value: str) -> None:
         self._alignment = _coerce_choice(value, "alignment", HORIZONTAL_ALIGNMENTS)
+        self._clear_extent()
         self.events.alignment(value=self._alignment)
 
     @property
@@ -346,6 +402,7 @@ class Text(BaseLayer):
             "vertical_alignment",
             VERTICAL_ALIGNMENTS,
         )
+        self._clear_extent()
         self.events.vertical_alignment(value=self._vertical_alignment)
 
     @property
@@ -359,6 +416,7 @@ class Text(BaseLayer):
         self._rotation = array
         if scalar is not None:
             self._default_rotation = scalar
+        self._clear_extent()
         self.events.rotation(value=array)
 
     @property
@@ -372,6 +430,7 @@ class Text(BaseLayer):
         self._offset = array
         if scalar is not None:
             self._default_offset = scalar
+        self._clear_extent()
         self.events.offset(value=array)
 
     @property
@@ -439,10 +498,42 @@ class Text(BaseLayer):
 
     @property
     def _extent_data(self) -> np.ndarray:
+        """Return estimated label bounds in data coordinates."""
         if len(self.data) == 0:
             return np.full((2, 2), np.nan)
-        minimum = np.min(self.data, axis=0)[::-1]
-        maximum = np.max(self.data, axis=0)[::-1]
+
+        positions = self.data + self.offset
+        span = np.ptp(positions, axis=0)
+        nonzero_span = span[span > 0]
+        fallback_span = float(np.max(nonzero_span)) if len(nonzero_span) else 1.0
+        span[span == 0] = fallback_span
+
+        extent_span = span.copy()
+        for _ in range(_MAX_EXTENT_REFINEMENTS):
+            em_size = extent_span * self.size * _POINT_TO_PIXEL / _NOMINAL_VIEWPORT_SIZE
+            bounds = []
+            for position, text, rotation in zip(
+                positions,
+                self.text,
+                self.rotation,
+                strict=True,
+            ):
+                local_bounds = _label_bounds(
+                    text,
+                    self.alignment,
+                    self.vertical_alignment,
+                    rotation,
+                )
+                bounds.append(position + local_bounds * em_size)
+
+            bounds_array = np.concatenate(bounds, axis=0)
+            refined_span = np.maximum(np.ptp(bounds_array, axis=0), span)
+            if np.allclose(refined_span, extent_span):
+                break
+            extent_span = refined_span
+
+        minimum = np.min(bounds_array, axis=0)[::-1]
+        maximum = np.max(bounds_array, axis=0)[::-1]
         return np.vstack((minimum, maximum))
 
     def _set_view_slice(self) -> None:

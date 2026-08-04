@@ -127,4 +127,102 @@ def test_text_xy_properties() -> None:
     layer.y = [7, 8]
 
     np.testing.assert_array_equal(layer.data, [[5, 7], [6, 8]])
-    np.testing.assert_array_equal(layer.extent.data, [[7, 5], [8, 6]])
+    assert np.all(layer.extent.data[0] < [7, 5])
+    assert np.all(layer.extent.data[1] > [8, 6])
+
+
+@pytest.mark.parametrize(
+    ("alignment", "expected_direction"),
+    [("left", "right"), ("center", "both"), ("right", "left")],
+)
+def test_text_extent_uses_horizontal_alignment(
+    alignment: str,
+    expected_direction: str,
+) -> None:
+    """Horizontal alignment expands the extent on the rendered side."""
+    layer = Text([[1, 2]], "label", size=20, alignment=alignment)
+    x_min, x_max = layer.extent.data[:, 1]
+
+    assert bool(x_min < 1) is (expected_direction in {"left", "both"})
+    assert bool(x_max > 1) is (expected_direction in {"right", "both"})
+
+
+@pytest.mark.parametrize(
+    ("alignment", "expected_direction"),
+    [
+        ("top", "above"),
+        ("center", "both"),
+        ("baseline", "both"),
+        ("bottom", "below"),
+    ],
+)
+def test_text_extent_uses_vertical_alignment(
+    alignment: str,
+    expected_direction: str,
+) -> None:
+    """Vertical alignment expands the extent on the rendered side."""
+    layer = Text([[1, 2]], "label", size=20, vertical_alignment=alignment)
+    y_min, y_max = layer.extent.data[:, 0]
+
+    assert bool(y_min < 2) is (expected_direction in {"below", "both"})
+    assert bool(y_max > 2) is (expected_direction in {"above", "both"})
+
+
+def test_text_extent_includes_bottom_aligned_troughs() -> None:
+    """Bottom-aligned labels at the lower data limit extend that limit."""
+    layer = Text(
+        [[0.25, 1], [0.75, -1], [1.25, 1], [1.75, -1]],
+        ["peak", "trough", "peak", "trough"],
+        size=18,
+        alignment="center",
+        vertical_alignment="bottom",
+        rotation=[0, -10, 10, 0],
+        offset=(0, 0.05),
+    )
+
+    assert layer.extent.data[0, 0] < -1
+
+
+def test_text_extent_uses_offset_text_and_font_size() -> None:
+    """Offsets move label bounds and larger or longer text expands them."""
+    small = Text([[1, 2]], "a", size=10, offset=(3, 4))
+    large = Text([[1, 2]], "long label", size=20, offset=(3, 4))
+
+    small_height, small_width = np.ptp(small.extent.data, axis=0)
+    large_height, large_width = np.ptp(large.extent.data, axis=0)
+
+    assert np.mean(small.extent.data[:, 0]) == pytest.approx(6)
+    assert np.mean(small.extent.data[:, 1]) == pytest.approx(4)
+    assert large_height > small_height
+    assert large_width > small_width
+
+
+def test_text_extent_uses_rotation() -> None:
+    """A quarter turn swaps the estimated label width and height."""
+    horizontal = Text([[1, 2]], "label", alignment="left", vertical_alignment="bottom")
+    vertical = Text(
+        [[1, 2]],
+        "label",
+        alignment="left",
+        vertical_alignment="bottom",
+        rotation=90,
+    )
+
+    horizontal_height, horizontal_width = np.ptp(horizontal.extent.data, axis=0)
+    vertical_height, vertical_width = np.ptp(vertical.extent.data, axis=0)
+
+    assert vertical_height == pytest.approx(horizontal_width)
+    assert vertical_width == pytest.approx(horizontal_height)
+
+
+def test_text_extent_cache_is_cleared_by_style_changes() -> None:
+    """Style updates are reflected after the extent has been cached."""
+    layer = Text([[1, 2]], "a", size=10, alignment="left")
+    initial_extent = layer.extent.data.copy()
+
+    layer.text = "long label"
+    layer.size = 20
+    layer.alignment = "right"
+
+    assert layer.extent.data[0, 1] < initial_extent[0, 1]
+    assert layer.extent.data[1, 1] == pytest.approx(1)
