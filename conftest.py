@@ -14,10 +14,37 @@ import pytest
 
 if ty.TYPE_CHECKING:
     from pytest import FixtureRequest
+    from qtpy.QtWidgets import QApplication
 
 COUNTER = 0
 _SAVE_GRAPH_OPNAME = "--save-leaked-object-graph-np"
 _SHOW_VIEWER = "--show-napari-plot-viewer"
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _cleanup_pyqt6_before_shutdown(qapp: QApplication) -> ty.Iterator[None]:
+    """Release Qt objects before PyQt6 runs its interpreter-exit cleanup."""
+    yield
+
+    from qtpy import PYQT6
+
+    if not PYQT6:
+        return
+
+    from qtpy.QtCore import QCoreApplication, QEvent, QThreadPool
+    from qtpy.QtWidgets import QApplication
+
+    for widget in QApplication.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+
+    QThreadPool.globalInstance().waitForDone(5_000)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    qapp.processEvents()
+    gc.collect()
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    qapp.processEvents()
+    gc.collect()
 
 
 def pytest_addoption(parser):

@@ -312,7 +312,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _get_positive_axis_min(
         self,
-        axis: ty.Literal[x, y],
+        axis: Literal["x", "y"],
         fallback_max: float,
     ) -> float:
         """Return the smallest positive layer coordinate on an axis."""
@@ -991,6 +991,7 @@ for _layer in [
     np_layers.InfLine,
     np_layers.Centroids,
     np_layers.MultiLine,
+    np_layers.Text,
 ]:
     if _layer.__module__.startswith("napari_plot."):
         func = _create_custom_add_method(_layer)

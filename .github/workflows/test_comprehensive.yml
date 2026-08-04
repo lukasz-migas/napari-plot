@@ -61,7 +61,33 @@ jobs:
           qt: true
 
       - name: Test
-        run: uv run coverage run -p -m pytest -v --color=yes
+        env:
+          PYTHONFAULTHANDLER: "1"
+          PYTHONUNBUFFERED: "1"
+        run: >
+          uv run python -X faulthandler
+          -m coverage run -p -m pytest -v --color=yes
+
+      - name: Install GDB
+        if: failure() && runner.os == 'Linux' && matrix.backend == 'pyqt6'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes gdb
+
+      - name: Collect native crash backtrace
+        if: failure() && runner.os == 'Linux' && matrix.backend == 'pyqt6'
+        env:
+          PYTHONFAULTHANDLER: "1"
+          PYTHONUNBUFFERED: "1"
+        run: |
+          gdb --batch --nx \
+            -ex "set pagination off" \
+            -ex "handle SIGPIPE nostop noprint pass" \
+            -ex run \
+            -ex "bt full" \
+            -ex "thread apply all bt 30" \
+            --args .venv/bin/python -X faulthandler \
+              -m coverage run -p -m pytest -v --color=yes
 
       - name: Upload coverage
         uses: actions/upload-artifact@v7

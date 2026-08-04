@@ -12,7 +12,8 @@ from napari_plot._qt.layer_controls.qt_line_controls import QtLineControls
 from napari_plot._qt.layer_controls.qt_multiline_controls import QtMultiLineControls
 from napari_plot._qt.layer_controls.qt_region_controls import QtRegionControls
 from napari_plot._qt.layer_controls.qt_scatter_controls import QtScatterControls
-from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
+from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
+from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
 
 layer_to_controls = {
     Line: QtLineControls,
@@ -21,6 +22,7 @@ layer_to_controls = {
     Region: QtRegionControls,
     InfLine: QtInfLineControls,
     MultiLine: QtMultiLineControls,
+    Text: QtTextControls,
 }
 
 
@@ -49,5 +51,6 @@ __all__ = [
     "QtMultiLineControls",
     "QtRegionControls",
     "QtScatterControls",
+    "QtTextControls",
     "layer_to_controls",
 ]

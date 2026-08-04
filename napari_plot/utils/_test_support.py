@@ -8,12 +8,13 @@ import pytest
 from napari.utils.misc import camel_to_snake
 
 from napari_plot import Viewer
-from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Points, Region, Scatter, Shapes
+from napari_plot.layers import Centroids, Image, InfLine, Line, MultiLine, Points, Region, Scatter, Shapes, Text
 
 # data to be used by pytest during various tests
 layer_test_data = [
     (Line, np.random.random((10, 2))),
     (Scatter, np.random.random((10, 2))),
+    (Text, np.random.random((10, 2))),
     (Points, 20 * np.random.random((10, 2))),
     (Centroids, np.random.random((10, 2))),
     (Centroids, np.random.random((10, 3))),
@@ -34,9 +35,11 @@ layer_test_data = [
 ]
 
 
-classes = [Centroids, Line, InfLine, MultiLine, Scatter, Shapes, Points, Region, Image]
+classes = [Centroids, Line, InfLine, MultiLine, Scatter, Text, Shapes, Points, Region, Image]
 names = [cls.__name__ for cls in classes]
-layer2addmethod = {cls: getattr(Viewer, "add_" + camel_to_snake(name)) for cls, name in zip(classes, names)}
+layer2addmethod = {
+    cls: getattr(Viewer, "add_" + camel_to_snake(name)) for cls, name in zip(classes, names, strict=True)
+}
 
 skip_local_popups = pytest.mark.skipif(
     not os.getenv("CI") and os.getenv("NAPARI_PLOT_POPUP_TESTS", "0") == "0",

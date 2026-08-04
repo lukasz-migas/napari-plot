@@ -9,7 +9,7 @@ import pytest
 from napari.components import LayerList
 from napari.layers._layer_actions import _duplicate_layer
 
-from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter
+from napari_plot.layers import Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
 from napari_plot.layers.base import LayerMixin
 
 
@@ -67,6 +67,33 @@ from napari_plot.layers.base import LayerMixin
             lambda: Scatter([[0, 1]], face_color="red", symbol="square", scaling=False),
             ("face_color", "symbol", "scaling"),
             id="scatter",
+        ),
+        pytest.param(
+            lambda: Text(
+                [[1, 2], [3, 4]],
+                ["first", "second"],
+                size=20,
+                color=["red", "blue"],
+                alignment="right",
+                vertical_alignment="bottom",
+                rotation=[0, 15],
+                offset=[[1, 0], [0, 1]],
+                font_face="Arial",
+                bold=True,
+            ),
+            (
+                "text",
+                "size",
+                "color",
+                "alignment",
+                "vertical_alignment",
+                "rotation",
+                "offset",
+                "font_face",
+                "bold",
+                "italic",
+            ),
+            id="text",
         ),
     ],
 )

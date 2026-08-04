@@ -14,6 +14,7 @@ def test_custom_layer_registration_matches_napari_contract() -> None:
         plot_layers.MultiLine,
         plot_layers.Region,
         plot_layers.Scatter,
+        plot_layers.Text,
     )
 
     for layer_type in custom_layers:
