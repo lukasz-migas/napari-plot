@@ -24,6 +24,11 @@ QtViewerPushButton[mode="new_scatter"] {
   image: url("theme_{{ id }}:/new_scatter.svg");
 }
 
+/* QDoubleSlider does not receive qtextra's QSlider sub-page color. */
+QtTextControls QDoubleSlider::groove:horizontal {
+  background-color: {{ primary }};
+}
+
 /* Restore napari layer controls after qtextra's generic widget rules. */
 QFrame[napari_builtin="true"] QtModeRadioButton {
   min-height: 28px;

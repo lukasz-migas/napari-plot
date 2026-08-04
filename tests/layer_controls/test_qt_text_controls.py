@@ -1,13 +1,16 @@
 """Tests for Text layer controls."""
 
 import numpy as np
+import pytest
 from napari.utils.colormaps.standardize_color import transform_color
-from qtpy.QtGui import QGuiApplication
+from qtextra.config import THEMES
+from qtpy.QtGui import QColor, QGuiApplication
 from qtpy.QtWidgets import QComboBox
 
 from napari_plot._qt.layer_controls.qt_layer_controls_container import layer_to_controls
 from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
 from napari_plot.layers import Text
+from napari_plot.resources import get_stylesheet
 
 
 def test_text_controls_creation(qtbot) -> None:
@@ -43,6 +46,27 @@ def test_text_controls_creation(qtbot) -> None:
     assert controls.alignment_combobox.currentText() == "left"
     assert controls.vertical_alignment_combobox.currentText() == "top"
     assert layer_to_controls[Text] is QtTextControls
+
+
+@pytest.mark.parametrize("theme", ["dark", "light"])
+def test_text_size_slider_groove_is_visible(qtbot, qapp, theme: str) -> None:
+    """The double slider uses the higher-contrast groove color."""
+    previous_stylesheet = qapp.styleSheet()
+    qapp.setStyleSheet(get_stylesheet(theme))
+
+    try:
+        controls = QtTextControls(Text([[1, 2]], "label", size=50))
+        qtbot.addWidget(controls)
+        controls.show()
+        qapp.processEvents()
+
+        slider = controls.size_slider._slider
+        image = slider.grab().toImage()
+        expected_groove = QColor(THEMES.get_theme(theme).primary.as_hex())
+
+        assert image.pixelColor(image.width() - 5, image.height() // 2) == expected_groove
+    finally:
+        qapp.setStyleSheet(previous_stylesheet)
 
 
 def test_text_controls_apply_layer_styles_and_uniform_color(qtbot) -> None:
