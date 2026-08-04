@@ -201,7 +201,7 @@ class VispyCanvas:
         self._on_axis_scale_change()
 
     def _on_axis_scale_change(self, _event: Event | None = None) -> None:
-        """Apply the selected logarithmic transforms to scene data."""
+        """Apply the selected axis transforms to scene data."""
         x_base = 10.0 if self.viewer.axis.x_scale is AxisScale.LOG else 0.0
         y_base = 10.0 if self.viewer.axis.y_scale is AxisScale.LOG else 0.0
         if self.viewer.layers:

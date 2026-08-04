@@ -89,6 +89,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.x_max_size.connect(self._on_max_size_change)
         self._viewer.axis.events.x_tick_formatter.connect(self.on_tick_formatter_change)
         self._viewer.axis.events.x_scale.connect(self._on_scale_change)
+        self._viewer.axis.events.x_categories.connect(self._on_scale_change)
         self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
@@ -114,9 +115,13 @@ class VispyXAxisVisual(VispyAxisVisual):
 
     def _on_scale_change(self, _evt=None) -> None:
         """Update the x-axis tick layout scale."""
-        self.node.axis.scale_type = (
-            "logarithmic" if self._viewer.axis.x_scale is AxisScale.LOG else "linear"
-        )
+        scale = self._viewer.axis.x_scale
+        self.node.axis.scale_type = {
+            AxisScale.LINEAR: "linear",
+            AxisScale.LOG: "logarithmic",
+            AxisScale.CATEGORICAL: "categorical",
+        }[scale]
+        self.node.axis.ticker.category_labels = self._viewer.axis.x_categories or ()
         self._refresh_tick_layout()
 
 
@@ -133,6 +138,7 @@ class VispyYAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.y_max_size.connect(self._on_max_size_change)
         self._viewer.axis.events.y_tick_formatter.connect(self.on_tick_formatter_change)
         self._viewer.axis.events.y_scale.connect(self._on_scale_change)
+        self._viewer.axis.events.y_categories.connect(self._on_scale_change)
         self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
@@ -158,7 +164,11 @@ class VispyYAxisVisual(VispyAxisVisual):
 
     def _on_scale_change(self, _evt=None) -> None:
         """Update the y-axis tick layout scale."""
-        self.node.axis.scale_type = (
-            "logarithmic" if self._viewer.axis.y_scale is AxisScale.LOG else "linear"
-        )
+        scale = self._viewer.axis.y_scale
+        self.node.axis.scale_type = {
+            AxisScale.LINEAR: "linear",
+            AxisScale.LOG: "logarithmic",
+            AxisScale.CATEGORICAL: "categorical",
+        }[scale]
+        self.node.axis.ticker.category_labels = self._viewer.axis.y_categories or ()
         self._refresh_tick_layout()
