@@ -2,7 +2,8 @@
 
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
-from qtpy.QtGui import QFont, QGuiApplication
+from qtpy.QtGui import QGuiApplication
+from qtpy.QtWidgets import QComboBox
 
 from napari_plot._qt.layer_controls.qt_layer_controls_container import layer_to_controls
 from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
@@ -31,11 +32,12 @@ def test_text_controls_creation(qtbot) -> None:
     assert controls.opacity_slider.value() == 50
     assert controls.blending_combobox.currentData() == layer.blending
     assert controls.size_slider.value() == 14
+    assert type(controls.font_face_combobox) is QComboBox
     np.testing.assert_array_equal(
         transform_color(controls.color_swatch.color)[0],
         transform_color("red")[0],
     )
-    assert controls.font_face_combobox.currentFont().family() == font_face
+    assert controls.font_face_combobox.currentText() == font_face
     assert controls.bold_checkbox.isChecked()
     assert controls.italic_checkbox.isChecked()
     assert controls.alignment_combobox.currentText() == "left"
@@ -63,7 +65,7 @@ def test_text_controls_apply_layer_styles_and_uniform_color(qtbot) -> None:
     controls.bold_checkbox.setChecked(True)
     controls.italic_checkbox.setChecked(True)
     font_face = QGuiApplication.font().family()
-    controls.on_change_font_face(QFont(font_face))
+    controls.on_change_font_face(font_face)
 
     assert layer.size == 18
     np.testing.assert_array_equal(

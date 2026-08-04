@@ -9,8 +9,7 @@ import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
-from qtpy.QtGui import QFont, QGuiApplication
-from qtpy.QtWidgets import QFontComboBox
+from qtpy.QtGui import QFontDatabase, QGuiApplication
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
 
@@ -36,10 +35,17 @@ class QtTextControls(QtLayerControls):
         self.layer.events.vertical_alignment.connect(self._on_vertical_alignment_change)
         self.layer.events.visible.connect(self._on_visible_change)
 
-        self.font_face_combobox = QFontComboBox(self)
-        self.font_face_combobox.setToolTip("Font family for every label.")
-        self.font_face_combobox.setCurrentFont(QFont(self._current_font_face()))
-        self.font_face_combobox.currentFontChanged.connect(self.on_change_font_face)
+        current_font_face = self._current_font_face()
+        font_faces = QFontDatabase.families()
+        if current_font_face not in font_faces:
+            font_faces.insert(0, current_font_face)
+        self.font_face_combobox = hp.make_combobox(
+            self,
+            items=font_faces,
+            value=current_font_face,
+            tooltip="Font family for every label.",
+        )
+        self.font_face_combobox.currentTextChanged.connect(self.on_change_font_face)
 
         self.size_slider = hp.make_double_slider_with_text(
             self,
@@ -145,14 +151,17 @@ class QtTextControls(QtLayerControls):
         with qt_signals_blocked(self.color_swatch):
             self.color_swatch.setColor(self._current_color())
 
-    def on_change_font_face(self, font: QFont) -> None:
+    def on_change_font_face(self, font_face: str) -> None:
         """Apply a font family to every label."""
-        self.layer.font_face = font.family()
+        self.layer.font_face = font_face
 
     def _on_font_face_change(self, _event=None) -> None:
         """Update the font family control after a model change."""
+        font_face = self._current_font_face()
         with qt_signals_blocked(self.font_face_combobox):
-            self.font_face_combobox.setCurrentFont(QFont(self._current_font_face()))
+            if self.font_face_combobox.findText(font_face) < 0:
+                self.font_face_combobox.addItem(font_face)
+            self.font_face_combobox.setCurrentText(font_face)
 
     def on_change_bold(self, checked: bool) -> None:
         """Set the layer-wide bold style."""
