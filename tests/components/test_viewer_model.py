@@ -228,6 +228,16 @@ def test_log_extent_uses_smallest_positive_values() -> None:
     assert viewer._get_rect_extent() == (1.0, 10.0, 0.1, 100.0)
 
 
+def test_categorical_extent_keeps_numeric_layer_range() -> None:
+    viewer = ViewerModel()
+    viewer.add_line(np.asarray([[-2.0, -3.0], [0.0, 1.0], [2.0, 5.0]]))
+
+    viewer.axis.x_categories = ["left", "middle", "right"]
+    viewer.axis.y_categories = ["low", "middle", "high"]
+
+    assert viewer._get_rect_extent() == (-2.0, 2.0, -3.0, 5.0)
+
+
 def test_custom_add_methods_are_registered():
     """Test custom napari-plot layer add methods can be imported and called."""
     signature = inspect.signature(ViewerModel.add_line)

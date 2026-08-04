@@ -207,12 +207,26 @@ def _get_log_ticks(
     return major, minor, labels
 
 
+def _get_categorical_ticks(
+    axis: ty.Any,
+    category_labels: tuple[str, ...],
+    domain: np.ndarray,
+) -> tuple[np.ndarray, list[str]]:
+    """Return integer tick positions and ordered categorical labels."""
+    major = np.arange(len(category_labels), dtype=float)
+    labels = list(category_labels)
+    if _tick_labels_overlap(axis, major, labels, domain):
+        labels = _thin_label_sequence(axis, major, labels, domain)
+    return major, labels
+
+
 class Ticker(_Ticker):
     """Monkey-patched Ticker class"""
 
     def __init__(self, axis, anchors=None, tick_format_func=default_tick_formatter):
         super().__init__(axis, anchors)
         self.tick_format_func = tick_format_func
+        self.category_labels: tuple[str, ...] = ()
 
     def _get_tick_frac_labels(self):
         """Get the major ticks, minor ticks, and major labels"""
@@ -267,6 +281,26 @@ class Ticker(_Ticker):
             major_frac = major_frac[use_mask]
             labels = [label for index, label in enumerate(labels) if use_mask[index]]
             minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
+        elif self.axis.scale_type == "categorical":
+            domain = np.asarray(self.axis.domain, dtype=float)
+            if domain[1] < domain[0]:
+                flip = True
+                domain = domain[::-1]
+            else:
+                flip = False
+            major, labels = _get_categorical_ticks(
+                self.axis,
+                self.category_labels,
+                domain,
+            )
+            scale = float(domain[1] - domain[0])
+            major_frac = np.full(len(major), 0.5) if scale == 0 else (major - domain[0]) / scale
+            if flip:
+                major_frac = 1 - major_frac
+            use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
+            major_frac = major_frac[use_mask]
+            labels = [label for index, label in enumerate(labels) if use_mask[index]]
+            minor_frac = np.asarray([], dtype=float)
         elif self.axis.scale_type == "power":
             return NotImplementedError
         return major_frac, minor_frac, labels

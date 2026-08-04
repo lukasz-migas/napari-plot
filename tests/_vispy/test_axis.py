@@ -11,6 +11,7 @@ import napari_plot._vispy.components.axis as axis_module
 from napari_plot._vispy.components.axis import (
     Ticker,
     _format_ticks,
+    _get_categorical_ticks,
     _get_log_ticks,
     _get_major_ticks,
     _tick_label_extents,
@@ -250,3 +251,71 @@ def test_log_ticker_uses_nice_values_for_a_narrow_range(monkeypatch) -> None:
     assert np.count_nonzero(visible) >= 2
     assert all(label for label, keep in zip(labels, visible, strict=True) if keep)
     assert all(spacing is not None for spacing in spacings)
+
+
+def test_categorical_ticker_places_ordered_labels(monkeypatch) -> None:
+    monkeypatch.setattr(
+        axis_module,
+        "_tick_label_extents",
+        lambda _axis, labels: np.zeros(len(labels)),
+    )
+    axis = _make_axis(domain=(0.0, 3.0), scale_type="categorical")
+    ticker = Ticker(axis)
+    ticker.category_labels = ("alpha", "beta", "gamma", "delta")
+
+    fractions, minor, labels = ticker._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [0.0, 1 / 3, 2 / 3, 1.0])
+    assert labels == ["alpha", "beta", "gamma", "delta"]
+    assert len(minor) == 0
+
+
+def test_categorical_ticker_limits_labels_to_visible_domain(monkeypatch) -> None:
+    monkeypatch.setattr(
+        axis_module,
+        "_tick_label_extents",
+        lambda _axis, labels: np.zeros(len(labels)),
+    )
+    axis = _make_axis(domain=(2.5, 0.5), scale_type="categorical")
+    ticker = Ticker(axis)
+    ticker.category_labels = ("alpha", "beta", "gamma", "delta")
+
+    fractions, _minor, labels = ticker._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [0.75, 0.25])
+    assert labels == ["beta", "gamma"]
+
+
+def test_categorical_ticker_centers_single_category(monkeypatch) -> None:
+    monkeypatch.setattr(
+        axis_module,
+        "_tick_label_extents",
+        lambda _axis, labels: np.zeros(len(labels)),
+    )
+    axis = _make_axis(domain=(0.0, 0.0), scale_type="categorical")
+    ticker = Ticker(axis)
+    ticker.category_labels = ("only",)
+
+    fractions, _minor, labels = ticker._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [0.5])
+    assert labels == ["only"]
+
+
+def test_categorical_ticker_thins_overlapping_labels(monkeypatch) -> None:
+    monkeypatch.setattr(
+        axis_module,
+        "_tick_label_extents",
+        lambda _axis, labels: np.full(len(labels), 100.0),
+    )
+    axis = _make_axis(domain=(0.0, 3.0), length=150.0)
+
+    major, labels = _get_categorical_ticks(
+        axis,
+        ("alpha", "beta", "gamma", "delta"),
+        axis.domain,
+    )
+
+    np.testing.assert_allclose(major, [0.0, 1.0, 2.0, 3.0])
+    assert 0 < sum(bool(label) for label in labels) < len(labels)
+    assert not _tick_labels_overlap(axis, major, labels, axis.domain)
