@@ -46,7 +46,7 @@ class QtViewToolbar(QWidget):
             "axes",
             tooltip="Show axis controls",
             checkable=False,
-            func=self._toggle_axis_visible,
+            func=self._toggle_axis_controls,
         )
         self.tools_text_btn = toolbar_right.insert_qta_tool(
             "text",
@@ -60,6 +60,15 @@ class QtViewToolbar(QWidget):
             checkable=True,
             func=self._toggle_grid_lines_visible,
         )
+        self.tools_legend_btn = toolbar_right.insert_qta_tool(
+            "list",
+            tooltip="Show/hide legend. Right-click to change legend settings.",
+            checkable=True,
+            func=self._toggle_legend_visible,
+            func_menu=self._open_legend_controls,
+        )
+        self.tools_legend_btn.setChecked(self.ref_qt_viewer().viewer.legend.visible)
+        self.ref_qt_viewer().viewer.legend.events.visible.connect(self._on_legend_visible)
         self.tools_tool_btn = toolbar_right.insert_qta_tool(
             "tool",
             tooltip="Select current tool.",
@@ -83,6 +92,23 @@ class QtViewToolbar(QWidget):
 
     def _toggle_text_visible(self, state):
         self.ref_qt_viewer().viewer.text_overlay.visible = state
+
+    def _toggle_legend_visible(self, state: bool) -> None:
+        """Set canvas legend visibility."""
+        self.ref_qt_viewer().viewer.set_legend_visible(state)
+
+    def _on_legend_visible(self, event: ty.Any) -> None:
+        """Synchronize the toolbar toggle with model changes."""
+        visible = getattr(event, "value", event)
+        with hp.qt_signals_blocked(self.tools_legend_btn):
+            self.tools_legend_btn.setChecked(bool(visible))
+
+    def _open_legend_controls(self) -> None:
+        """Open legend overlay controls beside the toolbar button."""
+        from napari_plot._qt.component_controls.qt_legend_controls import QtLegendControls
+
+        dlg = QtLegendControls(self.ref_viewer(), self.ref_qt_viewer())
+        dlg.show_left_of_widget(self.tools_legend_btn, x_offset=dlg.width() * 2)
 
     def _toggle_axis_visible(self, state):
         self.ref_qt_viewer().viewer.axis.visible = state
