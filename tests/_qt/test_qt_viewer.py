@@ -6,6 +6,8 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+from qtpy.QtCore import QEvent
+from qtpy.QtGui import QFocusEvent, QGuiApplication
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from napari_plot._qt._qapp_model._qproviders import _provide_qt_viewer, _provide_viewer
@@ -94,6 +96,18 @@ def test_screenshot(make_napari_plot_viewer):
     assert screenshot.ndim == 3
 
 
+@skip_on_win_ci
+def test_toolbar_screenshot_copies_image(make_napari_plot_viewer):
+    """The toolbar screenshot action calls correctly bound napari methods."""
+    viewer = make_napari_plot_viewer()
+    qt_viewer = viewer.window._qt_viewer
+
+    image = qt_viewer._screenshot(flash=False)
+    assert not image.isNull()
+    qt_viewer.viewerToolbar.tools_clip_btn.click()
+    assert not QGuiApplication.clipboard().image().isNull()
+
+
 def test_remove_points(make_napari_plot_viewer):
     viewer = make_napari_plot_viewer()
     viewer.add_points([(1, 2), (2, 3)])
@@ -135,8 +149,8 @@ def test_remove_image(make_napari_plot_viewer):
     viewer.add_image(np.random.rand(10, 10))
 
 
-@pytest.mark.xfail(reason="Flaky")
-def test_injection_uses_focused_embedded_qt_viewer(qtbot, qapp):
+def test_injection_uses_focused_embedded_qt_viewer(qtbot, monkeypatch):
+    monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
     host = QWidget()
     layout = QVBoxLayout(host)
     viewer1 = ViewerModel(title="viewer-1")
@@ -146,16 +160,12 @@ def test_injection_uses_focused_embedded_qt_viewer(qtbot, qapp):
     layout.addWidget(qt_viewer1)
     layout.addWidget(qt_viewer2)
     qtbot.addWidget(host)
-    host.show()
-
     assert QtViewer.current() is qt_viewer2
 
-    qt_viewer1.setFocus()
-    qapp.processEvents()
+    qt_viewer1.focusInEvent(QFocusEvent(QEvent.Type.FocusIn))
     assert _provide_qt_viewer() is qt_viewer1
     assert _provide_viewer(public_proxy=False) is viewer1
 
     qt_viewer2._enter_canvas()
-    qapp.processEvents()
     assert _provide_qt_viewer() is qt_viewer2
     assert _provide_viewer(public_proxy=False) is viewer2

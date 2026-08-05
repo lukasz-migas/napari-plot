@@ -315,7 +315,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "napari_plot/_vispy/__init__.py" = ["E402"]
-
+"examples/*.py" = ["INP001"]
+"examples_with_napari/*.py" = ["INP001"]
+"tools/minreq.py" = ["INP001"]
+"conftest.py" = ["PT013", "B008"]
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
 
@@ -327,6 +330,7 @@ combine-as-imports = true
 # These follow standard library warnings filters syntax.  See more here:
 # https://docs.python.org/3/library/warnings.html#describing-warning-filters
 addopts = "--maxfail=10 --durations=10"
+xfail_strict = true
 
 filterwarnings = [
   "error:::napari_plot", # turn warnings from napari into errors

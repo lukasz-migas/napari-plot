@@ -64,8 +64,9 @@ class VispyPolygonVisual:
     def _on_tool_change(self, _evt=None):
         # only trigger an update if the tool is a polygon or boxtool
         if (
-            self._viewer.drag_tool.active not in POLYGON_TOOLS or type(self._viewer.drag_tool.tool) != PolygonTool
-        ) and type(self._viewer.drag_tool.tool) != BoxTool:
+            self._viewer.drag_tool.active not in POLYGON_TOOLS
+            or not isinstance(self._viewer.drag_tool.tool, PolygonTool)
+        ) and not isinstance(self._viewer.drag_tool.tool, BoxTool):
             return
 
         self._on_visible_change()

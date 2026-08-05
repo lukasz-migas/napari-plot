@@ -1,5 +1,7 @@
 """Axes visual"""
 
+from typing import ClassVar
+
 from vispy.scene import AxisWidget
 
 from napari_plot.components.axis import AxisScale
@@ -8,7 +10,7 @@ from napari_plot.components.axis import AxisScale
 class VispyAxisVisual:
     """Axes visual"""
 
-    node_kwargs = {}
+    node_kwargs: ClassVar[dict] = {}
 
     def __init__(self, viewer, parent=None, order=1e6):
         self._viewer = viewer
@@ -79,7 +81,7 @@ class VispyAxisVisual:
 class VispyXAxisVisual(VispyAxisVisual):
     """X-axis visual"""
 
-    node_kwargs = {"orientation": "bottom", "tick_label_margin": 20}
+    node_kwargs: ClassVar[dict] = {"orientation": "bottom", "tick_label_margin": 20}
 
     def __init__(self, viewer, parent=None, order=1e6):
         super().__init__(viewer, parent, order)
@@ -128,7 +130,7 @@ class VispyXAxisVisual(VispyAxisVisual):
 class VispyYAxisVisual(VispyAxisVisual):
     """Y-axis visual"""
 
-    node_kwargs = {"tick_label_margin": 10}
+    node_kwargs: ClassVar[dict] = {"tick_label_margin": 10}
 
     def __init__(self, viewer, parent=None, order=1e6):
         super().__init__(viewer, parent, order)

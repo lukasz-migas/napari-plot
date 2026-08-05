@@ -108,7 +108,7 @@ class InfiniteLineList:
     def add(self, infline, color=None, index=None, z_refresh: bool = False):
         """Adds a single InfiniteLine object"""
         if not isinstance(infline, InfiniteLine):
-            raise ValueError("Region must be a class of Rectangle")
+            raise TypeError("Infinite line must be an InfiniteLine instance")
 
         if index is None:
             # index = len(self.inflines)

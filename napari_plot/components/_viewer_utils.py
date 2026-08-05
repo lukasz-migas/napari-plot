@@ -1,4 +1,3 @@
-
 import numpy as np
 from napari.layers import Layer
 
@@ -74,9 +73,7 @@ def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> tuple[
     return None, None
 
 
-def get_range_extent(
-    full_min, full_max, range_min, range_max, min_val: float | None = None
-) -> tuple[float, float]:
+def get_range_extent(full_min, full_max, range_min, range_max, min_val: float | None = None) -> tuple[float, float]:
     """Get tuple of specified range"""
     if range_min is None:
         range_min = full_min

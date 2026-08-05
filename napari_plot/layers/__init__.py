@@ -12,6 +12,7 @@ from napari.layers.image import Image
 from napari.layers.points import Points
 from napari.layers.shapes import Shapes
 
+from napari_plot.layers.bar import Bar
 from napari_plot.layers.centroids import Centroids
 from napari_plot.layers.infline import InfLine
 from napari_plot.layers.line import Line
@@ -23,7 +24,7 @@ from napari_plot.layers.text import Text
 
 def _register_custom_layer_types() -> None:
     """Register custom layers and their data types with napari."""
-    for layer_type in (Centroids, InfLine, Line, MultiLine, Region, Scatter, Text):
+    for layer_type in (Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text):
         type_name = layer_type.__name__.lower()
         data_type_name = f"{type_name.title()}Data"
         _napari_layers.NAMES.add(type_name)
@@ -38,6 +39,7 @@ def _register_custom_layer_types() -> None:
 _register_custom_layer_types()
 
 __all__ = [
+    "Bar",
     "Centroids",
     "Image",
     "InfLine",

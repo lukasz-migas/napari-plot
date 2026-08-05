@@ -8,7 +8,7 @@ contributions:
     python_name: napari_plot._plot_widget:NapariPlotWidget
 
   - id: napari_plot.ScatterPlotWidget
-    python_name: napari-plot._scatter_widget:ScatterPlotWidget
+    python_name: napari_plot._scatter_widget:ScatterPlotWidget
     title: Scatter plot of two layers
 
   widgets:

@@ -1162,7 +1162,7 @@ class Window:
         except (AttributeError, RuntimeError):
             raise RuntimeError(
                 "This viewer has already been closed and deleted. Please create a new one.",
-            )
+            ) from None
 
         # Resize axis labels now that window is shown
         self._qt_viewer.dims._resize_axis_labels()

@@ -3,6 +3,12 @@ QtModePushButton {
   padding: 0px;
 }
 
+NapariPlotControls {
+  border: 0px;
+  margin: 0px;
+  padding: 0px;
+}
+
 QLabel#logo_silhouette_plot {
   image: url("theme_{{ id }}:/logo_silhouette_plot.svg");
 }

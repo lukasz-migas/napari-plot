@@ -4,6 +4,11 @@ site_author: Lukasz Migas
 site_description: >-
   Vispy-based plotting library alongside napari.
 
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Public API: api.md
+
 # Repository
 repo_name: lukasz-migas/napari-plot
 repo_url: https://github.com/lukasz-migas/napari-plot

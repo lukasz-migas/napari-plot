@@ -83,6 +83,15 @@ def test_add_text():
     assert layer.size == 20
 
 
+def test_add_bar():
+    """Test adding bars through the generated viewer API."""
+    viewer = ViewerModel()
+    layer = viewer.add_bar([2, 4], fill_color="red")
+
+    assert len(viewer.layers) == 1
+    np.testing.assert_array_equal(layer.data, [[0, 2], [1, 4]])
+
+
 def test_add_empty_points_to_empty_viewer():
     viewer = ViewerModel()
     layer = viewer.add_points(name="empty points")

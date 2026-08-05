@@ -12,7 +12,7 @@ from napari._vispy.mouse_event import NapariMouseEvent
 from napari._vispy.utils.cursor import QtCursorVisual
 from napari._vispy.utils.gl import get_max_texture_sizes
 from napari._vispy.utils.qt_font import FontInfo
-from napari.components.overlays import CanvasOverlay, Overlay, SceneOverlay
+from napari.components.overlays import CanvasOverlay, Overlay
 from napari.utils._proxies import ReadOnlyWrapper
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.interactions import (
@@ -566,6 +566,9 @@ class VispyCanvas:
     def on_resize(self, event: ResizeEvent) -> None:
         """Called whenever canvas is resized."""
         self.viewer._canvas_size = self.size
+        for overlay, visual in self._overlay_to_visual.items():
+            if isinstance(overlay, CanvasOverlay):
+                visual._on_position_change()
 
     def add_layer_visual_mapping(self, napari_layer: Layer, vispy_layer: VispyBaseLayer) -> None:
         """Maps a napari layer to its corresponding vispy layer and sets the parent scene of the vispy layer.
@@ -619,11 +622,13 @@ class VispyCanvas:
 
     def _add_overlay_to_visual(self, overlay: Overlay) -> None:
         """Create vispy overlay and add to dictionary of overlay visuals"""
-        vispy_overlay = create_vispy_overlay(overlay=overlay, viewer=self.viewer, font_info=self._font_info)
-        if isinstance(overlay, CanvasOverlay):
-            vispy_overlay.node.parent = self.view
-        elif isinstance(overlay, SceneOverlay):
-            vispy_overlay.node.parent = self._data_scene
+        parent = self.view if isinstance(overlay, CanvasOverlay) else self._data_scene
+        vispy_overlay = create_vispy_overlay(
+            overlay=overlay,
+            viewer=self.viewer,
+            font_info=self._font_info,
+            parent=parent,
+        )
         self._overlay_to_visual[overlay] = vispy_overlay
 
     def screenshot(self) -> QImage:

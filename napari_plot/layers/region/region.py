@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from copy import copy
+from typing import ClassVar
 
 import numpy as np
 from napari.layers.base import ActionType, no_op
@@ -85,7 +86,7 @@ class Region(BaseLayer):
     """
 
     _modeclass = Mode
-    _drag_modes = {
+    _drag_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.ADD: add,
@@ -93,7 +94,7 @@ class Region(BaseLayer):
         Mode.MOVE: move,
         Mode.EDIT: edit,
     }
-    _move_modes = {
+    _move_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.ADD: no_op,
@@ -101,7 +102,7 @@ class Region(BaseLayer):
         Mode.MOVE: highlight,
         Mode.EDIT: no_op,
     }
-    _double_click_modes = {
+    _double_click_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.ADD: no_op,
@@ -109,7 +110,7 @@ class Region(BaseLayer):
         Mode.MOVE: no_op,
         Mode.EDIT: no_op,
     }
-    _cursor_modes = {
+    _cursor_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: "standard",
         Mode.TRANSFORM: "standard",
         Mode.ADD: "pointing",
@@ -251,7 +252,8 @@ class Region(BaseLayer):
         if color is None:
             color = self._get_new_color(n_new_shapes)
         if self._data_view is not None:
-            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+            if z_index is None:
+                z_index = max(self._data_view._z_index, default=-1) + 1
         else:
             z_index = z_index or 0
 
@@ -348,7 +350,8 @@ class Region(BaseLayer):
         if color is None:
             color = self._current_color
         if self._data_view is not None:
-            z_index = z_index or max(self._data_view._z_index, default=-1) + 1
+            if z_index is None:
+                z_index = max(self._data_view._z_index, default=-1) + 1
         else:
             z_index = z_index or 0
 
@@ -368,6 +371,7 @@ class Region(BaseLayer):
                 ensure_iterable(orientation),
                 transformed_color,
                 ensure_iterable(z_index),
+                strict=False,
             )
             self._add_region_to_view(region_inputs, self._data_view)
 

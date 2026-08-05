@@ -11,6 +11,8 @@ from qtextra.widgets.qt_dialog import QtFramelessPopup
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QFormLayout, QWidget
 
+from napari_plot.components.axis import AxisScale
+
 if TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
@@ -34,6 +36,10 @@ class QtAxisWidget(QWidget):
         viewer.axis.events.y_tick_margin.connect(self._on_tick_margin_change)
         viewer.axis.events.x_max_size.connect(self._on_max_size_change)
         viewer.axis.events.y_max_size.connect(self._on_max_size_change)
+        viewer.axis.events.x_scale.connect(self._on_scale_change)
+        viewer.axis.events.y_scale.connect(self._on_scale_change)
+        viewer.axis.events.x_categories.connect(self._on_categories_change)
+        viewer.axis.events.y_categories.connect(self._on_categories_change)
 
         self.visible_checkbox = hp.make_checkbox(self, "", val=viewer.axis.visible, tooltip="Show/hide x/y-axes")
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)
@@ -52,6 +58,35 @@ class QtAxisWidget(QWidget):
 
         self.y_axis_edit = hp.make_line_edit(self, viewer.axis.y_label, placeholder="Y-axis label...")
         self.y_axis_edit.textChanged.connect(self.on_change_label)
+
+        scales = [scale.value for scale in AxisScale]
+        self.x_scale_combobox = hp.make_combobox(
+            self,
+            items=scales,
+            value=viewer.axis.x_scale.value,
+            tooltip="Scale used by the x-axis.",
+        )
+        self.x_scale_combobox.currentTextChanged.connect(self.on_change_scale)
+        self.y_scale_combobox = hp.make_combobox(
+            self,
+            items=scales,
+            value=viewer.axis.y_scale.value,
+            tooltip="Scale used by the y-axis.",
+        )
+        self.y_scale_combobox.currentTextChanged.connect(self.on_change_scale)
+
+        self.x_categories_edit = hp.make_line_edit(
+            self,
+            ", ".join(viewer.axis.x_categories or ()),
+            placeholder="Comma-separated x categories...",
+        )
+        self.x_categories_edit.editingFinished.connect(self.on_change_categories)
+        self.y_categories_edit = hp.make_line_edit(
+            self,
+            ", ".join(viewer.axis.y_categories or ()),
+            placeholder="Comma-separated y categories...",
+        )
+        self.y_categories_edit.editingFinished.connect(self.on_change_categories)
 
         self.y_label_margin_spin = hp.make_slider_with_text(
             self,
@@ -127,10 +162,14 @@ class QtAxisWidget(QWidget):
         layout = QFormLayout(self)
         layout.addRow(hp.make_label(self, "Visible"), self.visible_checkbox)
         layout.addRow(hp.make_label(self, "X-axis label"), self.x_axis_edit)
+        layout.addRow(hp.make_label(self, "X-axis scale"), self.x_scale_combobox)
+        layout.addRow(hp.make_label(self, "X-axis categories"), self.x_categories_edit)
         layout.addRow(hp.make_label(self, "X-axis label margin"), self.x_label_margin_spin)
         layout.addRow(hp.make_label(self, "X-axis tick margin"), self.x_tick_margin_spin)
         layout.addRow(hp.make_h_line(self))
         layout.addRow(hp.make_label(self, "Y-axis label"), self.y_axis_edit)
+        layout.addRow(hp.make_label(self, "Y-axis scale"), self.y_scale_combobox)
+        layout.addRow(hp.make_label(self, "Y-axis categories"), self.y_categories_edit)
         layout.addRow(hp.make_label(self, "Y-axis label margin"), self.y_label_margin_spin)
         layout.addRow(hp.make_label(self, "Y-axis tick margin"), self.y_tick_margin_spin)
         layout.addRow(hp.make_h_line(self))
@@ -164,6 +203,44 @@ class QtAxisWidget(QWidget):
             self.x_axis_edit.setText(self.ref_viewer().axis.x_label)
         with self.ref_viewer().axis.events.y_label.blocker():
             self.y_axis_edit.setText(self.ref_viewer().axis.y_label)
+
+    def on_change_scale(self) -> None:
+        """Apply the selected numeric or categorical axis scales."""
+        axis = self.ref_viewer().axis
+        for name, combobox in (("x", self.x_scale_combobox), ("y", self.y_scale_combobox)):
+            scale = AxisScale(combobox.currentText())
+            categories = getattr(axis, f"{name}_categories")
+            if scale is AxisScale.CATEGORICAL and categories is None:
+                self._on_scale_change()
+                continue
+            setattr(axis, f"{name}_scale", scale)
+
+    def _on_scale_change(self, _event=None) -> None:
+        """Synchronize scale selectors with the axis model."""
+        axis = self.ref_viewer().axis
+        for name, combobox in (("x", self.x_scale_combobox), ("y", self.y_scale_combobox)):
+            with qt_signals_blocked(combobox):
+                combobox.setCurrentText(getattr(axis, f"{name}_scale").value)
+
+    @staticmethod
+    def _parse_categories(value: str) -> tuple[str, ...] | None:
+        """Parse comma-separated category labels from a line edit."""
+        categories = tuple(category.strip() for category in value.split(",") if category.strip())
+        return categories or None
+
+    def on_change_categories(self) -> None:
+        """Apply comma-separated categorical labels to both axes."""
+        axis = self.ref_viewer().axis
+        axis.x_categories = self._parse_categories(self.x_categories_edit.text())
+        axis.y_categories = self._parse_categories(self.y_categories_edit.text())
+
+    def _on_categories_change(self, _event=None) -> None:
+        """Synchronize category editors with the axis model."""
+        axis = self.ref_viewer().axis
+        for name, line_edit in (("x", self.x_categories_edit), ("y", self.y_categories_edit)):
+            categories = getattr(axis, f"{name}_categories") or ()
+            with qt_signals_blocked(line_edit):
+                line_edit.setText(", ".join(categories))
 
     def on_change_label_margin(self):
         """Update margin of the x/y-axis label."""

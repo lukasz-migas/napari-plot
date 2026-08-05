@@ -190,18 +190,24 @@ class InfiniteRegionList:
         z_index : int
             The new z-index for the shape.
         """
-        self._z_index[index] = int(z_index)
+        z_index = int(z_index)
+        self.regions[index].z_index = z_index
+        self._z_index[index] = z_index
         self._update_z_order()
 
     def inside(self, coord, max_dist: float = 0.1):
-        """Determine if any line at given coord by looking at nearest line within defined limit."""
-        # pos = make_infinite_line_pos(self.data, self.orientations)
-        # with suppress(IndexError):
-        #     indices = nearby_line(pos - coord[::-1], max_dist)
-        #     if len(indices) > 0:
-        #         z_list = [self._z_order[i] for i in indices]
-        #         return indices[np.argsort(z_list)][0]
-        return
+        """Return the topmost region containing a ``(y, x)`` coordinate."""
+        del max_dist  # Kept for compatibility with the infinite-line API.
+        candidates = []
+        for index, (bounds, orientation) in enumerate(zip(self.data, self.orientations, strict=True)):
+            low, high = sorted(bounds)
+            value = coord[1] if orientation == Orientation.VERTICAL else coord[0]
+            if low <= value <= high:
+                candidates.append(index)
+
+        if not candidates:
+            return None
+        return max(candidates, key=lambda index: (self._z_index[index], index))
 
     def regions_in_box(self, corners):
         """Determines which lines, if any, are inside an axis aligned box."""

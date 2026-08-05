@@ -12,37 +12,39 @@ __all__ = ["get_stylesheet", "load_assets"]
 
 ICON_PATH = (Path(__file__).parent / "icons").resolve()
 ICONS = {x.stem: str(x) for x in ICON_PATH.iterdir() if x.suffix == ".svg"}
-update_icons(ICONS_)
-update_icons(ICONS)
-
 STYLE_PATH = (Path(__file__).parent / "qss").resolve()
-STYLES_.update({f"{x.stem}-napari-plot": str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"})
-update_styles(STYLES_)
-
-update_icon_mapping(
-    {
-        "axes": "mdi6.axis-arrow",
-        "move": "fa5s.arrows-alt",
-        "new_line": "msc.pulse",
-        "new_centroids": "ri.bar-chart-fill",
-        "new_inf_line": "mdi.infinity",
-        "new_region": "ri.bar-chart-horizontal-fill",
-        "new_points": "mdi.scatter-plot",
-        "new_shapes": "fa5s.shapes",
-        "zoom": "fa5s.search",
-        "pan": "ph.hand-pointing",
-        "select_empty": "|ph.navigation-arrow-bold",
-        "select": "ph.navigation-arrow-fill",
-        "select_points": "ph.navigation-arrow-fill",
-        "select_points_empty": "ph.navigation-arrow-bold",
-        "draw": "mdi.draw",
-        "tools": "fa5s.tools",
-        "vertical": "mdi.drag-vertical-variant",
-        "horizontal": "mdi.drag-horizontal-variant",
-        "close": "fa5s.times",
-    },
-)
-
-
+STYLES = {f"{x.stem}-napari-plot": str(x) for x in STYLE_PATH.iterdir() if x.suffix == ".qss"}
+ICON_MAPPING = {
+    "axes": "mdi6.axis-arrow",
+    "move": "fa5s.arrows-alt",
+    "new_line": "msc.pulse",
+    "new_centroids": "ri.bar-chart-fill",
+    "new_inf_line": "mdi.infinity",
+    "new_region": "ri.bar-chart-horizontal-fill",
+    "new_points": "mdi.scatter-plot",
+    "new_shapes": "fa5s.shapes",
+    "zoom": "fa5s.search",
+    "pan": "ph.hand-pointing",
+    "select_empty": "|ph.navigation-arrow-bold",
+    "select": "ph.navigation-arrow-fill",
+    "select_points": "ph.navigation-arrow-fill",
+    "select_points_empty": "ph.navigation-arrow-bold",
+    "draw": "mdi.draw",
+    "grid": "mdi.grid",
+    "tool": "fa5s.tools",
+    "tools": "fa5s.tools",
+    "layers": "fa5s.layer-group",
+    "vertical": "mdi.drag-vertical-variant",
+    "horizontal": "mdi.drag-horizontal-variant",
+    "close": "fa5s.times",
+}
 def load_assets() -> None:
-    """No-op function that ensures icons and styles are loaded properly."""
+    """Idempotently register napari-plot icons and styles with qtextra."""
+    update_icons(ICONS_)
+    update_icons(ICONS)
+    STYLES_.update(STYLES)
+    update_styles(STYLES_)
+    update_icon_mapping(ICON_MAPPING)
+
+
+load_assets()

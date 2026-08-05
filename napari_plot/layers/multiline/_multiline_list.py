@@ -1,6 +1,5 @@
 """Container class for MultiLine data."""
 
-
 import numpy as np
 
 from napari_plot.layers.multiline._multiline_utils import (
@@ -44,7 +43,7 @@ class MultiLineList:
             xs = [None] * len(ys)
         elif len(xs) == 1 and len(ys) > 1:
             xs.extend([None] * (len(ys) - 1))
-        for x, y, _color in zip(xs, ys, color):
+        for x, y, _color in zip(xs, ys, color, strict=False):
             self._add(x, y, _color)
 
     def _add(self, x, y, color):

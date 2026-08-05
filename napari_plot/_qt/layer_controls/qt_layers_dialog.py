@@ -4,6 +4,7 @@ from weakref import ref
 
 import qtextra.helpers as hp
 from qtextra.widgets.qt_dialog import QtFramelessTool
+from qtpy.QtGui import QKeyEvent
 from qtpy.QtWidgets import QVBoxLayout
 
 
@@ -36,9 +37,11 @@ class NapariPlotControls(QtFramelessTool):
         va.addWidget(qt_viewer.layerButtons)
         va.addWidget(qt_viewer.layers, stretch=True)
         va.addWidget(qt_viewer.viewerButtons)
+        va.setContentsMargins(0, 0, 0, 0)
+        va.setSpacing(2)
         return va
 
-    def keyPressEvent(self, event):
+    def keyPressEvent(self, event: QKeyEvent) -> None:
         """Called whenever a key is pressed.
 
         Parameters
@@ -46,10 +49,11 @@ class NapariPlotControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self._ref_qt_viewer().canvas._backend._keyEvent(self._ref_qt_viewer().canvas.events.key_press, event)
+        scene_canvas = self._ref_qt_viewer().canvas._scene_canvas
+        scene_canvas._backend._keyEvent(scene_canvas.events.key_press, event)
         event.accept()
 
-    def keyReleaseEvent(self, event):
+    def keyReleaseEvent(self, event: QKeyEvent) -> None:
         """Called whenever a key is released.
 
         Parameters
@@ -57,5 +61,6 @@ class NapariPlotControls(QtFramelessTool):
         event : qtpy.QtCore.QEvent
             Event from the Qt context.
         """
-        self._ref_qt_viewer().canvas._backend._keyEvent(self._ref_qt_viewer().canvas.events.key_release, event)
+        scene_canvas = self._ref_qt_viewer().canvas._scene_canvas
+        scene_canvas._backend._keyEvent(scene_canvas.events.key_release, event)
         event.accept()

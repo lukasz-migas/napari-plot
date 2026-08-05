@@ -5,16 +5,17 @@
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/napari-plot/badges/version.svg)](https://anaconda.org/conda-forge/napari-plot)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-plot.svg?color=green)](https://python.org)
 [![tests](https://github.com/lukasz-migas/napari-plot/workflows/tests/badge.svg)](https://github.com/lukasz-migas/napari-plot/actions)
-[![codecov](https://codecov.io/gh/lukasz-migas/napari-1d/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-plot)
+[![codecov](https://codecov.io/gh/lukasz-migas/napari-plot/branch/main/graph/badge.svg)](https://codecov.io/gh/lukasz-migas/napari-plot)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-plot)](https://www.napari-hub.org/plugins/napari-plot)
 [![Documentation Status](https://readthedocs.org/projects/napari-plot/badge/?version=latest)](https://napari-plot.readthedocs.io/en/latest/?badge=latest)
 
-## Plugin providing support for 1d plotting in napari.
+## Interactive plotting in napari or a standalone Qt viewer
 
-This plugin is in very early stages of development and many things are still in a state of disarray. New features and bug fixes
-will be coming over the coming months. 
+napari-plot provides GPU-accelerated Line, Scatter, MultiLine, Centroids, Text,
+Region, InfLine, and Bar layers. It supports linear, logarithmic, and categorical
+axes, an interactive legend, data selection tools, and image display.
 
 ## Usage
 
@@ -47,7 +48,7 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Shapes Layer - `napari's` own `Shapes` layer
   - [x] Points Layer - `napari's` own `Points` layer
   - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary.
-  - [ ] Bar - horizontal and vertical barchart (TODO)
+  - [x] Bar - horizontal and vertical bar charts.
 - [x] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
 - [x] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data. We currently provide several `zoom` and `select` tools and hope to add few extras in the future.
   - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
@@ -56,15 +57,15 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part.
   - [x] Polygon select - polygon tool allowing sub-selection of data in the canvas.
   - [x] Lasso select - lasso tool allowing sub-selection of data in the canvas.
-- [ ] Interactive plot legend
-- [ ] Customizable axis visuals.
+- [x] Interactive plot legend
+- [x] Customizable axis visuals.
   - [x] Plot axis enabling customization of tick/label size and color
-  - [ ] Support for non-linear scale
-- [ ] Add convenient plotting interface:
-  - [ ] Add `.plot` functionality
-  - [ ] Add `.scatter` functionality
-  - [ ] Add `.hbar` and `.vbar` functionality
-  - [ ] Add `.imshow` functionality
+  - [x] Support for logarithmic and categorical scales
+- [x] Add convenient plotting interface:
+  - [x] Add `.plot` functionality
+  - [x] Add `.scatter` functionality
+  - [x] Add `.hbar` and `.vbar` functionality
+  - [x] Add `.imshow` functionality
 
 ----------------------------------
 
@@ -82,17 +83,21 @@ https://napari.org/docs/plugins/index.html
 
 You can install `napari-plot` directly from PyPI via:
 
-```python
+```shell
 pip install napari-plot
 ```
 
 or from the git repo:
 
-```python
+```shell
 git clone https://github.com/lukasz-migas/napari-plot.git
 cd napari-plot
 pip install -e '.[all]'
 ```
+
+Python 3.11 or later is required. See the
+[documentation](https://napari-plot.readthedocs.io/) for standalone and embedded
+quick starts, layer examples, axis controls, interactions, and the public API.
 
 ## Contributing
 
