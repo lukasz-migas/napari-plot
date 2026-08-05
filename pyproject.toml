@@ -315,7 +315,10 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "napari_plot/_vispy/__init__.py" = ["E402"]
-
+"examples/*.py" = ["INP001"]
+"examples_with_napari/*.py" = ["INP001"]
+"tools/minreq.py" = ["INP001"]
+"conftest.py" = ["PT013", "B008"]
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true
 
