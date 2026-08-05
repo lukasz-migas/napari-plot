@@ -25,12 +25,37 @@ env:
 
 jobs:
   check-manifest:
-    name: Check Manifest
+    name: Quality and package metadata
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v9.0.0
       - run: uvx check-manifest
+      - run: uvx ruff check napari_plot tests
+      - run: uvx --from npe2 npe2 validate napari_plot/napari.yaml
+
+  build-smoke:
+    name: Build and installed-package smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
+      - run: uv build
+      - run: uv venv .smoke-venv
+      - run: uv pip install --python .smoke-venv/bin/python dist/*.whl pyqt6
+      - name: Import public API from the wheel
+        run: >
+          .smoke-venv/bin/python -c
+          "import napari_plot; [getattr(napari_plot, name) for name in napari_plot.__all__]"
+      - name: Import plugin command targets from the wheel
+        run: >
+          .smoke-venv/bin/python -c
+          "from npe2 import PluginManifest; from npe2.manifest.utils import import_python_name;
+          import napari_plot; manifest = PluginManifest.from_file(napari_plot.__path__[0] + '/napari.yaml');
+          [import_python_name(command.python_name) for command in manifest.contributions.commands]"
 
   test_uv:
     name: Test UV (${{ matrix.backend }} ${{ matrix.python-version }} ${{ matrix.os }})
