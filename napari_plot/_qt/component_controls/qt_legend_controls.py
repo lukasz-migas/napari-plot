@@ -50,6 +50,7 @@ class QtLegendControls(QtFramelessPopup):
         overlay.events.border_color.connect(self._on_border_color_change)
         overlay.events.border_width.connect(self._on_border_width_change)
 
+    # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Create the popup form."""
         overlay = self.viewer.legend
