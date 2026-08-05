@@ -93,9 +93,7 @@ def test_box_zoom_emits_position_before_reset() -> None:
 def test_transform_rect_for_log_axes() -> None:
     """Camera rectangles are transformed independently for each log axis."""
     camera = VispyCamera.__new__(VispyCamera)
-    camera._viewer = SimpleNamespace(
-        axis=Axis(x_scale="log", y_scale="linear")
-    )
+    camera._viewer = SimpleNamespace(axis=Axis(x_scale="log", y_scale="linear"))
     data_rect = Rect(0.1, 2.0, 999.9, 3.0)
 
     display_rect = camera._transform_rect(data_rect, inverse=False)

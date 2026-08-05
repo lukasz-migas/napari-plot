@@ -1,6 +1,5 @@
 """Container class for MultiLine data."""
 
-
 import numpy as np
 
 from napari_plot.layers.multiline._multiline_utils import (

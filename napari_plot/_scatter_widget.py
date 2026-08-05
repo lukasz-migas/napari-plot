@@ -43,9 +43,7 @@ class ScatterPlotWidget(NapariPlotWidget):
         """Human-readable coordinates of the current non-displayed dimensions."""
         displayed = set(self.viewer.dims.displayed)
         coordinates = [
-            f"{axis}={step}"
-            for axis, step in enumerate(self.viewer.dims.current_step)
-            if axis not in displayed
+            f"{axis}={step}" for axis, step in enumerate(self.viewer.dims.current_step) if axis not in displayed
         ]
         return ", ".join(coordinates)
 

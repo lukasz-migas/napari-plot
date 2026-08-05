@@ -93,11 +93,7 @@ class VispyCamera:
         inverse: bool,
     ) -> tuple[float, float, float, float]:
         """Transform a camera rectangle between data and display coordinates."""
-        values = (
-            (rect.left, rect.right, rect.bottom, rect.top)
-            if isinstance(rect, Rect)
-            else tuple(rect)
-        )
+        values = (rect.left, rect.right, rect.bottom, rect.top) if isinstance(rect, Rect) else tuple(rect)
         xmin, xmax, ymin, ymax = values
         return (
             transform_axis_values(xmin, self._viewer.axis.x_scale, inverse=inverse),

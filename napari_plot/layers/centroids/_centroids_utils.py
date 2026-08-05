@@ -1,6 +1,5 @@
 """Various utilities."""
 
-
 import numpy as np
 
 

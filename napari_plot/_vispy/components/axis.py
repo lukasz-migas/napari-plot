@@ -187,12 +187,7 @@ def _get_log_ticks(
         else:
             labels = _thin_label_sequence(axis, major, labels, domain)
 
-        minor_values = np.concatenate(
-            [
-                np.linspace(left, right, 6)[1:-1]
-                for left, right in pairwise(raw_major)
-            ]
-        )
+        minor_values = np.concatenate([np.linspace(left, right, 6)[1:-1] for left, right in pairwise(raw_major)])
         return major, np.log10(minor_values), labels
 
     values = np.power(10.0, major)
