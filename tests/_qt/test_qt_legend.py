@@ -160,3 +160,19 @@ def test_legend_controls_update_overlay(qtbot) -> None:
     assert viewer.legend.font_size == 18
     assert viewer.legend.marker_size == 16
     np.testing.assert_allclose(viewer.legend.text_color, [0, 1, 0, 1])
+
+
+def test_legend_controls_use_current_visibility(qtbot) -> None:
+    """Opening controls reflects toolbar-driven legend state."""
+    viewer = ViewerModel()
+    viewer.set_legend_visible(True)
+    controls = QtLegendControls(viewer)
+    qtbot.addWidget(controls)
+
+    assert controls.visible_checkbox.isChecked()
+    assert controls.auto_sync_checkbox.isChecked()
+
+    viewer.set_legend_visible(False)
+    assert not controls.visible_checkbox.isChecked()
+    controls.visible_checkbox.click()
+    assert viewer.legend.visible

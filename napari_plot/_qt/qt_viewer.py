@@ -7,8 +7,7 @@ import sys
 import typing as ty
 import warnings
 import weakref
-from contextlib import suppress
-from functools import partial
+from contextlib import contextmanager, suppress
 from pathlib import Path
 from types import FrameType
 
@@ -23,7 +22,7 @@ from napari._vispy.utils.qt_font import QtFontManager
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
-from qtpy.QtGui import QFocusEvent, QGuiApplication
+from qtpy.QtGui import QFocusEvent, QGuiApplication, QImage
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
@@ -35,6 +34,7 @@ from napari_plot._qt.qt_welcome import QtWidgetOverlay
 from napari_plot._vispy.canvas import VispyCanvas
 from napari_plot._vispy.overlays import register_vispy_overlays
 from napari_plot._vispy.utils.visual import create_vispy_layer
+from napari_plot.resources import load_assets
 
 logger = logging.getLogger(__name__)
 
@@ -80,11 +80,8 @@ class QtViewer(QSplitter):
         **kwargs,
     ):
         super().__init__(parent=parent)
+        load_assets()
         self._show_welcome_screen = show_welcome_screen
-
-        # add a few methods from napari QtViewer
-        self.clipboard = partial(NapariQtViewer.clipboard, self=self)
-        self._screenshot = partial(NapariQtViewer._screenshot, self=self)
 
         self._instances.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -479,6 +476,47 @@ class QtViewer(QSplitter):
         if path is not None:
             imsave(path, img)
         return img
+
+    def _screenshot(
+        self,
+        flash: bool = True,
+        size: tuple[int, int] | None = None,
+        scale: float = 1.0,
+        fit_to_data_extent: bool = False,
+    ) -> QImage:
+        """Return a Qt image of the plot canvas."""
+        if size is not None and len(size) != 2:
+            raise ValueError(f"screenshot size must be 2 values, got {len(size)}")
+        if fit_to_data_extent:
+            self.viewer.reset_view()
+
+        with self.resize_canvas(size, scale):
+            if self._welcome_widget.isVisible():
+                image = self.canvas.native.grab().toImage()
+            else:
+                image = self.canvas.screenshot()
+            if flash:
+                from napari._qt.utils import add_flash_animation
+
+                add_flash_animation(self)
+            return image
+
+    @contextmanager
+    def resize_canvas(
+        self, size: tuple[int, int] | None, scale: float
+    ) -> ty.Iterator[None]:
+        """Temporarily resize the canvas while capturing a screenshot."""
+        previous_size = self.canvas.size
+        target_size = size or previous_size
+        self.canvas.size = tuple(round(value * scale) for value in target_size)
+        try:
+            yield
+        finally:
+            self.canvas.size = previous_size
+
+    def clipboard(self, flash: bool = True) -> None:
+        """Copy the current canvas screenshot to the system clipboard."""
+        QGuiApplication.clipboard().setImage(self._screenshot(flash))
 
     def on_open_controls_dialog(self, event=None):
         """Open dialog responsible for layer settings"""

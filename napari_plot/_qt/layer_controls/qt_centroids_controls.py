@@ -43,6 +43,7 @@ class QtCentroidControls(QtLayerControls):
 
     def __init__(self, layer: "Centroids"):
         super().__init__(layer)
+        self.layer.events.data.connect(self._on_data_change)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
         self.layer.events.method.connect(self._on_method_change)
@@ -68,7 +69,7 @@ class QtCentroidControls(QtLayerControls):
         self.coloring_choice.currentTextChanged.connect(self._on_coloring_change)
 
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.color,
+            initial_color=self.layer.color[0] if len(self.layer.color) else "white",
             tooltip="Click to set new line color",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)
@@ -86,8 +87,11 @@ class QtCentroidControls(QtLayerControls):
         self._on_color_change()
 
     def _on_data_change(self, event=None):
-        n_lines = len(self.layer.data) - 1
-        self.selection_spin.setRange(0, n_lines)
+        n_lines = len(self.layer.data)
+        self.selection_spin.setRange(0, max(n_lines - 1, 0))
+        self._on_visible_change()
+        if n_lines:
+            self._on_color_change()
 
     def _on_coloring_change(self, event=None):
         show_single = self.coloring_choice.currentText() == "single"
@@ -124,6 +128,8 @@ class QtCentroidControls(QtLayerControls):
         value : float
             Size of points.
         """
+        if len(self.layer.color) == 0:
+            return
         index = self.selection_spin.value()
         current = self.coloring_choice.currentText()
         if current == "single":
@@ -133,6 +139,8 @@ class QtCentroidControls(QtLayerControls):
 
     def _on_color_change(self, event=None):
         """Receive layer.current_face_color() change event and update view."""
+        if len(self.layer.color) == 0:
+            return
         with qt_signals_blocked(self.color_swatch):
             index = self.selection_spin.value()
             self.color_swatch.setColor(self.layer.color[index])
@@ -170,11 +178,14 @@ class QtCentroidControls(QtLayerControls):
             self,
             [
                 self.width_slider,
-                self.color_swatch,
                 self.opacity_slider,
                 self.blending_combobox,
-                self.selection_spin,
                 self.coloring_choice,
             ],
             self.layer.visible,
+        )
+        set_widgets_enabled_with_opacity(
+            self,
+            [self.color_swatch, self.selection_spin],
+            self.layer.visible and len(self.layer.data) > 0,
         )

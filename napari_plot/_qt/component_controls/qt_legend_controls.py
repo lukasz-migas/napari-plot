@@ -56,7 +56,7 @@ class QtLegendControls(QtFramelessPopup):
         self.visible_checkbox = hp.make_checkbox(
             self,
             "",
-            val=overlay.visible,
+            value=overlay.visible,
             tooltip="Show or hide the legend.",
             func=self.on_change_visible,
         )
@@ -66,7 +66,7 @@ class QtLegendControls(QtFramelessPopup):
         self.auto_sync_checkbox = hp.make_checkbox(
             self,
             "",
-            val=overlay.sync_with_source,
+            value=overlay.sync_with_source,
             tooltip="Refresh entries when plot layers change.",
             func=self.on_change_auto_sync,
         )

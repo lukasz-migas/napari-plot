@@ -64,7 +64,7 @@ class QtMultiLineControls(QtLayerControls):
         self.width_slider.valueChanged.connect(self.on_change_width)
 
         self.color_swatch = QColorSwatchEdit(
-            initial_color=self.layer.current_color,
+            initial_color=self.layer.color[0] if len(self.layer.color) else "white",
             tooltip="Click to set new line color. The color corresponds to the current index.",
         )
         self.color_swatch.color_changed.connect(self.on_change_color)
@@ -81,8 +81,11 @@ class QtMultiLineControls(QtLayerControls):
         self._on_color_change()
 
     def _on_data_change(self, event=None):
-        n_lines = self.layer._data_view.n_lines - 1
-        self.selection_spin.setRange(0, n_lines)
+        n_lines = self.layer._data_view.n_lines
+        self.selection_spin.setRange(0, max(n_lines - 1, 0))
+        self._on_visible_change()
+        if n_lines:
+            self._on_color_change()
 
     def on_change_width(self, value):
         """Change size of points on the layer model.
@@ -114,11 +117,15 @@ class QtMultiLineControls(QtLayerControls):
         value : float
             Size of points.
         """
+        if self.layer._data_view.n_lines == 0:
+            return
         index = self.selection_spin.value()
         self.layer.update_color(index, self.color_swatch.color)
 
     def _on_color_change(self, event=None):
         """Receive layer.current_color() change event and update view."""
+        if self.layer._data_view.n_lines == 0:
+            return
         with qt_signals_blocked(self.color_swatch):
             index = self.selection_spin.value()
             self.color_swatch.setColor(self.layer.color[index])
@@ -156,10 +163,13 @@ class QtMultiLineControls(QtLayerControls):
             self,
             [
                 self.width_slider,
-                self.color_swatch,
                 self.opacity_slider,
                 self.blending_combobox,
-                self.selection_spin,
             ],
             self.layer.visible,
+        )
+        set_widgets_enabled_with_opacity(
+            self,
+            [self.color_swatch, self.selection_spin],
+            self.layer.visible and self.layer._data_view.n_lines > 0,
         )

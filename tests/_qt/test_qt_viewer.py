@@ -7,7 +7,7 @@ from unittest.mock import Mock
 import numpy as np
 import pytest
 from qtpy.QtCore import QEvent
-from qtpy.QtGui import QFocusEvent
+from qtpy.QtGui import QFocusEvent, QGuiApplication
 from qtpy.QtWidgets import QVBoxLayout, QWidget
 
 from napari_plot._qt._qapp_model._qproviders import _provide_qt_viewer, _provide_viewer
@@ -94,6 +94,18 @@ def test_screenshot(make_napari_plot_viewer):
     assert screenshot.ndim == 3
     screenshot = viewer.window.screenshot(flash=False, canvas_only=True)
     assert screenshot.ndim == 3
+
+
+@skip_on_win_ci
+def test_toolbar_screenshot_copies_image(make_napari_plot_viewer):
+    """The toolbar screenshot action calls correctly bound napari methods."""
+    viewer = make_napari_plot_viewer()
+    qt_viewer = viewer.window._qt_viewer
+
+    image = qt_viewer._screenshot(flash=False)
+    assert not image.isNull()
+    qt_viewer.viewerToolbar.tools_clip_btn.click()
+    assert not QGuiApplication.clipboard().image().isNull()
 
 
 def test_remove_points(make_napari_plot_viewer):

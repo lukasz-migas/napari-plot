@@ -36,8 +36,15 @@ class VispyBarLayer(VispyBaseLayer):
 
     def _on_data_change(self, _event=None) -> None:
         """Rebuild bar fill and border geometry."""
+        if len(self.layer.data) == 0:
+            self.node.mesh.visible = False
+            self.node.border.visible = False
+            self.node.update()
+            return
         vertices, faces, vertex_colors = self.layer._mesh_data()
         border_vertices, border_colors = self.layer._border_data()
+        self.node.mesh.visible = True
+        self.node.border.visible = True
         self.node.mesh.set_data(vertices=vertices, faces=faces, vertex_colors=vertex_colors)
         self.node.border.set_data(
             pos=border_vertices,
