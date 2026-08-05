@@ -1,44 +1,58 @@
 # napari-plot
 
-## Vispy-based plot viewer for Python
-
-napari-plot is based and inspired by the highly popular [napari](https://napari.org) project. The aim to create a fast, interactive
-visualisation environment for Python that is compatible with napari but can also stand on its own two legs.
-**napari-plot** is built on top of `Qt` (for the GUI), `vispy` (for performant GPU-based rendering), the scientific Python stack
-(`numpy`, `scipy`) and `napari` itself (for e.g. layer system).
-
-`napari-plot` is developed in the open and as you can imagine, there are many rough edges that need sanding! We are hoping
-to add essential functionality first and focus on fixing what we break along the way. Contributions to the project
-are absolutely, definitely welcome! Please see our [GitHub repository](https://github/lukasz-migas/napari-plot)
+napari-plot is an interactive, GPU-accelerated plotting viewer built with Qt,
+VisPy, and napari's layer model. It can run as a standalone plotting application
+or as a dock widget inside napari.
 
 ## Installation
 
-### From pip, with "batteries included"
+napari-plot supports Python 3.11 and later.
 
-`napari-plot` can be installed on most Windows, Linux and macOS systems with Python 3.8-3.10 using pip:
-
-```
+```shell
 pip install "napari-plot[all]"
 ```
 
-### From conda
+For a local development checkout:
 
-```
-conda install -c conda-forge napari-plot
-```
-
-### Current development branch from GitHub
-
-To install the current `main` branch on `GitHub` (which will be ahead of the latest release on PyPI)
-
-```
-pip install "git+https://github.com/lukasz-migas/napari-plot.git#egg=napari_plot[all]"
+```shell
+git clone https://github.com/lukasz-migas/napari-plot.git
+cd napari-plot
+pip install -e ".[all]"
 ```
 
-## Getting started
+## Quick start
 
-TODO
+```python
+import numpy as np
+import napari_plot
 
-## Features
+viewer = napari_plot.Viewer()
+x = np.linspace(0, 2 * np.pi, 500)
+viewer.plot(x, np.sin(x), name="signal", color="cyan")
+viewer.scatter(x[::25], np.sin(x[::25]), name="samples")
+viewer.legend.visible = True
+napari_plot.run()
+```
 
-TODO
+The lower-level layer API remains available when detailed control is needed:
+
+```python
+viewer.add_region([[1.0, 2.0]], orientation="vertical", name="interval")
+viewer.add_text([[3.0, 0.5]], ["peak"], color="yellow")
+```
+
+See the [usage guide](usage.md) for standalone and embedded examples,
+interactions, axis scales, and all supported layer types. The [API reference](api.md)
+summarizes the stable public entry points.
+
+## Highlights
+
+- Line, Scatter, MultiLine, Centroids, Text, Region, InfLine, and Bar layers
+- Linear, logarithmic, and categorical axes
+- Interactive selection, zoom, layer controls, and legend
+- Image display and a scatter-from-image dock widget
+- Concise `plot`, `scatter`, `imshow`, `hbar`, and `vbar` helpers
+- Full access to the lower-level `add_*` layer methods
+
+Contributions and bug reports are welcome in the
+[GitHub repository](https://github.com/lukasz-migas/napari-plot).
