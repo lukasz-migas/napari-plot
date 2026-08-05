@@ -22,6 +22,8 @@ def parse_centroids_data(data: np.ndarray):
 
 def get_extents(data: np.ndarray, orientation: str) -> np.ndarray:
     """Get data extents."""
+    if len(data) == 0:
+        return np.full((2, 2), np.nan)
     if orientation == "horizontal":
         y = data[:, 0]
         x = data[:, 1::]

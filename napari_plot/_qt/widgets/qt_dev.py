@@ -14,19 +14,19 @@ if ty.TYPE_CHECKING:
 DEFAULT_HOOK = None
 
 
-def debugger_hook(type, value, tb) -> None:
+def debugger_hook(exception_type, value, tb) -> None:
     """Drop into python debugger on uncaught exception."""
     if hasattr(sys, "ps1") or not sys.stderr.isatty():
         # we are in interactive mode, or we don't have a tty-like
         # device, so we call the default hook
-        sys.__excepthook__(type, value, tb)
+        sys.__excepthook__(exception_type, value, tb)
     else:
         import pdb
         import traceback
 
         # we are NOT in interactive mode, print the exception...
         with suppress(Exception):
-            traceback.print_exception(type, value, tb)
+            traceback.print_exception(exception_type, value, tb)
             pdb.post_mortem(tb)
 
 
@@ -43,5 +43,5 @@ def qdev(parent=None, modules: ty.Iterable[str] = ("napari", "napari_plot", "qte
     """Create reload widget."""
     from qtreload.qt_reload import QtReloadWidget
 
-    logger.debug(f"Creating reload widget for modules: {modules}.")
+    logger.debug("Creating reload widget for modules: %s.", modules)
     return QtReloadWidget(modules, parent=parent)

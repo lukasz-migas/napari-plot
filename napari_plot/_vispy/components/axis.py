@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 import typing as ty
+from itertools import pairwise
 
 import numpy as np
 import vispy.visuals.axis
@@ -189,7 +190,7 @@ def _get_log_ticks(
         minor_values = np.concatenate(
             [
                 np.linspace(left, right, 6)[1:-1]
-                for left, right in zip(raw_major[:-1], raw_major[1:], strict=True)
+                for left, right in pairwise(raw_major)
             ]
         )
         return major, np.log10(minor_values), labels

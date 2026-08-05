@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import inspect
+from contextlib import suppress
 from functools import lru_cache
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 
@@ -47,6 +48,13 @@ from napari_plot.components.camera import Camera
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
 from napari_plot.components.layerlist import LayerList
+from napari_plot.components.legend import (
+    ColorLike as LegendColorLike,
+    LegendInput,
+    LegendOverlay,
+    legend_entries_from_layers,
+    legend_entries_from_points,
+)
 from napari_plot.components.tools import BoxTool, PolygonTool
 from napari_plot.utils.utilities import get_min_max
 
@@ -65,7 +73,24 @@ DEFAULT_OVERLAYS = {
     "text": TextOverlay,
     "grid_lines": GridLinesOverlay,
     "brush_circle": BrushCircleOverlay,
+    "legend": LegendOverlay,
 }
+
+LEGEND_LAYER_EVENTS = (
+    "data",
+    "name",
+    "visible",
+    "color",
+    "width",
+    "fill_color",
+    "face_color",
+    "border_color",
+    "symbol",
+    "size",
+    "orientation",
+    "properties",
+    "features",
+)
 
 
 def _create_custom_add_method(layer_type):
@@ -100,6 +125,21 @@ def _create_custom_add_method(layer_type):
     _add_layer.__doc__ = getattr(layer_type, "__doc__", None)
     _add_layer.__signature__ = signature_with_self
     return _add_layer
+
+
+def _plot_data(x: Any, y: Any | None = None) -> np.ndarray:
+    """Return validated ``(x, y)`` rows for plotting helpers."""
+    if y is None:
+        y_values = np.asarray(x)
+        x_values = np.arange(y_values.size)
+    else:
+        x_values = np.asarray(x)
+        y_values = np.asarray(y)
+    if x_values.ndim != 1 or y_values.ndim != 1:
+        raise ValueError("Plot coordinates must be one-dimensional.")
+    if x_values.shape != y_values.shape:
+        raise ValueError("x and y must have the same shape.")
+    return np.column_stack((x_values, y_values))
 
 
 class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
@@ -140,6 +180,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     # Need to use default factory because slicer is not copyable which
     # is required for default values.
     _layer_slicer: _LayerSlicer = PrivateAttr(default_factory=_LayerSlicer)
+    _legend_source_layers: list[n_layers.Layer] = PrivateAttr(default_factory=list)
 
     def __init__(self, title="napari_plot"):
         # max_depth=0 means don't look for parent contexts.
@@ -187,6 +228,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
         # add overlays
         self._overlays.update({k: v() for k, v in DEFAULT_OVERLAYS.items()})
+        self.layers.events.inserted.connect(self._on_legend_layers_change)
+        self.layers.events.removed.connect(self._on_legend_layers_change)
+        self.layers.events.reordered.connect(self._on_legend_layers_change)
+        self._refresh_legend_source_connections()
 
     @property
     def text_overlay(self) -> TextOverlay:
@@ -199,8 +244,209 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         return self._overlays["grid_lines"]
 
     @property
+    def legend(self) -> LegendOverlay:
+        """Canvas legend overlay."""
+        return self._overlays["legend"]
+
+    @property
     def _brush_circle_overlay(self):
         return self._overlays["brush_circle"]
+
+    @property
+    def legend_visible(self) -> bool:
+        """Whether the default legend overlay is visible."""
+        return self.legend.visible
+
+    def set_legend_visible(self, visible: bool) -> None:
+        """Set default legend visibility."""
+        self.legend.visible = visible
+
+    def set_legend(
+        self,
+        entries: LegendInput,
+        *,
+        visible: bool = True,
+        position: str = "top_right",
+        text_color: LegendColorLike = "white",
+        font_size: float = 10.0,
+        marker_size: float = 10.0,
+        row_spacing: float = 4.0,
+        padding: float = 6.0,
+        background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
+        border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
+        border_width: float = 1.0,
+    ) -> LegendOverlay:
+        """Configure the default canvas legend from explicit entries."""
+        overlay = self.legend
+        overlay.source_layer = None
+        overlay.sync_with_source = False
+        overlay.visible = visible
+        overlay.position = position
+        overlay.text_color = text_color
+        overlay.font_size = font_size
+        overlay.marker_size = marker_size
+        overlay.row_spacing = row_spacing
+        overlay.padding = padding
+        overlay.background_color = background_color
+        overlay.border_color = border_color
+        overlay.border_width = border_width
+        overlay.set_entries(entries)
+        self._refresh_legend_source_connections()
+        return overlay
+
+    def set_legend_from_layers(
+        self,
+        *,
+        sync: bool = True,
+        visible: bool = True,
+        position: str = "top_right",
+        text_color: LegendColorLike = "white",
+        font_size: float = 10.0,
+        marker_size: float = 10.0,
+        row_spacing: float = 4.0,
+        padding: float = 6.0,
+        background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
+        border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
+        border_width: float = 1.0,
+    ) -> LegendOverlay:
+        """Configure the default legend from visible plot layers."""
+        overlay = self.set_legend(
+            legend_entries_from_layers(self.layers),
+            visible=visible,
+            position=position,
+            text_color=text_color,
+            font_size=font_size,
+            marker_size=marker_size,
+            row_spacing=row_spacing,
+            padding=padding,
+            background_color=background_color,
+            border_color=border_color,
+            border_width=border_width,
+        )
+        overlay.sync_with_source = sync
+        self._refresh_legend_source_connections()
+        return overlay
+
+    def refresh_legend_from_layers(self) -> LegendOverlay:
+        """Refresh the default legend without changing its visual style."""
+        self.legend.set_entries(legend_entries_from_layers(self.layers))
+        return self.legend
+
+    def set_legend_from_points(
+        self,
+        layer: str | n_layers.Points,
+        *,
+        label_property: str = "label",
+        color_source: str = "face",
+        marker_source: str = "symbol",
+        group_by_style: bool = True,
+        sync: bool = False,
+        visible: bool = True,
+        **style: Any,
+    ) -> LegendOverlay:
+        """Configure the default legend from categorized Points data."""
+        points = self.layers[layer] if isinstance(layer, str) else layer
+        if not isinstance(points, n_layers.Points):
+            raise TypeError("Legend source layer must be a Points layer.")
+        overlay = self.set_legend(
+            legend_entries_from_points(
+                points,
+                label_property=label_property,
+                color_source=color_source,
+                marker_source=marker_source,
+                group_by_style=group_by_style,
+            ),
+            visible=visible,
+            **style,
+        )
+        overlay.source_layer = points.name
+        overlay.label_property = label_property
+        overlay.color_source = color_source
+        overlay.marker_source = marker_source
+        overlay.group_by_style = group_by_style
+        overlay.sync_with_source = sync
+        self._refresh_legend_source_connections()
+        return overlay
+
+    def refresh_legend_from_source(self) -> LegendOverlay:
+        """Refresh a Points-derived legend from its configured source."""
+        overlay = self.legend
+        if overlay.source_layer is None:
+            return self.refresh_legend_from_layers()
+        with suppress(KeyError):
+            layer = self.layers[overlay.source_layer]
+            if isinstance(layer, n_layers.Points):
+                overlay.set_entries(
+                    legend_entries_from_points(
+                        layer,
+                        label_property=overlay.label_property,
+                        color_source=overlay.color_source,
+                        marker_source=overlay.marker_source,
+                        group_by_style=overlay.group_by_style,
+                    )
+                )
+        return overlay
+
+    def set_legend_auto_sync(self, enabled: bool = True) -> LegendOverlay:
+        """Enable or disable automatic legend source updates."""
+        self.legend.sync_with_source = enabled
+        if enabled:
+            self.refresh_legend_from_source()
+        self._refresh_legend_source_connections()
+        return self.legend
+
+    def clear_legend(self) -> None:
+        """Clear and hide the default legend without removing its canvas visual."""
+        self.legend.set_entries(None)
+        self.legend.visible = False
+        self.legend.source_layer = None
+        self.legend.sync_with_source = False
+        self._refresh_legend_source_connections()
+
+    def _on_legend_layers_change(self, _event: Event | None = None) -> None:
+        """Refresh automatic legend state after layer collection changes."""
+        self._refresh_legend_source_connections()
+        if self.legend.sync_with_source:
+            self.refresh_legend_from_source()
+
+    def _disconnect_legend_source_layer(self, layer: n_layers.Layer) -> None:
+        for event_name in LEGEND_LAYER_EVENTS:
+            with suppress(AttributeError, KeyError, ValueError):
+                getattr(layer.events, event_name).disconnect(self._on_legend_source_change)
+
+    def _connect_legend_source_layer(self, layer: n_layers.Layer) -> None:
+        for event_name in LEGEND_LAYER_EVENTS:
+            with suppress(AttributeError, KeyError):
+                getattr(layer.events, event_name).connect(self._on_legend_source_change)
+
+    def _refresh_legend_source_connections(self, _event: Event | None = None) -> None:
+        """Reconnect live legend source listeners."""
+        for layer in self._legend_source_layers:
+            self._disconnect_legend_source_layer(layer)
+        self._legend_source_layers = []
+        if not self.legend.sync_with_source:
+            return
+        if self.legend.source_layer is not None:
+            with suppress(KeyError):
+                layer = self.layers[self.legend.source_layer]
+                if isinstance(layer, n_layers.Points):
+                    self._legend_source_layers.append(layer)
+        else:
+            self._legend_source_layers.extend(self.layers)
+        for layer in self._legend_source_layers:
+            self._connect_legend_source_layer(layer)
+
+    def _on_legend_source_change(self, event: Event | None = None) -> None:
+        """Refresh the synced legend from its configured source."""
+        if self.legend.sync_with_source:
+            if (
+                event is not None
+                and event.type == "name"
+                and self.legend.source_layer is not None
+                and isinstance(event.source, n_layers.Points)
+            ):
+                self.legend.source_layer = event.source.name
+            self.refresh_legend_from_source()
 
     @field_validator("theme")
     @classmethod
@@ -726,6 +972,29 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.append(layer)
         return layer
 
+    def plot(self, x: Any, y: Any | None = None, **kwargs: Any) -> np_layers.Line:
+        """Add a line from ``plot(y)`` or ``plot(x, y)`` coordinates."""
+        return self.add_line(_plot_data(x, y), **kwargs)
+
+    def scatter(self, x: Any, y: Any | None = None, **kwargs: Any) -> np_layers.Scatter:
+        """Add scatter points from ``scatter(y)`` or ``scatter(x, y)`` coordinates."""
+        # Scatter follows napari's row/column convention and stores (y, x).
+        return self.add_scatter(_plot_data(x, y)[:, ::-1], **kwargs)
+
+    def imshow(self, data: Any, **kwargs: Any) -> n_layers.Image | list[n_layers.Image]:
+        """Display an image using the standard image-layer API."""
+        return self.add_image(data, **kwargs)
+
+    def vbar(self, x: Any, height: Any | None = None, **kwargs: Any) -> np_layers.Bar:
+        """Add vertical bars from values or explicit x positions and heights."""
+        data = np.asarray(x) if height is None else _plot_data(x, height)
+        return self.add_bar(data, orientation="vertical", **kwargs)
+
+    def hbar(self, y: Any, width: Any | None = None, **kwargs: Any) -> np_layers.Bar:
+        """Add horizontal bars from values or explicit y positions and widths."""
+        data = np.asarray(y) if width is None else _plot_data(y, width)
+        return self.add_bar(data, orientation="horizontal", **kwargs)
+
     def add_image(
         self,
         data=None,
@@ -985,6 +1254,7 @@ for _layer in [
     # n_layers.Vectors,  # 3d
     # n_layers.Surface,  # 3d
     # napari-plot layers
+    np_layers.Bar,
     np_layers.Line,
     np_layers.Scatter,
     np_layers.Region,

@@ -83,7 +83,9 @@ def make_infinite_region_simple_data(
     pos_ = np.zeros((len(indices), 2), dtype=np.float32)
     orientation_ = np.zeros(len(indices), dtype=np.float32)
     colors_ = np.zeros((len(indices), 4), dtype=np.float32)
-    for index, ((min_val, max_val), orientation, color) in enumerate(zip(data, orientations, colors)):
+    for index, ((min_val, max_val), orientation, color) in enumerate(
+        zip(data, orientations, colors, strict=False)
+    ):
         if index in indices:
             pos_[i] = (min_val, max_val)
             orientation_[i] = 0 if orientation == Orientation.VERTICAL else 1
@@ -111,7 +113,7 @@ def make_infinite_region_pos(
     if indices is None:
         indices = np.arange(len(data))
 
-    for index, ((min_val, max_val), orientation) in enumerate(zip(data, orientations)):
+    for index, ((min_val, max_val), orientation) in enumerate(zip(data, orientations, strict=False)):
         if index in indices:
             pos_ = (
                 [[min_val, np.nan], [max_val, np.nan]]
@@ -134,7 +136,7 @@ def make_infinite_region_mean(
     if indices is None:
         indices = np.arange(len(data))
 
-    for index, ((min_val, max_val), orientation) in enumerate(zip(data, orientations)):
+    for index, ((min_val, max_val), orientation) in enumerate(zip(data, orientations, strict=False)):
         if index in indices:
             pos.append(
                 [np.mean([min_val, max_val]), np.nan]

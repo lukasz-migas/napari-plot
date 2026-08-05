@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import warnings
 from copy import copy
+from typing import ClassVar
 
 import numpy as np
 from napari.layers.base import ActionType, no_op
@@ -81,21 +82,21 @@ class InfLine(BaseLayer):
     """
 
     _modeclass = Mode
-    _drag_modes = {
+    _drag_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.ADD: add,
         Mode.SELECT: select,
         Mode.MOVE: move,
     }
-    _move_modes = {
+    _move_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: no_op,
         Mode.TRANSFORM: no_op,
         Mode.ADD: no_op,
         Mode.SELECT: highlight,
         Mode.MOVE: highlight,
     }
-    _cursor_modes = {
+    _cursor_modes: ClassVar[dict] = {
         Mode.PAN_ZOOM: "standard",
         Mode.TRANSFORM: "standard",
         Mode.ADD: "standard",
@@ -344,6 +345,7 @@ class InfLine(BaseLayer):
                 ensure_iterable(orientation),
                 transformed_color,
                 ensure_iterable(z_index),
+                strict=False,
             )
             self._add_line_to_view(region_inputs, self._data_view)
 

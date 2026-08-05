@@ -41,7 +41,7 @@ def make_infinite_line_bounds_data(
     # min_val, max_val = np.finfo(np.float32).min, np.finfo(np.float32).max
     min_val, max_val = np.iinfo(np.int64).min * 5, np.iinfo(np.int64).max * 5
     i = 0
-    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
+    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors, strict=False)):
         if index in indices:
             if orientation == Orientation.VERTICAL:
                 _pos = [[val, min_val], [val, max_val]]
@@ -93,7 +93,7 @@ def make_infinite_line_simple_data(
     pos_ = np.zeros(len(indices), dtype=np.float32)
     orientation_ = np.zeros(len(indices), dtype=np.float32)
     colors_ = np.zeros((len(indices), 4), dtype=np.float32)
-    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors)):
+    for index, (val, orientation, color) in enumerate(zip(data, orientations, colors, strict=False)):
         if index in indices:
             pos_[i] = val
             orientation_[i] = 0 if orientation == Orientation.VERTICAL else 1
@@ -121,7 +121,7 @@ def make_infinite_line_pos(
     if indices is None:
         indices = np.arange(len(data))
 
-    for index, (val, orientation) in enumerate(zip(data, orientations)):
+    for index, (val, orientation) in enumerate(zip(data, orientations, strict=False)):
         if index in indices:
             pos_ = [val, np.nan] if orientation == Orientation.VERTICAL else [np.nan, val]
             pos.extend([pos_])

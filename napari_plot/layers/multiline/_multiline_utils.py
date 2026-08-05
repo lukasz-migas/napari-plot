@@ -61,7 +61,7 @@ def parse_multiline_data(data, check: bool = True) -> tuple[list[np.ndarray], li
             for y in ys:
                 check_length(xs[0], y)
         else:
-            for x, y in zip(xs, ys):
+            for x, y in zip(xs, ys, strict=False):
                 check_length(x, y)
     return xs, ys
 
@@ -69,11 +69,13 @@ def parse_multiline_data(data, check: bool = True) -> tuple[list[np.ndarray], li
 def make_multiline_line(xs: list, ys: list, colors: np.ndarray):
     """Create all elements required to create multiline lines."""
     pos, connect, _colors = [], [], []
+    if not ys:
+        return np.empty((0, 2)), np.empty((0, 2), dtype=np.int32), np.empty((0, 4))
     if len(xs) == 1:
         xs = [xs[0]] * len(ys)
 
     start = 0
-    for x, y, color in zip(xs, ys, colors):
+    for x, y, color in zip(xs, ys, colors, strict=False):
         n = len(x)
         # data
         pos.append(np.c_[x, y])
@@ -96,10 +98,12 @@ def make_multiline_line(xs: list, ys: list, colors: np.ndarray):
 def make_multiline_pos(xs: list, ys: list):
     """Create array of how points should be connected."""
     pos = []
+    if not ys:
+        return np.empty((0, 2))
 
     if len(xs) == 1:
         xs = [xs[0]] * len(ys)
-    for x, y in zip(xs, ys):
+    for x, y in zip(xs, ys, strict=False):
         # data
         pos.append(np.c_[x, y])
     return np.vstack(pos)
@@ -108,6 +112,8 @@ def make_multiline_pos(xs: list, ys: list):
 def make_multiline_connect(ys: list):
     """Create array of how points should be connected."""
     connect = []
+    if not ys:
+        return np.empty((0, 2), dtype=np.int32)
     start = 0
     for y in ys:
         n = len(y)
@@ -123,7 +129,9 @@ def make_multiline_connect(ys: list):
 def make_multiline_color(ys: list, colors: np.ndarray):
     """Create all elements required to create multiline lines."""
     _colors = []
-    for y, color in zip(ys, colors):
+    if not ys:
+        return np.empty((0, 4))
+    for y, color in zip(ys, colors, strict=False):
         _colors.append(np.full((len(y), 4), fill_value=color, dtype=np.float32))
     colors = np.vstack(_colors)
     return colors
@@ -131,6 +139,8 @@ def make_multiline_color(ys: list, colors: np.ndarray):
 
 def get_data_limits(xs: list, ys: list) -> np.ndarray:
     """Get data limits along both axes."""
+    if not xs or not ys:
+        return np.full((2, 2), np.nan)
     x = [(np.min(v), np.max(v)) for v in xs]
     y = [(np.min(v), np.max(v)) for v in ys]
     return np.asarray([[np.min(y), np.min(x)], [np.max(y), np.max(x)]])

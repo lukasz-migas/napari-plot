@@ -1,11 +1,11 @@
 """Region based on Rectangle."""
 
-from enum import Enum
+from enum import StrEnum
 
 from napari.layers.shapes._shapes_models.rectangle import Rectangle
 
 
-class Orientation(str, Enum):
+class Orientation(StrEnum):
     """Orientation"""
 
     HORIZONTAL = "horizontal"

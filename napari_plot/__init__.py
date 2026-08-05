@@ -32,6 +32,7 @@ _LAZY_IMPORTS = {
     "ScatterPlotWidget": ("napari_plot._scatter_widget", "ScatterPlotWidget"),
     "ViewerModel": ("napari_plot.components.viewer_model", "ViewerModel"),
     "Viewer": ("napari_plot.viewer", "Viewer"),
+    "load_assets": ("napari_plot.resources", "load_assets"),
 }
 
 

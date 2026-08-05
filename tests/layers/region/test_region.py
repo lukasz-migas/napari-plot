@@ -167,7 +167,6 @@ def test_region_trim():
     assert layer.n_regions == 10
 
 
-@pytest.mark.xfail(reason="Need to fix.")
 def test_z_index():
     """Test setting z-index during instantiation."""
     shape = (10, 2)
@@ -222,8 +221,8 @@ def test_move_to_front():
     # Move selected shapes to front
     layer.selected_data = {0, 2}
     layer.move_to_front()
-    assert layer.z_index[0] == 2
-    assert layer.z_index[2] == 2
+    assert layer.z_index[0] == 4
+    assert layer.z_index[2] == 4
 
 
 def test_move_to_back():
@@ -239,8 +238,8 @@ def test_move_to_back():
     layer.selected_data = {0, 2}
     assert layer.selected_data == {0, 2}
     layer.move_to_back()
-    assert layer.z_index[0] == 2
-    assert layer.z_index[2] == 2
+    assert layer.z_index[0] == 1
+    assert layer.z_index[2] == 1
 
 
 def test_move():

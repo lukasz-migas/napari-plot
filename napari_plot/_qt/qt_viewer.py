@@ -36,6 +36,8 @@ from napari_plot._vispy.canvas import VispyCanvas
 from napari_plot._vispy.overlays import register_vispy_overlays
 from napari_plot._vispy.utils.visual import create_vispy_layer
 
+logger = logging.getLogger(__name__)
+
 if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
@@ -413,7 +415,7 @@ class QtViewer(QSplitter):
                 try:
                     vdict[name] = eval(name, cf.f_globals, cf.f_locals)
                 except NameError:
-                    logging.warning(
+                    logger.warning(
                         "Could not get variable %s from %s",
                         name,
                         cf.f_code.co_name,

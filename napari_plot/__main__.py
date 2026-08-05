@@ -7,10 +7,13 @@ import sys
 import typing as ty
 import warnings
 from ast import literal_eval
+from contextlib import suppress
 from pathlib import Path
 from textwrap import wrap
 
 from koyo.system import is_installed
+
+logger = logging.getLogger(__name__)
 
 
 class InfoAction(argparse.Action):
@@ -59,16 +62,11 @@ def validate_unknown_args(unknown: list[str]) -> dict[str, ty.Any]:
             sys.exit(f"error: unrecognized arguments: {arg}")
 
         if "=" not in arg:
-            try:
-                value = unknown[i + 1]
-                if value.startswith("--"):
-                    raise IndexError
-            except IndexError:
+            if i + 1 >= len(unknown) or unknown[i + 1].startswith("--"):
                 sys.exit(f"error: argument {arg} expected one argument")
-        try:
+            value = unknown[i + 1]
+        with suppress(SyntaxError, ValueError):
             value = literal_eval(value)
-        except Exception:
-            value = value
 
         out[key] = value
     return out
@@ -154,7 +152,7 @@ def _run():
     if hasattr(args, "dev") and args.dev:
         os.environ["NAPARI_PLOT_DEV"] = "1"
         install_debugger_hook()
-        logging.info("Activated development mode.")
+        logger.info("Activated development mode.")
     # check if additional dev modules were requested
     if hasattr(args, "dev_module") and args.dev_module:
         dev_module = list(args.dev_module)
@@ -286,7 +284,7 @@ def _maybe_rerun_with_macos_fixes() -> None:
         # When napari is launched from the conda bundle shortcut
         # it already has the right 'napari' name in the app title
         # and __CFBundleIdentifier is set to 'com.napari._(<version>)'
-        "napari_plot" not in os.environ.get("__CFBundleIdentifier", "")
+        "napari_plot" not in os.environ.get("__CFBundleIdentifier", "")  # noqa: SIM112 - macOS-defined key
         # with a sys.executable named napari,
         # macOS should have picked the right name already
         or os.path.basename(executable) != "napari_plot"
