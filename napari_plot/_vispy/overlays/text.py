@@ -14,37 +14,41 @@ class VispyTextOverlay(_VispyTextOverlay):
 
         This is necessary to account for the offsets caused by the x/y-axis offsets.
         """
-        position = self.viewer.text_overlay.position
-        x_offset, y_offset = 10, 5
+        super()._on_position_change(event)
         if not self.node.canvas:
-            super()._on_position_change(event)
+            return
+
+        position = self.overlay.position
+        x_offset, y_offset = 10, 5
+        canvas_size = list(self.node.canvas.size)
+        canvas_offset = self.node.parent.pos
+        canvas_size[1] -= canvas_offset[1] + 50
+        canvas_size[0] -= canvas_offset[0]
+
+        if position == CanvasPosition.TOP_LEFT:
+            transform = [x_offset, y_offset, 0, 0]
+        elif position == CanvasPosition.TOP_RIGHT:
+            transform = [canvas_size[0] - self.x_size - x_offset, y_offset, 0, 0]
+        elif position == CanvasPosition.TOP_CENTER:
+            transform = [(canvas_size[0] - self.x_size) / 2, y_offset, 0, 0]
+        elif position == CanvasPosition.BOTTOM_RIGHT:
+            transform = [
+                canvas_size[0] - self.x_size - x_offset,
+                canvas_size[1] - self.y_size - y_offset,
+                0,
+                0,
+            ]
+        elif position == CanvasPosition.BOTTOM_LEFT:
+            transform = [x_offset, canvas_size[1] - self.y_size - y_offset, 0, 0]
+        elif position == CanvasPosition.BOTTOM_CENTER:
+            transform = [
+                (canvas_size[0] - self.x_size) / 2,
+                canvas_size[1] - self.y_size - y_offset,
+                0,
+                0,
+            ]
         else:
-            canvas_size = list(self.node.canvas.size)
-            canvas_offset = self.node.parent.pos
-            canvas_size[1] -= canvas_offset[1] + 50
-            canvas_size[0] -= canvas_offset[0]  # - 20
+            raise ValueError(f"Position {position} is not recognized.")
 
-            if position == CanvasPosition.TOP_LEFT:
-                transform = [x_offset, y_offset, 0, 0]
-                anchors = ("left", "bottom")
-            elif position == CanvasPosition.TOP_RIGHT:
-                transform = [canvas_size[0] - x_offset, y_offset, 0, 0]
-                anchors = ("right", "bottom")
-            elif position == CanvasPosition.TOP_CENTER:
-                transform = [canvas_size[0] // 2, y_offset, 0, 0]
-                anchors = ("center", "bottom")
-            elif position == CanvasPosition.BOTTOM_RIGHT:
-                transform = [canvas_size[0] - x_offset, canvas_size[1] - y_offset, 0, 0]
-                anchors = ("right", "top")
-            elif position == CanvasPosition.BOTTOM_LEFT:
-                transform = [x_offset, canvas_size[1] - y_offset, 0, 0]
-                anchors = ("left", "top")
-            elif position == CanvasPosition.BOTTOM_CENTER:
-                transform = [canvas_size[0] // 2, canvas_size[1] - y_offset, 0, 0]
-                anchors = ("center", "top")
-            else:
-                raise ValueError("Position {position} is not recognized.")
-
-            self.node.transform.translate = transform
-            if self.node.anchors != anchors:
-                self.node.anchors = anchors
+        self.node.transform.translate = transform
+        self._on_box_change()

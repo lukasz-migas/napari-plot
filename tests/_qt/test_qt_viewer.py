@@ -6,6 +6,7 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+from napari.components._viewer_constants import CanvasPosition
 from qtpy.QtCore import QEvent
 from qtpy.QtGui import QFocusEvent, QGuiApplication
 from qtpy.QtWidgets import QVBoxLayout, QWidget
@@ -29,6 +30,46 @@ def test_qt_viewer(make_napari_plot_viewer):
 
     assert len(viewer.layers) == 0
     assert view.layers.model().rowCount() == 0
+
+
+def test_text_overlay_background_tracks_text_geometry(
+    make_napari_plot_viewer,
+    qtbot,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The text background should follow the full label in the plot viewport."""
+    monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
+    viewer = make_napari_plot_viewer()
+    qt_viewer = viewer.window._qt_viewer
+    overlay = viewer.text_overlay
+    visual = qt_viewer.canvas._overlay_to_visual[overlay]
+
+    overlay.position = CanvasPosition.TOP_LEFT
+    overlay.text = "short label"
+    overlay.visible = True
+    qtbot.waitUntil(lambda: visual.x_size > 0 and visual.y_size > 0)
+
+    assert visual.box.parent is visual.node.parent
+    assert visual.box.width > visual.x_size
+    assert visual.box.height > visual.y_size
+    top_left = np.asarray(visual.node.transform.translate[:2], dtype=float)
+    assert np.all(top_left >= 0)
+
+    short_width = visual.box.width
+    overlay.text = "a substantially longer text overlay label"
+    qtbot.waitUntil(lambda: visual.box.width > short_width)
+
+    overlay.position = CanvasPosition.BOTTOM_RIGHT
+    canvas_size = np.asarray(visual.node.canvas.size, dtype=float)
+    canvas_offset = np.asarray(visual.node.parent.pos, dtype=float)
+    available_size = canvas_size - canvas_offset - np.asarray((0.0, 50.0))
+    bottom_right = np.asarray(visual.node.transform.translate[:2], dtype=float)
+    assert np.all(bottom_right >= 0)
+    assert bottom_right[0] + visual.x_size <= available_size[0]
+    assert bottom_right[1] + visual.y_size <= available_size[1]
+
+    overlay.box = False
+    assert visual.box.parent is None
 
 
 def test_on_slice_ready_uses_layer_slicing_state():
