@@ -51,7 +51,7 @@ jobs:
       - run: uv venv .sdist-smoke-venv
       - run: uv pip install --python .sdist-smoke-venv/bin/python dist/*.tar.gz pyqt6
       - name: Set up Linux display and Qt system libraries
-        uses: pyvista/setup-headless-display-action@v4
+        uses: pyvista/setup-headless-display-action@v5
         with:
           qt: true
       - name: Import public API from wheel installation
@@ -110,7 +110,7 @@ jobs:
       - name: Install dependencies
         run: uv sync --no-dev --group test --extra ${{ matrix.backend }} --extra optional
 
-      - uses: pyvista/setup-headless-display-action@v4
+      - uses: pyvista/setup-headless-display-action@v5
         with:
           qt: true
 
