@@ -42,7 +42,7 @@ dependencies = [
 	"numpy",
 	"qtpy",
 	"qtawesome>=1.2.0",
-	"napari==0.8.0",
+	"napari==0.9.1",
 	"matplotlib",
 	"vispy",
 	"koyo",
