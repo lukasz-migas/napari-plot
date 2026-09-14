@@ -9,12 +9,12 @@ repos:
     hooks:
     - id: pycln
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.16.7
     hooks:
       - id: ruff
         exclude: _vendor|vendored
 -   repo: https://github.com/seddonym/import-linter
-    rev: v2.13
+    rev: v2.15
     hooks:
     - id: import-linter
       stages: [manual]
