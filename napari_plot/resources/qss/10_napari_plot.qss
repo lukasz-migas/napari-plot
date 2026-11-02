@@ -31,7 +31,7 @@ QtViewerPushButton[mode="new_scatter"] {
 }
 
 /* QDoubleSlider does not receive qtextra's QSlider sub-page color. */
-QtTextControls QDoubleSlider::groove:horizontal {
+QFrame#layer QDoubleSlider::groove:horizontal {
   background-color: {{ primary }};
 }
 

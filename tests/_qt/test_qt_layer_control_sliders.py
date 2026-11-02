@@ -19,9 +19,7 @@ from napari_plot.resources import get_stylesheet
 
 @pytest.mark.parametrize("theme", ["dark", "light"])
 @pytest.mark.parametrize("relative", [True, False])
-def test_scatter_border_width_groove_is_visible(
-    qtbot: QtBot, qapp: QApplication, theme: str, relative: bool
-) -> None:
+def test_scatter_border_width_groove_is_visible(qtbot: QtBot, qapp: QApplication, theme: str, relative: bool) -> None:
     """Relative and absolute border widths retain a contrasting slider track."""
     previous_stylesheet = qapp.styleSheet()
     qapp.setStyleSheet(get_stylesheet(theme))
