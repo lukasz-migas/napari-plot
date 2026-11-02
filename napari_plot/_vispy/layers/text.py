@@ -44,6 +44,12 @@ class VispyTextLayer(VispyBaseLayer):
         self.reset()
         self._on_data_change()
 
+    def _on_font_size_change(self) -> None:
+        self.node.font_size = self._default_font_size if self.layer.size is None else self.layer.size
+        self.node.update()
+        if self.layer.size is None:
+            self.layer.refresh(extent=True)
+
     def _on_data_change(self, _event=None) -> None:
         """Update the single native text visual from the layer model."""
         if len(self.layer.data):
@@ -64,7 +70,7 @@ class VispyTextLayer(VispyBaseLayer):
         self.node.face = self.layer.font_face or self.font_info.face
         self.node.bold = self.layer.bold
         self.node.italic = self.layer.italic
-        self.node.font_size = self.layer.size
+        self.node.font_size = self._default_font_size if self.layer.size is None else self.layer.size
         self.node.update()
         self._on_blending_change()
 

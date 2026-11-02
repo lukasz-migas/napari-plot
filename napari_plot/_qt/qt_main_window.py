@@ -14,7 +14,7 @@ from weakref import WeakValueDictionary
 
 import numpy as np
 import qtextra.helpers as hp
-from napari._qt._qapp_model.qactions import add_dummy_actions, init_qactions
+from napari._qt._qapp_model.qactions import add_dummy_actions
 from napari._qt._qapp_model.qactions._debug import _is_set_trace_active
 from napari._qt.dialogs.confirm_close_dialog import ConfirmCloseDialog
 from napari._qt.dialogs.qt_activity_dialog import QtActivityDialog
@@ -46,6 +46,7 @@ from qtpy.QtWidgets import (
 )
 
 from napari_plot._app_model.context import create_context
+from napari_plot._qt._qapp_model import init_qactions
 from napari_plot._qt.qt_event_loop import NAPARI_PLOT_ICON_PATH, get_app, quit_app
 from napari_plot._qt.qt_viewer import QtViewer
 from napari_plot.components.camera import CameraMode, ExtentMode
@@ -281,7 +282,7 @@ class _QtMainWindow(QMainWindow):
         if (
             not confirm_need_local
             # or not get_settings().application.confirm_close_window
-            or ConfirmCloseDialog(self, quit_app).exec_() == QDialog.DialogCode.Accepted
+            or ConfirmCloseDialog(self, quit_app).exec() == QDialog.DialogCode.Accepted
         ):
             self._quit_app = quit_app
             self._is_close_dialog[quit_app] = True
@@ -389,13 +390,17 @@ class _QtMainWindow(QMainWindow):
         if (
             event.spontaneous()
             and self._qt_viewer.viewer.layers
-            and ConfirmCloseDialog(self, False).exec_() != QDialog.DialogCode.Accepted
+            and ConfirmCloseDialog(self, False).exec() != QDialog.DialogCode.Accepted
         ):
             event.ignore()
             return
 
         if self._ev and self._ev.isRunning():
             self._ev.quit()
+
+        self._stop_worker_threads()
+        with contextlib.suppress(ValueError):
+            Napari_QtMainWindow._instances.remove(self)
 
         # Close any floating dockwidgets
         for dock in self.findChildren(QtViewerDockWidget):
@@ -414,6 +419,13 @@ class _QtMainWindow(QMainWindow):
         if self._quit_app:
             quit_app()
         event.accept()
+
+    def _stop_worker_threads(self) -> None:
+        """Stop workers before closing or napari's interpreter-exit cleanup."""
+        if status_thread := getattr(self, "status_thread", None):
+            status_thread.close_terminate()
+            status_thread.wait()
+        self._qt_viewer.dims.stop()
 
     def restart(self):
         """Restart the napari application in a detached process."""
@@ -1493,7 +1505,7 @@ class Window:
         """Save screenshot of current display with viewer, default .png"""
         dial = ScreenshotDialog(self.screenshot, self._qt_viewer)
 
-        if dial.exec_():
+        if dial.exec():
             pass
 
     def _register_task_status(

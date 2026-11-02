@@ -1,5 +1,7 @@
 """Keyboard shortcuts"""
 
+from collections.abc import Generator
+
 from napari_plot.components.viewer_model import ViewerModel
 
 
@@ -55,18 +57,21 @@ def reset_view(viewer):
 
 
 @ViewerModel.bind_key("Control-G")
-def toggle_grid(viewer):
-    """Toggle grid mode."""
-    viewer.grid.enabled = not viewer.grid.enabled
+def toggle_grid(viewer: ViewerModel) -> Generator[None, None, None]:
+    """Toggle plot grid visibility once per key press."""
+    viewer.grid_lines.visible = not viewer.grid_lines.visible
+    yield
 
 
 @ViewerModel.bind_key("V")
-def toggle_selected_visibility(viewer):
-    """Toggle visibility of selected layers"""
+def toggle_selected_visibility(viewer: ViewerModel) -> Generator[None, None, None]:
+    """Toggle selected layer visibility once per key press."""
     viewer.layers.toggle_selected_visibility()
+    yield
 
 
 @ViewerModel.bind_key("Control-L")
-def toggle_selected_editability(viewer):
-    """Toggle visibility of selected layers"""
+def toggle_selected_editability(viewer: ViewerModel) -> Generator[None, None, None]:
+    """Toggle selected layer editability once per key press."""
     viewer.layers.toggle_selected_editable()
+    yield

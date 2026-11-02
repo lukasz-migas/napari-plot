@@ -6,7 +6,9 @@ or as a dock widget inside napari.
 
 ## Installation
 
-napari-plot supports Python 3.11 and later.
+napari-plot requires napari 0.10.0, Python 3.11 or later, and Qt6 (PyQt6 or
+PySide6). Qt5 is no longer supported. Install a specific backend with
+`pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
 
 ```shell
 pip install "napari-plot[all]"

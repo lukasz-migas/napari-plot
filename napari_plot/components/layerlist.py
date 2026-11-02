@@ -37,11 +37,10 @@ class LayerList(_LayerList):
             self._selection_ctx_keys = LayerListSelectionContextKeys(self._ctx)
             self.selection.events.changed.connect(self._selection_ctx_keys.update)
 
-    def toggle_selected_editable(self):
-        """Toggle editable of selected layers"""
-        for layer in self:
-            if layer.selected:
-                layer.editable = not layer.editable
+    def toggle_selected_editable(self) -> None:
+        """Toggle editability of the selected layers."""
+        for layer in self.selection:
+            layer.editable = not layer.editable
 
     def remove_all(self):
         """Remove all layers"""

@@ -91,6 +91,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       QT_API: ${{ matrix.backend }}
+      PYTEST_QT_API: ${{ matrix.backend }}
       UV_NO_SYNC: "1"
       UV_MANAGED_PYTHON: "1"
     strategy:

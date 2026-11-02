@@ -41,7 +41,7 @@ LAYERLIST_CONTEXT_SUBMENUS = [
             title="Projections",
             group=MenuGroup.LAYERLIST_CONTEXT.SPLIT_MERGE,
             order=None,
-            enablement=LLSCK.active_layer_is_image_3d,
+            enablement=((LLSCK.active_layer_type == "image") & (LLSCK.active_layer_ndim > 2)),
         ),
     ),
     (
@@ -85,7 +85,7 @@ LAYERLIST_CONTEXT_ACTIONS: list[Action] = [
         title="Split Stack",
         callback=_layer_actions._split_stack,
         menus=[{**LAYERCTX_SPLITMERGE, "when": ~LLSCK.active_layer_is_rgb}],
-        enablement=LLSCK.active_layer_is_image_3d,
+        enablement=((LLSCK.active_layer_type == "image") & (LLSCK.active_layer_ndim > 2)),
     ),
     Action(
         id="napari.layer.split_rgb",
@@ -238,7 +238,7 @@ for mode in ("max", "min", "std", "sum", "mean", "median"):
             id=f"napari.layer.project_{mode}",
             title=f"{mode} projection",
             callback=partial(_layer_actions._project, mode=mode),
-            enablement=LLSCK.active_layer_is_image_3d,
+            enablement=((LLSCK.active_layer_type == "image") & (LLSCK.active_layer_ndim > 2)),
             menus=[{"id": MenuId.LAYERS_CONTEXT_PROJECT}],
         )
     )

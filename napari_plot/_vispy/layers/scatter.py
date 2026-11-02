@@ -50,7 +50,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self._on_data_change()
 
     def _on_data_change(self):
-        if len(self.layer._indices_view) > 0:
+        if len(self.layer._view_indices) > 0:
             edge_color = self.layer._view_border_color
             face_color = self.layer._view_face_color
         else:
@@ -60,7 +60,7 @@ class VispyScatterLayer(VispyBaseLayer):
             # Set vispy data, noting that the order of the points needs to be
             # reversed to make the most recently added point appear on top
             # and the rows / columns need to be switched for vispy's x / y ordering
-        if len(self.layer._indices_view) == 0:
+        if len(self.layer._view_indices) == 0:
             data = np.zeros((1, self.layer._slice_input.ndisplay))
             size = [0]
             edge_width = [0]
@@ -91,7 +91,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self.node.scaling = self.layer.scaling
 
     def _on_symbol_change(self):
-        symbol = ["o"] if len(self.layer._indices_view) == 0 else [str(x) for x in self.layer._view_symbol]
+        symbol = ["o"] if len(self.layer._view_indices) == 0 else [str(x) for x in self.layer._view_symbol]
         symbol = np.asarray(symbol)
         if np.unique(symbol).size == 1:
             self.node.symbol = symbol[0]
@@ -143,9 +143,12 @@ class VispyScatterLayer(VispyBaseLayer):
         update_node : bool
             If true, update the node after setting the properties
         """
-        update_text(node=self.node.text, layer=self.layer)
+        update_text(node=self.node.text, layer=self.layer, default_font_size=self._default_font_size)
         if update_node:
             self.node.update()
+
+    def _on_font_size_change(self) -> None:
+        self._on_text_change()
 
     def _on_text_change(self, event=None):
         if event is not None:

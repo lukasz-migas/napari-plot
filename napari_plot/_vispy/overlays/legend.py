@@ -41,10 +41,10 @@ def legend_layout_size(overlay: LegendOverlay) -> tuple[float, float]:
     if not overlay.entries:
         return 0.0, 0.0
     labels = [entry.label for entry in overlay.entries]
-    row_height = max(overlay.font_size, overlay.marker_size) + overlay.row_spacing
+    row_height = max(overlay.effective_font_size, overlay.marker_size) + overlay.row_spacing
     marker_width = overlay.marker_size + MARKER_TEXT_GAP if _has_marker_column(overlay.entries) else 0.0
-    text_width = max(len(label) for label in labels) * overlay.font_size * TEXT_WIDTH_FACTOR
-    extra_padding = overlay.font_size * TEXT_EXTRA_PADDING_FACTOR
+    text_width = max(len(label) for label in labels) * overlay.effective_font_size * TEXT_WIDTH_FACTOR
+    extra_padding = overlay.effective_font_size * TEXT_EXTRA_PADDING_FACTOR
     x_size = (2 * overlay.padding) + marker_width + text_width + extra_padding
     y_size = (2 * overlay.padding) + (len(labels) * row_height) - overlay.row_spacing
     return float(x_size), float(y_size)
@@ -123,6 +123,9 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
             disconnect_events(entry.events, self)
         self._connected_entries = ()
 
+    def _on_font_size_change(self) -> None:
+        self._on_data_change()
+
     def _on_entries_change(self, _event=None) -> None:
         """Reconnect row events and redraw the legend."""
         self._connect_entry_events()
@@ -146,8 +149,8 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._ensure_marker_count(0)
 
     def _row_positions(self) -> np.ndarray:
-        row_height = max(self.overlay.font_size, self.overlay.marker_size) + self.overlay.row_spacing
-        row_center = max(self.overlay.font_size, self.overlay.marker_size) / 2
+        row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing
+        row_center = max(self.overlay.effective_font_size, self.overlay.marker_size) / 2
         text_x = self.overlay.padding
         if _has_marker_column(self.overlay.entries):
             text_x += self.overlay.marker_size + MARKER_TEXT_GAP
@@ -188,7 +191,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._text.text = [entry.label for entry in self.overlay.entries]
         self._text.pos = text_positions
         self._text.color = self.overlay.text_color
-        self._text.font_size = self.overlay.font_size
+        self._text.font_size = self.overlay.effective_font_size
         self._text.visible = True
 
         marker_entries = [
@@ -238,7 +241,12 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
                 x = width - self.x_size - padding
             else:
                 x = (width - self.x_size) / 2
-            y = padding if "top" in position else height - self.y_size - padding
+            if "top" in position:
+                y = padding
+            elif "bottom" in position:
+                y = height - self.y_size - padding
+            else:
+                y = (height - self.y_size) / 2
             self.node.transform.translate = [max(0.0, x), max(0.0, y), 0.0, 0.0]
         else:
             super()._on_position_change()
@@ -255,7 +263,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         local = np.asarray(event.pos[:2], dtype=float) - parent_pos[:2] - translation
         if not (0 <= local[0] <= self.x_size and 0 <= local[1] <= self.y_size):
             return
-        row_height = max(self.overlay.font_size, self.overlay.marker_size) + self.overlay.row_spacing
+        row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing
         row = int((local[1] - self.overlay.padding) // row_height)
         if row < 0 or row >= len(self.overlay.entries):
             return
