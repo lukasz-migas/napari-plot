@@ -70,6 +70,9 @@ Documentation = "https://github.com/lukasz-migas/napari-plot#README.md"
 [project.optional-dependencies]
 pyside6 = [
     "napari[pyside6]==0.10.0",
+    # 6.12.0 can over-decrement None's refcount on Python 3.11 (none_dealloc).
+    # https://github.com/bucknova/Open-SSTV/pull/84
+    "pyside6!=6.12.0; python_version < '3.12'",
     "pyside6>6.9.0; platform_system == 'Windows'",
     "pyside6; platform_system != 'Windows'"
 ]
