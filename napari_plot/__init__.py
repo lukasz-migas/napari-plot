@@ -38,10 +38,10 @@ _LAZY_IMPORTS = {
 
 def __getattr__(name: str) -> ty.Any:
     """Lazily import objects when accessed."""
-    # Need to import to ensure that `napari_plot` is included in the auto-class generator
-    from napari_plot.utils import _register  # isort:skip noqa
-
-    del _register
+    # # Need to import to ensure that `napari_plot` is included in the auto-class generator
+    # from napari_plot.utils import _register  # isort:skip noqa
+    #
+    # del _register
     try:
         module_name, attr_name = _LAZY_IMPORTS[name]
     except KeyError:
