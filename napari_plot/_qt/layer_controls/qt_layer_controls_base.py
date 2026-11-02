@@ -3,7 +3,7 @@
 import typing as ty
 
 import qtextra.helpers as hp
-from napari.layers.base._base_constants import BLENDING_TRANSLATIONS, Blending, Mode
+from napari.layers.base._base_constants import Blending, Mode
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QButtonGroup, QFormLayout, QFrame, QGridLayout
@@ -97,7 +97,7 @@ class QtLayerControls(QFrame):
 
         # Blending
         self.blending_combobox = hp.make_combobox(self)
-        hp.set_combobox_data(self.blending_combobox, BLENDING_TRANSLATIONS, self.layer.blending)
+        hp.set_combobox_data(self.blending_combobox, {mode: str(mode) for mode in Blending}, self.layer.blending)
         self.blending_combobox.currentTextChanged.connect(self.on_change_blending)
 
         # opaque and minimum blending do not support changing alpha

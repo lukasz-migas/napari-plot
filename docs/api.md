@@ -55,3 +55,21 @@ border settings. Use `viewer.set_legend(...)` for explicit entries,
 `viewer.set_legend_from_layers(...)` for plot-layer entries, or
 `viewer.set_legend_from_points(...)` for categorized napari Points data.
 `viewer.camera` and `viewer.drag_tool` expose navigation state.
+
+`viewer.scene.camera` owns the custom plot camera. `viewer.camera` remains an
+alias. The Canvas model exposes `viewer.canvas.size` in `(height, width)` order,
+`background_color_override`, `overlay_tiling`, and `overlays`. Its `text`,
+`legend`, and `grid_lines` overlays are the same instances exposed by the
+existing viewer accessors. Native coordinate-grid and crosshair overlays are
+not part of the plot scene.
+
+Layer `axis_labels` populate `viewer.dims.axis_labels` and the displayed plot
+labels. Editing a plot label explicitly preserves that label across subsequent
+metadata updates. Text layer `size` and legend `font_size` default to `None`,
+which inherits the appearance font size. Explicit numeric sizes override it;
+set the value back to `None` to resume inheritance. Axis fonts keep their
+existing defaults.
+
+Selecting multiple custom layers, or a mixture of custom and built-in layers,
+provides shared opacity and blending controls. Custom single-layer panels stay
+available even when napari's experimental dynamic-controls setting is enabled.

@@ -11,6 +11,7 @@ from napari.components._viewer_constants import CanvasPosition
 from napari.components.overlays import CanvasOverlay
 from napari.layers import Points
 from napari.layers.base import Layer
+from napari.settings import get_settings
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
@@ -262,7 +263,7 @@ class LegendOverlay(CanvasOverlay):
     position: CanvasPosition = CanvasPosition.TOP_RIGHT
     entries: tuple[LegendEntry, ...] = ()
     text_color: Array[float, (4,)] = DEFAULT_LEGEND_TEXT_COLOR
-    font_size: float = 10.0
+    font_size: float | None = None
     marker_size: float = 10.0
     row_spacing: float = 4.0
     padding: float = 6.0
@@ -286,13 +287,23 @@ class LegendOverlay(CanvasOverlay):
     def _coerce_color(cls, value: ColorLike) -> np.ndarray:
         return _coerce_single_color(value)
 
-    @field_validator("font_size", "marker_size", "row_spacing", mode="before")
+    @field_validator("marker_size", "row_spacing", mode="before")
     @classmethod
     def _coerce_positive_number(cls, value: float) -> float:
         number = float(value)
         if number <= 0:
             raise ValueError(LEGEND_SIZE_ERROR)
         return number
+
+    @property
+    def effective_font_size(self) -> float:
+        """Return the explicit legend font size or the application default."""
+        return float(get_settings().appearance.font_size if self.font_size is None else self.font_size)
+
+    @field_validator("font_size", mode="before")
+    @classmethod
+    def _coerce_font_size(cls, value: float | None) -> float | None:
+        return None if value is None else cls._coerce_positive_number(value)
 
     @field_validator("padding", mode="before")
     @classmethod

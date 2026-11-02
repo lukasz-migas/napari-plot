@@ -13,8 +13,9 @@ from napari._vispy.utils.cursor import QtCursorVisual
 from napari._vispy.utils.gl import get_max_texture_sizes
 from napari._vispy.utils.qt_font import FontInfo
 from napari.components.overlays import CanvasOverlay, Overlay
+from napari.settings import get_settings
 from napari.utils._proxies import ReadOnlyWrapper
-from napari.utils.colormaps.standardize_color import transform_color
+from napari.utils.events import disconnect_events
 from napari.utils.interactions import (
     mouse_double_click_callbacks,
     mouse_move_callbacks,
@@ -127,9 +128,7 @@ class VispyCanvas:
         **kwargs,
     ):
         self.max_texture_sizes = None
-        self._last_theme_color = None
         self.viewer = viewer
-        self._background_color_override = None
         self._font_info = FontInfo(face=font_family, font_manager=font_manager)
         self._scene_canvas = NapariSceneCanvas(*args, keys=None, vsync=True, **kwargs)
         self._data_scene = Node(parent=self.view.scene)
@@ -139,6 +138,7 @@ class VispyCanvas:
 
         self.layer_to_visual: dict[Layer, VispyBaseLayer] = {}
         self._overlay_to_visual: dict[Overlay, VispyBaseOverlay] = {}
+        self._needs_overlay_position_update = True
         self._key_map_handler = key_map_handler
         self._instances.add(self)
         # Call get_max_texture_sizes() here so that we query OpenGL right now while we know a Canvas exists.
@@ -152,6 +152,7 @@ class VispyCanvas:
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
         self.grid.add_widget(self.x_axis.node, row=2, col=1)
         self.x_axis.node.link_view(self.view)
+        self.x_axis.node.events.resize.connect(self.x_axis.node._view_changed)
         self.x_axis.node.height_max = self.viewer.axis.x_max_size
         self.x_axis.interactive = True
 
@@ -159,6 +160,7 @@ class VispyCanvas:
         self.y_axis = VispyYAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
         self.grid.add_widget(self.y_axis.node, row=1, col=0)
         self.y_axis.node.link_view(self.view)
+        self.y_axis.node.events.resize.connect(self.y_axis.node._view_changed)
         self.y_axis.node.width_max = self.viewer.axis.y_max_size
         self.y_axis.interactive = True
 
@@ -197,7 +199,12 @@ class VispyCanvas:
         self.viewer.layers.events.reordered.connect(self._reorder_layers)
         self.viewer.layers.events.removed.connect(self._remove_layer)
 
+        self.viewer.canvas.events.background_color.connect(self._update_background_color)
+        self.viewer.canvas.events._overlay_positions_changed.connect(self._request_overlay_positions)
+        self.viewer.canvas.events.size.connect(self._on_model_size_change)
+        get_settings().appearance.events.font_size.connect(self._update_font_sizes)
         self.destroyed.connect(self._disconnect_theme)
+        self._update_background_color()
         self._on_axis_scale_change()
 
     def _on_axis_scale_change(self, _event: Event | None = None) -> None:
@@ -237,24 +244,6 @@ class VispyCanvas:
         return self._scene_canvas._backend.screen_changed
 
     @property
-    def background_color_override(self) -> str | None:
-        """Background color of VispyCanvas.view returned as hex string. When not None, color is shown instead of
-        VispyCanvas.bgcolor. The setter expects str (any in vispy.color.get_color_names) or hex starting
-        with # or a tuple | np.array ({3,4},) with values between 0 and 1.
-
-        """
-        if self.view in self.central_widget._widgets:
-            return self.view.bgcolor.hex
-        return None
-
-    @background_color_override.setter
-    def background_color_override(self, value: str | np.ndarray | None) -> None:
-        if value:
-            self.view.bgcolor = value
-        else:
-            self.view.bgcolor = None
-
-    @property
     def view(self):
         """Canvas view."""
         return self._scene_canvas.view
@@ -268,46 +257,47 @@ class VispyCanvas:
         """Get the shared font information used by overlay/layer text visuals."""
         return self._font_info
 
-    def _on_theme_change(self, event: Event) -> None:
-        self._set_theme_change(event.value)
-
-    def _set_theme_change(self, theme: str) -> None:
-        from napari.utils.theme import get_theme
-
-        # Note 1. store last requested theme color, in case we need to reuse it
-        # when clearing the background_color_override, without needing to
-        # keep track of the viewer.
-        # Note 2. the reason for using the `as_hex` here is to avoid
-        # `UserWarning` which is emitted when RGB values are above 1
-        self._last_theme_color = transform_color(get_theme(theme).canvas.as_hex())[0]
-        self.bgcolor = self._last_theme_color
-
     @property
-    def background_color_override(self) -> str | None:
-        """Get background color"""
-        return self._background_color_override
+    def background_color_override(self) -> np.ndarray | None:
+        """Return the canvas model's optional background override."""
+        return self.viewer.canvas.background_color_override
 
     @background_color_override.setter
-    def background_color_override(self, value):
-        self._background_color_override = value
-        self.bgcolor = value or self._last_theme_color
+    def background_color_override(self, value: str | np.ndarray | None) -> None:
+        self.viewer.canvas.background_color_override = value
 
-    def _on_theme_change(self, event):
-        self._set_theme_change(event.value)
+    def _on_theme_change(self, event: Event) -> None:
+        self._update_background_color()
 
-    def _set_theme_change(self, theme: str) -> None:
-        from napari.utils.theme import get_theme
+    def _update_background_color(self, _event: Event | None = None) -> None:
+        self.bgcolor = self.viewer.canvas.background_color
 
-        # Note 1. store last requested theme color, in case we need to reuse it
-        # when clearing the background_color_override, without needing to
-        # keep track of the viewer.
-        # Note 2. the reason for using the `as_hex` here is to avoid
-        # `UserWarning` which is emitted when RGB values are above 1
-        self._last_theme_color = transform_color(get_theme(theme).canvas.as_hex())[0]
-        self.bgcolor = self._last_theme_color
+    def _on_model_size_change(self, _event: Event | None = None) -> None:
+        if self.size != self.viewer.canvas.size:
+            self.size = self.viewer.canvas.size
+
+    def _request_overlay_positions(self, _event: Event | None = None) -> None:
+        self._needs_overlay_position_update = True
+        self._scene_canvas.update()
+
+    def _update_overlay_positions(self) -> None:
+        for overlay, visual in self._overlay_to_visual.items():
+            if isinstance(overlay, CanvasOverlay):
+                visual._on_position_change()
+        self._needs_overlay_position_update = False
+
+    def _update_font_sizes(self, _event: Event | None = None) -> None:
+        font_size = get_settings().appearance.font_size
+        for visual in (*self._overlay_to_visual.values(), *self.layer_to_visual.values()):
+            visual.set_default_font_size(font_size)
 
     def _disconnect_theme(self) -> None:
-        self.viewer.events.theme.disconnect(self._on_theme_change)
+        disconnect_events(self.viewer.events, self)
+        disconnect_events(self.viewer.canvas.events, self)
+        disconnect_events(get_settings().appearance.events, self)
+        for overlay in self._overlay_to_visual:
+            overlay.events.position.disconnect(self._request_overlay_positions)
+            overlay.events.visible.disconnect(self._request_overlay_positions)
 
     @property
     def bgcolor(self) -> str:
@@ -387,6 +377,11 @@ class VispyCanvas:
 
     def delete(self) -> None:
         """Schedules the native widget for deletion"""
+        self._disconnect_theme()
+        for visual in self._overlay_to_visual.values():
+            visual.node.parent = None
+            visual.close()
+        self._overlay_to_visual.clear()
         self.native.deleteLater()
 
     def _on_interactive(self) -> None:
@@ -554,6 +549,8 @@ class VispyCanvas:
         the camera is moved and is connected in the `QtViewer`.
         """
         # The canvas corners in full world coordinates (i.e. across all layers).
+        if self._needs_overlay_position_update:
+            self._update_overlay_positions()
         canvas_corners_world = self._canvas_corners_in_world
         for layer in self.viewer.layers:
             if layer.ndim <= 2:
@@ -566,9 +563,7 @@ class VispyCanvas:
     def on_resize(self, event: ResizeEvent) -> None:
         """Called whenever canvas is resized."""
         self.viewer._canvas_size = self.size
-        for overlay, visual in self._overlay_to_visual.items():
-            if isinstance(overlay, CanvasOverlay):
-                visual._on_position_change()
+        self._update_overlay_positions()
 
     def add_layer_visual_mapping(self, napari_layer: Layer, vispy_layer: VispyBaseLayer) -> None:
         """Maps a napari layer to its corresponding vispy layer and sets the parent scene of the vispy layer.
@@ -587,6 +582,7 @@ class VispyCanvas:
 
         vispy_layer.node.parent = self._data_scene
         self.layer_to_visual[napari_layer] = vispy_layer
+        vispy_layer.set_default_font_size(get_settings().appearance.font_size)
         napari_layer.events.visible.connect(self._reorder_layers)
         # self.viewer.camera.events.angles.connect(vispy_layer._on_camera_move)
         self._reorder_layers()
@@ -596,7 +592,6 @@ class VispyCanvas:
         layer = event.value
         layer.events.visible.disconnect(self._reorder_layers)
         vispy_layer = self.layer_to_visual[layer]
-        self.viewer.camera.events.disconnect(vispy_layer._on_camera_move)
         vispy_layer.close()
         del vispy_layer
         del self.layer_to_visual[layer]
@@ -630,6 +625,9 @@ class VispyCanvas:
             parent=parent,
         )
         self._overlay_to_visual[overlay] = vispy_overlay
+        vispy_overlay.set_default_font_size(get_settings().appearance.font_size)
+        overlay.events.position.connect(self._request_overlay_positions)
+        overlay.events.visible.connect(self._request_overlay_positions)
 
     def screenshot(self) -> QImage:
         """Return a QImage based on what is shown in the viewer."""

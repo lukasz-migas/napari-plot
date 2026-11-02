@@ -42,7 +42,7 @@ dependencies = [
 	"numpy",
 	"qtpy",
 	"qtawesome>=1.2.0",
-	"napari==0.8.0",
+	"napari==0.10.0",
 	"matplotlib",
 	"vispy",
 	"koyo",
@@ -69,16 +69,15 @@ Documentation = "https://github.com/lukasz-migas/napari-plot#README.md"
 
 [project.optional-dependencies]
 pyside6 = [
+    "napari[pyside6]==0.10.0",
     "pyside6>6.9.0; platform_system == 'Windows'",
     "pyside6; platform_system != 'Windows'"
 ]
 pyside = [
     "napari_plot[pyside6]"
 ]
-pyqt5 = [
-    "PyQt5>=5.13.2,!=5.15.0",
-]
 pyqt6 = [
+    "napari[pyqt6]==0.10.0",
     "pyqt6 >= 6.9.0",
     "pyqt6 != 6.6.1 ; platform_system == 'Darwin'"
 ]
@@ -217,20 +216,21 @@ write_to = "napari_plot/_version.py"
 
 [tool.check-manifest]
 ignore = [
-  "bundle.py",
-  ".cirrus.yml",
-  ".pre-commit-config.yaml",
-  "asv.conf.json",
-  "codecov.yml",
-  "Makefile",
-  "mypy.ini",
-  "tools/minreq.py",
-  ".deepsource.toml",
-  "*.pyi",  # added by make typestubs
-  "napari_plot/_version.py",  # added during build by setuptools_scm
-  "scripts/*.bat",  # scripts
-  "renovate.json",
-  "conftest.py",
+    "bundle.py",
+    ".cirrus.yml",
+    ".pre-commit-config.yaml",
+    "asv.conf.json",
+    "codecov.yml",
+    "Makefile",
+    "mypy.ini",
+    "tools/minreq.py",
+    ".deepsource.toml",
+    "*.pyi",  # added by make typestubs
+    "napari_plot/_version.py",  # added during build by setuptools_scm
+    "scripts/*.bat",  # scripts
+    "renovate.json",
+    "conftest.py",
+    "CHANGELOG.md"
 ]
 
 

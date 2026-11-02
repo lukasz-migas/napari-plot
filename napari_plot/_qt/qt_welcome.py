@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from napari.utils.translations import trans
 from qtpy.QtCore import QSize, Qt, Signal
 from qtpy.QtGui import QPainter
 from qtpy.QtWidgets import QLabel, QStackedWidget, QStyle, QStyleOption, QVBoxLayout, QWidget
@@ -26,7 +25,7 @@ class QtWelcomeWidget(QWidget):
         self._image = QLabel()
         self._image.setObjectName("logo_silhouette_plot")
         self._image.setMinimumSize(300, 300)
-        self._label = QtWelcomeLabel(trans._("Welcome to napari-plot!"))
+        self._label = QtWelcomeLabel("Welcome to napari-plot!")
 
         # Widget setup
         self.setAutoFillBackground(True)

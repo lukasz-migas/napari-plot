@@ -451,7 +451,7 @@ class QtViewer(QSplitter):
         from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 
         dialog = ScreenshotDialog(self.screenshot, self, history=[])
-        if dialog.exec_():
+        if dialog.exec():
             pass
 
     def screenshot(self, path=None, flash=True):
@@ -502,9 +502,7 @@ class QtViewer(QSplitter):
             return image
 
     @contextmanager
-    def resize_canvas(
-        self, size: tuple[int, int] | None, scale: float
-    ) -> ty.Iterator[None]:
+    def resize_canvas(self, size: tuple[int, int] | None, scale: float) -> ty.Iterator[None]:
         """Temporarily resize the canvas while capturing a screenshot."""
         previous_size = self.canvas.size
         target_size = size or previous_size

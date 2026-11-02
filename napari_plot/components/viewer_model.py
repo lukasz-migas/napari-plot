@@ -15,13 +15,15 @@ from app_model.expressions import Context
 from napari import layers as n_layers
 from napari.components import Dims
 from napari.components._layer_slicer import _LayerSlicer
+from napari.components.canvas import Canvas
 from napari.components.cursor import Cursor, CursorStyle
-from napari.components.overlays import BrushCircleOverlay, Overlay, TextOverlay
+from napari.components.overlays import BrushCircleOverlay, TextOverlay
 from napari.components.tooltip import Tooltip
 from napari.layers.utils.stack_utils import split_channels
 from napari.utils._register import create_func as create_add_method
 from napari.utils.colormaps import ensure_colormap
-from napari.utils.events import Event, EventedDict, EventedModel, disconnect_events
+from napari.utils.events import Event, EventedDictNamespace, EventedModel, disconnect_events
+from napari.utils.interactions import _discard_active_generators
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import camel_to_snake, is_sequence
 from napari.utils.mouse_bindings import MousemapProviderPydantic
@@ -55,6 +57,7 @@ from napari_plot.components.legend import (
     legend_entries_from_layers,
     legend_entries_from_points,
 )
+from napari_plot.components.scene import Scene
 from napari_plot.components.tools import BoxTool, PolygonTool
 from napari_plot.utils.utilities import get_min_max
 
@@ -152,9 +155,14 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         The title of the viewer window.
     """
 
+    __non_evented_properties__ = EventedModel.__non_evented_properties__ | {"camera"}
+
     # Using frozen=True means these attributes aren't settable and don't
     # have an event emitter associated with them
-    camera: Camera = Field(default_factory=Camera, frozen=True)
+    scene: Scene = Field(default_factory=Scene, frozen=True)
+    canvas: Canvas = Field(
+        default_factory=lambda: Canvas(size=(400, 400), overlays=EventedDictNamespace()), frozen=True
+    )
     cursor: Cursor = Field(default_factory=Cursor, frozen=True)
     dims: Dims = Field(default_factory=Dims, frozen=True)
     layers: LayerList = Field(default_factory=LayerList, frozen=True)
@@ -169,8 +177,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     title: str = "napari-plot"
 
     # private track of overlays, only expose the old ones for backward compatibility
-    _overlays: EventedDict[str, Overlay] = PrivateAttr(default_factory=EventedDict)
-    _canvas_size: tuple[int, int] = (400, 400)
+    _explicit_axis_labels: set[str] = PrivateAttr(default_factory=set)
+    _setting_axis_labels: bool = PrivateAttr(False)
     _ctx: Context
 
     # To check if mouse is over canvas to avoid race conditions between
@@ -201,6 +209,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             span=Event,
             clear_canvas=Event,
         )
+        self.events.theme.connect(self.canvas._update_bgcolor_from_viewer)
+        self.canvas._update_bgcolor_from_viewer(Event("theme", value=self.theme))
+        self.axis.events.x_label.connect(self._on_axis_label_changed)
+        self.axis.events.y_label.connect(self._on_axis_label_changed)
 
         # Connect events
         # dims
@@ -232,6 +244,27 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.events.removed.connect(self._on_legend_layers_change)
         self.layers.events.reordered.connect(self._on_legend_layers_change)
         self._refresh_legend_source_connections()
+
+    @property
+    def camera(self) -> Camera:
+        """Return the camera owned by the plot scene."""
+        return self.scene.camera
+
+    @camera.setter
+    def camera(self, _value: Camera) -> None:
+        raise ValueError("Field is frozen")
+
+    @property
+    def _overlays(self) -> EventedDictNamespace:
+        return self.canvas.overlays
+
+    @property
+    def _canvas_size(self) -> tuple[int, int]:
+        return self.canvas.size
+
+    @_canvas_size.setter
+    def _canvas_size(self, size: tuple[int, int]) -> None:
+        self.canvas.size = size
 
     @property
     def text_overlay(self) -> TextOverlay:
@@ -268,7 +301,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         visible: bool = True,
         position: str = "top_right",
         text_color: LegendColorLike = "white",
-        font_size: float = 10.0,
+        font_size: float | None = None,
         marker_size: float = 10.0,
         row_spacing: float = 4.0,
         padding: float = 6.0,
@@ -301,7 +334,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         visible: bool = True,
         position: str = "top_right",
         text_color: LegendColorLike = "white",
-        font_size: float = 10.0,
+        font_size: float | None = None,
         marker_size: float = 10.0,
         row_spacing: float = 4.0,
         padding: float = 6.0,
@@ -487,6 +520,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _on_update_extent(self, _event=None):
         """Update data extent when there has been a change to the list of layers"""
+        was_fitted = self.camera.rect == self.camera._extent
         extent = self._get_rect_extent()
         # Private extent that is always the same as extent of the data. It is essential that whenever extent is set
         # on the camera, the value of `_extent` is also set as it will be used as a value for resetting axis values
@@ -494,6 +528,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.camera._extent = extent
         # update extent - must be done after `_extent`
         self.camera.extent = extent
+        # Extent invalidation can follow insertion; retain the initial fit.
+        if len(self.layers) == 1 and was_fitted:
+            self.reset_view()
 
     def clear_canvas(self):
         """Remove all layers from the canvas"""
@@ -675,6 +712,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         from napari_plot.components.dragtool import BOX_ZOOM_TOOLS, SELECT_TOOLS, DragMode
         from napari_plot.components.tools import Shape
 
+        _discard_active_generators(self, "drag")
+        if self.drag_tool.tool is not None:
+            self.drag_tool.tool.visible = False
+
         # if self.drag_tool.tool not in BOX_ZOOM_TOOLS:
         for callback_func in [
             box_zoom_box,
@@ -774,7 +815,31 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
+        self._update_axis_labels()
         self.events.layers_change()  # TODO: remove
+
+    def _on_axis_label_changed(self, event: Event) -> None:
+        if not self._setting_axis_labels:
+            self._explicit_axis_labels.add(event.type)
+
+    def _update_axis_labels(self, _event: Event | None = None) -> None:
+        """Inherit layer metadata while preserving explicit plot axis labels."""
+        labels = list(map(str, range(-self.dims.ndim, 0)))
+        for layer in sorted(self.layers, key=lambda item: -item.ndim):
+            if not layer._has_default_axis_labels():
+                count = min(self.dims.ndim, layer.ndim)
+                labels[-count:] = layer.axis_labels[-count:]
+                break
+        self.dims.axis_labels = tuple(labels)
+        defaults = {"x_label": "X-label", "y_label": "Y-label"}
+        self._setting_axis_labels = True
+        try:
+            for attribute, label in zip(("y_label", "x_label"), labels[-2:], strict=True):
+                if attribute not in self._explicit_axis_labels:
+                    default_label = label in tuple(map(str, range(-self.dims.ndim, 0)))
+                    setattr(self.axis, attribute, defaults[attribute] if default_label else label)
+        finally:
+            self._setting_axis_labels = False
 
     def _update_mouse_pan(self, event):
         """Set the viewer interactive mouse panning"""
@@ -849,6 +914,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         layer.events.cursor.connect(self._update_cursor)
         layer.events.cursor_size.connect(self._update_cursor_size)
         layer.events.data.connect(self._on_layers_change)
+        layer.events.axis_labels.connect(self._update_axis_labels)
         layer.events.scale.connect(self._on_layers_change)
         layer.events.translate.connect(self._on_layers_change)
         layer.events.rotate.connect(self._on_layers_change)

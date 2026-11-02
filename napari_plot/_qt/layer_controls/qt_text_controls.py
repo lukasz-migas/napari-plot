@@ -8,6 +8,8 @@ import numpy as np
 import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
+from napari.settings import get_settings
+from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt
 from qtpy.QtGui import QFontDatabase, QGuiApplication
 
@@ -27,6 +29,7 @@ class QtTextControls(QtLayerControls):
     def __init__(self, layer: Text) -> None:
         super().__init__(layer)
         self.layer.events.size.connect(self._on_size_change)
+        get_settings().appearance.events.font_size.connect(self._on_size_change)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.font_face.connect(self._on_font_face_change)
         self.layer.events.bold.connect(self._on_bold_change)
@@ -112,7 +115,7 @@ class QtTextControls(QtLayerControls):
 
     def _current_size(self) -> float:
         """Return the layer-wide font size."""
-        return self.layer.size
+        return self.layer.effective_size
 
     def _current_color(self) -> np.ndarray:
         """Return the first label color or the empty-layer default."""
@@ -198,6 +201,11 @@ class QtTextControls(QtLayerControls):
         """Update vertical alignment after a model change."""
         with qt_signals_blocked(self.vertical_alignment_combobox):
             self.vertical_alignment_combobox.setCurrentText(self._current_vertical_alignment())
+
+    def close(self) -> None:
+        """Disconnect inherited font settings before closing the controls."""
+        disconnect_events(get_settings().appearance.events, self)
+        super().close()
 
     def _on_visible_change(self, _event=None) -> None:
         """Enable common controls only while the layer is visible."""

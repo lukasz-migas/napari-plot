@@ -177,7 +177,7 @@ class Scatter(Points, LayerMixin):
         face_colormap="viridis",
         face_contrast_limits=None,
         n_dimensional=None,
-        out_of_slice_display=False,
+        out_of_slice_display=None,
         name=None,
         metadata=None,
         scale=None,
@@ -204,6 +204,9 @@ class Scatter(Points, LayerMixin):
         data, ndim = fix_data_points(data, 2)
         if ndim > 2:
             raise ValueError("Scatter layer only supports 2D data.")
+        legacy_projection = out_of_slice_display if out_of_slice_display is not None else n_dimensional
+        if legacy_projection is not None:
+            projection_mode = "rescale_linear" if legacy_projection else "all"
         Points.__init__(
             self,
             data=data,
@@ -225,8 +228,6 @@ class Scatter(Points, LayerMixin):
             face_color_cycle=face_color_cycle,
             face_colormap=face_colormap,
             face_contrast_limits=face_contrast_limits,
-            n_dimensional=n_dimensional,
-            out_of_slice_display=out_of_slice_display,
             name=name,
             metadata=metadata,
             scale=scale,

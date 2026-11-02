@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from typing import Any
 
 import numpy as np
+from napari.settings import get_settings
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
@@ -189,8 +190,8 @@ class Text(BaseLayer):
         Label positions in ``[x, y]`` order.
     text : str or sequence of str, optional
         Text to display. A string is broadcast to every coordinate.
-    size : float
-        Layer-wide font size in screen points.
+    size : float, optional
+        Layer-wide font size in screen points. None uses the application setting.
     color : color-like or sequence of color-like
         Text color, either shared or one color per label.
     alignment : str
@@ -214,7 +215,7 @@ class Text(BaseLayer):
         data: Any = None,
         text: str | Sequence[str] | None = None,
         *,
-        size: float = 12,
+        size: float | None = None,
         color: Any = "white",
         alignment: str = "center",
         vertical_alignment: str = "center",
@@ -241,7 +242,7 @@ class Text(BaseLayer):
         coordinates = _coerce_data(data)
         n_labels = len(coordinates)
         labels = _broadcast_text(text, n_labels)
-        size = _coerce_scalar(size, "size", positive=True)
+        size = None if size is None else _coerce_scalar(size, "size", positive=True)
         colors, default_color = _broadcast_colors(color, n_labels)
         alignment = _coerce_choice(alignment, "alignment", HORIZONTAL_ALIGNMENTS)
         vertical_alignment = _coerce_choice(
@@ -356,13 +357,18 @@ class Text(BaseLayer):
         self.events.text(value=self._text)
 
     @property
-    def size(self) -> float:
+    def size(self) -> float | None:
         """Return the layer-wide font size in screen points."""
         return self._size
 
+    @property
+    def effective_size(self) -> float:
+        """Return the explicit font size or the application default."""
+        return float(get_settings().appearance.font_size if self.size is None else self.size)
+
     @size.setter
-    def size(self, value: float) -> None:
-        self._size = _coerce_scalar(value, "size", positive=True)
+    def size(self, value: float | None) -> None:
+        self._size = None if value is None else _coerce_scalar(value, "size", positive=True)
         self._clear_extent()
         self.events.size(value=self._size)
 
@@ -510,7 +516,7 @@ class Text(BaseLayer):
 
         extent_span = span.copy()
         for _ in range(_MAX_EXTENT_REFINEMENTS):
-            em_size = extent_span * self.size * _POINT_TO_PIXEL / _NOMINAL_VIEWPORT_SIZE
+            em_size = extent_span * self.effective_size * _POINT_TO_PIXEL / _NOMINAL_VIEWPORT_SIZE
             bounds = []
             for position, text, rotation in zip(
                 positions,

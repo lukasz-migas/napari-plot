@@ -9,6 +9,7 @@ import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from napari.components._viewer_constants import CanvasPosition
+from napari.settings import get_settings
 from napari.utils.events import disconnect_events
 from qtextra.widgets.qt_dialog import QtFramelessPopup
 from qtpy.QtCore import Qt
@@ -38,17 +39,22 @@ class QtLegendControls(QtFramelessPopup):
         self.setMouseTracking(True)
 
         overlay = viewer.legend
-        overlay.events.visible.connect(self._on_visible_change)
-        overlay.events.position.connect(self._on_position_change)
-        overlay.events.sync_with_source.connect(self._on_auto_sync_change)
-        overlay.events.text_color.connect(self._on_text_color_change)
-        overlay.events.font_size.connect(self._on_font_size_change)
-        overlay.events.marker_size.connect(self._on_marker_size_change)
-        overlay.events.row_spacing.connect(self._on_row_spacing_change)
-        overlay.events.padding.connect(self._on_padding_change)
-        overlay.events.background_color.connect(self._on_background_color_change)
-        overlay.events.border_color.connect(self._on_border_color_change)
-        overlay.events.border_width.connect(self._on_border_width_change)
+        self._overlay_connections = (
+            (overlay.events.visible, self._on_visible_change),
+            (overlay.events.position, self._on_position_change),
+            (overlay.events.sync_with_source, self._on_auto_sync_change),
+            (overlay.events.text_color, self._on_text_color_change),
+            (overlay.events.font_size, self._on_font_size_change),
+            (overlay.events.marker_size, self._on_marker_size_change),
+            (overlay.events.row_spacing, self._on_row_spacing_change),
+            (overlay.events.padding, self._on_padding_change),
+            (overlay.events.background_color, self._on_background_color_change),
+            (overlay.events.border_color, self._on_border_color_change),
+            (overlay.events.border_width, self._on_border_width_change),
+        )
+        for signal, callback in self._overlay_connections:
+            signal.connect(callback)
+        get_settings().appearance.events.font_size.connect(self._on_font_size_change)
 
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
@@ -88,7 +94,7 @@ class QtLegendControls(QtFramelessPopup):
             4,
             32,
             step_size=1,
-            value=overlay.font_size,
+            value=overlay.effective_font_size,
             func=self.on_change_font_size,
         )
         self.marker_size_spinbox = hp.make_double_slider_with_text(
@@ -196,7 +202,7 @@ class QtLegendControls(QtFramelessPopup):
 
     def _on_font_size_change(self, _event=None) -> None:
         with qt_signals_blocked(self.font_size_spinbox):
-            self.font_size_spinbox.setValue(self.viewer.legend.font_size)
+            self.font_size_spinbox.setValue(self.viewer.legend.effective_font_size)
 
     def on_change_marker_size(self) -> None:
         """Update legend marker size."""
@@ -232,7 +238,9 @@ class QtLegendControls(QtFramelessPopup):
 
     def close(self) -> None:
         """Disconnect overlay events before closing."""
-        disconnect_events(self.viewer.legend.events, self)
+        for signal, callback in self._overlay_connections:
+            signal.disconnect(callback)
+        disconnect_events(get_settings().appearance.events, self)
         super().close()
 
 

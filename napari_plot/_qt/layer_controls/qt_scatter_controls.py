@@ -8,7 +8,7 @@ import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
 from napari.layers.base._base_constants import Mode
-from napari.layers.points._points_constants import SYMBOL_TRANSLATION
+from napari.layers.points._points_constants import Symbol
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
@@ -107,7 +107,11 @@ class QtScatterControls(QtLayerControls):
 
         self.symbol_combobox = hp.make_combobox(self, tooltip="Marker symbol")
         current_symbol = self.layer.symbol[-1] if len(self.layer.symbol) > 0 else None
-        hp.set_combobox_data(self.symbol_combobox, SYMBOL_TRANSLATION, current_symbol)
+        hp.set_combobox_data(
+            self.symbol_combobox,
+            {symbol: symbol.name.lower().replace("_", " ") for symbol in Symbol},
+            current_symbol,
+        )
         self.symbol_combobox.currentTextChanged.connect(self.on_change_symbol)
 
         self.scaling_checkbox = hp.make_checkbox(self, val=self.layer.scaling, tooltip="Scale scatter points with zoom")

@@ -81,6 +81,10 @@ https://napari.org/docs/plugins/index.html
 
 ## Installation
 
+napari-plot requires napari 0.10.0 and Python 3.11 or later. Use a Qt6 backend
+with `pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
+Qt5 is no longer supported.
+
 You can install `napari-plot` directly from PyPI via:
 
 ```shell
@@ -94,6 +98,19 @@ git clone https://github.com/lukasz-migas/napari-plot.git
 cd napari-plot
 pip install -e '.[all]'
 ```
+
+The plot widgets open in a tabified bottom dock in napari. Custom layers retain
+their individual controls; selecting several layers exposes shared opacity and
+blending controls. Built-in-only selections use napari's dynamic controls.
+
+`viewer.scene.camera` and `viewer.canvas.overlays` expose the new model layout.
+Existing `viewer.camera`, `viewer.text_overlay`, `viewer.legend`, and
+`viewer.grid_lines` accessors refer to the same objects. The custom camera,
+log axes, and plot grid remain available.
+
+Layer axis labels automatically populate the plot labels until those labels
+are edited explicitly. Unspecified text and legend font sizes follow the
+application's appearance font size; pass a number to fix the size.
 
 Python 3.11 or later is required. See the
 [documentation](https://napari-plot.readthedocs.io/) for standalone and embedded

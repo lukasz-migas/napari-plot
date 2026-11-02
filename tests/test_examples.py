@@ -1,11 +1,9 @@
-import os
 import runpy
 from pathlib import Path
 
 import napari
 import pytest
 from napari._qt.qt_main_window import Window as NapariWindow
-from qtpy import API_NAME
 
 import napari_plot
 from napari_plot._qt.qt_main_window import Window
@@ -35,11 +33,6 @@ for f in EXAMPLE_WITH_NAPARI_DIR.glob("*.py"):
     if f.name in skip:
         continue
     examples_with_napari.append(f.name)
-
-
-# still some CI segfaults, but only on windows with pyqt5
-if os.getenv("CI") and os.name == "nt" and API_NAME == "PyQt5":
-    examples, examples_with_napari = [], []
 
 
 @pytest.mark.filterwarnings("ignore")

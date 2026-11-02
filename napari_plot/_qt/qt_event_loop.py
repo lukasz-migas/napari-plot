@@ -15,8 +15,7 @@ from napari.settings import get_settings
 from napari.utils.notifications import notification_manager, show_console_notification
 from napari.utils.theme import _themes, build_theme_svgs
 from qtextra.config.theme import THEMES
-from qtpy import PYQT5, PYSIDE2
-from qtpy.QtCore import QDir, Qt
+from qtpy.QtCore import QDir
 from qtpy.QtGui import QIcon
 from qtpy.QtWidgets import QApplication
 
@@ -121,15 +120,6 @@ def get_app(
                 f"QApplication already existed, these arguments to to 'get_app' were ignored: {set_values}",
             )
     else:
-        # automatically determine monitor DPI.
-        # Note: this MUST be set before the QApplication is instantiated. Also, this
-        # attributes need to be applied only to Qt5 bindings (PyQt5 and PySide2)
-        # since the High DPI scaling attributes are deactivated by default while on Qt6
-        # they are deprecated and activated by default. For more info see:
-        # https://doc.qt.io/qtforpython-6/gettingstarted/porting_from2.html#class-function-deprecations
-        if PYQT5 or PYSIDE2:
-            QApplication.setAttribute(Qt.ApplicationAttribute.AA_EnableHighDpiScaling)
-            QApplication.setAttribute(Qt.ApplicationAttribute.AA_UseHighDpiPixmaps)
         argv = sys.argv.copy()
         if sys.platform == "darwin" and not argv[0].endswith("napari_plot"):
             # Make sure the app name in the Application menu is `napari`
@@ -193,7 +183,7 @@ def quit_app():
     # otherwise, something else created the QApp before us (such as
     # %gui qt IPython magic).  If we quit the app in this case, then
     # *later* attempts to instantiate a napari viewer won't work until
-    # the event loop is restarted with app.exec_().  So rather than
+    # the event loop is restarted with app.exec().  So rather than
     # quit just close all the windows (and clear our app icon).
     else:
         QApplication.setWindowIcon(QIcon())
@@ -209,7 +199,7 @@ def run(*, force=False, max_loop_level=1, _func_name="run"):
         level widgets to show.
     max_loop_level : int, optional
         The maximum allowable "loop level" for the execution thread.  Every
-        time `QApplication.exec_()` is called, Qt enters the event loop,
+        time `QApplication.exec()` is called, Qt enters the event loop,
         increments app.thread().loopLevel(), and waits until exit() is called.
         This function will prevent calling `exec_()` if the application already
         has at least ``max_loop_level`` event loops running.  By default, 1.
@@ -253,4 +243,4 @@ def run(*, force=False, max_loop_level=1, _func_name="run"):
         )
         return
     with _maybe_allow_interrupt(app):
-        app.exec_()
+        app.exec()

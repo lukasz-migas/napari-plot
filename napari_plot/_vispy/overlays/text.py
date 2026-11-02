@@ -1,6 +1,6 @@
 """Override text visual to fix label cropping"""
 
-from napari._vispy.overlays.text import CanvasPosition, VispyTextOverlay as _VispyTextOverlay
+from napari._vispy.overlays.text import VispyTextOverlay as _VispyTextOverlay
 
 
 class VispyTextOverlay(_VispyTextOverlay):
@@ -25,30 +25,17 @@ class VispyTextOverlay(_VispyTextOverlay):
         canvas_size[1] -= canvas_offset[1] + 50
         canvas_size[0] -= canvas_offset[0]
 
-        if position == CanvasPosition.TOP_LEFT:
-            transform = [x_offset, y_offset, 0, 0]
-        elif position == CanvasPosition.TOP_RIGHT:
-            transform = [canvas_size[0] - self.x_size - x_offset, y_offset, 0, 0]
-        elif position == CanvasPosition.TOP_CENTER:
-            transform = [(canvas_size[0] - self.x_size) / 2, y_offset, 0, 0]
-        elif position == CanvasPosition.BOTTOM_RIGHT:
-            transform = [
-                canvas_size[0] - self.x_size - x_offset,
-                canvas_size[1] - self.y_size - y_offset,
-                0,
-                0,
-            ]
-        elif position == CanvasPosition.BOTTOM_LEFT:
-            transform = [x_offset, canvas_size[1] - self.y_size - y_offset, 0, 0]
-        elif position == CanvasPosition.BOTTOM_CENTER:
-            transform = [
-                (canvas_size[0] - self.x_size) / 2,
-                canvas_size[1] - self.y_size - y_offset,
-                0,
-                0,
-            ]
+        if "left" in position:
+            x = x_offset
+        elif "right" in position:
+            x = canvas_size[0] - self.x_size - x_offset
         else:
-            raise ValueError(f"Position {position} is not recognized.")
-
-        self.node.transform.translate = transform
+            x = (canvas_size[0] - self.x_size) / 2
+        if "top" in position:
+            y = y_offset
+        elif "bottom" in position:
+            y = canvas_size[1] - self.y_size - y_offset
+        else:
+            y = (canvas_size[1] - self.y_size) / 2
+        self.node.transform.translate = [max(0, x), max(0, y), 0, 0]
         self._on_box_change()
