@@ -5,16 +5,16 @@ repos:
     - id: no-commit-to-branch
       args: ['--branch', 'master', "--branch", "main"]
 -   repo: https://github.com/hadialqattan/pycln
-    rev: v2.6.0
+    rev: v2.6.1
     hooks:
     - id: pycln
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+    rev: v0.17.3
     hooks:
       - id: ruff
         exclude: _vendor|vendored
 -   repo: https://github.com/seddonym/import-linter
-    rev: v2.13
+    rev: v2.15
     hooks:
     - id: import-linter
       stages: [manual]
