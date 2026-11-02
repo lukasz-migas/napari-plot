@@ -11,7 +11,7 @@ if ty.TYPE_CHECKING:
     from napari_plot.viewer import Viewer
 
 ACTIVE_COLOR: tuple = (1.0, 0.0, 0.0, 1.0)
-EXTENT_MULTIPLIER: float = 0.10
+AUTO_SPAN_PIXEL_THRESHOLD: int = 20
 LASSO_VERTEX_DISTANCE: int = 10
 
 
@@ -113,28 +113,71 @@ def box_select(viewer: "Viewer", event):
     # viewer.drag_tool.tool.visible = False
 
 
+def _get_auto_shape(press_pos: np.ndarray, pos: np.ndarray) -> Shape:
+    """Determine the shape of the zoom tool based on the on-screen (pixel) size of the drag.
+
+    Spans are only returned when the drag is essentially flat in one direction, otherwise it's a box.
+    """
+    dx, dy = np.abs(np.asarray(pos[:2], dtype=float) - np.asarray(press_pos[:2], dtype=float))
+    # drag is too small to determine user intent
+    if dx < AUTO_SPAN_PIXEL_THRESHOLD and dy < AUTO_SPAN_PIXEL_THRESHOLD:
+        return Shape.BOX
+    # minimal change in y-position, lets show it as vertical span
+    if dy < AUTO_SPAN_PIXEL_THRESHOLD:
+        return Shape.VERTICAL
+    # minimal change in x-position, lets show it as horizontal span
+    if dx < AUTO_SPAN_PIXEL_THRESHOLD:
+        return Shape.HORIZONTAL
+    return Shape.BOX
+
+
+def _get_span_position(
+    shape: Shape,
+    position: tuple[float, float, float, float],
+    view_rect: tuple[float, float, float, float],
+) -> np.ndarray:
+    """Return position that respects the shape of the tool.
+
+    Vertical span uses the entire visible y-axis range and horizontal span uses the entire visible x-axis range.
+    """
+    x0, x1, y0, y1 = position
+    vx0, vx1, vy0, vy1 = view_rect
+    if shape == Shape.VERTICAL:
+        y0, y1 = vy0, vy1
+    elif shape == Shape.HORIZONTAL:
+        x0, x1 = vx0, vx1
+    return np.asarray([x0, x1, y0, y1])
+
+
+def _set_modifier_range(viewer: "Viewer", modifiers, position: tuple[float, float, float, float]) -> bool:
+    """Set the range of the modifier that is currently active."""
+    if not modifiers:
+        return False
+    if "Control" in modifiers:
+        viewer.drag_tool.ctrl = position
+    elif "Shift" in modifiers:
+        viewer.drag_tool.shift = position
+    elif "Alt" in modifiers:
+        viewer.drag_tool.alt = position
+    else:
+        viewer.drag_tool.ctrl = (0, 0, 0, 0)
+        viewer.drag_tool.shift = (0, 0, 0, 0)
+        viewer.drag_tool.alt = (0, 0, 0, 0)
+    return True
+
+
 def box_zoom_auto(viewer: "Viewer", event):
     """Enable box zoom."""
 
     def _get_shape():
         # handle modifiers first
-        if "Alt" in event.modifiers or sx0 is None:
+        if "Alt" in event.modifiers:
             return Shape.BOX
         if "Control" in event.modifiers:
             return Shape.VERTICAL
         if "Shift" in event.modifiers:
             return Shape.HORIZONTAL
-
-        # then handle the shape
-        x0, x1, y0, y1 = viewer.drag_tool.tool.position
-        x, y = abs(x1 - x0), abs(y1 - y0)
-        # if there is minimum difference in y-position, lets show it as vertical span
-        if abs(sy - y) < ey:
-            return Shape.VERTICAL
-        # if there is minimum difference in x-position, lets show it as horizontal span
-        if abs(sx - x) < ex:
-            return Shape.HORIZONTAL
-        return Shape.BOX
+        return _get_auto_shape(press_pos, event.pos)
 
     # make sure box is visible
     if not viewer.camera.mouse_zoom or not viewer.camera.mouse_pan:
@@ -144,10 +187,8 @@ def box_zoom_auto(viewer: "Viewer", event):
         viewer.drag_tool.tool.visible = True
 
     # on press
-    sx0, sx1, sy0, sy1 = None, None, None, None
-    extent = viewer.camera.rect
-    ex = abs(extent[1] - extent[0]) * EXTENT_MULTIPLIER
-    ey = abs(extent[3] - extent[2]) * EXTENT_MULTIPLIER
+    press_pos = np.asarray(event.pos)
+    view_rect = viewer.camera.rect
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.shape = _get_shape()
     yield
@@ -156,13 +197,11 @@ def box_zoom_auto(viewer: "Viewer", event):
     while event.type == "mouse_move":
         viewer.drag_tool.tool.shape = _get_shape()
         yield
-        if sx0 is None:
-            sx0, sx1, sy0, sy1 = viewer.drag_tool.tool.position
-            sx, sy = abs(sx1 - sx0), abs(sy1 - sy0)
 
     # on release
+    shape = viewer.drag_tool.tool.shape = _get_shape()
     viewer.drag_tool.tool.color = color
-    position = viewer.drag_tool.tool.position
+    position = _get_span_position(shape, viewer.drag_tool.tool.position, view_rect)
     viewer.drag_tool.tool.visible = False
     viewer.drag_tool.tool.position = (0, 0, 0, 0)
     viewer.events.span(position=position)
@@ -170,88 +209,39 @@ def box_zoom_auto(viewer: "Viewer", event):
 
 def box_zoom_auto_trigger(viewer: "Viewer", event):
     """Enable box zoom."""
-
-    def _get_shape():
-        if sx0 is None:
-            return Shape.BOX
-        # then handle the shape
-        x0, x1, y0, y1 = viewer.drag_tool.tool.position
-        x, y = abs(x1 - x0), abs(y1 - y0)
-        # if there is minimum difference in y-position, lets show it as vertical span
-        if abs(sy - y) < ey:
-            return Shape.VERTICAL
-        # if there is minimum difference in x-position, lets show it as horizontal span
-        if abs(sx - x) < ex:
-            return Shape.HORIZONTAL
-        return Shape.BOX
-
-    def _set_event_range() -> bool:
-        if not event.modifiers:
-            return False
-        if "Control" in event.modifiers:
-            viewer.drag_tool.ctrl = position
-        elif "Shift" in event.modifiers:
-            viewer.drag_tool.shift = position
-        elif "Alt" in event.modifiers:
-            viewer.drag_tool.alt = position
-        else:
-            viewer.drag_tool.ctrl = (0, 0, 0, 0)
-            viewer.drag_tool.shift = (0, 0, 0, 0)
-            viewer.drag_tool.alt = (0, 0, 0, 0)
-        return True
-
     # make sure box is visible
     if not viewer.camera.mouse_zoom or not viewer.camera.mouse_pan:
         return
 
     # on press
-    sx0, sx1, sy0, sy1 = None, None, None, None
-    extent = viewer.camera.rect
-    ex = abs(extent[1] - extent[0]) * EXTENT_MULTIPLIER
-    ey = abs(extent[3] - extent[2]) * EXTENT_MULTIPLIER
+    press_pos = np.asarray(event.pos)
+    view_rect = viewer.camera.rect
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.visible = True
-    viewer.drag_tool.tool.shape = _get_shape()
+    viewer.drag_tool.tool.shape = Shape.BOX
     yield
 
     # on mouse move
     while event.type == "mouse_move":
-        viewer.drag_tool.tool.shape = _get_shape()
+        viewer.drag_tool.tool.shape = _get_auto_shape(press_pos, event.pos)
         viewer.drag_tool.tool.color = ACTIVE_COLOR if event.modifiers else color
         yield
-        if sx0 is None:
-            sx0, sx1, sy0, sy1 = viewer.drag_tool.tool.position
-            sx, sy = abs(sx1 - sx0), abs(sy1 - sy0)
 
     # on release
+    shape = viewer.drag_tool.tool.shape = _get_auto_shape(press_pos, event.pos)
     viewer.drag_tool.tool.visible = False
     viewer.drag_tool.tool.color = color
     viewer.drag_tool.selection_active = bool(event.modifiers)
-    position = viewer.drag_tool.tool.position
-    _set_event_range()
+    position = _get_span_position(shape, viewer.drag_tool.tool.position, view_rect)
+    _set_modifier_range(viewer, event.modifiers, position)
     viewer.drag_tool.tool.position = (0, 0, 0, 0)
     viewer.events.span(position=position)
 
 
 def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     """Enable box zoom."""
-
-    def _set_event_range() -> bool:
-        if not event.modifiers:
-            return False
-        if "Control" in event.modifiers:
-            viewer.drag_tool.ctrl = position
-        elif "Shift" in event.modifiers:
-            viewer.drag_tool.shift = position
-        elif "Alt" in event.modifiers:
-            viewer.drag_tool.alt = position
-        else:
-            viewer.drag_tool.ctrl = (0, 0, 0, 0)
-            viewer.drag_tool.shift = (0, 0, 0, 0)
-            viewer.drag_tool.alt = (0, 0, 0, 0)
-        return True
-
     # on press
+    view_rect = viewer.camera.rect
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.visible = True
     viewer.drag_tool.tool.shape = shape
@@ -265,9 +255,9 @@ def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     # on release
     viewer.drag_tool.tool.color = color
     viewer.drag_tool.tool.visible = False
-    position = viewer.drag_tool.tool.position
+    position = _get_span_position(shape, viewer.drag_tool.tool.position, view_rect)
     viewer.drag_tool.tool.position = (0, 0, 0, 0)
-    _set_event_range()
+    _set_modifier_range(viewer, event.modifiers, position)
     viewer.events.span(position=position)
 
 

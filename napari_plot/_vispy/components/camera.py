@@ -16,6 +16,8 @@ from napari_plot.components.tools import Shape
 if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
+MIN_ZOOM_PIXELS: int = 2
+
 
 def make_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> Rect:
     """Make rect."""
@@ -135,9 +137,10 @@ class LimitedPanZoomCamera(PanZoomCamera):
             modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
-            # here we check that the different between values is not too small (might not work for plots with small
-            # values?) and whether the user is using modifiers.
-            if abs(x1 - x0) > 1e-3 and not (self.viewer.drag_tool.selecting and modifiers):
+            # here we check that the drag is not too small (in screen pixels) and whether the user is using modifiers.
+            if self._is_zoom_drag(event.press_event.pos, event.pos) and not (
+                self.viewer.drag_tool.selecting and modifiers
+            ):
                 # this call makes sure that various axis/extent checks are performed
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 rect = self._make_zoom_rect(x0, x1, y0, y1)
@@ -145,6 +148,16 @@ class LimitedPanZoomCamera(PanZoomCamera):
                     self.rect = rect
         else:
             event.handled = False
+
+    def _is_zoom_drag(self, press_pos, pos) -> bool:
+        """Check whether the drag is large enough (in pixels) along the axis zoomed by the current tool shape."""
+        dx, dy = np.abs(np.asarray(pos[:2], dtype=float) - np.asarray(press_pos[:2], dtype=float))
+        shape = getattr(self.viewer.drag_tool.tool, "shape", Shape.BOX)
+        if shape == Shape.VERTICAL:
+            return dx > MIN_ZOOM_PIXELS
+        if shape == Shape.HORIZONTAL:
+            return dy > MIN_ZOOM_PIXELS
+        return dx > MIN_ZOOM_PIXELS and dy > MIN_ZOOM_PIXELS
 
     def _make_zoom_rect(self, x0: float, x1: float, y0: float, y1: float) -> Rect:
         """Make zoom rectangle based on the currently active tool."""
