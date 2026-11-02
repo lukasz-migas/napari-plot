@@ -115,7 +115,7 @@ class NapariSceneCanvas(SceneCanvas_):
 class VispyCanvas:
     """Line-based vispy canvas"""
 
-    _instances = WeakSet()
+    _instances: ty.ClassVar[WeakSet[VispyCanvas]] = WeakSet()
     x_axis, y_axis = None, None
 
     def __init__(

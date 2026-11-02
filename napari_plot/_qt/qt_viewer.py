@@ -12,7 +12,6 @@ from pathlib import Path
 from types import FrameType
 
 import napari.layers as n_layers
-from napari._qt.containers import QtLayerList
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_viewer import QtViewer as NapariQtViewer
 from napari._qt.utils import QImg2array
@@ -29,6 +28,7 @@ from superqt import ensure_main_thread
 from napari_plot._qt._qapp_model import init_qactions, reset_default_keymap
 from napari_plot._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
+from napari_plot._qt.qt_layer_list import QtLayerList
 from napari_plot._qt.qt_toolbar import QtViewToolbar
 from napari_plot._qt.qt_welcome import QtWidgetOverlay
 from napari_plot._vispy.canvas import VispyCanvas
