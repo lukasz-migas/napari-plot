@@ -692,6 +692,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             except ValueError:
                 pass
         tool = None
+        # make sure flag set by `auto_trigger` does not leak into other tools
+        self.drag_tool.selection_active = False
         # zoom tools
         if self.drag_tool.active in BOX_ZOOM_TOOLS:
             tool = self.drag_tool.tool if isinstance(self.drag_tool.tool, BoxTool) else self.drag_tool._box

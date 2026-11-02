@@ -30,6 +30,7 @@ class _CameraHarness:
     extent_mode = "unrestricted"
     _check_range = LimitedPanZoomCamera._check_range
     _make_zoom_rect = LimitedPanZoomCamera._make_zoom_rect
+    _is_zoom_drag = LimitedPanZoomCamera._is_zoom_drag
 
     def __init__(self, viewer: ViewerModel) -> None:
         self.viewer = viewer
@@ -68,6 +69,29 @@ def test_left_mouse_release_completes_drag_zoom(mode: DragMode) -> None:
     assert camera.rect.right == 4.0
     assert camera.rect.bottom == 2.0
     assert camera.rect.top == 6.0
+
+
+def test_left_mouse_release_zooms_vertical_drag_for_horizontal_span() -> None:
+    """A horizontal span dragged straight up/down still zooms the y-axis."""
+    viewer = ViewerModel()
+    viewer.drag_tool.active = DragMode.HORIZONTAL_SPAN
+    camera = _CameraHarness(viewer)
+    event = SimpleNamespace(
+        handled=False,
+        type="mouse_release",
+        button=1,
+        buttons=[],
+        pos=(3.0, 8.0),
+        press_event=SimpleNamespace(pos=(3.0, 2.0)),
+        mouse_event=SimpleNamespace(modifiers=()),
+    )
+
+    LimitedPanZoomCamera.viewbox_mouse_event(camera, event)
+
+    assert camera.rect.left == 0.0
+    assert camera.rect.right == 10.0
+    assert camera.rect.bottom == 2.0
+    assert camera.rect.top == 8.0
 
 
 def test_box_zoom_emits_position_before_reset() -> None:
