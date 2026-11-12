@@ -39,7 +39,8 @@ def test_text_overlay_background_tracks_text_geometry(
 ) -> None:
     """The text background should follow the full label in the plot viewport."""
     monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
-    viewer = make_napari_plot_viewer()
+    viewer = make_napari_plot_viewer(show=True)
+    viewer.add_line([[0, 0], [1, 1]])
     qt_viewer = viewer.window._qt_viewer
     overlay = viewer.text_overlay
     visual = qt_viewer.canvas._overlay_to_visual[overlay]
@@ -58,16 +59,28 @@ def test_text_overlay_background_tracks_text_geometry(
     short_width = visual.box.width
     overlay.text = "a substantially longer text overlay label"
     qtbot.waitUntil(lambda: visual.box.width > short_width)
+    qtbot.waitUntil(lambda: visual.node.parent.size[0] > visual.box.width + 40)
 
     overlay.position = CanvasPosition.BOTTOM_RIGHT
-    canvas_size = np.asarray(visual.node.canvas.size, dtype=float)
-    canvas_offset = np.asarray(visual.node.parent.pos, dtype=float)
-    available_size = canvas_size - canvas_offset - np.asarray((0.0, 50.0))
+    available_size = np.asarray(visual.node.parent.size, dtype=float)
     bottom_right = np.asarray(visual.node.transform.translate[:2], dtype=float)
     assert np.all(bottom_right >= 0)
     assert bottom_right[0] + visual.x_size <= available_size[0]
     assert bottom_right[1] + visual.y_size <= available_size[1]
 
+    default_size = visual.box.width, visual.box.height
+    visual.box_padding = (20, 12)
+    assert visual.box.width == pytest.approx(visual.x_size + 40)
+    assert visual.box.height == pytest.approx(visual.y_size + 24)
+    position = np.asarray(visual.node.transform.translate[:2])
+    assert np.all(position + (visual.x_size + 20, visual.y_size + 12) <= available_size + 1e-6)
+
+    visual.box_padding = None
+    assert (visual.box.width, visual.box.height) == pytest.approx(default_size)
+    visual.box_padding = (0, 0)
+    assert (visual.box.width, visual.box.height) == pytest.approx((visual.x_size, visual.y_size))
+    overlay.text = ""
+    assert visual.box.parent is None
     overlay.box = False
     assert visual.box.parent is None
 
