@@ -40,14 +40,16 @@ def test_text_overlay_background_tracks_text_geometry(
     """The text background should follow the full label in the plot viewport."""
     monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
     viewer = make_napari_plot_viewer(show=True)
-    viewer.window.resize(900, 600)
+    canvas = viewer.window._qt_viewer.canvas
+    # Give the plot room for the label independently of the dock and window sizes.
+    canvas.native.setFixedSize(600, 400)
     viewer.add_line([[0, 0], [1, 1]])
-    qt_viewer = viewer.window._qt_viewer
     overlay = viewer.text_overlay
-    visual = qt_viewer.canvas._overlay_to_visual[overlay]
+    visual = canvas._overlay_to_visual[overlay]
 
     overlay.position = CanvasPosition.TOP_LEFT
-    overlay.text = "short label"
+    overlay.font_size = 12
+    overlay.text = "label"
     overlay.visible = True
     qtbot.waitUntil(lambda: visual.x_size > 0 and visual.y_size > 0)
 
@@ -58,7 +60,7 @@ def test_text_overlay_background_tracks_text_geometry(
     assert np.all(top_left >= 0)
 
     short_width = visual.box.width
-    overlay.text = "a substantially longer text overlay label"
+    overlay.text = "longer overlay label"
     qtbot.waitUntil(lambda: visual.box.width > short_width)
     qtbot.waitUntil(lambda: visual.node.parent.size[0] > visual.box.width + 40)
 
