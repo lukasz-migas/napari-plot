@@ -40,6 +40,7 @@ def test_text_overlay_background_tracks_text_geometry(
     """The text background should follow the full label in the plot viewport."""
     monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
     viewer = make_napari_plot_viewer(show=True)
+    viewer.window.resize(900, 600)
     viewer.add_line([[0, 0], [1, 1]])
     qt_viewer = viewer.window._qt_viewer
     overlay = viewer.text_overlay
