@@ -9,19 +9,21 @@ from napari_plot._vispy.layers.centroids import VispyCentroidsLayer
 from napari_plot._vispy.layers.infline import VispyInfLineLayer
 from napari_plot._vispy.layers.line import VispyLineLayer
 from napari_plot._vispy.layers.multiline import VispyMultiLineLayer
+from napari_plot._vispy.layers.rectangles import VispyRectanglesLayer
 from napari_plot._vispy.layers.region import VispyRegionLayer
 from napari_plot._vispy.layers.scatter import VispyScatterLayer
 from napari_plot._vispy.layers.text import VispyTextLayer
 from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
 from napari_plot._vispy.overlays.text import VispyTextOverlay
 from napari_plot.components.grid_lines import GridLinesOverlay
-from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Rectangles, Region, Scatter, Text
 
 layer_to_visual = {
     Bar: VispyBarLayer,
     Line: VispyLineLayer,
     Centroids: VispyCentroidsLayer,
     Scatter: VispyScatterLayer,
+    Rectangles: VispyRectanglesLayer,
     Region: VispyRegionLayer,
     InfLine: VispyInfLineLayer,
     MultiLine: VispyMultiLineLayer,

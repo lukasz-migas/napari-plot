@@ -22,7 +22,7 @@ The following names are importable directly from `napari_plot`:
 
 Keyword arguments are forwarded to the corresponding layer constructor. The
 lower-level methods `add_line`, `add_scatter`, `add_image`, `add_bar`,
-`add_multi_line`, `add_centroids`, `add_text`, `add_region`, and `add_inf_line`
+`add_multi_line`, `add_centroids`, `add_text`, `add_rectangles`, `add_region`, and `add_inf_line`
 are also public.
 
 ## Layer classes
@@ -36,15 +36,16 @@ from napari_plot.layers import (
     InfLine,
     Line,
     MultiLine,
+    Rectangles,
     Region,
     Scatter,
     Text,
 )
 ```
 
-All custom layers participate in the viewer layer list, visibility and opacity
-controls, duplication, selection, transforms, legend updates, and VisPy visual
-registration.
+Custom layers support the viewer layer list, visibility and opacity controls,
+duplication, transforms, and VisPy visual registration. See the layer usage
+examples for element selection and legend support.
 
 ## Models
 

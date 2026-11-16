@@ -61,6 +61,34 @@ a bar to toggle its selection; `layer.remove_selected()` deletes selected bars.
 Text supports one label or one label per coordinate, font size, color,
 horizontal and vertical alignment, rotation, and xy offsets.
 
+### Rectangles
+
+Use Rectangles to display windows in plot coordinates such as retention time
+on x and mass-to-charge ratio on y:
+
+```python
+peaks = viewer.add_rectangles(
+    [[315.5, 521.274], [418.1, 610.305]],
+    height=[0.012, 0.008],
+    width=[7.0, 10.0],
+    outline_width=2,
+    outline_color=["cyan", "orange"],
+    show_markers=True,
+    marker_size=6,
+    marker_color="white",
+    marker_symbol=["disc", "diamond"],
+    text=["Peak A", "Peak B"],
+    text_offset=(1.0, 0.002),
+)
+```
+
+Geometry dimensions are in axis units. Outline width and marker size are in
+screen pixels. Set `show_rectangles`, `show_markers`, and `show_text`
+independently in the layer controls or from Python. Set `text_color` or
+`text_size` to style the labels. Use `peaks.set_data(centers, height, width)`
+to replace all geometry at once. `peaks.data` holds [x, y, height, width]
+rows. Per-row styles and labels follow row order when you replace the data.
+
 ## Axes
 
 Open Axis Controls from the toolbar to show or hide axes and choose linear,

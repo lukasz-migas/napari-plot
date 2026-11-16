@@ -21,10 +21,11 @@ from napari_plot._qt.layer_controls.qt_centroids_controls import QtCentroidContr
 from napari_plot._qt.layer_controls.qt_infline_controls import QtInfLineControls
 from napari_plot._qt.layer_controls.qt_line_controls import QtLineControls
 from napari_plot._qt.layer_controls.qt_multiline_controls import QtMultiLineControls
+from napari_plot._qt.layer_controls.qt_rectangles_controls import QtRectanglesControls
 from napari_plot._qt.layer_controls.qt_region_controls import QtRegionControls
 from napari_plot._qt.layer_controls.qt_scatter_controls import QtScatterControls
 from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
-from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Rectangles, Region, Scatter, Text
 
 if TYPE_CHECKING:
     from napari.layers import Layer
@@ -36,6 +37,7 @@ layer_to_controls = {
     Line: QtLineControls,
     Centroids: QtCentroidControls,
     Scatter: QtScatterControls,
+    Rectangles: QtRectanglesControls,
     Region: QtRegionControls,
     InfLine: QtInfLineControls,
     MultiLine: QtMultiLineControls,
@@ -121,6 +123,7 @@ __all__ = [
     "QtLayerControlsContainer",
     "QtLineControls",
     "QtMultiLineControls",
+    "QtRectanglesControls",
     "QtRegionControls",
     "QtScatterControls",
     "QtTextControls",

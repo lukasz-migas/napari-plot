@@ -1324,6 +1324,7 @@ for _layer in [
     # napari-plot layers
     np_layers.Bar,
     np_layers.Line,
+    np_layers.Rectangles,
     np_layers.Scatter,
     np_layers.Region,
     np_layers.InfLine,
