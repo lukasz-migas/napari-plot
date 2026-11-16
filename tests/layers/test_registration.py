@@ -13,6 +13,7 @@ def test_custom_layer_registration_matches_napari_contract() -> None:
         plot_layers.InfLine,
         plot_layers.Line,
         plot_layers.MultiLine,
+        plot_layers.Rectangles,
         plot_layers.Region,
         plot_layers.Scatter,
         plot_layers.Text,

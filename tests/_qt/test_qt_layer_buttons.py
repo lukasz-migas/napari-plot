@@ -18,6 +18,7 @@ def test_add_layer_menu_lists_all_supported_layers(qtbot) -> None:
     assert [action.text() for action in menu.actions()] == [
         "Add Line",
         "Add Bar",
+        "Add Rectangles",
         "Add Scatter",
         "Add MultiLine",
         "Add Centroids",
@@ -34,6 +35,7 @@ def test_add_layer_menu_lists_all_supported_layers(qtbot) -> None:
     [
         ("Line", "Line"),
         ("Bar", "Bar"),
+        ("Rectangles", "Rectangles"),
         ("Scatter", "Scatter"),
         ("MultiLine", "MultiLine"),
         ("Centroids", "Centroids"),
@@ -54,7 +56,7 @@ def test_add_empty_layer(layer_name: str, expected_type: str) -> None:
     assert viewer.layers[-1] is layer
 
 
-@pytest.mark.parametrize("layer_name", ["Bar", "Centroids", "MultiLine"])
+@pytest.mark.parametrize("layer_name", ["Bar", "Centroids", "MultiLine", "Rectangles"])
 def test_add_empty_layer_is_safe_in_qt_viewer(make_napari_plot_viewer, layer_name: str) -> None:
     """Empty custom layers initialize controls and visuals, then accept data."""
     viewer = make_napari_plot_viewer()
@@ -71,6 +73,13 @@ def test_add_empty_layer_is_safe_in_qt_viewer(make_napari_plot_viewer, layer_nam
         assert not visual.node.mesh.visible
         layer.data = [[0, 1]]
         assert visual.node.mesh.visible
+    elif layer_name == "Rectangles":
+        visual = qt_viewer.canvas.layer_to_visual[layer]
+        assert not visual.node.outlines.visible
+        layer.set_data([[10, 200]], 4, 6)
+        assert visual.node.outlines.visible
+        controls.markers_checkbox.setChecked(True)
+        assert visual.node.markers.visible
     elif layer_name == "Centroids":
         assert not controls.selection_spin.isEnabled()
         layer.data = [[0, 0, 1]]

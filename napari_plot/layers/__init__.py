@@ -17,6 +17,7 @@ from napari_plot.layers.centroids import Centroids
 from napari_plot.layers.infline import InfLine
 from napari_plot.layers.line import Line
 from napari_plot.layers.multiline import MultiLine
+from napari_plot.layers.rectangles import Rectangles
 from napari_plot.layers.region import Region
 from napari_plot.layers.scatter import Scatter
 from napari_plot.layers.text import Text
@@ -24,7 +25,7 @@ from napari_plot.layers.text import Text
 
 def _register_custom_layer_types() -> None:
     """Register custom layers and their data types with napari."""
-    for layer_type in (Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text):
+    for layer_type in (Bar, Centroids, InfLine, Line, MultiLine, Rectangles, Region, Scatter, Text):
         type_name = layer_type.__name__.lower()
         data_type_name = f"{type_name.title()}Data"
         _napari_layers.NAMES.add(type_name)
@@ -46,6 +47,7 @@ __all__ = [
     "Line",
     "MultiLine",
     "Points",
+    "Rectangles",
     "Region",
     "Scatter",
     "Shapes",
