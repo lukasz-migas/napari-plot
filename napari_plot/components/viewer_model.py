@@ -631,22 +631,33 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self,
         xmin: float,
         xmax: float,
-        ymin: float = 0,
+        ymin: float | None = 0,
         auto_scale: bool = True,
         y_multiplier: float = 1.0,
-    ):
-        """Calculate range for specified x-axis range."""
-        _, _, real_ymin, real_ymax = self._get_rect_extent()
-        if auto_scale:
-            ymin, ymax = get_range_extent(
-                real_ymin,
-                real_ymax,
-                *get_layers_x_region_extent(xmin, xmax, self.layers),
-                ymin,
-            )
-        else:
-            ymin, ymax = real_ymin, real_ymax
-        return ymin, ymax * y_multiplier
+    ) -> tuple[float, float]:
+        """Calculate y-axis range for the specified x-axis range.
+
+        When ``auto_scale`` is enabled, the range is fitted to the data of layers that can report their y-axis extent
+        within an x-axis window (e.g. line or centroids). If no such layer exists (e.g. scatter only), the current
+        y-axis view is kept. ``ymin`` acts as a baseline that is always included and never padded, while the data ends
+        are padded by ``y_multiplier - 1`` of the range.
+        """
+        if not auto_scale:
+            _, _, real_ymin, real_ymax = self._get_rect_extent()
+            return real_ymin, real_ymax * y_multiplier
+
+        region_min, region_max = get_layers_x_region_extent(xmin, xmax, self.layers)
+        if region_min is None:
+            _, _, current_ymin, current_ymax = self.camera.rect
+            return current_ymin, current_ymax
+
+        lower, upper = get_min_max([region_min, region_max] if ymin is None else [region_min, region_max, ymin])
+        padding = (upper - lower) * (y_multiplier - 1)
+        if ymin is None or lower < ymin:
+            lower -= padding
+        if ymin is None or upper > ymin:
+            upper += padding
+        return lower, upper
 
     def _get_x_range_extent_for_y(self, ymin: float, ymax: float, auto_scale: bool = True):
         """Calculate range for specified x-axis range."""

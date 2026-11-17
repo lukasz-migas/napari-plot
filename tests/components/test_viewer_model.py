@@ -279,3 +279,28 @@ def test_not_mutable_fields(field):
         setattr(viewer, field, "test")
 
     assert "Field is frozen" in str(err.value)
+
+
+def test_reset_current_y_view_keeps_y_for_scatter() -> None:
+    """Scatter layers cannot report y for an x-window, so the current y-axis view must be kept."""
+    viewer = ViewerModel()
+    viewer.add_scatter(np.asarray([[-1.0, -1.0], [1.0, 1.0]]))
+    viewer.camera.rect = (-4.0, 4.0, -8.0, 8.0)
+    viewer.reset_current_y_view()
+    assert viewer.camera.rect == (-4.0, 4.0, -8.0, 8.0)
+
+
+@pytest.mark.parametrize(
+    ("y", "expected"),
+    [
+        ([1.0, 10.0], (0.0, 10.5)),  # positive - baseline stays at 0
+        ([-10.0, -1.0], (-10.5, 0.0)),  # negative - baseline stays at 0
+        ([-5.0, 5.0], (-5.5, 5.5)),  # signed - both ends padded
+    ],
+)
+def test_reset_current_y_view_pads_data_ends(y, expected) -> None:
+    viewer = ViewerModel()
+    viewer.add_centroids(np.c_[[1.0, 2.0], y])
+    viewer.camera.rect = (0.0, 3.0, 0.0, 1.0)
+    viewer.reset_current_y_view()
+    np.testing.assert_allclose(viewer.camera.rect, (0.0, 3.0, *expected))

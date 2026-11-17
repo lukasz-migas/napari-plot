@@ -77,3 +77,19 @@ def test_centroids_color_change():
     data = np.random.random((5, 3))
     layer.data = data
     assert len(layer.color) == len(data)
+
+
+def test_centroids_x_region_extent_vertical():
+    """Region extent spans the start and end of each stick within the window, including signed values."""
+    layer = Centroids(np.asarray([[1.0, -3.0], [2.0, 4.0], [3.0, 10.0]]))
+    assert layer._get_x_region_extent(0.5, 2.5) == (-3.0, 4.0)
+    assert layer._get_x_region_extent(2.0, 3.0) == (0.0, 10.0)
+    assert layer._get_x_region_extent(5.0, 6.0) == (None, None)
+
+
+def test_centroids_x_region_extent_horizontal():
+    """Horizontal centroids report the y-position of sticks crossing the window."""
+    layer = Centroids(np.asarray([[1.0, 0.0, 5.0], [2.0, 0.0, 1.0], [3.0, 4.0, 8.0]]), orientation="horizontal")
+    assert layer._get_x_region_extent(2.0, 3.0) == (1.0, 1.0)
+    assert layer._get_x_region_extent(4.5, 6.0) == (1.0, 3.0)
+    assert layer._get_x_region_extent(9.0, 10.0) == (None, None)

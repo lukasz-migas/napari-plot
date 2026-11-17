@@ -269,11 +269,18 @@ class Centroids(BaseLayer):
             return np.full((2, 2), np.nan)
         return get_extents(self.data, self.orientation)
 
-    def _get_x_region_extent(self, x_min: float, x_max: float) -> tuple[float, float]:
-        """Return data extents in the (xmin, xmax, ymin, ymax) format."""
-        from napari_plot.utils.utilities import find_nearest_index, get_min_max
-
+    def _get_x_region_extent(self, x_min: float, x_max: float) -> tuple[float | None, float | None]:
+        """Return the y-axis extent of centroids that intersect the ``x_min``-``x_max`` interval."""
         if self.data.size == 0:
             return None, None
-        idx_min, idx_max = find_nearest_index(self.data[:, 0], [x_min, x_max])
-        return get_min_max(self.data[idx_min:idx_max, 1])
+        if self.orientation == "horizontal":
+            # columns are y, x-start, x-end
+            starts, ends = self.data[:, 1:].min(axis=1), self.data[:, 1:].max(axis=1)
+            y = self.data[(starts <= x_max) & (ends >= x_min), 0]
+        else:
+            # columns are x, y-start, y-end
+            x = self.data[:, 0]
+            y = self.data[(x >= x_min) & (x <= x_max), 1:]
+        if y.size == 0:
+            return None, None
+        return float(y.min()), float(y.max())
