@@ -31,3 +31,8 @@ def test_line_change_data():
         layer.x = new_data
     with pytest.raises(ValueError):
         layer.y = new_data
+
+
+def test_line_x_region_extent_includes_last_point():
+    layer = Line(np.asarray([[0.0, 1.0], [1.0, 2.0], [2.0, 9.0]]))
+    assert layer._get_x_region_extent(0.0, 2.0) == [1.0, 9.0]

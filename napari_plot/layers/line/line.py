@@ -226,4 +226,4 @@ class Line(BaseLayer):
         from napari_plot.utils.utilities import find_nearest_index, get_min_max
 
         idx_min, idx_max = find_nearest_index(self.x, [x_min, x_max])
-        return get_min_max(self.y[idx_min:idx_max])
+        return get_min_max(self.y[idx_min : idx_max + 1])
