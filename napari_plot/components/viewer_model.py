@@ -27,6 +27,7 @@ from napari.utils.interactions import _discard_active_generators
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import camel_to_snake, is_sequence
 from napari.utils.mouse_bindings import MousemapProviderPydantic
+from numpy.typing import ArrayLike
 from pydantic import Field, PrivateAttr, field_validator
 
 from napari_plot import layers as np_layers
@@ -945,6 +946,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         from napari.layers.labels._labels_key_bindings import labels_fun_to_mode
         from napari.layers.points._points_key_bindings import points_fun_to_mode
         from napari.layers.shapes._shapes_key_bindings import shapes_fun_to_mode
+        from napari.layers.vectors._vectors_key_bindings import vectors_fun_to_mode
         from napari.settings import get_settings
 
         from napari_plot.layers.centroids._centroids_key_bindings import centroids_fun_to_mode
@@ -956,7 +958,6 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
         # from napari.layers.surface._surface_key_bindings import surface_fun_to_mode
         # from napari.layers.tracks._tracks_key_bindings import tracks_fun_to_mode
-        # from napari.layers.vectors._vectors_key_bindings import vectors_fun_to_mode
         from napari_plot.utils.action_manager import action_manager
 
         layer_to_func_and_mode: dict[type[n_layers.Layer], list] = {
@@ -964,7 +965,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             n_layers.Labels: labels_fun_to_mode,
             n_layers.Shapes: shapes_fun_to_mode,
             n_layers.Image: image_fun_to_mode,
-            # n_layers.Vectors: vectors_fun_to_mode,
+            n_layers.Vectors: vectors_fun_to_mode,
             # n_layers.Surface: surface_fun_to_mode,
             # n_layers.Tracks: tracks_fun_to_mode,
             np_layers.Line: line_fun_to_mode,
@@ -1048,6 +1049,41 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         """Add scatter points from ``scatter(y)`` or ``scatter(x, y)`` coordinates."""
         # Scatter follows napari's row/column convention and stores (y, x).
         return self.add_scatter(_plot_data(x, y)[:, ::-1], **kwargs)
+
+    def fill_between(self, x: ArrayLike, y1: ArrayLike, y2: ArrayLike = 0, **kwargs: Any) -> np_layers.Band:
+        """Fill between two bounds on a shared x grid. Either bound can be a scalar."""
+        x_values = np.asarray(x)
+        if x_values.ndim != 1:
+            raise ValueError("x must be one-dimensional.")
+        bounds = []
+        for bound in (y1, y2):
+            values = np.asarray(bound)
+            if values.ndim == 0:
+                values = np.broadcast_to(values, x_values.shape)
+            if values.shape != x_values.shape:
+                raise ValueError("Band bounds must be scalars or have the same shape as x.")
+            bounds.append(values)
+        return self.add_band(np.column_stack((x_values, *bounds)), **kwargs)
+
+    def errorbar(
+        self,
+        x: ArrayLike,
+        y: ArrayLike,
+        *,
+        xerr: ArrayLike | None = None,
+        yerr: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> np_layers.ErrorBar:
+        """Draw intervals from scalar, per-point, or (2, N) lower and upper offsets."""
+        centers = _plot_data(x, np.asarray(y))
+        count = len(centers)
+        offsets = []
+        for error in (xerr, yerr):
+            values = np.asarray(error, dtype=float) if error is not None else np.asarray(np.nan)
+            if values.shape not in {(), (count,), (2, count)}:
+                raise ValueError("Error offsets must be a scalar, (N,), or (2, N).")
+            offsets.append(np.broadcast_to(values, (2, count)).T)
+        return self.add_error_bar(np.column_stack((centers, *offsets)), **kwargs)
 
     def imshow(self, data: Any, **kwargs: Any) -> n_layers.Image | list[n_layers.Image]:
         """Display an image using the standard image-layer API."""
@@ -1318,11 +1354,13 @@ for _layer in [
     n_layers.Shapes,
     n_layers.Image,
     n_layers.Labels,
+    n_layers.Vectors,
     # n_layers.Tracks,  # 3d
-    # n_layers.Vectors,  # 3d
     # n_layers.Surface,  # 3d
     # napari-plot layers
+    np_layers.Band,
     np_layers.Bar,
+    np_layers.ErrorBar,
     np_layers.Line,
     np_layers.Rectangles,
     np_layers.Scatter,

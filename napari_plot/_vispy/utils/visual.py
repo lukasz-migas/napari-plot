@@ -4,8 +4,10 @@ import napari._vispy.utils.visual
 from napari._vispy.utils.visual import create_vispy_layer, create_vispy_overlay
 from napari.components.overlays import TextOverlay
 
+from napari_plot._vispy.layers.band import VispyBandLayer
 from napari_plot._vispy.layers.bar import VispyBarLayer
 from napari_plot._vispy.layers.centroids import VispyCentroidsLayer
+from napari_plot._vispy.layers.error_bar import VispyErrorBarLayer
 from napari_plot._vispy.layers.infline import VispyInfLineLayer
 from napari_plot._vispy.layers.line import VispyLineLayer
 from napari_plot._vispy.layers.multiline import VispyMultiLineLayer
@@ -16,10 +18,24 @@ from napari_plot._vispy.layers.text import VispyTextLayer
 from napari_plot._vispy.overlays.grid_lines import VispyGridLinesOverlay
 from napari_plot._vispy.overlays.text import VispyTextOverlay
 from napari_plot.components.grid_lines import GridLinesOverlay
-from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Rectangles, Region, Scatter, Text
+from napari_plot.layers import (
+    Band,
+    Bar,
+    Centroids,
+    ErrorBar,
+    InfLine,
+    Line,
+    MultiLine,
+    Rectangles,
+    Region,
+    Scatter,
+    Text,
+)
 
 layer_to_visual = {
+    Band: VispyBandLayer,
     Bar: VispyBarLayer,
+    ErrorBar: VispyErrorBarLayer,
     Line: VispyLineLayer,
     Centroids: VispyCentroidsLayer,
     Scatter: VispyScatterLayer,

@@ -8,8 +8,10 @@ from napari_plot import layers as plot_layers
 def test_custom_layer_registration_matches_napari_contract() -> None:
     """Every registered layer should expose the attributes napari expects."""
     custom_layers = (
+        plot_layers.Band,
         plot_layers.Bar,
         plot_layers.Centroids,
+        plot_layers.ErrorBar,
         plot_layers.InfLine,
         plot_layers.Line,
         plot_layers.MultiLine,

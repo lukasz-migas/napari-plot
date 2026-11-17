@@ -9,13 +9,23 @@ import pytest
 from napari.components import LayerList
 from napari.layers._layer_actions import _duplicate_layer
 
-from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
 from napari_plot.layers.base import LayerMixin
 
 
 @pytest.mark.parametrize(
     ("factory", "state_keys"),
     [
+        pytest.param(
+            lambda: Band([[0, 1, 2], [1, 2, 3]], fill_color="red", opacity=0.4),
+            ("fill_color", "opacity"),
+            id="band",
+        ),
+        pytest.param(
+            lambda: ErrorBar([[1, 2, np.nan, np.nan, 1, 3]], color="cyan", width=2, cap_size=5),
+            ("color", "width", "cap_size"),
+            id="error-bar",
+        ),
         pytest.param(
             lambda: Bar(
                 [[0, 2], [1, 3]],
