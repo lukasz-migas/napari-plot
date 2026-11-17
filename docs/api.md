@@ -16,14 +16,17 @@ The following names are importable directly from `napari_plot`:
 
 - `viewer.plot(y, **kwargs)` and `viewer.plot(x, y, **kwargs)` add a Line.
 - `viewer.scatter(y, **kwargs)` and `viewer.scatter(x, y, **kwargs)` add Scatter points.
+- `viewer.fill_between(x, y1, y2=0, **kwargs)` adds a Band.
+- `viewer.errorbar(x, y, xerr=..., yerr=..., **kwargs)` adds an ErrorBar layer.
 - `viewer.imshow(data, **kwargs)` adds one or more napari Image layers.
 - `viewer.vbar(values, **kwargs)` and `viewer.vbar(x, height, **kwargs)` add vertical bars.
 - `viewer.hbar(values, **kwargs)` and `viewer.hbar(y, width, **kwargs)` add horizontal bars.
 
 Keyword arguments are forwarded to the corresponding layer constructor. The
-lower-level methods `add_line`, `add_scatter`, `add_image`, `add_bar`,
-`add_multi_line`, `add_centroids`, `add_text`, `add_rectangles`, `add_region`, and `add_inf_line`
-are also public.
+lower-level methods `add_line`, `add_scatter`, `add_image`, `add_band`, `add_bar`,
+`add_error_bar`, `add_multi_line`, `add_centroids`, `add_text`, `add_rectangles`,
+`add_region`, and `add_inf_line` are also public. `add_vectors` uses napari's
+native Vectors interface.
 
 ## Layer classes
 
@@ -31,8 +34,10 @@ Layer classes are importable from `napari_plot.layers`:
 
 ```python
 from napari_plot.layers import (
+    Band,
     Bar,
     Centroids,
+    ErrorBar,
     InfLine,
     Line,
     MultiLine,
@@ -40,6 +45,7 @@ from napari_plot.layers import (
     Region,
     Scatter,
     Text,
+    Vectors,
 )
 ```
 

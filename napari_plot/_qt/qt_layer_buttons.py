@@ -35,7 +35,9 @@ def _add_empty_layer(viewer, layer_name: str):
         "Points": lambda: viewer.add_points(ndim=max(viewer.dims.ndim, 2), scale=scale),
         "Shapes": lambda: viewer.add_shapes(ndim=max(viewer.dims.ndim, 2), scale=scale),
         "Line": lambda: viewer.add_line(np.empty((0, 2)), scale=scale, name="Line"),
+        "Band": lambda: viewer.add_band(scale=scale, name="Band"),
         "Bar": lambda: viewer.add_bar(None, scale=scale, name="Bar"),
+        "ErrorBar": lambda: viewer.add_error_bar(scale=scale, name="Error bars"),
         "Rectangles": lambda: viewer.add_rectangles(scale=scale, name="Rectangles"),
         "Scatter": lambda: viewer.add_scatter(None, scale=scale, name="Scatter"),
         "MultiLine": lambda: viewer.add_multi_line(None, scale=scale, name="MultiLine"),
@@ -52,7 +54,9 @@ def create_add_layer_menu(parent: QWidget, viewer) -> QMenu:
     menu = QMenu(parent)
     for layer_name in (
         "Line",
+        "Band",
         "Bar",
+        "ErrorBar",
         "Rectangles",
         "Scatter",
         "MultiLine",

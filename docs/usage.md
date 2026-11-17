@@ -61,6 +61,76 @@ a bar to toggle its selection; `layer.remove_selected()` deletes selected bars.
 Text supports one label or one label per coordinate, font size, color,
 horizontal and vertical alignment, rotation, and xy offsets.
 
+### Band
+
+Plot a mean tissue profile over a band showing variation across line profiles.
+Either bound can be a scalar, such as a zero baseline when shading a peak.
+
+```python
+distance = [0, 25, 50, 75, 100]
+mean = [0.15, 0.40, 0.72, 0.58, 0.29]
+band = viewer.fill_between(
+    distance,
+    [0.10, 0.28, 0.60, 0.44, 0.21],
+    [0.20, 0.52, 0.84, 0.72, 0.37],
+    fill_color="cyan",
+    opacity=0.25,
+    name="Mean +/- SD",
+)
+viewer.plot(distance, mean, color="cyan", name="Mean")
+```
+
+`viewer.add_band(data)` and `band.data` use `(x, y1, y2)` rows. Use strictly
+increasing or decreasing x coordinates and place NaN in either bound to break
+the fill at a missing sample. Assign new rows to `band.data` to update all
+coordinates together.
+
+### Error bars
+
+Add asymmetric measurement intervals to calibration points. Supply lower and
+upper offsets as two rows, in the same units as the corresponding axis.
+
+```python
+concentration = [1, 2, 4]
+intensity = [12, 23, 45]
+errors = viewer.errorbar(
+    concentration,
+    intensity,
+    yerr=[[1, 2, 4], [2, 3, 6]],
+    cap_size=6,
+    color="orange",
+    name="Measurement intervals",
+)
+viewer.scatter(concentration, intensity, face_color="orange", name="Standards")
+```
+
+`xerr` and `yerr` accept a scalar, one symmetric offset per point, or a
+`(2, N)` array of lower and upper offsets. Leave either argument out to omit
+that axis. `viewer.add_error_bar(data)` and `errors.data` use
+`(x, y, x_minus, x_plus, y_minus, y_plus)` rows with paired NaNs for an
+omitted interval. Set `width` and `cap_size` in screen pixels. Set
+`cap_size=0` to hide the caps.
+
+### 2D vectors
+
+Overlay registration residuals on an image with napari's native Vectors
+layer. Each vector has a `(y, x)` start and a `(dy, dx)` displacement.
+With `length=1`, the endpoint is the start plus the displacement.
+
+```python
+import numpy as np
+
+viewer.add_image(np.zeros((30, 40)), units=("um", "um"))
+viewer.add_vectors(
+    np.array([[[10, 20], [3, -5]], [[18, 30], [-2, 4]]]),
+    name="Registration residuals",
+    vector_style="arrow",
+    edge_color="cyan",
+    length=1,
+    units=("um", "um"),
+)
+```
+
 ### Rectangles
 
 Use Rectangles to display windows in plot coordinates such as retention time
