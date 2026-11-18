@@ -9,7 +9,7 @@ import pytest
 from napari._vispy.utils.qt_font import FontInfo
 from napari._vispy.utils.visual import overlay_to_visual
 from napari.components._viewer_constants import CanvasPosition
-from vispy.scene import Widget
+from vispy.scene import ViewBox, Widget
 
 from napari_plot._qt.component_controls.qt_legend_controls import QtLegendControls
 from napari_plot._vispy.overlays import register_vispy_overlays
@@ -118,6 +118,32 @@ def test_vispy_legend_registration_and_geometry() -> None:
     assert visual.x_size == 0
     assert visual.y_size == 0
     visual.close()
+
+
+def test_vispy_legend_markers_follow_parent_clipper() -> None:
+    """Markers added after parenting to a ViewBox can be detached from its clipper."""
+    viewer = ViewerModel()
+    overlay = viewer.set_legend([{"label": "a"}])
+    visual = VispyLegendOverlay(viewer=viewer, overlay=overlay, font_info=FontInfo())
+    view_box = ViewBox()
+    visual.node.parent = view_box
+
+    overlay.set_entries([{"label": label, "marker": "square", "color": "red"} for label in "abc"])
+    assert len(visual._markers) == 3
+    overlay.set_entries([{"label": "a", "marker": "square", "color": "red"}])
+    assert len(visual._markers) == 1
+    assert all(view_box._clipper in marker._filters for marker in visual._markers)
+
+    visual.node.parent = None
+    assert all(view_box._clipper not in marker._filters for marker in visual._markers)
+    visual.close()
+
+
+def test_viewer_with_explicit_legend_closes_cleanly(make_napari_plot_viewer) -> None:
+    """Closing a viewer with explicit legend entries tears down the overlay without errors."""
+    viewer = make_napari_plot_viewer(show=True)
+    viewer.set_legend([{"label": "a", "marker": "square", "color": "red"}])
+    viewer.close()
 
 
 def test_vispy_legend_click_toggles_layer() -> None:

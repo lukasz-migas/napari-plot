@@ -132,11 +132,20 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._on_data_change()
 
     def _ensure_marker_count(self, count: int) -> None:
+        # vispy's Compound only attaches parent clippers to subvisuals present at attach time,
+        # but detaches them from all current subvisuals, so keep late-added markers in sync.
+        clippers = list(getattr(self.node, "_clippers", {}).values())
         while len(self._markers) > count:
-            self.node.remove_subvisual(self._markers.pop())
+            marker = self._markers.pop()
+            for clipper in clippers:
+                with suppress(ValueError):
+                    marker.detach(clipper, marker)
+            self.node.remove_subvisual(marker)
         while len(self._markers) < count:
             marker = Markers(scaling="fixed")
             self.node.add_subvisual(marker)
+            for clipper in clippers:
+                marker.attach(clipper, marker)
             self._markers.append(marker)
 
     def _clear_visuals(self) -> None:
