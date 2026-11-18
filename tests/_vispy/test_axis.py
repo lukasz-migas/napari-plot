@@ -319,3 +319,27 @@ def test_categorical_ticker_thins_overlapping_labels(monkeypatch) -> None:
     np.testing.assert_allclose(major, [0.0, 1.0, 2.0, 3.0])
     assert 0 < sum(bool(label) for label in labels) < len(labels)
     assert not _tick_labels_overlap(axis, major, labels, axis.domain)
+
+
+def test_multiline_labels_measure_widest_line_and_stacked_height(qapp) -> None:
+    """Wrapped labels are as wide as their longest line and as tall as all their lines."""
+    horizontal = _make_axis(tick_font_size=12.0)
+    vertical = _make_axis(tick_font_size=12.0, vertical=True)
+
+    one_line, wrapped = _tick_label_extents(horizontal, ["Test (Negative)", "Test\n(Negative)"])
+    assert wrapped < one_line
+    single, double = _tick_label_extents(vertical, ["Test", "Test\n(Negative)"])
+    np.testing.assert_allclose(double, 2 * single)
+
+
+def test_category_formatter_changes_displayed_labels(make_napari_plot_viewer) -> None:
+    """The axis category formatter rewrites the tick text but keeps the categories."""
+    from napari_plot.components.axis import wrap_label
+
+    viewer = make_napari_plot_viewer()
+    viewer.axis.y_categories = ("Test (Negative)", "Brain")
+    viewer.axis.y_category_formatter = wrap_label
+
+    ticker = viewer.window._qt_viewer.canvas.y_axis.node.axis.ticker
+    assert ticker.category_labels == ("Test\n(Negative)", "Brain")
+    assert viewer.axis.y_categories == ("Test (Negative)", "Brain")

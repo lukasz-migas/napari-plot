@@ -1,10 +1,18 @@
 """Axes visual"""
 
+from collections.abc import Callable
 from typing import ClassVar
 
 from vispy.scene import AxisWidget
 
 from napari_plot.components.axis import AxisScale
+
+
+def _format_categories(categories: tuple[str, ...] | None, formatter: Callable[[str], str] | None) -> tuple[str, ...]:
+    """Return the displayed categorical tick labels."""
+    if not categories:
+        return ()
+    return categories if formatter is None else tuple(str(formatter(label)) for label in categories)
 
 
 class VispyAxisVisual:
@@ -92,6 +100,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.x_tick_formatter.connect(self.on_tick_formatter_change)
         self._viewer.axis.events.x_scale.connect(self._on_scale_change)
         self._viewer.axis.events.x_categories.connect(self._on_scale_change)
+        self._viewer.axis.events.x_category_formatter.connect(self._on_scale_change)
         self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
@@ -123,7 +132,9 @@ class VispyXAxisVisual(VispyAxisVisual):
             AxisScale.LOG: "logarithmic",
             AxisScale.CATEGORICAL: "categorical",
         }[scale]
-        self.node.axis.ticker.category_labels = self._viewer.axis.x_categories or ()
+        self.node.axis.ticker.category_labels = _format_categories(
+            self._viewer.axis.x_categories, self._viewer.axis.x_category_formatter
+        )
         self._refresh_tick_layout()
 
 
@@ -141,6 +152,7 @@ class VispyYAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.y_tick_formatter.connect(self.on_tick_formatter_change)
         self._viewer.axis.events.y_scale.connect(self._on_scale_change)
         self._viewer.axis.events.y_categories.connect(self._on_scale_change)
+        self._viewer.axis.events.y_category_formatter.connect(self._on_scale_change)
         self._on_scale_change()
 
     def _on_label_change(self, _evt=None):
@@ -172,5 +184,7 @@ class VispyYAxisVisual(VispyAxisVisual):
             AxisScale.LOG: "logarithmic",
             AxisScale.CATEGORICAL: "categorical",
         }[scale]
-        self.node.axis.ticker.category_labels = self._viewer.axis.y_categories or ()
+        self.node.axis.ticker.category_labels = _format_categories(
+            self._viewer.axis.y_categories, self._viewer.axis.y_category_formatter
+        )
         self._refresh_tick_layout()

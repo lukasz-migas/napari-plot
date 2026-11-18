@@ -203,28 +203,34 @@ def test_camera():
     data = np.c_[x, y]
     viewer.add_line(data)
     assert len(viewer.layers) == 1
-    assert viewer.camera.extent == (x.min(), x.max(), y.min(), y.max())
+    # the extent is padded by half the line width (in screen pixels) so the line at the data edge is not clipped
+    x_min, x_max, y_min, y_max = viewer.camera.extent
+    assert x_min < x.min()
+    assert y_min < y.min()
+    assert x_max > x.max()
+    assert y_max > y.max()
+    np.testing.assert_allclose(viewer.camera.extent, (x.min(), x.max(), y.min(), y.max()), atol=0.05)
     assert viewer.camera.extent == viewer.camera._extent == viewer.camera.get_effective_extent()
 
     # check x-range and make sure that it is always respected
     viewer.camera.set_x_range(None, 10)
-    assert viewer.camera.get_effective_extent() == (x.min(), 10, y.min(), y.max())
+    assert viewer.camera.get_effective_extent() == (x_min, 10, y_min, y_max)
     viewer.camera.set_x_range(-25, None)
-    assert viewer.camera.get_effective_extent() == (-25, x.max(), y.min(), y.max())
+    assert viewer.camera.get_effective_extent() == (-25, x_max, y_min, y_max)
     viewer.camera.x_range = (-10, 15)
-    assert viewer.camera.get_effective_extent() == (-10, 15, y.min(), y.max())
+    assert viewer.camera.get_effective_extent() == (-10, 15, y_min, y_max)
 
     # make sure that x-range resets the effective extent
     viewer.camera.x_range = None
-    assert viewer.camera.get_effective_extent() == (x.min(), x.max(), y.min(), y.max())
+    assert viewer.camera.get_effective_extent() == (x_min, x_max, y_min, y_max)
 
     # check x-range and make sure that it is always respected
     viewer.camera.set_y_range(None, 20)
-    assert viewer.camera.get_effective_extent() == (x.min(), x.max(), y.min(), 20)
+    assert viewer.camera.get_effective_extent() == (x_min, x_max, y_min, 20)
     viewer.camera.set_y_range(-20, None)
-    assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -20, y.max())
+    assert viewer.camera.get_effective_extent() == (x_min, x_max, -20, y_max)
     viewer.camera.y_range = (-10, 15)
-    assert viewer.camera.get_effective_extent() == (x.min(), x.max(), -10, 15)
+    assert viewer.camera.get_effective_extent() == (x_min, x_max, -10, 15)
 
 
 def test_log_extent_uses_smallest_positive_values() -> None:
@@ -304,3 +310,31 @@ def test_reset_current_y_view_pads_data_ends(y, expected) -> None:
     viewer.camera.rect = (0.0, 3.0, 0.0, 1.0)
     viewer.reset_current_y_view()
     np.testing.assert_allclose(viewer.camera.rect, (0.0, 3.0, *expected))
+
+
+def test_image_extent_includes_half_pixel_edges() -> None:
+    """Images are drawn with pixels centered on their indices, so the extent reaches the pixel edges."""
+    viewer = ViewerModel()
+    viewer.camera.extent_mode = "restricted"
+    viewer.add_image(np.zeros((2, 4)))
+    assert viewer._get_rect_extent() == (-0.5, 3.5, -0.5, 1.5)
+    viewer.reset_view()
+    assert viewer.camera.rect == (-0.5, 3.5, -0.5, 1.5)
+
+
+def test_extent_leaves_room_for_pixel_sized_markers() -> None:
+    """Markers sized in screen pixels at the data edge are not clipped."""
+    viewer = ViewerModel()
+    viewer._canvas_size = (220, 420)
+    viewer.add_scatter(np.asarray([[0.0, 0.0], [1.0, 1.0]]), size=20, scaling=False, border_width=0)
+    xmin, xmax, ymin, ymax = viewer._get_rect_extent()
+    # 10 px on each side of a 400 px (x) / 200 px (y) usable canvas
+    np.testing.assert_allclose((xmin, xmax, ymin, ymax), (-0.025, 1.025, -0.05, 1.05))
+
+
+def test_extent_padding_keeps_positive_data_positive() -> None:
+    """Padding never pushes strictly positive data below zero, so switching to a log axis stays valid."""
+    viewer = ViewerModel()
+    viewer.add_line(np.asarray([[0.001, 0.001], [10.0, 10.0]]), width=20)
+    xmin, _, ymin, _ = viewer._get_rect_extent()
+    assert xmin == ymin == 0.001

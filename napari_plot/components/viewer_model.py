@@ -147,6 +147,18 @@ def _create_stats_method(func):
     return _plot
 
 
+def _pad_by_pixels(lower: float, upper: float, pad_px: float, size_px: float) -> tuple[float, float]:
+    """Widen ``lower``-``upper`` so ``pad_px`` screen pixels fit on each side when shown across ``size_px`` pixels."""
+    span = upper - lower
+    if pad_px <= 0 or not np.isfinite(span) or span <= 0:
+        return lower, upper
+    usable = max(float(size_px) - 2 * pad_px, 1.0)
+    pad = span * pad_px / usable
+    # keep strictly positive data positive so the extent stays valid if an axis is switched to log scale
+    padded_lower = lower if 0 < lower <= pad else lower - pad
+    return padded_lower, upper + pad
+
+
 def _plot_data(x: Any, y: Any | None = None) -> np.ndarray:
     """Return validated ``(x, y)`` rows for plotting helpers."""
     if y is None:
@@ -320,7 +332,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         text_color: LegendColorLike = "white",
         font_size: float | None = None,
         marker_size: float = 10.0,
-        row_spacing: float = 4.0,
+        row_spacing: float = 9.0,
         padding: float = 6.0,
         background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
         border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
@@ -353,7 +365,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         text_color: LegendColorLike = "white",
         font_size: float | None = None,
         marker_size: float = 10.0,
-        row_spacing: float = 4.0,
+        row_spacing: float = 9.0,
         padding: float = 6.0,
         background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
         border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
@@ -555,8 +567,10 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.events.clear_canvas()
 
     def reset_plot(self) -> None:
-        """Remove all layers and reset what plots leave behind: categorical axes, log scales and the legend."""
+        """Remove all layers and reset what plots leave behind: categorical axes, log scales, fixed ranges and legend."""
         self.clear_canvas()
+        self.camera.x_range = None
+        self.camera.y_range = None
         self.axis.x_categories = None
         self.axis.y_categories = None
         self.axis.x_scale = "linear"
@@ -591,17 +605,42 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         return self.layers._extent_world_augmented[:, self.dims.displayed]
 
     def _get_rect_extent(self) -> tuple[float, ...]:
-        """Get data extent"""
+        """Get data extent, including image pixel edges and room for line widths and marker sizes."""
         extent = self._sliced_extent_world
         ymin, ymax = get_min_max(extent[:, 0])
+        xmin, xmax = get_min_max(extent[:, 1])
+        for layer in self.layers:
+            # image pixels are centered on their coordinates, so the rendered image extends half a pixel further
+            if layer.visible and isinstance(layer, (n_layers.Image, n_layers.Labels)):
+                augmented = layer._extent_world_augmented[:, -2:]
+                ymin, ymax = min(ymin, augmented[0, 0]), max(ymax, augmented[1, 0])
+                xmin, xmax = min(xmin, augmented[0, 1]), max(xmax, augmented[1, 1])
+        pad_px = self._extent_padding_px()
+        height, width = self._canvas_size
+        if self.axis.x_scale is AxisScale.LINEAR:
+            xmin, xmax = _pad_by_pixels(xmin, xmax, pad_px, width)
+        if self.axis.y_scale is AxisScale.LINEAR:
+            ymin, ymax = _pad_by_pixels(ymin, ymax, pad_px, height)
         if self.camera.y_range is not None:
             ymin, ymax = self.camera.y_range
-        xmin, xmax = get_min_max(extent[:, 1])
         if self.camera.x_range is not None:
             xmin, xmax = self.camera.x_range
         xmin, xmax = self._sanitize_log_extent(xmin, xmax, "x")
         ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
         return xmin, xmax, ymin, ymax
+
+    def _extent_padding_px(self) -> float:
+        """Return the screen-pixel padding needed so lines and pixel-sized markers at the data edge are not clipped."""
+        pad = 0.0
+        for layer in self.layers:
+            if not layer.visible:
+                continue
+            if isinstance(layer, (np_layers.Line, np_layers.MultiLine)):
+                pad = max(pad, float(layer.width) / 2)
+            elif isinstance(layer, np_layers.Scatter) and not layer.scaling and len(layer.size):
+                border = float(np.max(layer.border_width)) if not layer.border_width_is_relative else 0.0
+                pad = max(pad, float(np.max(layer.size)) / 2 + border)
+        return pad
 
     def _sanitize_log_extent(
         self,

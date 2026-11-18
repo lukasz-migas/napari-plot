@@ -38,6 +38,8 @@ ICON_MAPPING = {
     "horizontal": "mdi.drag-horizontal-variant",
     "close": "fa5s.times",
 }
+
+
 def load_assets() -> None:
     """Idempotently register napari-plot icons and styles with qtextra."""
     update_icons(ICONS_)

@@ -29,7 +29,20 @@ from napari_plot.layers.text import Text
 
 def _register_custom_layer_types() -> None:
     """Register custom layers and their data types with napari."""
-    for layer_type in (Areas, Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Rectangles, Region, Scatter, Text):
+    for layer_type in (
+        Areas,
+        Band,
+        Bar,
+        Centroids,
+        ErrorBar,
+        InfLine,
+        Line,
+        MultiLine,
+        Rectangles,
+        Region,
+        Scatter,
+        Text,
+    ):
         type_name = layer_type.__name__.lower()
         data_type_name = f"{type_name.title()}Data"
         _napari_layers.NAMES.add(type_name)

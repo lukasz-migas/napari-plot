@@ -82,15 +82,18 @@ def _tick_label_extents(axis: ty.Any, labels: list[str]) -> np.ndarray:
 
     font_dpi = float(metrics.fontDpi())
     dpi_scale = float(axis.transforms.dpi) / font_dpi if font_dpi > 0 else 1.0
-    widths = np.asarray([metrics.horizontalAdvance(label) for label in labels], dtype=float)
-    height = float(metrics.height())
+    # labels may span several lines (e.g. wrapped categories): use the widest line and the stacked height
+    widths = np.asarray(
+        [max(metrics.horizontalAdvance(line) for line in label.split("\n")) for label in labels], dtype=float
+    )
+    heights = np.asarray([metrics.height() * (label.count("\n") + 1) for label in labels], dtype=float)
 
     axis_vector = np.asarray(axis.pos[1] - axis.pos[0], dtype=float)
     axis_length = float(np.linalg.norm(axis_vector))
     if axis_length == 0:
         return np.zeros(len(labels), dtype=float)
     direction = np.abs(axis_vector[:2]) / axis_length
-    return (direction[0] * widths + direction[1] * height) * dpi_scale
+    return (direction[0] * widths + direction[1] * heights) * dpi_scale
 
 
 def _tick_labels_overlap(

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import textwrap
 import typing as ty
 from enum import StrEnum
 
@@ -44,8 +45,20 @@ def transform_axis_values(
     return transformed
 
 
+def wrap_label(label: str, width: int = 12) -> str:
+    """Break a category label on spaces into lines of at most ``width`` characters (long words are kept whole).
+
+    Use it as an axis category formatter, e.g. ``viewer.axis.y_category_formatter = wrap_label``.
+    """
+    return "\n".join(textwrap.wrap(label, width=width, break_long_words=False, break_on_hyphens=False)) or label
+
+
 class Axis(EventedModel):
-    """Axis model."""
+    """Axis model.
+
+    ``x_category_formatter`` / ``y_category_formatter`` map each categorical tick label to the displayed text
+    (e.g. :func:`wrap_label` to put words on separate lines); the categories themselves are unchanged.
+    """
 
     visible: bool = True
     x_label: str = "X-label"
@@ -66,6 +79,8 @@ class Axis(EventedModel):
     y_scale: AxisScale = AxisScale.LINEAR
     x_categories: tuple[str, ...] | None = None
     y_categories: tuple[str, ...] | None = None
+    x_category_formatter: ty.Callable[[str], str] | None = None
+    y_category_formatter: ty.Callable[[str], str] | None = None
 
     def __init__(self, **data: ty.Any) -> None:
         """Initialize the axis and synchronize categorical scale fields."""

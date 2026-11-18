@@ -202,3 +202,22 @@ def test_legend_controls_use_current_visibility(qtbot) -> None:
     assert not controls.visible_checkbox.isChecked()
     controls.visible_checkbox.click()
     assert viewer.legend.visible
+
+
+def test_legend_controls_disconnect_when_qt_closes_popup(qtbot) -> None:
+    """Reopening controls after a Qt-driven close does not call into the deleted popup."""
+    from qtpy.QtCore import QCoreApplication, QEvent
+    from qtpy.QtWidgets import QWidget
+
+    viewer = ViewerModel()
+    controls = QtLegendControls(viewer)
+    controls.show()
+    # popups closed by clicking outside go through closeEvent, not the Python ``close`` override
+    QWidget.close(controls)
+    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+    second = QtLegendControls(viewer)
+    qtbot.addWidget(second)
+    second.row_spacing_spinbox.setValue(7)
+    second.on_change_row_spacing()
+    assert viewer.legend.row_spacing == 7

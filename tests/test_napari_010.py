@@ -64,7 +64,8 @@ def test_first_layer_fits_without_overwriting_manual_ranges() -> None:
     """Initial extent invalidation fits data and preserves later user navigation."""
     viewer = ViewerModel()
     layer = viewer.plot([1, 2, 3], [1, 4, 2])
-    assert viewer.camera.rect == (1, 3, 1, 4)
+    # the fit leaves room for half the line width beyond the data
+    np.testing.assert_allclose(viewer.camera.rect, (1, 3, 1, 4), atol=0.02)
     viewer.camera.set_rect(1.5, 2.5, 2, 3)
     layer.data = np.array([[1, 1], [2, 5], [4, 2]])
     assert viewer.camera.rect == (1.5, 2.5, 2, 3)
@@ -89,8 +90,10 @@ def test_embedded_axis_domains_follow_layout(make_napari_viewer: Callable, qtbot
     host.window._qt_window.resize(800, 600)
     host.show()
     canvas = widget.qt_viewer.canvas
-    qtbot.waitUntil(lambda: np.allclose(canvas.x_axis.node.axis.domain, (1, 3), atol=1e-5))
-    qtbot.waitUntil(lambda: np.allclose(canvas.y_axis.node.axis.domain, (1, 4), atol=1e-5))
+    camera = widget.viewer_plot.camera
+    qtbot.waitUntil(lambda: np.allclose(canvas.x_axis.node.axis.domain, camera.rect[:2], atol=1e-5))
+    qtbot.waitUntil(lambda: np.allclose(canvas.y_axis.node.axis.domain, camera.rect[2:], atol=1e-5))
+    np.testing.assert_allclose(camera.rect, (1, 3, 1, 4), atol=0.05)
 
 
 @pytest.mark.parametrize("dynamic", [False, True])

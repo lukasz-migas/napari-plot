@@ -82,3 +82,18 @@ def test_categorical_axis_values_are_not_transformed() -> None:
 def test_log_axis_rejects_non_positive_limits() -> None:
     with pytest.raises(ValueError, match="must be positive"):
         transform_axis_values(0.0, AxisScale.LOG)
+
+
+@pytest.mark.parametrize(
+    ("label", "width", "expected"),
+    [
+        ("Test (Negative)", 12, "Test\n(Negative)"),
+        ("Brain", 12, "Brain"),
+        ("averyverylongsingleword", 5, "averyverylongsingleword"),
+        ("a b c", 3, "a b\nc"),
+    ],
+)
+def test_wrap_label_breaks_on_spaces(label: str, width: int, expected: str) -> None:
+    from napari_plot.components.axis import wrap_label
+
+    assert wrap_label(label, width) == expected

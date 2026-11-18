@@ -44,3 +44,24 @@ def test_axis_controls_follow_model_changes(qtbot) -> None:
     viewer.axis.y_categories = ("low", "high")
     assert controls.y_scale_combobox.currentText() == "categorical"
     assert controls.y_categories_edit.text() == "low, high"
+
+
+
+def test_axis_popup_disconnects_when_qt_closes_popup(qtbot) -> None:
+    """A Qt-driven popup close unsubscribes the inner widget from axis events."""
+    from napari_plot._qt.component_controls.qt_axis_controls import QtAxisControls
+
+    viewer = ViewerModel()
+    popup = QtAxisControls(viewer)
+    popup.show()
+    inner = popup.findChild(QtAxisWidget)
+    assert inner in _listeners(viewer.axis.events)
+
+    # popups closed by clicking outside go through closeEvent, not the Python ``close`` override
+    QWidget.close(popup)
+    assert inner not in _listeners(viewer.axis.events)
+
+
+def _listeners(events) -> set:
+    """Return objects whose bound methods are connected to a napari ``EmitterGroup``."""
+    return {cb[0]() for emitter in events.emitters.values() for cb in emitter.callbacks if isinstance(cb, tuple)}
