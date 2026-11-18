@@ -18,6 +18,7 @@ def test_add_layer_menu_lists_all_supported_layers(qtbot) -> None:
     assert [action.text() for action in menu.actions()] == [
         "Add Line",
         "Add Band",
+        "Add Areas",
         "Add Bar",
         "Add ErrorBar",
         "Add Rectangles",
@@ -37,6 +38,7 @@ def test_add_layer_menu_lists_all_supported_layers(qtbot) -> None:
     [
         ("Line", "Line"),
         ("Band", "Band"),
+        ("Areas", "Areas"),
         ("Bar", "Bar"),
         ("ErrorBar", "ErrorBar"),
         ("Rectangles", "Rectangles"),

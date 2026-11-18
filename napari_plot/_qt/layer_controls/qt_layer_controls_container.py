@@ -19,7 +19,7 @@ from qtpy.QtWidgets import QFrame
 from napari_plot._qt.layer_controls.qt_bar_controls import QtBarControls
 from napari_plot._qt.layer_controls.qt_centroids_controls import QtCentroidControls
 from napari_plot._qt.layer_controls.qt_infline_controls import QtInfLineControls
-from napari_plot._qt.layer_controls.qt_interval_controls import QtBandControls, QtErrorBarControls
+from napari_plot._qt.layer_controls.qt_interval_controls import QtAreasControls, QtBandControls, QtErrorBarControls
 from napari_plot._qt.layer_controls.qt_line_controls import QtLineControls
 from napari_plot._qt.layer_controls.qt_multiline_controls import QtMultiLineControls
 from napari_plot._qt.layer_controls.qt_rectangles_controls import QtRectanglesControls
@@ -27,6 +27,7 @@ from napari_plot._qt.layer_controls.qt_region_controls import QtRegionControls
 from napari_plot._qt.layer_controls.qt_scatter_controls import QtScatterControls
 from napari_plot._qt.layer_controls.qt_text_controls import QtTextControls
 from napari_plot.layers import (
+    Areas,
     Band,
     Bar,
     Centroids,
@@ -46,6 +47,7 @@ if TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
 layer_to_controls = {
+    Areas: QtAreasControls,
     Band: QtBandControls,
     Bar: QtBarControls,
     ErrorBar: QtErrorBarControls,

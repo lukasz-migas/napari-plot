@@ -53,7 +53,7 @@ def test_bar_hit_testing_and_validation() -> None:
     with pytest.raises(ValueError, match="positive"):
         Bar([1], width=0)
     with pytest.raises(ValueError, match="position/value"):
-        Bar(np.zeros((2, 3)))
+        Bar(np.zeros((2, 5)))
 
 
 def test_bar_x_region_extent_respects_orientation() -> None:
@@ -65,6 +65,26 @@ def test_bar_x_region_extent_respects_orientation() -> None:
     layer.orientation = "horizontal"
     assert layer._get_x_region_extent(3, 5) == (0, 11)
     assert layer._get_x_region_extent(20, 30) == (None, None)
+
+
+def test_bar_per_bar_baseline_and_width_columns() -> None:
+    """Optional third and fourth columns override the shared baseline and width."""
+    layer = Bar([[0, 5, 2], [1, 3, 1]], baseline=0, width=1)
+    np.testing.assert_array_equal(layer.baselines, [2, 1])
+    np.testing.assert_array_equal(layer.widths, [1, 1])
+    np.testing.assert_array_equal(layer._rectangle_vertices()[0], [[-0.5, 2], [0.5, 2], [0.5, 5], [-0.5, 5]])
+
+    layer.data = [[0, 5, 2, 0.4], [3, 1, -1, 2]]
+    np.testing.assert_array_equal(layer.widths, [0.4, 2])
+    np.testing.assert_array_equal(layer._rectangle_vertices()[1], [[2, -1], [4, -1], [4, 1], [2, 1]])
+    assert layer._get_x_region_extent(2.5, 3.5) == (-1, 1)
+    np.testing.assert_array_equal(layer._extent_data, [[-1, -0.2], [5, 4]])
+
+    layer.orientation = "horizontal"
+    assert layer._get_x_region_extent(-1, 0) == (2, 4)
+
+    with pytest.raises(ValueError, match="widths must be positive"):
+        Bar([[0, 1, 0, 0]])
 
 
 def test_shift_click_toggles_bar_selection(QtMouseEvent) -> None:

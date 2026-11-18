@@ -47,6 +47,9 @@ dependencies = [
 	"vispy",
 	"koyo",
     "qtextra",
+    "pandas",
+    "scipy",
+    "seaborn>=0.13.2,<0.14",
 ]
 dynamic = [
   "version"

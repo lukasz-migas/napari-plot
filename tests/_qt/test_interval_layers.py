@@ -36,6 +36,29 @@ def test_band_controls_and_visual_updates(make_napari_plot_viewer) -> None:
     assert not node.visible
 
 
+def test_areas_controls_and_visual_updates(make_napari_plot_viewer) -> None:
+    """An empty areas layer can be filled, outlined, and cleared."""
+    viewer = make_napari_plot_viewer()
+    qt_viewer = viewer.window._qt_viewer
+    layer = _add_empty_layer(viewer, "Areas")
+    controls = qt_viewer.controls.widgets[layer]
+    node = qt_viewer.canvas.layer_to_visual[layer].node
+    assert not node.mesh.visible
+
+    layer.data = [[[0, 0, 1], [1, 0, 2]], [[2, 0, 1], [3, 0, 1]]]
+    assert node.mesh.visible
+    assert node.border.visible
+    assert node.mesh.mesh_data.get_vertices().shape[0] == 12
+    controls.border_width_spinbox.setValue(0)
+    assert layer.border_width == 0
+    assert not node.border.visible
+    layer.border_width = 2
+    assert controls.border_width_spinbox.value() == 2
+
+    layer.data = None
+    assert not node.mesh.visible
+
+
 def test_error_bar_controls_and_visual_updates(make_napari_plot_viewer) -> None:
     """Error bar controls synchronize style and accept empty geometry."""
     viewer = make_napari_plot_viewer()

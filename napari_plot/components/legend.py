@@ -17,7 +17,7 @@ from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
 from pydantic import field_validator
 
-from napari_plot.layers import Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import Areas, Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
 
 ColorLike = ty.Any
 
@@ -235,7 +235,7 @@ def legend_entry_from_layer(layer: Layer) -> LegendEntry | None:
         color = _first_color(getattr(layer, "color", None))
         marker = _orientation_marker(layer) if isinstance(layer, (Region, InfLine, Centroids)) else "hbar"
         return LegendEntry(label=layer.name, marker=marker, color=color, layer_name=layer.name)
-    if isinstance(layer, (Band, Bar)):
+    if isinstance(layer, (Areas, Band, Bar)):
         return LegendEntry(
             label=layer.name,
             marker="square",

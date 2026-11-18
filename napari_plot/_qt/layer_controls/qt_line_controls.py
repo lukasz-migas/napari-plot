@@ -51,7 +51,7 @@ class QtLineControls(QtLayerControls):
             self,
             1,
             25,
-            value=self.layer.width,
+            value=int(self.layer.width),
             tooltip="Line width.",
             focus_policy=Qt.FocusPolicy.NoFocus,
         )

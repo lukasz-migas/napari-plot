@@ -21,14 +21,19 @@ class BarOrientation(StrEnum):
 
 
 def _coerce_bar_data(data: ty.Any) -> np.ndarray:
-    """Normalize bar values to ``(position, value)`` rows."""
+    """Normalize bar values to ``(position, value[, baseline[, width]])`` rows."""
     if data is None:
         return np.empty((0, 2), dtype=float)
     array = np.asarray(data, dtype=float)
     if array.ndim == 1:
         return np.column_stack((np.arange(len(array), dtype=float), array))
-    if array.ndim != 2 or array.shape[1] != 2:
-        raise ValueError("Bar data must be a 1D value array or an (N, 2) position/value array.")
+    if array.ndim != 2 or array.shape[1] not in (2, 3, 4):
+        raise ValueError(
+            "Bar data must be a 1D value array or (N, 2) position/value, (N, 3) position/value/baseline, "
+            "or (N, 4) position/value/baseline/width rows."
+        )
+    if array.shape[1] == 4 and np.any(array[:, 3] <= 0):
+        raise ValueError("Bar widths must be positive.")
     return array
 
 
@@ -50,7 +55,8 @@ class Bar(BaseLayer):
     Parameters
     ----------
     data : array-like
-        Either one value per bar or ``(position, value)`` rows.
+        Either one value per bar or ``(position, value)`` rows. Optional third and fourth columns give a
+        per-bar ``baseline`` and ``width``, overriding the shared values below.
     orientation : str or BarOrientation
         Whether values extend vertically or horizontally from ``baseline``.
     baseline : float
@@ -176,6 +182,20 @@ class Bar(BaseLayer):
         return self.data[:, 1]
 
     @property
+    def baselines(self) -> np.ndarray:
+        """Per-bar start values (third data column, or the shared ``baseline``)."""
+        if self.data.shape[1] > 2:
+            return self.data[:, 2]
+        return np.full(len(self.data), self.baseline)
+
+    @property
+    def widths(self) -> np.ndarray:
+        """Per-bar widths (fourth data column, or the shared ``width``)."""
+        if self.data.shape[1] > 3:
+            return self.data[:, 3]
+        return np.full(len(self.data), self.width)
+
+    @property
     def orientation(self) -> BarOrientation:
         """Direction in which bars extend from the baseline."""
         return self._orientation
@@ -282,28 +302,15 @@ class Bar(BaseLayer):
         vertices = np.empty((len(self.data), 4, 2), dtype=float)
         position = self.positions
         value = self.values
-        half_width = self.width / 2
+        base = self.baselines
+        half_width = self.widths / 2
         if self.orientation is BarOrientation.VERTICAL:
             vertices[:, :, 0] = np.column_stack(
                 (position - half_width, position + half_width, position + half_width, position - half_width)
             )
-            vertices[:, :, 1] = np.column_stack(
-                (
-                    np.full(len(value), self.baseline),
-                    np.full(len(value), self.baseline),
-                    value,
-                    value,
-                )
-            )
+            vertices[:, :, 1] = np.column_stack((base, base, value, value))
         else:
-            vertices[:, :, 0] = np.column_stack(
-                (
-                    np.full(len(value), self.baseline),
-                    value,
-                    value,
-                    np.full(len(value), self.baseline),
-                )
-            )
+            vertices[:, :, 0] = np.column_stack((base, value, value, base))
             vertices[:, :, 1] = np.column_stack(
                 (position - half_width, position - half_width, position + half_width, position + half_width)
             )
@@ -354,20 +361,22 @@ class Bar(BaseLayer):
         """Return the y extent of bars intersecting an x-axis interval."""
         if len(self.data) == 0:
             return None, None
+        half_width = self.widths / 2
+        value_min = np.minimum(self.baselines, self.values)
+        value_max = np.maximum(self.baselines, self.values)
         if self.orientation is BarOrientation.VERTICAL:
-            mask = (self.positions + self.width / 2 >= x_min) & (self.positions - self.width / 2 <= x_max)
-            values = self.values[mask]
-            if len(values) == 0:
+            mask = (self.positions + half_width >= x_min) & (self.positions - half_width <= x_max)
+            if not mask.any():
                 return None, None
-            return min(self.baseline, np.min(values)), max(self.baseline, np.max(values))
+            return float(np.min(value_min[mask])), float(np.max(value_max[mask]))
 
-        value_min = np.minimum(self.baseline, self.values)
-        value_max = np.maximum(self.baseline, self.values)
         mask = (value_max >= x_min) & (value_min <= x_max)
-        positions = self.positions[mask]
-        if len(positions) == 0:
+        if not mask.any():
             return None, None
-        return np.min(positions) - self.width / 2, np.max(positions) + self.width / 2
+        return (
+            float(np.min(self.positions[mask] - half_width[mask])),
+            float(np.max(self.positions[mask] + half_width[mask])),
+        )
 
     def _set_view_slice(self) -> None:
         self.events.set_data()

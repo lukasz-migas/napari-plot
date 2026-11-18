@@ -85,6 +85,29 @@ increasing or decreasing x coordinates and place NaN in either bound to break
 the fill at a missing sample. Assign new rows to `band.data` to update all
 coordinates together.
 
+### Areas
+
+`Areas` fills many regions in one layer, each between a lower and an upper
+curve. Pass one `(t, lo, hi)` array per area. With the default `vertical`
+orientation `t` is x and the bounds are y values, like `Band`; with
+`horizontal` orientation `t` is y and the bounds are x values. Fill and border
+colors can be shared or given per area.
+
+```python
+grid = np.linspace(-3, 3, 50)
+density = np.exp(-(grid**2) / 2) * 0.4
+viewer.add_areas(
+    [np.column_stack((grid, i - density, i + density)) for i in range(3)],
+    orientation="horizontal",
+    fill_color=["tab:blue", "tab:orange", "tab:green"],
+    name="Violins",
+)
+```
+
+`Bar` data also accepts optional third and fourth columns with a per-bar
+baseline and width, `(position, value, baseline, width)`, which is how stacked
+histograms and box bodies are drawn.
+
 ### Error bars
 
 Add asymmetric measurement intervals to calibration points. Supply lower and
@@ -158,6 +181,40 @@ independently in the layer controls or from Python. Set `text_color` or
 `text_size` to style the labels. Use `peaks.set_data(centers, height, width)`
 to replace all geometry at once. `peaks.data` holds [x, y, height, width]
 rows. Per-row styles and labels follow row order when you replace the data.
+
+## Statistical plots
+
+`napari_plot.stats` provides seaborn-style plots built from the layers above.
+Each function takes the viewer first and returns the list of layers it created;
+the same functions are available as viewer methods. Inputs follow seaborn:
+long-form DataFrames with `x`, `y` and `hue` column names, wide-form tables
+(dict, 2D array or DataFrame columns become categories), or plain arrays.
+Estimators, palettes, KDE, histogram bins, letter values, beeswarm layout and
+heatmap color limits are computed by seaborn itself.
+
+```python
+viewer = napari_plot.Viewer()
+viewer.boxplot(tips, x="day", y="total_bill", hue="smoker")
+```
+
+| Plot | Function | Layers |
+| --- | --- | --- |
+| Box plot | `boxplot` | Bar boxes, MultiLine whiskers/medians, Scatter fliers |
+| Letter-value plot | `boxenplot` | Bar boxes, MultiLine medians, Scatter outliers |
+| Violin plot | `violinplot` (`split`, `inner`) | Areas bodies, MultiLine/Scatter inner marks |
+| Grouped bar plot | `barplot` | Bar per hue level, ErrorBar intervals |
+| Strip / swarm plot | `stripplot`, `swarmplot` | Scatter per hue level |
+| Density | `kdeplot` | MultiLine curves, optional Areas fill |
+| Histogram | `histplot` (`multiple`, `stat`, `kde`) | Bar per hue level, optional MultiLine KDE |
+| Classic distplot | `distplot` | histogram + KDE + optional rug |
+| Heatmap | `heatmap` (`annot`, `center`, `mask`) | Image, optional Text annotations |
+| Clustered heatmap | `clustermap` | Image, MultiLine dendrograms in the margins |
+| Relational | `scatterplot`, `lineplot`, `relplot` | Scatter; MultiLine lines with Areas or ErrorBar intervals |
+
+Categorical plots label the categorical axis with category names, and plots
+with `hue` show a legend. Differences from seaborn: there is no row/column
+faceting, `swarmplot` positions are computed for the canvas size at call time,
+and `heatmap` draws the first row at the top by flipping the image.
 
 ## Axes
 

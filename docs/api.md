@@ -22,8 +22,14 @@ The following names are importable directly from `napari_plot`:
 - `viewer.vbar(values, **kwargs)` and `viewer.vbar(x, height, **kwargs)` add vertical bars.
 - `viewer.hbar(values, **kwargs)` and `viewer.hbar(y, width, **kwargs)` add horizontal bars.
 
+- `viewer.boxplot`, `boxenplot`, `violinplot`, `barplot`, `stripplot`, `swarmplot`,
+  `kdeplot`, `histplot`, `distplot`, `heatmap`, `clustermap`, `scatterplot`,
+  `lineplot` and `relplot` draw seaborn-style statistical plots. They mirror the
+  functions in `napari_plot.stats` (same signatures without the viewer argument)
+  and return the list of created layers.
+
 Keyword arguments are forwarded to the corresponding layer constructor. The
-lower-level methods `add_line`, `add_scatter`, `add_image`, `add_band`, `add_bar`,
+lower-level methods `add_line`, `add_scatter`, `add_image`, `add_areas`, `add_band`, `add_bar`,
 `add_error_bar`, `add_multi_line`, `add_centroids`, `add_text`, `add_rectangles`,
 `add_region`, and `add_inf_line` are also public. `add_vectors` uses napari's
 native Vectors interface.
@@ -34,6 +40,7 @@ Layer classes are importable from `napari_plot.layers`:
 
 ```python
 from napari_plot.layers import (
+    Areas,
     Band,
     Bar,
     Centroids,

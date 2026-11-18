@@ -9,7 +9,7 @@ import pytest
 from napari.components import LayerList
 from napari.layers._layer_actions import _duplicate_layer
 
-from napari_plot.layers import Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import Areas, Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
 from napari_plot.layers.base import LayerMixin
 
 
@@ -20,6 +20,17 @@ from napari_plot.layers.base import LayerMixin
             lambda: Band([[0, 1, 2], [1, 2, 3]], fill_color="red", opacity=0.4),
             ("fill_color", "opacity"),
             id="band",
+        ),
+        pytest.param(
+            lambda: Areas(
+                [[[0, 1, 2], [1, 2, 3]]],
+                orientation="horizontal",
+                fill_color="red",
+                border_color="blue",
+                border_width=2,
+            ),
+            ("orientation", "fill_color", "border_color", "border_width"),
+            id="areas",
         ),
         pytest.param(
             lambda: ErrorBar([[1, 2, np.nan, np.nan, 1, 3]], color="cyan", width=2, cap_size=5),

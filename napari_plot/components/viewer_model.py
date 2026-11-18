@@ -30,7 +30,7 @@ from napari.utils.mouse_bindings import MousemapProviderPydantic
 from numpy.typing import ArrayLike
 from pydantic import Field, PrivateAttr, field_validator
 
-from napari_plot import layers as np_layers
+from napari_plot import layers as np_layers, stats
 from napari_plot.components._viewer_mouse_bindings import (
     box_select,
     box_zoom_auto,
@@ -129,6 +129,22 @@ def _create_custom_add_method(layer_type):
     _add_layer.__doc__ = getattr(layer_type, "__doc__", None)
     _add_layer.__signature__ = signature_with_self
     return _add_layer
+
+
+def _create_stats_method(func):
+    """Expose a ``napari_plot.stats`` function as a viewer method with the same signature and docs."""
+    signature = inspect.signature(func)
+    parameters = list(signature.parameters.values())
+    parameters[0] = parameters[0].replace(name="self")
+
+    def _plot(self, *args, **kwargs):
+        return func(self, *args, **kwargs)
+
+    _plot.__name__ = func.__name__
+    _plot.__qualname__ = f"ViewerModel.{func.__name__}"
+    _plot.__doc__ = func.__doc__
+    _plot.__signature__ = signature.replace(parameters=parameters)
+    return _plot
 
 
 def _plot_data(x: Any, y: Any | None = None) -> np.ndarray:
@@ -1369,6 +1385,7 @@ for _layer in [
     # n_layers.Tracks,  # 3d
     # n_layers.Surface,  # 3d
     # napari-plot layers
+    np_layers.Areas,
     np_layers.Band,
     np_layers.Bar,
     np_layers.ErrorBar,
@@ -1386,3 +1403,6 @@ for _layer in [
     else:
         func = create_add_method(_layer)
     setattr(ViewerModel, func.__name__, func)
+
+for _name in stats.__all__:
+    setattr(ViewerModel, _name, _create_stats_method(getattr(stats, _name)))

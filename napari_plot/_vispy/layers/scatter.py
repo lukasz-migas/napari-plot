@@ -99,7 +99,8 @@ class VispyScatterLayer(VispyBaseLayer):
             self._on_data_change()
 
     def _on_highlight_change(self):
-        if len(self.layer._highlight_index) > 0:
+        highlighted = len(self.layer._highlight_index) > 0
+        if highlighted:
             # Color the hovered or selected points
             data = self.layer._view_data[self.layer._highlight_index]
             if data.ndim == 1:
@@ -115,7 +116,8 @@ class VispyScatterLayer(VispyBaseLayer):
             data[:, ::-1],
             size=size,
             # symbol=symbol,
-            edge_width=self._highlight_width,
+            # a zero-size placeholder with an edge would still draw a dot at the origin
+            edge_width=self._highlight_width if highlighted else 0,
             edge_color=self._highlight_color,
             face_color=transform_color("transparent"),
         )

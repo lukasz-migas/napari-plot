@@ -1,4 +1,4 @@
-"""Appearance controls for bands and error bars."""
+"""Appearance controls for areas, bands and error bars."""
 
 from __future__ import annotations
 
@@ -12,7 +12,38 @@ from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControl
 if TYPE_CHECKING:
     import numpy as np
 
-    from napari_plot.layers import Band, ErrorBar
+    from napari_plot.layers import Areas, Band, ErrorBar
+
+
+class QtAreasControls(QtLayerControls):
+    """Edit areas opacity, blending, and outline width."""
+
+    layer: Areas
+
+    def __init__(self, layer: Areas) -> None:
+        super().__init__(layer)
+        self.border_width_spinbox = hp.make_double_spin_box(
+            self,
+            minimum=0,
+            maximum=20,
+            n_decimals=1,
+            step_size=0.5,
+            value=layer.border_width,
+            func=self._set_border_width,
+        )
+        layer.events.border_width.connect(self._on_border_width_change)
+
+        self.layout().addRow(self.button_grid)
+        self.layout().addRow(self.opacity_label, self.opacity_slider)
+        self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "border width (px)"), self.border_width_spinbox)
+
+    def _set_border_width(self, value: float) -> None:
+        self.layer.border_width = value
+
+    def _on_border_width_change(self) -> None:
+        with qt_signals_blocked(self.border_width_spinbox):
+            self.border_width_spinbox.setValue(self.layer.border_width)
 
 
 class QtBandControls(QtLayerControls):

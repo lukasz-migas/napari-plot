@@ -29,6 +29,25 @@ def _band_data(data: ArrayLike | None) -> np.ndarray:
     return values
 
 
+def band_triangles(left: np.ndarray, right: np.ndarray) -> np.ndarray:
+    """Return (M, 3, 2) fill triangles between paired (t, lo, hi) interval endpoints.
+
+    Each ``left[i]``/``right[i]`` pair describes one connected interval. Intervals in which
+    the two bounds cross are split at the intersection so the fill never folds over itself.
+    """
+    left1, left2 = left[:, [0, 1]], left[:, [0, 2]]
+    right1, right2 = right[:, [0, 1]], right[:, [0, 2]]
+    triangles = np.stack((left1, left2, right1, left2, right2, right1), axis=1)
+    left_delta = left[:, 1] - left[:, 2]
+    right_delta = right[:, 1] - right[:, 2]
+    crossing = ((left_delta < 0) & (right_delta > 0)) | ((left_delta > 0) & (right_delta < 0))
+    fraction = (left_delta[crossing] / (left_delta[crossing] - right_delta[crossing]))[:, None]
+    intersection = left1[crossing] + fraction * (right1[crossing] - left1[crossing])
+    triangles[crossing, 2] = intersection
+    triangles[crossing, 3] = intersection
+    return triangles.reshape(-1, 3, 2)
+
+
 class Band(BaseLayer):
     """Fill between two curves.
 
@@ -111,18 +130,7 @@ class Band(BaseLayer):
 
     def _triangles(self) -> np.ndarray:
         """Return the two fill triangles for each connected interval."""
-        left, right = self._segments()
-        left1, left2 = left[:, [0, 1]], left[:, [0, 2]]
-        right1, right2 = right[:, [0, 1]], right[:, [0, 2]]
-        triangles = np.stack((left1, left2, right1, left2, right2, right1), axis=1)
-        left_delta = left[:, 1] - left[:, 2]
-        right_delta = right[:, 1] - right[:, 2]
-        crossing = ((left_delta < 0) & (right_delta > 0)) | ((left_delta > 0) & (right_delta < 0))
-        fraction = (left_delta[crossing] / (left_delta[crossing] - right_delta[crossing]))[:, None]
-        intersection = left1[crossing] + fraction * (right1[crossing] - left1[crossing])
-        triangles[crossing, 2] = intersection
-        triangles[crossing, 3] = intersection
-        return triangles.reshape(-1, 3, 2)
+        return band_triangles(*self._segments())
 
     @property
     def _extent_data(self) -> np.ndarray:
