@@ -356,7 +356,7 @@ class QtCameraWidget(QWidget):
 
     def close(self):
         """Disconnect events when widget is closing."""
-        disconnect_events(self.ref_viewer().axis.events, self)
+        disconnect_events(self.ref_viewer().camera.events, self)
         super().close()
 
 
@@ -374,13 +374,22 @@ class QtCameraControls(QtFramelessPopup):
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
         """Make panel"""
-        widget = QtCameraWidget(self.ref_viewer(), self)
+        self.camera_widget = QtCameraWidget(self.ref_viewer(), self)
         layout = QFormLayout()
         layout.setContentsMargins(6, 6, 6, 6)
         layout.setSpacing(2)
         layout.addRow(self._make_move_handle("Camera controls"))
-        layout.addRow(widget)
+        layout.addRow(self.camera_widget)
         return layout
+
+    def _on_teardown(self) -> None:
+        """Disconnect camera events from the inner widget.
+
+        Called from ``closeEvent``, which also runs when the popup auto-closes on an outside click.
+        """
+        viewer = self.ref_viewer()
+        if viewer is not None:
+            disconnect_events(viewer.camera.events, self.camera_widget)
 
 
 def parse_widget_to_value(widget):

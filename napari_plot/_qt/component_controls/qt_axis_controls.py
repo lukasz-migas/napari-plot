@@ -333,10 +333,15 @@ class QtAxisControls(QtFramelessPopup):
         layout.setContentsMargins(2, 2, 2, 2)
         layout.setSpacing(0)
         layout.addRow(self._make_move_handle("Axis controls"))
-        layout.addRow(QtAxisWidget(self.ref_viewer(), self))
+        self.axis_widget = QtAxisWidget(self.ref_viewer(), self)
+        layout.addRow(self.axis_widget)
         return layout
 
-    def close(self):
-        """Disconnect events when widget is closing."""
-        disconnect_events(self.ref_viewer().axis.events, self)
-        super().close()
+    def _on_teardown(self) -> None:
+        """Disconnect axis events from the inner widget.
+
+        Called from ``closeEvent``, which also runs when the popup auto-closes on an outside click.
+        """
+        viewer = self.ref_viewer()
+        if viewer is not None:
+            disconnect_events(viewer.axis.events, self.axis_widget)

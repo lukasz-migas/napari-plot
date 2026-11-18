@@ -236,12 +236,17 @@ class QtLegendControls(QtFramelessPopup):
         with qt_signals_blocked(self.border_width_spinbox):
             self.border_width_spinbox.setValue(self.viewer.legend.border_width)
 
-    def close(self) -> None:
-        """Disconnect overlay events before closing."""
+    def _on_teardown(self) -> None:
+        """Disconnect overlay events.
+
+        Called from ``closeEvent``, which runs on every close path, including the
+        popup auto-closing when the user clicks outside of it (``close()`` is not
+        called in that case).
+        """
         for signal, callback in self._overlay_connections:
             signal.disconnect(callback)
+        self._overlay_connections = ()
         disconnect_events(get_settings().appearance.events, self)
-        super().close()
 
 
 __all__ = ["QtLegendControls"]
