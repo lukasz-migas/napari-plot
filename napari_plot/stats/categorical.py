@@ -9,7 +9,7 @@ import numpy as np
 from napari_plot.stats import _common as cm
 from napari_plot.stats._data import CategoricalData, normalize_categorical
 from napari_plot.stats._estimators import aggregate, beeswarm, box_stats, kde, letter_values, strip_jitter
-from napari_plot.stats._palette import categorical_color_fn, level_colors, to_rgba
+from napari_plot.stats._palette import categorical_color_fn, desaturate, level_colors, to_rgba
 
 if ty.TYPE_CHECKING:
     from napari.layers import Layer
@@ -30,13 +30,41 @@ def _prepare(
     orient: str | None,
     palette: ty.Any,
     color: ty.Any,
+    saturation: float = 1.0,
 ) -> tuple[CategoricalData, ColorFn, list[dict]]:
     """Normalize data, label the categorical axis and resolve colors and hue legend entries."""
     cat = normalize_categorical(data, x=x, y=y, hue=hue, order=order, hue_order=hue_order, orient=orient)
     cm.apply_categorical_axis(viewer, cat)
     color_fn = categorical_color_fn(cat, palette, color)
-    entries = cm.legend_entries(level_colors(cat.hue_levels, palette, color)) if cat.hue_levels else []
-    return cat, color_fn, entries
+    colors = level_colors(cat.hue_levels, palette, color) if cat.hue_levels else {}
+    if saturation != 1:
+        base_fn = color_fn
+
+        def color_fn(index: int, level: ty.Any) -> np.ndarray:
+            return desaturate(base_fn(index, level), saturation)
+
+        colors = {level: desaturate(rgba, saturation) for level, rgba in colors.items()}
+    return cat, color_fn, cm.legend_entries(colors)
+
+
+def _group_info(cat: CategoricalData, index: int, level: ty.Any, values: np.ndarray) -> dict[str, ty.Any]:
+    """Describe one plotted group; stored in ``layer.metadata["groups"]`` so hover/click can identify it."""
+    q1, median, q3 = np.percentile(values, [25, 50, 75]) if len(values) else (np.nan, np.nan, np.nan)
+    return {
+        "category": cat.labels[index],
+        "hue": level,
+        "n": len(values),
+        "median": float(median),
+        "q1": float(q1),
+        "q3": float(q3),
+    }
+
+
+def _with_groups(layer: Layer | None, groups: list[dict[str, ty.Any]]) -> Layer | None:
+    """Attach per-element group descriptions to a layer (indexed like the bars/areas it draws)."""
+    if layer is not None:
+        layer.metadata["groups"] = groups
+    return layer
 
 
 def _layer_name(name: str, level: ty.Any, role: str) -> str:
@@ -58,6 +86,7 @@ def boxplot(
     color: ty.Any = None,
     width: float = 0.8,
     dodge: bool = True,
+    saturation: float = 1.0,
     whis: float | tuple[float, float] = 1.5,
     linecolor: ty.Any = "lightgray",
     linewidth: float = 1.5,
@@ -89,6 +118,8 @@ def boxplot(
         Width of each category slot in data units.
     dodge : bool
         Place hue levels side by side instead of on top of each other.
+    saturation : float
+        Fraction of the original color saturation to keep (seaborn uses 0.75 by default).
     whis : float or (float, float)
         Whisker reach as a multiple of the IQR, or percentile bounds.
     linecolor, linewidth : color, float
@@ -107,18 +138,19 @@ def boxplot(
     list of Layer
         Created layers in drawing order.
     """
-    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
+    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     line_rgba = to_rgba(linecolor)
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
             continue
-        boxes, segments, fliers, fill = [], [], [], []
+        boxes, segments, fliers, fill, groups = [], [], [], [], []
         for index, position, values in cells:
             stats = box_stats(values, whis)
             half = element / 2
             boxes.append((position, stats["q3"], stats["q1"], element))
             fill.append(color_fn(index, level))
+            groups.append(_group_info(cat, index, level, values))
             segments += [
                 ((position, stats["q1"]), (position, stats["whislo"])),
                 ((position, stats["q3"]), (position, stats["whishi"])),
@@ -128,13 +160,16 @@ def boxplot(
             ]
             fliers += [(position, value) for value in stats["fliers"]]
         layers.append(
-            viewer.add_bar(
-                np.asarray(boxes),
-                orientation=cm.bar_orientation(cat.orient),
-                fill_color=fill,
-                border_color=line_rgba,
-                border_width=linewidth,
-                name=_layer_name(name, level, "boxes"),
+            _with_groups(
+                viewer.add_bar(
+                    np.asarray(boxes),
+                    orientation=cm.bar_orientation(cat.orient),
+                    fill_color=fill,
+                    border_color=line_rgba,
+                    border_width=linewidth,
+                    name=_layer_name(name, level, "boxes"),
+                ),
+                groups,
             )
         )
         layers.append(
@@ -173,6 +208,7 @@ def boxenplot(
     color: ty.Any = None,
     width: float = 0.8,
     dodge: bool = True,
+    saturation: float = 1.0,
     k_depth: str | int = "tukey",
     width_method: str = "exponential",
     outlier_prop: float = 0.007,
@@ -197,15 +233,16 @@ def boxenplot(
     """
     from napari_plot.stats._seaborn import light_palette
 
-    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
+    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     line_rgba = to_rgba(linecolor)
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
             continue
-        boxes, fill, medians, fliers = [], [], [], []
+        boxes, fill, medians, fliers, groups = [], [], [], [], []
         for index, position, values in cells:
             letters = letter_values(values, k_depth, outlier_prop, trust_alpha)
+            info = _group_info(cat, index, level, values)
             levels, edges, k = letters["levels"], letters["values"], letters["k"]
             exponent = (levels - 1 - k).astype(float)
             if width_method == "linear":
@@ -224,17 +261,21 @@ def boxenplot(
             for box in np.argsort(widths, kind="stable"):
                 boxes.append((position, edges[box + 1], edges[box], widths[box]))
                 fill.append(shades[box])
+                groups.append(info)
             half = element / 2
             medians.append(((position - half, letters["median"]), (position + half, letters["median"])))
             fliers += [(position, value) for value in letters["fliers"]]
         layers.append(
-            viewer.add_bar(
-                np.asarray(boxes),
-                orientation=cm.bar_orientation(cat.orient),
-                fill_color=fill,
-                border_color=line_rgba,
-                border_width=linewidth,
-                name=_layer_name(name, level, "boxes"),
+            _with_groups(
+                viewer.add_bar(
+                    np.asarray(boxes),
+                    orientation=cm.bar_orientation(cat.orient),
+                    fill_color=fill,
+                    border_color=line_rgba,
+                    border_width=linewidth,
+                    name=_layer_name(name, level, "boxes"),
+                ),
+                groups,
             )
         )
         layers.append(
@@ -278,6 +319,7 @@ def violinplot(
     color: ty.Any = None,
     width: float = 0.8,
     dodge: bool = True,
+    saturation: float = 1.0,
     split: bool = False,
     inner: str | None = "box",
     density_norm: str = "area",
@@ -313,7 +355,7 @@ def violinplot(
     """
     if density_norm not in {"area", "count", "width"}:
         raise ValueError("density_norm must be 'area', 'count' or 'width'.")
-    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
+    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     split = split and cat.hue_levels is not None and len(cat.hue_levels) == 2
     line_rgba = to_rgba(linecolor)
 
@@ -336,7 +378,7 @@ def violinplot(
     elif density_norm == "count":
         peak = max(group[6].max() * len(group[4]) for group in groups)
 
-    areas, fill, inner_lines, inner_points = [], [], [], []
+    areas, fill, area_groups, inner_lines, inner_points = [], [], [], [], []
     for hue_index, level, index, position, values, support, density, element in groups:
         if density_norm == "width":
             scaled = density / density.max()
@@ -353,6 +395,7 @@ def violinplot(
             lo, hi = position - half, position + half
         areas.append(np.column_stack((support, lo, hi)))
         fill.append(color_fn(index, level))
+        area_groups.append(_group_info(cat, index, level, values))
 
         side = -1 if split and hue_index == 0 else 1
         if inner == "box":
@@ -373,13 +416,16 @@ def violinplot(
             raise ValueError("inner must be 'box', 'quart', 'stick', 'point' or None.")
 
     layers: list[Layer | None] = [
-        viewer.add_areas(
-            areas,
-            orientation=cm.areas_orientation(cat.orient),
-            fill_color=fill,
-            border_color=line_rgba,
-            border_width=linewidth,
-            name=f"{name} bodies",
+        _with_groups(
+            viewer.add_areas(
+                areas,
+                orientation=cm.areas_orientation(cat.orient),
+                fill_color=fill,
+                border_color=line_rgba,
+                border_width=linewidth,
+                name=f"{name} bodies",
+            ),
+            area_groups,
         )
     ]
     for line_width in sorted({scale for _, scale in inner_lines}):
@@ -457,22 +503,26 @@ def barplot(
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
             continue
-        bars, fill = [], []
+        bars, fill, groups = [], [], []
         for index, position, values in cells:
             estimate, low, high = aggregate(values, estimator, errorbar, n_boot, seed)
             bars.append((position, estimate))
             fill.append(color_fn(index, level))
+            groups.append(_group_info(cat, index, level, values))
             if np.isfinite(low) and np.isfinite(high):
                 errors.append((position, estimate, estimate - low, high - estimate))
         layers.append(
-            viewer.add_bar(
-                np.asarray(bars),
-                orientation=cm.bar_orientation(cat.orient),
-                width=element,
-                fill_color=fill,
-                border_color=linecolor,
-                border_width=linewidth,
-                name=_layer_name(name, level, "bars"),
+            _with_groups(
+                viewer.add_bar(
+                    np.asarray(bars),
+                    orientation=cm.bar_orientation(cat.orient),
+                    width=element,
+                    fill_color=fill,
+                    border_color=linecolor,
+                    border_width=linewidth,
+                    name=_layer_name(name, level, "bars"),
+                ),
+                groups,
             )
         )
     if errors:
@@ -503,19 +553,24 @@ def _scatter_categorical(
     dodge: bool,
     size: float,
     linecolor: ty.Any,
+    linewidth: float,
     legend: bool,
     name: str,
 ) -> list[Layer]:
-    """Shared body of strip and swarm plots: one Scatter layer per hue level."""
+    """Shared body of strip and swarm plots: one Scatter layer per hue level.
+
+    Each layer has ``category`` and ``hue`` features naming the group of every point, for hover/click lookups.
+    """
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
             continue
-        positions, values, colors = [], [], []
+        positions, values, colors, categories = [], [], [], []
         for index, position, group in cells:
             positions.append(offsets_fn(position, group, element))
             values.append(group)
             colors.append(np.broadcast_to(color_fn(index, level), (len(group), 4)))
+            categories += [cat.labels[index]] * len(group)
         layers.append(
             cm.add_points(
                 viewer,
@@ -524,7 +579,10 @@ def _scatter_categorical(
                 cat.orient,
                 face_color=np.concatenate(colors),
                 border_color=linecolor,
+                border_width=linewidth,
+                border_width_is_relative=False,
                 size=size,
+                features={"category": categories, "hue": [level] * len(categories)},
                 name=name if level is None else f"{name} [{level}]",
             )
         )
@@ -548,6 +606,7 @@ def stripplot(
     width: float = 0.8,
     size: float = 6,
     linecolor: ty.Any = "transparent",
+    linewidth: float = 0.0,
     seed: ty.Any = None,
     legend: bool = True,
     name: str = "stripplot",
@@ -555,7 +614,8 @@ def stripplot(
     """Draw every observation as a point, jittered along the categorical axis.
 
     Parameters are as for :func:`boxplot`, plus ``jitter`` (True for the default amount, or the half-width of the
-    jitter in data units), ``size`` (marker size in screen pixels) and ``seed`` for reproducible jitter.
+    jitter in data units), ``size`` (marker size in screen pixels), ``linewidth`` (marker border width in screen
+    pixels) and ``seed`` for reproducible jitter.
 
     Returns
     -------
@@ -579,6 +639,7 @@ def stripplot(
         dodge=dodge,
         size=size,
         linecolor=linecolor,
+        linewidth=linewidth,
         legend=legend,
         name=name,
     )
@@ -600,6 +661,7 @@ def swarmplot(
     width: float = 0.8,
     size: float = 6,
     linecolor: ty.Any = "transparent",
+    linewidth: float = 0.0,
     legend: bool = True,
     name: str = "swarmplot",
 ) -> list[Layer]:
@@ -635,6 +697,7 @@ def swarmplot(
         dodge=dodge,
         size=size,
         linecolor=linecolor,
+        linewidth=linewidth,
         legend=legend,
         name=name,
     )

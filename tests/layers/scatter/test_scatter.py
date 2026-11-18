@@ -280,3 +280,14 @@ def test_point_selection_by_path():
 
     mask = layer._get_mask_from_path(vertices)
     assert np.sum(mask) == 20
+
+
+def test_scatter_get_value_uses_pixel_sizes_without_scaling():
+    """With scaling off, the hit radius follows the on-screen marker size along each axis."""
+    layer = Scatter(np.array([[0.0, 0.0], [0.0, 10.0]]), size=10, scaling=False)
+    # canvas 100 px wide x 50 px tall showing x in 0..100 and y in 0..5: 1 px = 1 x-unit and 0.1 y-units
+    layer._update_draw(1.0, np.array([[0.0, 0.0], [5.0, 100.0]]), (100, 50))
+    assert layer.get_value((0.0, 4.0)) == 0
+    assert layer.get_value((0.4, 0.0)) == 0
+    assert layer.get_value((0.6, 0.0)) is None
+    assert layer.get_value((0.0, 6.0)) == 1

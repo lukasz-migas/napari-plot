@@ -16,6 +16,19 @@ def to_rgba(color: Any) -> np.ndarray:
     return np.asarray(transform_color(color)[0], dtype=float)
 
 
+def desaturate(color: Any, saturation: float) -> np.ndarray:
+    """Return an RGBA color with its HLS saturation multiplied by ``saturation`` (seaborn semantics)."""
+    import colorsys
+
+    if not 0 <= saturation <= 1:
+        raise ValueError("saturation must be between 0 and 1.")
+    rgba = to_rgba(color)
+    if saturation == 1:
+        return rgba
+    hue, lightness, sat = colorsys.rgb_to_hls(*rgba[:3])
+    return np.array([*colorsys.hls_to_rgb(hue, lightness, sat * saturation), rgba[3]])
+
+
 def level_colors(levels: Sequence[Any], palette: Any = None, color: Any = None) -> dict[Any, np.ndarray]:
     """Map each level to an RGBA color.
 

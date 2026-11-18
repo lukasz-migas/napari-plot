@@ -249,6 +249,7 @@ class Scatter(Points, LayerMixin):
             units=units,
         )
         self._mode = Mode.PAN_ZOOM
+        self._data_per_px: np.ndarray | None = None
         self.events.add(scaling=Event)
         self.scaling = scaling
 
@@ -292,6 +293,31 @@ class Scatter(Points, LayerMixin):
     def scaling(self, value):
         self._scaling = value
         self.events.scaling()
+
+    def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold) -> None:
+        """Remember the data size of one screen pixel, needed to pick markers sized in pixels."""
+        corners = np.asarray(corner_pixels_displayed, dtype=float)
+        if corners.shape == (2, 2) and len(shape_threshold) == 2:
+            width, height = shape_threshold
+            self._data_per_px = np.abs(corners[1] - corners[0]) / np.maximum((height, width), 1)
+        super()._update_draw(scale_factor, corner_pixels_displayed, shape_threshold)
+
+    def _get_value(self, position) -> int | None:
+        """Return the index of the point under a data-space ``(y, x)`` position.
+
+        When ``scaling`` is off, marker sizes are in screen pixels, so the hit radius is converted to data units
+        separately along each axis (the plot camera can zoom x and y independently).
+        """
+        if self.scaling or self._data_per_px is None:
+            return super()._get_value(position)
+        view_data = self._view_data
+        if len(view_data) == 0:
+            return None
+        radius = np.expand_dims(self._view_size, axis=1) / 2 * self._data_per_px
+        offset = (view_data - np.asarray(position[-2:], dtype=float)) / np.maximum(radius, np.finfo(float).tiny)
+        distance = np.hypot(offset[:, 0], offset[:, 1])
+        index = int(np.argmin(distance))
+        return int(self._view_indices[index]) if distance[index] <= 1 else None
 
     def _get_state(self):
         """Get the serializable layer state."""

@@ -554,6 +554,15 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.remove_all()
         self.events.clear_canvas()
 
+    def reset_plot(self) -> None:
+        """Remove all layers and reset what plots leave behind: categorical axes, log scales and the legend."""
+        self.clear_canvas()
+        self.axis.x_categories = None
+        self.axis.y_categories = None
+        self.axis.x_scale = "linear"
+        self.axis.y_scale = "linear"
+        self.clear_legend()
+
     @property
     def _sliced_extent_world(self) -> np.ndarray:
         """Extent of layers in world coordinates after slicing.

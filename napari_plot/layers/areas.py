@@ -263,7 +263,21 @@ class Areas(BaseLayer):
             thumbnail[..., 3] *= self.opacity
             self.thumbnail = thumbnail
 
-    def _get_value(self, position: Sequence[float]) -> None:
+    def _get_value(self, position: Sequence[float]) -> int | None:
+        """Return the topmost area containing a data-space ``(y, x)`` position."""
+        if not self.data:
+            return None
+        y, x = float(position[-2]), float(position[-1])
+        t, value = (x, y) if self.orientation is AreasOrientation.VERTICAL else (y, x)
+        for index in range(len(self.data) - 1, -1, -1):
+            area = self.data[index]
+            order = np.argsort(area[:, 0], kind="stable")
+            support = area[order, 0]
+            if not support[0] <= t <= support[-1]:
+                continue
+            lo, hi = np.interp(t, support, area[order, 1]), np.interp(t, support, area[order, 2])
+            if min(lo, hi) <= value <= max(lo, hi):
+                return index
         return None
 
 

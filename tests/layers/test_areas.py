@@ -63,3 +63,16 @@ def test_band_triangles_split_crossing_bounds() -> None:
     """Crossing bounds meet at the intersection instead of folding."""
     triangles = band_triangles(np.array([[0, 0, 2]]), np.array([[2, 2, 0]]))
     np.testing.assert_allclose(triangles[0, 2], [1, 1])
+
+
+def test_areas_get_value_returns_area_under_position() -> None:
+    """Picking interpolates each area's lo/hi at the cursor and respects orientation."""
+    layer = Areas([[[0, 0, 1], [10, 0, 1]], [[0, 2, 3], [10, 4, 5]]])
+    assert layer.get_value((0.5, 5)) == 0  # (y, x)
+    assert layer.get_value((4.0, 5)) == 1  # second area spans y 3..4 at x=5
+    assert layer.get_value((1.5, 5)) is None
+    assert layer.get_value((0.5, 11)) is None
+
+    layer.orientation = "horizontal"  # t is y, lo/hi are x
+    assert layer.get_value((5, 0.5)) == 0
+    assert Areas().get_value((0, 0)) is None

@@ -184,3 +184,70 @@ def test_relplot_dispatch(tips: pd.DataFrame) -> None:
         ViewerModel().relplot(tips, x="bill", y="tip", kind="bar")
     with pytest.raises(ValueError, match="size and style"):
         ViewerModel().relplot(tips, x="bill", y="tip", size="size", kind="line")
+
+
+@pytest.mark.parametrize("plot", ["boxplot", "boxenplot", "violinplot", "barplot"])
+def test_categorical_layers_describe_their_groups(tips: pd.DataFrame, plot: str) -> None:
+    viewer = ViewerModel()
+    layers = getattr(viewer, plot)(tips, x="day", y="bill", hue="smoker", order=["Thu", "Fri", "Sat"])
+    picked = [layer for layer in layers if "groups" in layer.metadata]
+    assert picked
+    for layer in picked:
+        groups = layer.metadata["groups"]
+        count = len(layer.data)
+        assert len(groups) == count
+    group = picked[0].metadata["groups"][0]
+    assert set(group) == {"category", "hue", "n", "median", "q1", "q3"}
+    values = tips.loc[(tips["day"] == group["category"]) & (tips["smoker"] == group["hue"]), "bill"]
+    assert group["n"] == len(values)
+    assert group["median"] == pytest.approx(values.median())
+
+
+def test_violin_hover_finds_group(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    layers = viewer.violinplot(tips, x="day", y="bill", order=["Thu", "Fri", "Sat"])
+    bodies = layers[0]
+    median = bodies.metadata["groups"][1]["median"]
+    index = bodies.get_value((median, 1.0))
+    assert bodies.metadata["groups"][index]["category"] == "Fri"
+
+
+def test_strip_points_carry_category_feature(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    layers = viewer.stripplot(tips, x="day", y="bill", hue="smoker", order=["Thu", "Fri", "Sat"], linewidth=1)
+    for layer in layers:
+        assert len(layer.features["category"]) == len(layer.data)
+        assert set(layer.features["category"]) <= {"Thu", "Fri", "Sat"}
+        assert layer.features["hue"].nunique() == 1
+        np.testing.assert_allclose(layer.border_width, 1)
+
+
+def test_saturation_desaturates_fill_and_legend(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    full = viewer.boxplot(
+        tips, x="day", y="bill", hue="smoker", palette={"Yes": "red", "No": "blue"}, hue_order=["No", "Yes"]
+    )[0]
+    np.testing.assert_allclose(full.fill_color[0], [0, 0, 1, 1])
+    muted = viewer.boxplot(
+        tips,
+        x="day",
+        y="bill",
+        hue="smoker",
+        palette={"Yes": "red", "No": "blue"},
+        hue_order=["No", "Yes"],
+        saturation=0.5,
+    )
+    muted = muted[0]
+    assert not np.allclose(muted.fill_color[0], [0, 0, 1, 1])
+    assert muted.fill_color[0][2] > muted.fill_color[0][0] > 0
+
+
+def test_reset_plot_clears_categories_scale_and_legend(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    viewer.boxplot(tips, x="day", y="bill", hue="smoker")
+    viewer.axis.y_scale = "log"
+    viewer.reset_plot()
+    assert len(viewer.layers) == 0
+    assert viewer.axis.x_categories is None
+    assert viewer.axis.y_scale == "linear"
+    assert not viewer.legend.visible
