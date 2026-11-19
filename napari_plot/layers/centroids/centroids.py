@@ -6,6 +6,7 @@ import numpy as np
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import CENTROIDS, WHITE
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.centroids._centroids_constants import Method, Orientation
 from napari_plot.layers.centroids._centroids_utils import get_extents, parse_centroids_data
@@ -162,16 +163,11 @@ class Centroids(BaseLayer):
     def orientation(self, value):
         self._orientation = Orientation(value)
         self.events.set_data()
+        self._update_thumbnail()
 
-    def _update_thumbnail(self):
-        """Update thumbnail with current data"""
-        if self._allow_thumbnail_update:
-            h = self._thumbnail_shape[0]
-            thumbnail = np.zeros(self._thumbnail_shape)
-            thumbnail[..., 3] = 1
-            thumbnail[h - 2 : h + 2, :] = 1  # horizontal strip
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+    def _update_thumbnail(self) -> None:
+        mask = CENTROIDS if self.orientation == Orientation.VERTICAL else CENTROIDS.T[:, ::-1]
+        self._set_thumbnail_glyph(mask, self._color[0] if len(self._color) else WHITE)
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -221,6 +217,7 @@ class Centroids(BaseLayer):
     def color(self, value):
         self._color = self._initialize_color(value, len(self._data))
         self.events.color()
+        self._update_thumbnail()
 
     @property
     def width(self) -> float:

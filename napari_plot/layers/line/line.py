@@ -4,6 +4,7 @@ import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import LINE
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.line._line_constants import Method
 
@@ -48,10 +49,6 @@ class Line(BaseLayer):
     visible : bool
         Whether the layer visual is currently being displayed.
     """
-
-    # The max length of the line that will ever be used to render the thumbnail
-    # If more points are present, they will be subsampled
-    _max_line_thumbnail = 1024
 
     def __init__(
         self,
@@ -118,14 +115,8 @@ class Line(BaseLayer):
         )
         return state
 
-    def _update_thumbnail(self):
-        """Update thumbnail with current data"""
-        h = self._thumbnail_shape[0]
-        colormapped = np.zeros(self._thumbnail_shape)
-        colormapped[..., 3] = 1
-        colormapped[h - 2 : h + 2, :] = 1  # horizontal stripe
-        colormapped[..., 3] *= self.opacity
-        self.thumbnail = colormapped
+    def _update_thumbnail(self) -> None:
+        self._set_thumbnail_glyph(LINE, self.color)
 
     @property
     def _view_data(self) -> np.ndarray:
@@ -183,6 +174,7 @@ class Line(BaseLayer):
     def color(self, value):
         self._color = transform_color(value)[0]
         self.events.color()
+        self._update_thumbnail()
 
     @property
     def width(self):

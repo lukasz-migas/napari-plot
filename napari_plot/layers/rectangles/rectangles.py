@@ -10,6 +10,7 @@ from napari.layers.points._points_constants import SYMBOL_DICT
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import RECTANGLES
 from napari_plot.layers.base import BaseLayer
 
 if TYPE_CHECKING:
@@ -187,6 +188,7 @@ class Rectangles(BaseLayer):
         self.text_size = text_size
         self.text_color = text_color
         self.text_offset = text_offset
+        self.events.outline_color.connect(self._update_thumbnail)
 
     @property
     def data(self) -> np.ndarray:
@@ -399,8 +401,5 @@ class Rectangles(BaseLayer):
         return None
 
     def _update_thumbnail(self) -> None:
-        thumbnail = np.zeros(self._thumbnail_shape)
-        thumbnail[8:24, (5, 26)] = _DEFAULT_COLOR
-        thumbnail[(8, 23), 5:27] = _DEFAULT_COLOR
-        thumbnail[..., 3] *= self.opacity
-        self.thumbnail = thumbnail
+        colors = self.outline_color.reshape(-1, 4)
+        self._set_thumbnail_glyph(RECTANGLES, colors[0] if len(colors) else _DEFAULT_COLOR)

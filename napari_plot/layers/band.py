@@ -11,6 +11,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 from numpy.typing import ArrayLike
 
+from napari_plot.layers._thumbnail import BAND
 from napari_plot.layers.base import BaseLayer
 
 
@@ -96,6 +97,7 @@ class Band(BaseLayer):
         self.events.add(fill_color=Event)
         self._data = values
         self.fill_color = fill_color
+        self.events.fill_color.connect(self._update_thumbnail)
 
     @property
     def data(self) -> np.ndarray:
@@ -155,10 +157,7 @@ class Band(BaseLayer):
         self.events.set_data()
 
     def _update_thumbnail(self) -> None:
-        if hasattr(self, "_fill_color"):
-            thumbnail = np.broadcast_to(self.fill_color, self._thumbnail_shape).copy()
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+        self._set_thumbnail_glyph(BAND, self.fill_color)
 
     def _get_value(self, position: Sequence[float]) -> None:
         return None

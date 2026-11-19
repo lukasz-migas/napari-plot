@@ -9,6 +9,7 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import MULTILINE
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.multiline._multiline_constants import Method
 from napari_plot.layers.multiline._multiline_list import MultiLineList
@@ -101,8 +102,6 @@ class MultiLine(BaseLayer):
             visible=visible,
         )
         self.events.add(color=Event, width=Event, method=Event, highlight=Event, stream=Event)
-        # Flag set to false to block thumbnail refresh
-        self._allow_thumbnail_update = True
 
         self._data_view = MultiLineList()
 
@@ -167,6 +166,7 @@ class MultiLine(BaseLayer):
             color = self._get_new_color(n_new)
         if n_new > 0:
             self._add_line(xs, ys, color=color)
+            self._update_thumbnail()
 
     def _add_line(self, xs, ys, *, color=None):
         """Add lines to data view.
@@ -237,15 +237,9 @@ class MultiLine(BaseLayer):
         new_colors = np.tile(self._current_color, (adding, 1))
         return new_colors
 
-    def _update_thumbnail(self):
-        """Update thumbnail with current data"""
-        if self._allow_thumbnail_update:
-            h = self._thumbnail_shape[0]
-            thumbnail = np.zeros(self._thumbnail_shape)
-            thumbnail[..., 3] = 1
-            thumbnail[h - 2 : h + 2, :] = 1  # horizontal stripe
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+    def _update_thumbnail(self) -> None:
+        colors = self.color
+        self._set_thumbnail_glyph(MULTILINE, colors[0] if len(colors) else self._current_color)
 
     @property
     def _view_data(self) -> np.ndarray:

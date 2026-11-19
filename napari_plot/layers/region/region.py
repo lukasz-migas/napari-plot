@@ -18,6 +18,7 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.events import Event
 from napari.utils.misc import ensure_iterable
 
+from napari_plot.layers._thumbnail import REGION
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.region._region import region_classes
 from napari_plot.layers.region._region_constants import Box, Mode, Orientation
@@ -121,9 +122,6 @@ class Region(BaseLayer):
 
     _highlight_color = (0, 0.6, 1, 0.5)
     _highlight_width = 1.5
-
-    # If more shapes are present then they are randomly sub-sampled in the thumbnail
-    _max_regions_thumbnail = 10
 
     def __init__(
         self,
@@ -542,34 +540,12 @@ class Region(BaseLayer):
         )
         return state
 
-    def _update_thumbnail(self):
-        """Update thumbnail with current data"""
-        # don't update the thumbnail if dragging a shape
-        if self._is_moving is False and self._allow_thumbnail_update is True:
-            thumbnail = np.zeros(self._thumbnail_shape)
-            # # calculate min vals for the vertices and pad with 0.5
-            # # the offset is needed to ensure that the top left corner of the shapes
-            # # corresponds to the top left corner of the thumbnail
-            # de = self._extent_data
-            # offset = np.array([de[0, d] for d in self._slice_input.displayed]) + 0.5
-            # # calculate range of values for the vertices and pad with 1
-            # # padding ensures the entire shape can be represented in the thumbnail
-            # # without getting clipped
-            # with warnings.catch_warnings():
-            #     warnings.filterwarnings("ignore", "invalid value encountered in cast")
-            #     shape = np.ceil([de[1, d] - de[0, d] + 1 for d in self._slice_input.displayed]).astype(int)
-            # with warnings.catch_warnings():
-            #     warnings.filterwarnings("ignore", "divide by zero")
-            #     zoom_factor = np.divide(self._thumbnail_shape[:2], shape[-2:]).min()
-            #
-            # color_mapped = self._data_view.to_colors(
-            #     colors_shape=self._thumbnail_shape[:2],
-            #     zoom_factor=zoom_factor,
-            #     offset=offset[-2:],
-            #     max_shapes=self._max_regions_thumbnail,
-            # )
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+    def _update_thumbnail(self) -> None:
+        if self._is_moving or not self._allow_thumbnail_update:
+            return
+        regions = self._data_view.regions
+        mask = REGION.T if regions and regions[0].orientation == Orientation.HORIZONTAL else REGION
+        self._set_thumbnail_glyph(mask, self.color[0] if regions else self._current_color)
 
     @property
     def _view_data(self) -> np.ndarray:

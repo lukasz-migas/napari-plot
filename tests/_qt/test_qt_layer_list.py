@@ -1,4 +1,4 @@
-"""Regression tests for opening and using layer-list context menus."""
+"""Regression tests for layer-list painting and context menus."""
 
 from __future__ import annotations
 
@@ -9,15 +9,88 @@ import numpy as np
 import pytest
 from app_model.backends.qt import QModelMenu
 from napari._app_model import get_app_model
+from napari._qt.containers.qt_layer_model import LockedRole
 from napari.components import LayerList
 from napari.layers import Image, Layer, Points, Shapes
 from pytestqt.qtbot import QtBot
-from qtpy.QtCore import QEvent, QPoint, QPointF, Qt
-from qtpy.QtGui import QAction, QMouseEvent
-from qtpy.QtWidgets import QMenu, QStyleOptionViewItem
+from qtpy.QtCore import QEvent, QModelIndex, QPoint, QPointF, QRect, Qt
+from qtpy.QtGui import QAction, QImage, QMouseEvent, QPainter
+from qtpy.QtWidgets import QMenu, QStyle, QStyleOptionViewItem
 
 from napari_plot._qt.qt_layer_list import QtLayerList
-from napari_plot.layers import Bar, Centroids, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import (
+    Areas,
+    Band,
+    Bar,
+    Centroids,
+    ErrorBar,
+    InfLine,
+    Line,
+    MultiLine,
+    Rectangles,
+    Region,
+    Scatter,
+    Text,
+)
+from napari_plot.resources import get_stylesheet
+
+
+def _render_row(view: QtLayerList, index: QModelIndex, state: QStyle.StateFlag) -> QImage:
+    """Render one row at a fixed size without needing an OpenGL canvas."""
+    option = QStyleOptionViewItem()
+    view.initViewItemOption(option)
+    option.rect = QRect(0, 0, 490, 34)
+    option.state = QStyle.StateFlag.State_Enabled | QStyle.StateFlag.State_Active | state
+    image = QImage(option.rect.size(), QImage.Format.Format_ARGB32)
+    image.fill(view.palette().window().color())
+    painter = QPainter(image)
+    try:
+        view.itemDelegate().paint(painter, option, index)
+    finally:
+        painter.end()
+    return image
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_layer_type_icons_paint_when_hovered_and_selected(
+    qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, theme: str
+) -> None:
+    """Compare each type decoration to the same row painted without an icon."""
+    layers = LayerList(
+        [
+            Areas(),
+            Band(),
+            Bar([1, 2]),
+            Centroids([[1, 2], [3, 4]]),
+            ErrorBar(),
+            InfLine([1, 2]),
+            Line([[1, 2], [3, 4]]),
+            MultiLine((np.array([1, 2]), np.array([3, 4]))),
+            Rectangles(),
+            Region([[1, 2]]),
+            Scatter([[1, 2]]),
+            Text(),
+            Image(np.zeros((2, 2))),
+            Points([[1, 2]]),
+            Shapes(ndim=2),
+        ]
+    )
+    view = QtLayerList(layers)
+    qtbot.addWidget(view)
+    view.setStyleSheet(get_stylesheet(theme))
+    view.ensurePolished()
+    hover = QStyle.StateFlag.State_MouseOver
+    selected = QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_HasFocus
+    icon_area = QRect(464, 5, 22, 24)
+
+    for row, layer in enumerate(reversed(layers)):
+        index = view.model().index(row, 0)
+        for state in (QStyle.StateFlag.State_None, hover, selected, selected | hover):
+            with_icon = _render_row(view, index, state).copy(icon_area)
+            with monkeypatch.context() as patcher:
+                patcher.setattr(view.itemDelegate(), "get_layer_icon", lambda *_: None)
+                without_icon = _render_row(view, index, state).copy(icon_area)
+            assert with_icon != without_icon, (layer._type_string, state)
 
 
 def _menu_actions(menu: QMenu) -> Iterator[QAction]:
@@ -111,6 +184,37 @@ def test_context_menu_targets_clicked_plot(
     assert clicked_layer.visible
     assert other_layer.visible
     assert list(store.iter_providers(LayerList)) == providers_before
+
+
+def test_toggle_lock_repaints_clicked_plot_row(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Toggle the badge twice while the host supplies the default layer list."""
+    plot_layer = Line([[0, 0], [1, 1]])
+    plot = LayerList([plot_layer])
+    plot.selection.select_only(plot_layer)
+    host_layer = Points([[0, 0]])
+    host = LayerList([host_layer])
+    host.selection.select_only(host_layer)
+    view = QtLayerList(plot)
+    qtbot.addWidget(view)
+    view.setStyleSheet(get_stylesheet("light"))
+    view.ensurePolished()
+    index = view.model().index(0, 0)
+    state = QStyle.StateFlag.State_Selected | QStyle.StateFlag.State_MouseOver
+    badge_area = QRect(443, 7, 16, 16)
+    unlocked = _render_row(view, index, state).copy(badge_area)
+
+    with get_app_model().injection_store.register(providers=[(lambda: host, LayerList, 0)]):
+        with qtbot.waitSignal(view.model().dataChanged, timeout=1_000) as change:
+            _right_click_menu(qtbot, view, monkeypatch, "napari.layer.toggle_lock")
+        assert LockedRole in change.args[2]
+        assert plot_layer.locked
+        assert not host_layer.locked
+        assert _render_row(view, index, state).copy(badge_area) != unlocked
+
+        _right_click_menu(qtbot, view, monkeypatch, "napari.layer.toggle_lock")
+        assert not plot_layer.locked
+        assert not host_layer.locked
+        assert _render_row(view, index, state).copy(badge_area) == unlocked
 
 
 def test_context_menu_keeps_host_napari_providers(

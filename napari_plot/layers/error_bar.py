@@ -11,6 +11,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 from numpy.typing import ArrayLike
 
+from napari_plot.layers._thumbnail import ERROR_BAR
 from napari_plot.layers.base import BaseLayer
 
 
@@ -83,6 +84,7 @@ class ErrorBar(BaseLayer):
         self.color = color
         self.width = width
         self.cap_size = cap_size
+        self.events.color.connect(self._update_thumbnail)
 
     @property
     def data(self) -> np.ndarray:
@@ -163,10 +165,7 @@ class ErrorBar(BaseLayer):
         self.events.set_data()
 
     def _update_thumbnail(self) -> None:
-        if hasattr(self, "_color"):
-            thumbnail = np.broadcast_to(self.color, self._thumbnail_shape).copy()
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+        self._set_thumbnail_glyph(ERROR_BAR, self.color)
 
     def _get_value(self, position: Sequence[float]) -> None:
         return None

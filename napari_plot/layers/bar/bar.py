@@ -10,6 +10,7 @@ from napari.layers.base import ActionType
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import BAR, WHITE
 from napari_plot.layers.base import BaseLayer
 
 
@@ -204,6 +205,7 @@ class Bar(BaseLayer):
     def orientation(self, value: str | BarOrientation) -> None:
         self._orientation = BarOrientation(value)
         self.events.orientation()
+        self._update_thumbnail()
         self.events.set_data()
 
     @property
@@ -239,6 +241,7 @@ class Bar(BaseLayer):
     def fill_color(self, value: ty.Any) -> None:
         self._fill_color = _coerce_colors(value, len(self.data), "fill_color")
         self.events.fill_color()
+        self._update_thumbnail()
 
     @property
     def color(self) -> np.ndarray:
@@ -258,6 +261,7 @@ class Bar(BaseLayer):
     def border_color(self, value: ty.Any) -> None:
         self._border_color = _coerce_colors(value, len(self.data), "border_color")
         self.events.border_color()
+        self._update_thumbnail()
 
     @property
     def border_width(self) -> float:
@@ -270,6 +274,7 @@ class Bar(BaseLayer):
             raise ValueError("Bar border width cannot be negative.")
         self._border_width = float(value)
         self.events.border_width()
+        self._update_thumbnail()
 
     @property
     def selected_data(self) -> set[int]:
@@ -382,9 +387,11 @@ class Bar(BaseLayer):
         self.events.set_data()
 
     def _update_thumbnail(self) -> None:
-        thumbnail = np.zeros(self._thumbnail_shape)
-        thumbnail[..., 3] = self.opacity
-        self.thumbnail = thumbnail
+        mask = BAR if self.orientation == BarOrientation.VERTICAL else BAR.T[:, ::-1]
+        color = self._fill_color[0] if len(self._fill_color) else WHITE
+        if color[3] == 0 and self.border_width > 0:
+            color = self._border_color[0]
+        self._set_thumbnail_glyph(mask, color)
 
 
 def _select_bar(layer: Bar, event) -> None:

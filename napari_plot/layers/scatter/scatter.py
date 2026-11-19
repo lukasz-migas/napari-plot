@@ -13,6 +13,7 @@ from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument
 
+from napari_plot.layers._thumbnail import SCATTER, WHITE
 from napari_plot.layers.base import LayerMixin
 
 
@@ -252,6 +253,22 @@ class Scatter(Points, LayerMixin):
         self._data_per_px: np.ndarray | None = None
         self.events.add(scaling=Event)
         self.scaling = scaling
+        self.events.face_color.connect(self._update_thumbnail)
+        self.events.border_color.connect(self._update_thumbnail)
+        self.events.current_face_color.connect(self._update_thumbnail)
+        self.events.current_border_color.connect(self._update_thumbnail)
+
+    def _post_init(self) -> None:
+        super()._post_init()
+        self._update_thumbnail()
+
+    def _update_thumbnail(self) -> None:
+        face = self.face_color
+        color = face[0] if len(face) else self._face.current_color
+        if color is None or color[3] == 0:
+            border = self.border_color
+            color = border[0] if len(border) else self._border.current_color
+        self._set_thumbnail_glyph(SCATTER, WHITE if color is None else color)
 
     def _mode_setter_helper(self, mode):
         mode = Layer._mode_setter_helper(self, mode)

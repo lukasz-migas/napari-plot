@@ -17,6 +17,7 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.events import Event
 from napari.utils.misc import ensure_iterable
 
+from napari_plot.layers._thumbnail import INF_LINE
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.infline._infline import infline_classes
 from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
@@ -106,9 +107,6 @@ class InfLine(BaseLayer):
 
     _highlight_color = (0, 0.6, 1, 0.5)
     _highlight_width = 3
-
-    # If more shapes are present then they are randomly sub-sampled in the thumbnail
-    _max_lines_thumbnail = 10
 
     def __init__(
         self,
@@ -533,15 +531,12 @@ class InfLine(BaseLayer):
         )
         return state
 
-    def _update_thumbnail(self):
-        """Update thumbnail with current data"""
-        if self._is_moving is False and self._allow_thumbnail_update is True:
-            thumbnail = np.zeros(self._thumbnail_shape)
-            thumbnail[..., 3] = 1
-            thumbnail[14:18] = (1.0, 1.0, 1.0, 1.0)
-            thumbnail[:, 14:18] = (1.0, 1.0, 1.0, 1.0)
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+    def _update_thumbnail(self) -> None:
+        if self._is_moving or not self._allow_thumbnail_update:
+            return
+        lines = self._data_view.inflines
+        mask = INF_LINE.T if lines and lines[0].orientation == Orientation.HORIZONTAL else INF_LINE
+        self._set_thumbnail_glyph(mask, self.color[0] if lines else self._current_color)
 
     @property
     def _view_data(self) -> np.ndarray:

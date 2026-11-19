@@ -10,6 +10,7 @@ from napari.settings import get_settings
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._thumbnail import TEXT
 from napari_plot.layers.base import BaseLayer
 
 HORIZONTAL_ALIGNMENTS = frozenset({"left", "center", "right"})
@@ -384,6 +385,7 @@ class Text(BaseLayer):
         if scalar is not None:
             self._default_color = scalar
         self.events.color(value=array)
+        self._update_thumbnail()
 
     @property
     def alignment(self) -> str:
@@ -550,12 +552,5 @@ class Text(BaseLayer):
         return
 
     def _update_thumbnail(self) -> None:
-        """Render a simple text-like thumbnail glyph."""
-        thumbnail = np.zeros(self._thumbnail_shape)
-        height, width = self._thumbnail_shape[:2]
         color = self.color[0] if len(self.color) else self._default_color
-        for row, span in ((height // 3, width // 2), (height // 2, width // 3)):
-            start = (width - span) // 2
-            thumbnail[row : row + 2, start : start + span] = color
-        thumbnail[..., 3] *= self.opacity
-        self.thumbnail = thumbnail
+        self._set_thumbnail_glyph(TEXT, color)

@@ -12,6 +12,7 @@ from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 from numpy.typing import ArrayLike
 
+from napari_plot.layers._thumbnail import AREAS, WHITE
 from napari_plot.layers.band import band_triangles
 from napari_plot.layers.base import BaseLayer
 
@@ -118,6 +119,9 @@ class Areas(BaseLayer):
         self.fill_color = fill_color
         self.border_color = border_color
         self.border_width = border_width
+        self.events.fill_color.connect(self._update_thumbnail)
+        self.events.border_color.connect(self._update_thumbnail)
+        self.events.border_width.connect(self._update_thumbnail)
 
     @property
     def data(self) -> list[np.ndarray]:
@@ -258,10 +262,11 @@ class Areas(BaseLayer):
         self.events.set_data()
 
     def _update_thumbnail(self) -> None:
-        if hasattr(self, "_fill_color") and len(self._fill_color):
-            thumbnail = np.broadcast_to(self._fill_color[0], self._thumbnail_shape).copy()
-            thumbnail[..., 3] *= self.opacity
-            self.thumbnail = thumbnail
+        mask = AREAS if self.orientation == AreasOrientation.VERTICAL else AREAS.T[:, ::-1]
+        color = self._fill_color[0] if len(self._fill_color) else WHITE
+        if color[3] == 0 and self.border_width > 0:
+            color = self._border_color[0]
+        self._set_thumbnail_glyph(mask, color)
 
     def _get_value(self, position: Sequence[float]) -> int | None:
         """Return the topmost area containing a data-space ``(y, x)`` position."""

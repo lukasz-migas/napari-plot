@@ -8,6 +8,7 @@ import numpy as np
 from napari.layers.base import ActionType, Layer, _LayerSlicingState
 from napari.types import LayerDataType
 from napari.utils.events import EmitterGroup
+from numpy.typing import ArrayLike, NDArray
 
 
 def update_layer_attributes(layer: Layer, throw_exception: bool = True, **kwargs: ty.Any) -> None:
@@ -30,6 +31,8 @@ class LayerMixin:
     # Set flag to 'False' to disable thumbnail update
     _allow_thumbnail_update = True
     events: EmitterGroup
+    opacity: float
+    thumbnail: NDArray[np.uint8]
     _update_dims: ty.Callable
     _update_draw: ty.Callable
 
@@ -48,8 +51,18 @@ class LayerMixin:
     def _set_view_slice(self):
         raise NotImplementedError("Must implement method")
 
-    def _update_thumbnail(self):
+    def _update_thumbnail(self) -> None:
         raise NotImplementedError("Must implement method")
+
+    def _set_thumbnail_glyph(self, mask: NDArray[np.bool_], color: ArrayLike) -> None:
+        """Tint a fixed-size glyph and publish it through napari's thumbnail setter."""
+        if not self._allow_thumbnail_update:
+            return
+        rgba = np.array(color, dtype=np.float32, copy=True).reshape(4)
+        rgba[3] *= self.opacity
+        thumbnail = np.zeros((*mask.shape, 4), dtype=np.uint8)
+        thumbnail[mask] = np.rint(rgba * 255).astype(np.uint8)
+        self.thumbnail = thumbnail
 
     def _get_value(self, position):
         raise NotImplementedError("Must implement method")
@@ -63,11 +76,14 @@ class LayerMixin:
         self._on_editable_changed()
 
     @contextmanager
-    def block_thumbnail_update(self):
-        """Use this context manager to block thumbnail updates"""
+    def block_thumbnail_update(self) -> ty.Iterator[None]:
+        """Temporarily block thumbnail updates."""
+        previous = self._allow_thumbnail_update
         self._allow_thumbnail_update = False
-        yield
-        self._allow_thumbnail_update = True
+        try:
+            yield
+        finally:
+            self._allow_thumbnail_update = previous
 
     def update_attributes(self, throw_exception: bool = True, **kwargs):
         """Update attributes on the layer."""
@@ -135,6 +151,10 @@ class BaseLayer(LayerMixin, Layer):
             units=units,
             visible=visible,
         )
+
+    def _post_init(self) -> None:
+        super()._post_init()
+        self._update_thumbnail()
 
     def _update_draw(self, scale_factor, corner_pixels_displayed, shape_threshold):
         """Update draw."""
