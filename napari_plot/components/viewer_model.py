@@ -571,12 +571,19 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.events.clear_canvas()
 
     def reset_plot(self) -> None:
-        """Remove all layers and reset what plots leave behind: categorical axes, log scales, fixed ranges and legend."""
+        """Remove all layers and reset what plots leave behind.
+
+        This covers categorical axes (incl. tick rotation and thinning), log scales, fixed ranges, legend, colorbar and
+        text overlays.
+        """
         self.clear_canvas()
         self.camera.x_range = None
         self.camera.y_range = None
         self.axis.x_categories = None
         self.axis.y_categories = None
+        self.axis.x_tick_rotation = 0.0
+        self.axis.x_thin_categories = True
+        self.axis.y_thin_categories = True
         self.axis.x_scale = "linear"
         self.axis.y_scale = "linear"
         self.clear_legend()

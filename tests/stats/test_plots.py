@@ -248,10 +248,14 @@ def test_reset_plot_clears_categories_scale_and_legend(tips: pd.DataFrame) -> No
     viewer.axis.y_scale = "log"
     viewer.camera.x_range = (-1, 5)
     viewer.camera.y_range = (1, 50)
+    viewer.axis.x_tick_rotation = 45
+    viewer.axis.x_thin_categories = False
     viewer.reset_plot()
     assert len(viewer.layers) == 0
     assert viewer.camera.x_range is None
     assert viewer.camera.y_range is None
     assert viewer.axis.x_categories is None
+    assert viewer.axis.x_tick_rotation == 0
+    assert viewer.axis.x_thin_categories
     assert viewer.axis.y_scale == "linear"
     assert not viewer.legend.visible
