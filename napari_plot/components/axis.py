@@ -58,6 +58,11 @@ class Axis(EventedModel):
 
     ``x_category_formatter`` / ``y_category_formatter`` map each categorical tick label to the displayed text
     (e.g. :func:`wrap_label` to put words on separate lines); the categories themselves are unchanged.
+
+    ``x_tick_rotation`` turns the x tick labels counter-clockwise by that many degrees (like matplotlib's
+    ``rotation``), with each label ending at its tick; the axis grows to fit angled category labels.
+    ``x_thin_categories`` / ``y_thin_categories`` hide overlapping category labels; turn them off to always show every
+    label (e.g. on a heatmap).
     """
 
     visible: bool = True
@@ -81,6 +86,9 @@ class Axis(EventedModel):
     y_categories: tuple[str, ...] | None = None
     x_category_formatter: ty.Callable[[str], str] | None = None
     y_category_formatter: ty.Callable[[str], str] | None = None
+    x_tick_rotation: float = 0.0
+    x_thin_categories: bool = True
+    y_thin_categories: bool = True
 
     def __init__(self, **data: ty.Any) -> None:
         """Initialize the axis and synchronize categorical scale fields."""

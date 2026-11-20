@@ -4,7 +4,9 @@ from collections.abc import Callable
 from typing import ClassVar
 
 from vispy.scene import AxisWidget
+from vispy.scene.widgets import Grid
 
+from napari_plot._vispy.components.axis import rotated_label_growth
 from napari_plot.components.axis import AxisScale
 
 
@@ -13,6 +15,14 @@ def _format_categories(categories: tuple[str, ...] | None, formatter: Callable[[
     if not categories:
         return ()
     return categories if formatter is None else tuple(str(formatter(label)) for label in categories)
+
+
+def _rotated_anchors(rotation: float) -> tuple[str, str] | None:
+    """Return text anchors that put the end of a label rotated counter-clockwise by `rotation` at its tick."""
+    if rotation == 0:
+        return None
+    vertical = "middle" if abs(rotation) >= 90 else "top"
+    return ("right" if rotation > 0 else "left"), vertical
 
 
 class VispyAxisVisual:
@@ -62,7 +72,11 @@ class VispyAxisVisual:
         """Change node size"""
         self.node.axis.tick_font_size = self._viewer.axis.tick_size
         self.node.axis.axis_font_size = self._viewer.axis.label_size
+        self._update_label_space()
         self._refresh_tick_layout()
+
+    def _update_label_space(self) -> None:
+        """Make room for the tick labels (only needed by axes with rotated labels)."""
 
     def _refresh_tick_layout(self) -> None:
         """Recalculate tick positions and labels on the next draw."""
@@ -101,7 +115,51 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.x_scale.connect(self._on_scale_change)
         self._viewer.axis.events.x_categories.connect(self._on_scale_change)
         self._viewer.axis.events.x_category_formatter.connect(self._on_scale_change)
+        self._viewer.axis.events.x_tick_rotation.connect(self._on_rotation_change)
+        self._viewer.axis.events.x_thin_categories.connect(self._on_thin_change)
+        self._on_rotation_change()
+        self._on_thin_change()
         self._on_scale_change()
+
+    def _on_rotation_change(self, _evt=None) -> None:
+        """Rotate the tick labels so that each one ends at its tick."""
+        rotation = float(self._viewer.axis.x_tick_rotation)
+        self.node.axis.ticker.label_rotation = rotation
+        self.node.axis.ticker._anchors = _rotated_anchors(rotation)
+        self.node.axis._text.rotation = -rotation  # vispy rotates clockwise
+        self._update_label_space()
+        self._refresh_tick_layout()
+
+    def _on_thin_change(self, _evt=None) -> None:
+        """Show or hide overlapping category labels."""
+        self.node.axis.ticker.thin_categories = self._viewer.axis.x_thin_categories
+        self._refresh_tick_layout()
+
+    def _label_growth(self) -> float:
+        """Return the extra height that rotated category labels need."""
+        ticker = getattr(self.node.axis, "ticker", None)
+        rotation = float(self._viewer.axis.x_tick_rotation)
+        if ticker is None or rotation == 0 or self._viewer.axis.x_scale is not AxisScale.CATEGORICAL:
+            return 0.0
+        try:
+            return rotated_label_growth(self.node.axis, ticker.category_labels, rotation)
+        except AttributeError:  # not attached to a canvas yet
+            return 0.0
+
+    def _update_label_space(self) -> None:
+        """Grow the axis and move its label down to fit rotated category labels."""
+        growth = self._label_growth()
+        height = self._viewer.axis.x_max_size + growth
+        if height != self.node.height_max:
+            self.node.height_max = height
+            # the grid turns size limits into layout constraints only when it rebuilds its solver
+            grid = self.node.parent
+            if isinstance(grid, Grid):
+                grid._need_solver_recreate = True
+                grid._update_child_widgets()
+        self.node.axis.axis_label_margin = self._viewer.axis.x_label_margin + growth
+        self.node.axis._need_update = True
+        self.node.update()
 
     def _on_label_change(self, _evt=None):
         """Change label"""
@@ -109,14 +167,12 @@ class VispyXAxisVisual(VispyAxisVisual):
 
     def _on_margin_change(self, _evt=None):
         """Change margin"""
-        self.node.axis.axis_label_margin = self._viewer.axis.x_label_margin
         self.node.axis.tick_label_margin = self._viewer.axis.x_tick_margin
-        self.node.axis._need_update = True
-        self.node.update()
+        self._update_label_space()
 
     def _on_max_size_change(self, _evt=None):
         """Change the maximum width/height of the axis visual"""
-        self.node.height_max = self._viewer.axis.x_max_size
+        self._update_label_space()
 
     def on_tick_formatter_change(self, _evt=None):
         """Change tick formatter."""
@@ -135,6 +191,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         self.node.axis.ticker.category_labels = _format_categories(
             self._viewer.axis.x_categories, self._viewer.axis.x_category_formatter
         )
+        self._update_label_space()
         self._refresh_tick_layout()
 
 
@@ -153,7 +210,14 @@ class VispyYAxisVisual(VispyAxisVisual):
         self._viewer.axis.events.y_scale.connect(self._on_scale_change)
         self._viewer.axis.events.y_categories.connect(self._on_scale_change)
         self._viewer.axis.events.y_category_formatter.connect(self._on_scale_change)
+        self._viewer.axis.events.y_thin_categories.connect(self._on_thin_change)
+        self._on_thin_change()
         self._on_scale_change()
+
+    def _on_thin_change(self, _evt=None) -> None:
+        """Show or hide overlapping category labels."""
+        self.node.axis.ticker.thin_categories = self._viewer.axis.y_thin_categories
+        self._refresh_tick_layout()
 
     def _on_label_change(self, _evt=None):
         """Change label"""

@@ -48,6 +48,7 @@ from napari_plot.components._viewer_utils import (
 )
 from napari_plot.components.axis import Axis, AxisScale
 from napari_plot.components.camera import Camera
+from napari_plot.components.colorbar import ColorBar
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
 from napari_plot.components.layerlist import LayerList
@@ -196,6 +197,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     dims: Dims = Field(default_factory=Dims, frozen=True)
     layers: LayerList = Field(default_factory=LayerList, frozen=True)
     axis: Axis = Field(default_factory=Axis, frozen=True)
+    colorbar: ColorBar = Field(default_factory=ColorBar, frozen=True)
     drag_tool: DragTool = Field(default_factory=DragTool, frozen=True)
 
     # Attributes
@@ -218,6 +220,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     # is required for default values.
     _layer_slicer: _LayerSlicer = PrivateAttr(default_factory=_LayerSlicer)
     _legend_source_layers: list[n_layers.Layer] = PrivateAttr(default_factory=list)
+    _colorbar_source: n_layers.Layer | None = PrivateAttr(None)
+    _text_overlay_names: list[str] = PrivateAttr(default_factory=list)
 
     def __init__(self, title="napari_plot"):
         # max_depth=0 means don't look for parent contexts.
@@ -576,6 +580,69 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.axis.x_scale = "linear"
         self.axis.y_scale = "linear"
         self.clear_legend()
+        self.clear_colorbar()
+        self.remove_text_overlays()
+
+    def add_text_overlay(
+        self,
+        text: str,
+        position: str = "top_left",
+        name: str | None = None,
+        **kwargs: Any,
+    ) -> TextOverlay:
+        """Show `text` at a corner or edge of the plot area (e.g. a statistics box), unaffected by zooming.
+
+        Unlike ``text_overlay`` (used as the plot title), any number of these can be added. ``position`` is a canvas
+        position such as ``top_left`` or ``bottom_right``; other keyword arguments (``color``, ``font_size``, ``box``,
+        ...) are passed to napari's ``TextOverlay``. Adding text with the name of an earlier one replaces it.
+        """
+        name = name or f"text {len(self._text_overlay_names)}"
+        key = f"annotation:{name}"
+        overlay = TextOverlay(text=text, position=position, visible=True, **kwargs)
+        if key in self._overlays:
+            del self._overlays[key]
+        else:
+            self._text_overlay_names.append(key)
+        self._overlays[key] = overlay
+        return overlay
+
+    def remove_text_overlays(self) -> None:
+        """Remove every text added with `add_text_overlay`."""
+        for key in self._text_overlay_names:
+            with suppress(KeyError):
+                del self._overlays[key]
+        self._text_overlay_names.clear()
+
+    def set_colorbar_from_layer(self, layer: n_layers.Layer | str, label: str = "") -> ColorBar:
+        """Show a colorbar that follows the colormap and contrast limits of an image `layer` (or its name)."""
+        if isinstance(layer, str):
+            layer = self.layers[layer]
+        self._disconnect_colorbar_source()
+        self._colorbar_source = layer
+        layer.events.colormap.connect(self._sync_colorbar)
+        layer.events.contrast_limits.connect(self._sync_colorbar)
+        self.colorbar.label = label
+        self._sync_colorbar()
+        self.colorbar.visible = True
+        return self.colorbar
+
+    def clear_colorbar(self) -> None:
+        """Hide the colorbar and stop following its layer."""
+        self._disconnect_colorbar_source()
+        self.colorbar.visible = False
+
+    def _disconnect_colorbar_source(self) -> None:
+        layer, self._colorbar_source = self._colorbar_source, None
+        if layer is not None:
+            layer.events.colormap.disconnect(self._sync_colorbar)
+            layer.events.contrast_limits.disconnect(self._sync_colorbar)
+
+    def _sync_colorbar(self, _event: Event | None = None) -> None:
+        """Copy the colormap and contrast limits of the source layer to the colorbar."""
+        layer = self._colorbar_source
+        if layer is not None:
+            self.colorbar.colormap = layer.colormap
+            self.colorbar.contrast_limits = tuple(float(value) for value in layer.contrast_limits)
 
     @property
     def _sliced_extent_world(self) -> np.ndarray:
@@ -1085,6 +1152,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             The layer that was added (same as input).
         """
         layer = event.value
+        if layer is self._colorbar_source:
+            self.clear_colorbar()
 
         # Disconnect all connections from layer
         disconnect_events(layer.events, self)

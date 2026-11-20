@@ -6,7 +6,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
-from vispy.scene.visuals import Text as TextVisual
+
+from napari_plot._vispy.visuals.text import PixelOffsetText as TextVisual
 
 if TYPE_CHECKING:
     from napari._vispy.utils.qt_font import FontInfo
@@ -35,6 +36,7 @@ class VispyTextLayer(VispyBaseLayer):
             self.layer.events.vertical_alignment,
             self.layer.events.rotation,
             self.layer.events.offset,
+            self.layer.events.pixel_offset,
             self.layer.events.font_face,
             self.layer.events.bold,
             self.layer.events.italic,
@@ -57,11 +59,13 @@ class VispyTextLayer(VispyBaseLayer):
             self.node.pos = self.layer.data + self.layer.offset
             self.node.color = self.layer.color
             self.node.rotation = self.layer.rotation
+            self.node.pixel_offset = self.layer.pixel_offset
         else:
             self.node.text = [""]
             self.node.pos = np.zeros((1, 2), dtype=float)
             self.node.color = np.zeros((1, 4), dtype=float)
             self.node.rotation = 0
+            self.node.pixel_offset = np.zeros((1, 2))
 
         self.node.anchors = (
             self.layer.alignment,

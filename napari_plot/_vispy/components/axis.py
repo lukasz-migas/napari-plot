@@ -71,8 +71,8 @@ def _visible_tick_mask(values: np.ndarray, domain: np.ndarray) -> np.ndarray:
     return (fractions > -0.0001) & (fractions < 1.0001)
 
 
-def _tick_label_extents(axis: ty.Any, labels: list[str]) -> np.ndarray:
-    """Measure label extents projected along the axis in logical pixels."""
+def _tick_label_sizes(axis: ty.Any, labels: ty.Sequence[str]) -> tuple[np.ndarray, np.ndarray]:
+    """Measure the unrotated width and height of each label in logical pixels."""
     text = axis._text
     font = QFont(text.face)
     font.setPointSizeF(float(axis.tick_font_size))
@@ -87,13 +87,44 @@ def _tick_label_extents(axis: ty.Any, labels: list[str]) -> np.ndarray:
         [max(metrics.horizontalAdvance(line) for line in label.split("\n")) for label in labels], dtype=float
     )
     heights = np.asarray([metrics.height() * (label.count("\n") + 1) for label in labels], dtype=float)
+    return widths * dpi_scale, heights * dpi_scale
 
+
+def _label_rotation(axis: ty.Any) -> float:
+    """Return the counter-clockwise tick label rotation of `axis` in degrees."""
+    return float(getattr(getattr(axis, "ticker", None), "label_rotation", 0.0))
+
+
+def _tick_label_extents(axis: ty.Any, labels: list[str]) -> np.ndarray:
+    """Measure the space each label needs along the axis in logical pixels.
+
+    Rotated labels are parallel boxes, so neighbours are clear once they are separated either along the text direction
+    (by the label width) or across it (by the label height), whichever needs the shorter distance along the axis.
+    """
+    widths, heights = _tick_label_sizes(axis, labels)
     axis_vector = np.asarray(axis.pos[1] - axis.pos[0], dtype=float)
     axis_length = float(np.linalg.norm(axis_vector))
     if axis_length == 0:
         return np.zeros(len(labels), dtype=float)
     direction = np.abs(axis_vector[:2]) / axis_length
-    return (direction[0] * widths + direction[1] * heights) * dpi_scale
+    rotation = np.radians(_label_rotation(axis))
+    if rotation == 0:
+        return direction[0] * widths + direction[1] * heights
+    cos, sin = abs(np.cos(rotation)), abs(np.sin(rotation))
+    with np.errstate(divide="ignore"):
+        along_horizontal = np.minimum(widths / cos, heights / sin)
+        along_vertical = np.minimum(heights / cos, widths / sin)
+    return direction[0] * along_horizontal + direction[1] * along_vertical
+
+
+def rotated_label_growth(axis: ty.Any, labels: ty.Sequence[str], rotation: float) -> float:
+    """Return how much taller (in logical pixels) the tallest label of a horizontal axis gets when rotated."""
+    if not labels or rotation == 0:
+        return 0.0
+    widths, heights = _tick_label_sizes(axis, labels)
+    angle = np.radians(rotation)
+    rotated = widths * abs(np.sin(angle)) + heights * abs(np.cos(angle))
+    return max(0.0, float(np.max(rotated) - np.max(heights)))
 
 
 def _tick_labels_overlap(
@@ -210,11 +241,12 @@ def _get_categorical_ticks(
     axis: ty.Any,
     category_labels: tuple[str, ...],
     domain: np.ndarray,
+    thin: bool = True,
 ) -> tuple[np.ndarray, list[str]]:
-    """Return integer tick positions and ordered categorical labels."""
+    """Return integer tick positions and ordered categorical labels, hiding overlapping labels when `thin`."""
     major = np.arange(len(category_labels), dtype=float)
     labels = list(category_labels)
-    if _tick_labels_overlap(axis, major, labels, domain):
+    if thin and _tick_labels_overlap(axis, major, labels, domain):
         labels = _thin_label_sequence(axis, major, labels, domain)
     return major, labels
 
@@ -226,6 +258,8 @@ class Ticker(_Ticker):
         super().__init__(axis, anchors)
         self.tick_format_func = tick_format_func
         self.category_labels: tuple[str, ...] = ()
+        self.thin_categories = True
+        self.label_rotation = 0.0  # degrees, counter-clockwise
 
     def _get_tick_frac_labels(self):
         """Get the major ticks, minor ticks, and major labels"""
@@ -291,6 +325,7 @@ class Ticker(_Ticker):
                 self.axis,
                 self.category_labels,
                 domain,
+                thin=self.thin_categories,
             )
             scale = float(domain[1] - domain[0])
             major_frac = np.full(len(major), 0.5) if scale == 0 else (major - domain[0]) / scale

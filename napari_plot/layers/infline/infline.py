@@ -20,7 +20,7 @@ from napari.utils.misc import ensure_iterable
 from napari_plot.layers._thumbnail import INF_LINE
 from napari_plot.layers.base import BaseLayer
 from napari_plot.layers.infline._infline import infline_classes
-from napari_plot.layers.infline._infline_constants import Box, Mode, Orientation
+from napari_plot.layers.infline._infline_constants import Box, LineStyle, Mode, Orientation
 from napari_plot.layers.infline._infline_list import InfiniteLineList
 from napari_plot.layers.infline._infline_mouse_bindings import add, highlight, move, select
 from napari_plot.layers.infline._infline_utils import get_default_infline_type, parse_infinite_line_orientation
@@ -55,6 +55,9 @@ class InfLine(BaseLayer):
         be 1-dimensional array with 3 or 4 elements.
     width : float
         Width of the line in pixel units.
+    line_style : str or LineStyle
+        Style of every line: ``solid``, ``dashed`` or ``dotted``. Dash lengths are in screen pixels, so they do not
+        change when zooming.
     name : str
         Name of the layer.
     metadata : dict
@@ -115,6 +118,7 @@ class InfLine(BaseLayer):
         orientation="vertical",
         color=(1.0, 1.0, 1.0, 1.0),
         width=1,
+        line_style="solid",
         z_index=0,
         # base parameters
         axis_labels=None,
@@ -157,6 +161,7 @@ class InfLine(BaseLayer):
         self.events.add(
             color=Event,
             width=Event,
+            line_style=Event,
             shifted=Event,
             highlight=Event,
             current_color=Event,
@@ -166,6 +171,7 @@ class InfLine(BaseLayer):
         )
 
         self._width = width
+        self._line_style = LineStyle(line_style)
 
         # Data container
         self._data_view = InfiniteLineList()
@@ -408,6 +414,16 @@ class InfLine(BaseLayer):
         self.events.width()
 
     @property
+    def line_style(self) -> LineStyle:
+        """Style of every line: solid, dashed or dotted."""
+        return self._line_style
+
+    @line_style.setter
+    def line_style(self, value: str | LineStyle) -> None:
+        self._line_style = LineStyle(value)
+        self.events.line_style()
+
+    @property
     def selected_data(self) -> set:
         """set: set of currently selected points."""
         return self._selected_data
@@ -526,6 +542,7 @@ class InfLine(BaseLayer):
                 "orientation": self.orientation,
                 "color": self.color,
                 "width": self.width,
+                "line_style": str(self.line_style),
                 "z_index": self._data_view.z_indices,
             }
         )

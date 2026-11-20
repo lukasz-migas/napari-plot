@@ -44,6 +44,7 @@ def heatmap(
     mask: ty.Any = None,
     xticklabels: ty.Any = True,
     yticklabels: ty.Any = True,
+    cbar: bool = False,
     name: str = "heatmap",
 ) -> list[Layer]:
     """Draw a matrix as a color-encoded image, optionally annotating each cell with its value.
@@ -76,6 +77,8 @@ def heatmap(
         Cells where True are not drawn or annotated.
     xticklabels, yticklabels : bool, int, list or "auto"
         Tick labels as in seaborn (int labels every n-th cell).
+    cbar : bool
+        Show the viewer colorbar next to the plot, following the heatmap's colormap and limits.
     name : str
         Prefix for created layer names.
 
@@ -102,6 +105,8 @@ def heatmap(
             name=name,
         )
     ]
+    if cbar:
+        viewer.set_colorbar_from_layer(layers[0])
 
     if mapper.annot:
         positions, texts, colors = [], [], []

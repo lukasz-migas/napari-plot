@@ -103,12 +103,12 @@ def _broadcast_text(value: str | Sequence[str] | None, length: int) -> np.ndarra
     return array.copy()
 
 
-def _broadcast_offsets(value: Any, length: int) -> tuple[np.ndarray, np.ndarray | None]:
+def _broadcast_offsets(value: Any, length: int, name: str = "offset") -> tuple[np.ndarray, np.ndarray | None]:
     """Broadcast one xy offset or validate one offset per label."""
     array = np.asarray(value, dtype=float)
     scalar = array.shape == (2,)
     if not np.all(np.isfinite(array)):
-        raise ValueError("'offset' values must be finite.")
+        raise ValueError(f"'{name}' values must be finite.")
     if scalar:
         fallback = array.copy()
         array = np.broadcast_to(array, (length, 2)).copy()
@@ -116,7 +116,7 @@ def _broadcast_offsets(value: Any, length: int) -> tuple[np.ndarray, np.ndarray 
         fallback = None
         array = array.copy()
     else:
-        raise ValueError("'offset' must be an (x, y) pair or an (N, 2) array.")
+        raise ValueError(f"'{name}' must be an (x, y) pair or an (N, 2) array.")
     return array, fallback
 
 
@@ -203,6 +203,9 @@ class Text(BaseLayer):
         Clockwise rotation in degrees, either shared or one value per label.
     offset : array-like, shape (2,) or (N, 2)
         Offset from each xy coordinate in plot data units.
+    pixel_offset : array-like, shape (2,) or (N, 2)
+        Extra offset in screen pixels (x to the right, y up), added after ``offset``. Unlike ``offset`` it keeps
+        labels at the same distance from their points at any zoom, like matplotlib's ``"offset points"``.
     font_face : str, optional
         Font family shared by the layer. By default the application font is used.
     bold : bool
@@ -222,6 +225,7 @@ class Text(BaseLayer):
         vertical_alignment: str = "center",
         rotation: float | Sequence[float] = 0,
         offset: Any = (0, 0),
+        pixel_offset: Any = (0, 0),
         font_face: str | None = None,
         bold: bool = False,
         italic: bool = False,
@@ -253,6 +257,7 @@ class Text(BaseLayer):
         )
         rotations, default_rotation = _broadcast_numeric(rotation, n_labels, "rotation")
         offsets, default_offset = _broadcast_offsets(offset, n_labels)
+        pixel_offsets, default_pixel_offset = _broadcast_offsets(pixel_offset, n_labels, "pixel_offset")
         if font_face is not None and not isinstance(font_face, str):
             raise TypeError("'font_face' must be a string or None.")
 
@@ -281,6 +286,7 @@ class Text(BaseLayer):
             vertical_alignment=Event,
             rotation=Event,
             offset=Event,
+            pixel_offset=Event,
             font_face=Event,
             bold=Event,
             italic=Event,
@@ -294,6 +300,7 @@ class Text(BaseLayer):
         self._vertical_alignment = vertical_alignment
         self._rotation = rotations
         self._offset = offsets
+        self._pixel_offset = pixel_offsets
         self._font_face = font_face
         self._bold = bool(bold)
         self._italic = bool(italic)
@@ -301,6 +308,7 @@ class Text(BaseLayer):
         self._default_color = transform_color("white")[0] if default_color is None else default_color
         self._default_rotation = 0.0 if default_rotation is None else default_rotation
         self._default_offset = np.zeros(2) if default_offset is None else default_offset
+        self._default_pixel_offset = np.zeros(2) if default_pixel_offset is None else default_pixel_offset
 
     def _get_state(self) -> dict[str, Any]:
         """Return the layer state used for duplication and serialization."""
@@ -315,6 +323,7 @@ class Text(BaseLayer):
                 "vertical_alignment": self.vertical_alignment,
                 "rotation": self.rotation,
                 "offset": self.offset,
+                "pixel_offset": self.pixel_offset,
                 "font_face": self.font_face,
                 "bold": self.bold,
                 "italic": self.italic,
@@ -345,6 +354,7 @@ class Text(BaseLayer):
         self._color = _resize_array(self._color, length, self._default_color)
         self._rotation = _resize_array(self._rotation, length, self._default_rotation)
         self._offset = _resize_array(self._offset, length, self._default_offset)
+        self._pixel_offset = _resize_array(self._pixel_offset, length, self._default_pixel_offset)
 
     @property
     def text(self) -> np.ndarray:
@@ -440,6 +450,19 @@ class Text(BaseLayer):
             self._default_offset = scalar
         self._clear_extent()
         self.events.offset(value=array)
+
+    @property
+    def pixel_offset(self) -> np.ndarray:
+        """Return xy offsets in screen pixels (x to the right, y up)."""
+        return self._pixel_offset
+
+    @pixel_offset.setter
+    def pixel_offset(self, value: Any) -> None:
+        array, scalar = _broadcast_offsets(value, len(self.data), "pixel_offset")
+        self._pixel_offset = array
+        if scalar is not None:
+            self._default_pixel_offset = scalar
+        self.events.pixel_offset(value=array)
 
     @property
     def font_face(self) -> str | None:

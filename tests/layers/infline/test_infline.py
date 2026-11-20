@@ -142,3 +142,23 @@ def test_infline_selection():
 
     layer.selected_data = set()
     assert layer.selected_data == set()
+
+
+def test_infline_line_style():
+    """Line style defaults to solid, accepts names and is kept in the layer state."""
+    from napari_plot.layers.infline._infline_constants import LineStyle
+
+    layer = InfLine([25, 50])
+    assert layer.line_style == LineStyle.SOLID
+
+    events = []
+    layer.events.line_style.connect(lambda _event: events.append(True))
+    layer.line_style = "dashed"
+    assert layer.line_style == LineStyle.DASHED
+    assert events
+    assert layer._get_state()["line_style"] == "dashed"
+
+    with pytest.raises(ValueError):
+        layer.line_style = "wavy"
+
+    assert InfLine([1], line_style="dotted").line_style == LineStyle.DOTTED

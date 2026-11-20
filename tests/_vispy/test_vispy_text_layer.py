@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 from napari._vispy.utils.qt_font import FontInfo
 from qtpy.QtWidgets import QApplication
-from vispy.scene.visuals import Text as VispyTextVisual
+from vispy.visuals import TextVisual as VispyTextVisual
 
 from napari_plot._vispy.layers.text import VispyTextLayer
 from napari_plot.layers import Text
@@ -79,3 +79,25 @@ def test_vispy_text_empty_layer(
     assert visual.node.text == [""]
     np.testing.assert_array_equal(visual.node.color.rgba, [[0, 0, 0, 0]])
     visual.close()
+
+
+def test_vispy_text_passes_pixel_offsets(
+    monkeypatch: pytest.MonkeyPatch,
+    qapp: QApplication,
+) -> None:
+    """Pixel offsets reach the native visual and follow later changes."""
+    layer = Text([[1, 2], [3, 4]], ["a", "b"], pixel_offset=[[4, 4], [-4, 8]])
+    visual = _make_visual(monkeypatch, layer, qapp)
+
+    np.testing.assert_allclose(visual.node.pixel_offset, [[4, 4], [-4, 8]])
+    layer.pixel_offset = (2, 3)
+    np.testing.assert_allclose(visual.node.pixel_offset, [[2, 3], [2, 3]])
+
+
+def test_pixel_offset_shader_adds_screen_shift() -> None:
+    """The text vertex shader gets a per-glyph pixel shift added to the glyph offset."""
+    from napari_plot._vispy.visuals.text import PixelOffsetTextVisual
+
+    vertex = PixelOffsetTextVisual._shaders["vertex"]
+    assert "attribute vec2 a_px_offset;" in vertex
+    assert vertex.index("offset.xy += a_px_offset * u_px_scale;") < vertex.index("gl_Position =")

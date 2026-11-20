@@ -226,3 +226,23 @@ def test_text_extent_cache_is_cleared_by_style_changes() -> None:
 
     assert layer.extent.data[0, 1] < initial_extent[0, 1]
     assert layer.extent.data[1, 1] == pytest.approx(1)
+
+
+def test_text_pixel_offset_broadcasts_resizes_and_is_saved() -> None:
+    """Pixel offsets work like data offsets but do not move the layer extent."""
+    layer = Text([[0, 0], [1, 1]], ["a", "b"], pixel_offset=(5, 6))
+    np.testing.assert_allclose(layer.pixel_offset, [[5, 6], [5, 6]])
+    extent = layer.extent.data.copy()
+
+    events = []
+    layer.events.pixel_offset.connect(lambda event: events.append(event.value))
+    layer.pixel_offset = [[1, 2], [3, 4]]
+    assert len(events) == 1
+    np.testing.assert_allclose(layer.extent.data, extent)
+
+    layer.data = [[0, 0], [1, 1], [2, 2]]
+    np.testing.assert_allclose(layer.pixel_offset[-1], [3, 4])  # new labels reuse the last value
+    np.testing.assert_allclose(layer._get_state()["pixel_offset"], layer.pixel_offset)
+
+    with pytest.raises(ValueError, match="pixel_offset"):
+        layer.pixel_offset = [[1, 2]]

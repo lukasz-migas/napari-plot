@@ -6,6 +6,7 @@ import numpy as np
 from napari._vispy.layers.base import VispyBaseLayer
 
 from napari_plot._vispy.visuals.infline import InfLineVisual
+from napari_plot.layers.infline._infline_constants import DASH_PATTERNS
 
 if ty.TYPE_CHECKING:
     from napari_plot.layers import InfLine
@@ -26,11 +27,18 @@ class VispyInfLineLayer(VispyBaseLayer):
         self.layer.events.color.connect(self._on_appearance_change)
         self.layer.events.highlight.connect(self._on_highlight_change)
         self.layer.events.width.connect(self._on_width_change)
+        self.layer.events.line_style.connect(self._on_line_style_change)
         self.layer.events.adding.connect(self._on_adding_change)
         self.layer.events.removed.connect(self._on_remove_change)
 
         self.reset()
+        self._on_line_style_change()
         self._on_data_change()
+
+    def _on_line_style_change(self, _event=None) -> None:
+        """Change the dash pattern of the stored lines."""
+        self.node.lines_visual.dash_pattern = DASH_PATTERNS[self.layer.line_style]
+        self.node.update()
 
     def _on_adding_change(self, _event=None) -> None:
         """Update the temporary line shown while adding a new line."""

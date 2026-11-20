@@ -15,7 +15,9 @@ from napari_plot._vispy.components.axis import (
     _get_log_ticks,
     _get_major_ticks,
     _tick_label_extents,
+    _tick_label_sizes,
     _tick_labels_overlap,
+    rotated_label_growth,
 )
 
 
@@ -343,3 +345,72 @@ def test_category_formatter_changes_displayed_labels(make_napari_plot_viewer) ->
     ticker = viewer.window._qt_viewer.canvas.y_axis.node.axis.ticker
     assert ticker.category_labels == ("Test\n(Negative)", "Brain")
     assert viewer.axis.y_categories == ("Test (Negative)", "Brain")
+
+
+def test_rotated_labels_need_less_space_along_the_axis(qapp) -> None:
+    """Vertical labels on a horizontal axis only need their height; angled ones need less than their width."""
+    flat = _make_axis(tick_font_size=12.0)
+    labels = ["Glycerophospholipids", "Fatty acyls"]
+    widths, heights = _tick_label_sizes(flat, labels)
+    np.testing.assert_allclose(_tick_label_extents(flat, labels), widths)
+
+    vertical = _make_axis(tick_font_size=12.0)
+    vertical.ticker = SimpleNamespace(label_rotation=90.0)
+    np.testing.assert_allclose(_tick_label_extents(vertical, labels), heights)
+
+    angled = _make_axis(tick_font_size=12.0)
+    angled.ticker = SimpleNamespace(label_rotation=45.0)
+    extents = _tick_label_extents(angled, labels)
+    assert np.all(extents < widths)
+    np.testing.assert_allclose(extents, heights / np.sin(np.radians(45.0)))
+
+
+def test_rotated_label_growth_uses_the_longest_label(qapp) -> None:
+    """Rotating labels grows the axis by the tallest rotated label minus the unrotated height."""
+    axis = _make_axis(tick_font_size=12.0)
+    labels = ["short", "a much longer label"]
+    widths, heights = _tick_label_sizes(axis, labels)
+
+    assert rotated_label_growth(axis, labels, 0.0) == 0.0
+    np.testing.assert_allclose(rotated_label_growth(axis, labels, 90.0), widths.max() - heights.max())
+
+
+def test_categorical_ticker_can_keep_every_label(monkeypatch) -> None:
+    """Without thinning, every category label is kept even when labels overlap."""
+    monkeypatch.setattr(axis_module, "_tick_label_extents", lambda _axis, labels: np.full(len(labels), 100.0))
+    axis = _make_axis(domain=(0.0, 3.0), length=150.0)
+    categories = ("alpha", "beta", "gamma", "delta")
+
+    _major, labels = _get_categorical_ticks(axis, categories, axis.domain, thin=False)
+
+    assert labels == list(categories)
+
+
+def test_x_tick_rotation_rotates_labels_and_grows_axis(make_napari_plot_viewer) -> None:
+    """Rotating category labels rotates the text, anchors its end at the tick and makes room below the axis."""
+    viewer = make_napari_plot_viewer()
+    viewer.axis.x_categories = ("Glycerophospholipids", "Fatty acyls", "Sphingolipids")
+    node = viewer.window._qt_viewer.canvas.x_axis.node
+    height = node.height_max
+
+    viewer.axis.x_tick_rotation = 45
+    assert node.axis._text.rotation == -45
+    assert node.axis.ticker._anchors == ("right", "top")
+    assert node.height_max > height
+    assert node.axis.axis_label_margin > viewer.axis.x_label_margin
+
+    viewer.axis.x_tick_rotation = 0
+    assert node.axis.ticker._anchors is None
+    assert node.height_max == viewer.axis.x_max_size
+
+
+def test_thin_categories_reaches_both_tickers(make_napari_plot_viewer) -> None:
+    """Turning thinning off is passed to the x and y tickers."""
+    viewer = make_napari_plot_viewer()
+    canvas = viewer.window._qt_viewer.canvas
+
+    viewer.axis.x_thin_categories = False
+    viewer.axis.y_thin_categories = False
+
+    assert canvas.x_axis.node.axis.ticker.thin_categories is False
+    assert canvas.y_axis.node.axis.ticker.thin_categories is False

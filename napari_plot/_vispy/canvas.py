@@ -31,6 +31,7 @@ from vispy.visuals.transforms import LogTransform
 
 from napari_plot._vispy.camera import VispyCamera
 from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
+from napari_plot._vispy.overlays.colorbar import VispyColorBarVisual
 from napari_plot._vispy.tools.drag import VispyDragTool
 from napari_plot.components.axis import AxisScale, transform_axis_values
 
@@ -153,7 +154,7 @@ class VispyCanvas:
         self.grid.add_widget(self.x_axis.node, row=2, col=1)
         self.x_axis.node.link_view(self.view)
         self.x_axis.node.events.resize.connect(self.x_axis.node._view_changed)
-        self.x_axis.node.height_max = self.viewer.axis.x_max_size
+        self.x_axis._on_max_size_change()
         self.x_axis.interactive = True
 
         # add y-axis widget
@@ -164,12 +165,18 @@ class VispyCanvas:
         self.y_axis.node.width_max = self.viewer.axis.y_max_size
         self.y_axis.interactive = True
 
+        # colorbar right of the plot, in the column of the right padding
+        padding = self._scene_canvas.padding_x
+        self.colorbar = VispyColorBarVisual(self.viewer, self.grid, padding, padding.width_max)
+
         with self._scene_canvas.modify_context():
             self._scene_canvas.x_axis = self.x_axis
             self._scene_canvas.y_axis = self.y_axis
 
         for overlay in self.viewer._overlays.values():
             self._add_overlay_to_visual(overlay)
+        self.viewer._overlays.events.added.connect(self._on_overlay_added)
+        self.viewer._overlays.events.removed.connect(self._on_overlay_removed)
 
         # connect events
         # Connecting events from SceneCanvas
@@ -295,6 +302,9 @@ class VispyCanvas:
         disconnect_events(self.viewer.events, self)
         disconnect_events(self.viewer.canvas.events, self)
         disconnect_events(get_settings().appearance.events, self)
+        disconnect_events(self.viewer._overlays.events, self)
+        disconnect_events(self.viewer.colorbar.events, self.colorbar)
+        disconnect_events(self.viewer.axis.events, self.colorbar)
         for overlay in self._overlay_to_visual:
             overlay.events.position.disconnect(self._request_overlay_positions)
             overlay.events.visible.disconnect(self._request_overlay_positions)
@@ -628,6 +638,20 @@ class VispyCanvas:
         vispy_overlay.set_default_font_size(get_settings().appearance.font_size)
         overlay.events.position.connect(self._request_overlay_positions)
         overlay.events.visible.connect(self._request_overlay_positions)
+
+    def _on_overlay_added(self, event: Event) -> None:
+        """Create the visual of an overlay added after the canvas was made."""
+        self._add_overlay_to_visual(event.value)
+        self._request_overlay_positions()
+
+    def _on_overlay_removed(self, event: Event) -> None:
+        """Close the visual of a removed overlay."""
+        overlay = event.value
+        visual = self._overlay_to_visual.pop(overlay, None)
+        if visual is not None:
+            overlay.events.position.disconnect(self._request_overlay_positions)
+            overlay.events.visible.disconnect(self._request_overlay_positions)
+            visual.close()
 
     def screenshot(self) -> QImage:
         """Return a QImage based on what is shown in the viewer."""

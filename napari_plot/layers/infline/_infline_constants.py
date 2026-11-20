@@ -46,3 +46,19 @@ class Orientation(StrEnum):
 
     HORIZONTAL = "horizontal"
     VERTICAL = "vertical"
+
+
+class LineStyle(StringEnum):
+    """Line style of infinite lines: SOLID, DASHED or DOTTED."""
+
+    SOLID = auto()
+    DASHED = auto()
+    DOTTED = auto()
+
+
+# (on, off) lengths in multiples of the line width (at least one pixel); solid lines have no pattern
+DASH_PATTERNS: dict[LineStyle, tuple[float, float] | None] = {
+    LineStyle.SOLID: None,
+    LineStyle.DASHED: (6.0, 4.0),
+    LineStyle.DOTTED: (1.0, 3.0),
+}

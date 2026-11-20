@@ -17,6 +17,7 @@ _VERTEX_SHADER = """
     attribute vec4 a_color;
     attribute float a_orientation;
     varying vec4 v_color;
+    varying float v_orientation;
 
     void main() {
         vec4 pos = vec4(a_pos, 0., 1.);
@@ -32,13 +33,24 @@ _VERTEX_SHADER = """
 
         gl_Position = $transform(pos);
         v_color = a_color;
+        v_orientation = a_orientation;
     }
     """
 
 _FRAGMENT_SHADER = """
     varying vec4 v_color;
+    varying float v_orientation;
 
     void main() {
+        // dash pattern as (on, off) lengths in framebuffer pixels; no "on" length draws a solid line
+        vec2 dash = $dash;
+        if (dash.x > 0.0) {
+            // vertical lines (orientation 0) run along y, horizontal lines along x
+            float along = v_orientation < 0.5 ? gl_FragCoord.y : gl_FragCoord.x;
+            if (mod(along, dash.x + dash.y) >= dash.x) {
+                discard;
+            }
+        }
         gl_FragColor = v_color;
     }
     """
@@ -64,6 +76,7 @@ class _BatchedInfiniteLineVisual(Visual):
         self._vertex_color = np.zeros((0, 4), dtype=np.float32)
         self._vertex_orientation = np.zeros(0, dtype=np.float32)
         self._line_width = float(line_width)
+        self._dash_pattern: tuple[float, float] | None = None
         self._antialias = bool(antialias)
         self._changed = True
 
@@ -136,6 +149,16 @@ class _BatchedInfiniteLineVisual(Visual):
         self.update()
 
     @property
+    def dash_pattern(self) -> tuple[float, float] | None:
+        """Return the (on, off) dash lengths in multiples of the line width, or None for solid lines."""
+        return self._dash_pattern
+
+    @dash_pattern.setter
+    def dash_pattern(self, value: tuple[float, float] | None) -> None:
+        self._dash_pattern = None if value is None else (float(value[0]), float(value[1]))
+        self.update()
+
+    @property
     def antialias(self) -> bool:
         """Return whether GL line smoothing is enabled."""
         return self._antialias
@@ -195,6 +218,11 @@ class _BatchedInfiniteLineVisual(Visual):
         self.update_gl_state(line_smooth=self._antialias)
         width = self.transforms.pixel_scale * self._line_width
         self.update_gl_state(line_width=max(width, 1.0))
+        if self._dash_pattern is None:
+            view.view_program.frag["dash"] = (0.0, 0.0)
+        else:
+            unit = max(width, self.transforms.pixel_scale)
+            view.view_program.frag["dash"] = (self._dash_pattern[0] * unit, self._dash_pattern[1] * unit)
 
         if len(self._vertex_pos) == 0:
             return False

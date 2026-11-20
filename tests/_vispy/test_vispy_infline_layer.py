@@ -92,3 +92,17 @@ def test_vispy_infline_layer_width_and_opacity_propagate(layer: InfLine) -> None
     assert visual.node.lines_visual.opacity == 0.25
     assert visual.node.horizontal_visual.opacity == 0.25
     assert visual.node.vertical_visual.opacity == 0.25
+
+
+def test_vispy_infline_layer_follows_line_style(layer: InfLine) -> None:
+    """The batched visual gets the dash pattern of the layer's line style."""
+    from napari_plot.layers.infline._infline_constants import DASH_PATTERNS, LineStyle
+
+    visual = VispyInfLineLayer(layer, font_info=FontInfo())
+    assert visual.node.lines_visual.dash_pattern is None
+
+    layer.line_style = "dashed"
+    assert visual.node.lines_visual.dash_pattern == DASH_PATTERNS[LineStyle.DASHED]
+
+    layer.line_style = "solid"
+    assert visual.node.lines_visual.dash_pattern is None
