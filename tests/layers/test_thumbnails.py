@@ -73,21 +73,24 @@ def test_scatter_thumbnail_avoids_view_and_bounds(monkeypatch: pytest.MonkeyPatc
     np.testing.assert_array_equal(layer.thumbnail, thumbnail)
 
 
-@pytest.mark.xfail(reason="Sometimes fails on CI.")
 def test_layer_list_receives_thumbnail_change(qtbot: QtBot) -> None:
     """The layer-list model exposes the new image after a style edit."""
-    layer = Line([[0, 0], [1, 1]])
+    layer = Line([[0, 0], [1, 1]], color="white")
     view = QtLayerList(LayerList([layer]))
     qtbot.addWidget(view)
     model = view.model()
     index = model.index(0, 0)
     before = index.data(ThumbnailRole)
+    center = (before.width() // 2, before.height() // 2)
+    assert before.pixelColor(*center).getRgb() == (255, 255, 255, 255)
 
     with qtbot.waitSignal(
         model.dataChanged, timeout=1000, check_params_cb=lambda _first, _last, roles: ThumbnailRole in roles
     ):
         layer.color = "red"
-    assert index.data(ThumbnailRole) != before
+    after = index.data(ThumbnailRole)
+    assert after.pixelColor(*center).getRgb() == (255, 0, 0, 255)
+    assert before.pixelColor(*center).getRgb() == (255, 255, 255, 255)
 
 
 def test_thumbnail_blocking_is_nested_and_exception_safe() -> None:

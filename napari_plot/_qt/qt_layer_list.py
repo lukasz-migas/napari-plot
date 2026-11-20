@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from napari._app_model import get_app_model
-from napari._qt.containers import QtLayerList as NapariQtLayerList
+from napari._qt.containers import QtLayerList as NapariQtLayerList, QtLayerListModel
 from napari._qt.containers._base_item_model import ItemRole
 from napari._qt.containers._layer_delegate import LayerDelegate
+from napari._qt.containers.qt_layer_model import ThumbnailRole
 from napari._qt.qt_resources import QColoredSVGIcon
 from napari.components import LayerList
 from napari.layers import Layer
 from napari.utils.theme import get_theme
 from qtextra.helpers import make_qta_icon
-from qtpy.QtCore import QModelIndex, QPoint, QSize, QSortFilterProxyModel
+from qtpy.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt
 from qtpy.QtGui import QPalette
 from qtpy.QtWidgets import QStyleOptionViewItem, QWidget
 
@@ -31,6 +34,18 @@ _LAYER_ICONS = {
     "scatter": "new_scatter",
     "text": "mdi.format-text",
 }
+
+
+class _LayerListModel(QtLayerListModel):
+    """Expose thumbnails with Qt-owned pixel storage."""
+
+    def data(self, index: QModelIndex | QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole) -> Any:
+        """Copy thumbnail pixels before the image crosses the Qt model boundary."""
+        value = super().data(index, role)
+        if role == ThumbnailRole and value is not None:
+            # PyQt can release the source image's Python buffer during QVariant conversion.
+            return value.copy()
+        return value
 
 
 class _LayerDelegate(LayerDelegate):
@@ -85,3 +100,11 @@ class QtLayerList(NapariQtLayerList):
         self.setItemDelegate(delegate)
         delegate.loading_frame_changed.connect(self.viewport().update)
         previous_delegate.deleteLater()
+
+    def setRoot(self, root: LayerList) -> None:
+        """Bind the layer list to the thumbnail model and sync its selection."""
+        self._root = root
+        self.setModel(_LayerListModel(root, self))
+        root.selection.events.changed.connect(self._on_py_selection_change)
+        root.selection.events._current.connect(self._on_py_current_change)
+        self._sync_selection_models()
