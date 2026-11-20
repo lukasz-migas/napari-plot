@@ -3,10 +3,11 @@
 from collections.abc import Callable
 from typing import ClassVar
 
+import numpy as np
 from vispy.scene import AxisWidget
 from vispy.scene.widgets import Grid
 
-from napari_plot._vispy.components.axis import rotated_label_growth
+from napari_plot._vispy.components.axis import _tick_label_sizes, rotated_label_growth
 from napari_plot.components.axis import AxisScale
 
 
@@ -76,7 +77,17 @@ class VispyAxisVisual:
         self._refresh_tick_layout()
 
     def _update_label_space(self) -> None:
-        """Make room for the tick labels (only needed by axes with rotated labels)."""
+        """Make room for the tick labels (only needed by axes with long category labels)."""
+
+    def _set_size_limit(self, name: str, value: float) -> None:
+        """Set the `height_max` or `width_max` of the axis widget and make the grid apply it."""
+        if value != getattr(self.node, name):
+            setattr(self.node, name, value)
+            # the grid turns size limits into layout constraints only when it rebuilds its solver
+            grid = self.node.parent
+            if isinstance(grid, Grid):
+                grid._need_solver_recreate = True
+                grid._update_child_widgets()
 
     def _refresh_tick_layout(self) -> None:
         """Recalculate tick positions and labels on the next draw."""
@@ -149,14 +160,7 @@ class VispyXAxisVisual(VispyAxisVisual):
     def _update_label_space(self) -> None:
         """Grow the axis and move its label down to fit rotated category labels."""
         growth = self._label_growth()
-        height = self._viewer.axis.x_max_size + growth
-        if height != self.node.height_max:
-            self.node.height_max = height
-            # the grid turns size limits into layout constraints only when it rebuilds its solver
-            grid = self.node.parent
-            if isinstance(grid, Grid):
-                grid._need_solver_recreate = True
-                grid._update_child_widgets()
+        self._set_size_limit("height_max", self._viewer.axis.x_max_size + growth)
         self.node.axis.axis_label_margin = self._viewer.axis.x_label_margin + growth
         self.node.axis._need_update = True
         self.node.update()
@@ -225,14 +229,35 @@ class VispyYAxisVisual(VispyAxisVisual):
 
     def _on_margin_change(self, _evt=None):
         """Change margin"""
-        self.node.axis.axis_label_margin = self._viewer.axis.y_label_margin
         self.node.axis.tick_label_margin = self._viewer.axis.y_tick_margin
-        self.node.axis._need_update = True
-        self.node.update()
+        self._update_label_space()
 
     def _on_max_size_change(self, _evt=None):
         """Change the maximum width/height of the axis visual"""
-        self.node.width_max = self._viewer.axis.y_max_size
+        self._update_label_space()
+
+    def _label_growth(self) -> float:
+        """Return the extra width that category labels wider than the default label space need."""
+        ticker = getattr(self.node.axis, "ticker", None)
+        labels = getattr(ticker, "category_labels", ())
+        if not labels or self._viewer.axis.y_scale is not AxisScale.CATEGORICAL:
+            return 0.0
+        try:
+            widths, _ = _tick_label_sizes(self.node.axis, labels)
+        except AttributeError:  # not attached to a canvas yet
+            return 0.0
+        # the axis title sits `y_label_margin` from the axis line: keep the tick labels and the title apart
+        axis = self._viewer.axis
+        needed = float(np.max(widths)) + axis.y_tick_margin + 2 * axis.label_size
+        return max(0.0, needed - axis.y_label_margin)
+
+    def _update_label_space(self) -> None:
+        """Widen the axis and move its title out to fit long category labels."""
+        growth = self._label_growth()
+        self._set_size_limit("width_max", self._viewer.axis.y_max_size + growth)
+        self.node.axis.axis_label_margin = self._viewer.axis.y_label_margin + growth
+        self.node.axis._need_update = True
+        self.node.update()
 
     def on_tick_formatter_change(self, _evt=None):
         """Change tick formatter."""
@@ -251,4 +276,5 @@ class VispyYAxisVisual(VispyAxisVisual):
         self.node.axis.ticker.category_labels = _format_categories(
             self._viewer.axis.y_categories, self._viewer.axis.y_category_formatter
         )
+        self._update_label_space()
         self._refresh_tick_layout()

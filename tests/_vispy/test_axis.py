@@ -404,6 +404,24 @@ def test_x_tick_rotation_rotates_labels_and_grows_axis(make_napari_plot_viewer) 
     assert node.height_max == viewer.axis.x_max_size
 
 
+def test_long_y_categories_widen_axis(make_napari_plot_viewer) -> None:
+    """Category labels wider than the default label space widen the y-axis and move its title out."""
+    viewer = make_napari_plot_viewer()
+    node = viewer.window._qt_viewer.canvas.y_axis.node
+    assert node.width_max == viewer.axis.y_max_size
+
+    viewer.axis.y_categories = ("A", "B")
+    assert node.width_max == viewer.axis.y_max_size
+
+    viewer.axis.y_categories = ("Glycerophospholipids and other very long class names", "B")
+    assert node.width_max > viewer.axis.y_max_size
+    assert node.axis.axis_label_margin > viewer.axis.y_label_margin
+
+    viewer.axis.y_categories = None
+    assert node.width_max == viewer.axis.y_max_size
+    assert node.axis.axis_label_margin == viewer.axis.y_label_margin
+
+
 def test_thin_categories_reaches_both_tickers(make_napari_plot_viewer) -> None:
     """Turning thinning off is passed to the x and y tickers."""
     viewer = make_napari_plot_viewer()

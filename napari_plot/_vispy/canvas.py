@@ -170,7 +170,7 @@ class VispyCanvas:
         self.grid.add_widget(self.y_axis.node, row=1, col=0)
         self.y_axis.node.link_view(self.view)
         self.y_axis.node.events.resize.connect(self.y_axis.node._view_changed)
-        self.y_axis.node.width_max = self.viewer.axis.y_max_size
+        self.y_axis._on_max_size_change()
         self.y_axis.interactive = True
 
         # colorbar right of the plot, in the column of the right padding
