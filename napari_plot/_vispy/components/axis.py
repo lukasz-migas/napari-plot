@@ -260,6 +260,17 @@ class Ticker(_Ticker):
         self.category_labels: tuple[str, ...] = ()
         self.thin_categories = True
         self.label_rotation = 0.0  # degrees, counter-clockwise
+        self.major_tick_origins = np.empty((0, 2))
+
+    def _get_tick_positions(
+        self, major_tick_fractions: np.ndarray, minor_tick_fractions: np.ndarray
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, ty.Sequence[str]]:
+        """Save the major tick origins from the layout used to draw the marks."""
+        positions, label_pos, axis_label_pos, anchors = super()._get_tick_positions(
+            major_tick_fractions, minor_tick_fractions
+        )
+        self.major_tick_origins = positions[: 2 * len(major_tick_fractions) : 2]
+        return positions, label_pos, axis_label_pos, anchors
 
     def _get_tick_frac_labels(self):
         """Get the major ticks, minor ticks, and major labels"""

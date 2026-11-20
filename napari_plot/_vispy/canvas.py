@@ -76,7 +76,15 @@ class NapariSceneCanvas(SceneCanvas_):
             self.padding_y.height_max = 20
 
         # connect events
-        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event)
+        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event, background_color=Event)
+
+    @SceneCanvas_.bgcolor.setter
+    def bgcolor(self, color: str | npt.ArrayLike) -> None:
+        """Notify visuals when the rendered canvas background changes."""
+        previous = self._bgcolor
+        SceneCanvas_.bgcolor.fset(self, color)
+        if not np.array_equal(previous, self._bgcolor):
+            self.events.background_color()
 
     @contextmanager
     def modify_context(self):

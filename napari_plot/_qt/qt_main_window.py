@@ -1096,7 +1096,7 @@ class Window:
             background, labels = "black", "white"
         else:
             background, labels = "white", "black"
-        self._qt_viewer.canvas.bgcolor = background
+        self._qt_viewer.canvas.background_color_override = background
         self._qt_viewer.viewer.axis.label_color = labels
         self._qt_viewer.viewer.axis.tick_color = labels
 

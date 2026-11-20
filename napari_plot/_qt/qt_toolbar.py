@@ -55,7 +55,7 @@ class QtViewToolbar(QWidget):
             func=self._toggle_text_visible,
         )
         self.tools_grid_btn = toolbar_right.insert_qta_tool(
-            "grid",
+            "coordinate_grid",
             tooltip="Show/hide grid",
             checkable=True,
             func=self._toggle_grid_lines_visible,
