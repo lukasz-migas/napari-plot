@@ -206,6 +206,7 @@ viewer.boxplot(tips, x="day", y="total_bill", hue="smoker")
 | Strip / swarm plot | `stripplot`, `swarmplot` | Scatter per hue level |
 | Density | `kdeplot` | MultiLine curves, optional Areas fill |
 | Histogram | `histplot` (`multiple`, `stat`, `kde`) | Bar per hue level, optional MultiLine KDE |
+| Rug plot | `rugplot` (`x`, `y`, `height`) | MultiLine observation ticks along each supplied axis |
 | Classic distplot | `distplot` | histogram + KDE + optional rug |
 | Heatmap | `heatmap` (`annot`, `center`, `mask`) | Image, optional Text annotations |
 | Clustered heatmap | `clustermap` | Image, MultiLine dendrograms in the margins |
@@ -215,6 +216,11 @@ Categorical plots label the categorical axis with category names, and plots
 with `hue` show a legend. Differences from seaborn: there is no row/column
 faceting, `swarmplot` positions are computed for the canvas size at call time,
 and `heatmap` draws the first row at the top by flipping the image.
+
+Use `viewer.rugplot(data, x="total_bill")` to mark observations along the bottom
+of a distribution plot. Supply `y` to mark observations along the left side as
+well. `height` sets tick length as a fraction of the perpendicular axis span
+when the plot is created.
 
 ## Axes
 

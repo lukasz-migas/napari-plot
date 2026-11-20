@@ -547,7 +547,7 @@ def _scatter_categorical(
     cat: CategoricalData,
     color_fn: ColorFn,
     entries: list[dict],
-    offsets_fn: ty.Callable[[float, np.ndarray, float], np.ndarray],
+    offsets_fn: ty.Callable[[int, ty.Any, float, np.ndarray, float], np.ndarray],
     *,
     width: float,
     dodge: bool,
@@ -567,7 +567,7 @@ def _scatter_categorical(
             continue
         positions, values, colors, categories = [], [], [], []
         for index, position, group in cells:
-            positions.append(offsets_fn(position, group, element))
+            positions.append(offsets_fn(index, level, position, group, element))
             values.append(group)
             colors.append(np.broadcast_to(color_fn(index, level), (len(group), 4)))
             categories += [cat.labels[index]] * len(group)
@@ -625,7 +625,7 @@ def stripplot(
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
     rng = np.random.default_rng(seed)
 
-    def offsets(position: float, group: np.ndarray, element: float) -> np.ndarray:
+    def offsets(_index: int, _level: ty.Any, position: float, group: np.ndarray, element: float) -> np.ndarray:
         half_width = 0.2 * element if jitter is True else float(jitter or 0)
         return position + strip_jitter(len(group), half_width, rng)
 
@@ -662,13 +662,16 @@ def swarmplot(
     size: float = 6,
     linecolor: ty.Any = "transparent",
     linewidth: float = 0.0,
+    warn_thresh: float = 0.05,
     legend: bool = True,
     name: str = "swarmplot",
 ) -> list[Layer]:
-    """Draw every observation as a point, arranged so that points do not overlap (beeswarm).
+    """Draw a beeswarm, spreading points along the categorical axis to avoid overlap.
 
     Point positions are computed for the canvas size at call time; zooming changes the apparent spacing.
-    Parameters are as for :func:`stripplot`.
+    With ``dodge=False``, hue levels share a swarm in each category. ``warn_thresh`` sets the fraction of
+    points that can reach the gutters before seaborn warns. Set it to 1 to suppress crowding warnings.
+    Other parameters are shared with :func:`stripplot`.
 
     Returns
     -------
@@ -677,15 +680,33 @@ def swarmplot(
     """
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
     values = cat.all_values
-    height_px, width_px = (float(v) for v in viewer._canvas_size)
+    height_px, width_px = (max(float(v), 1.0) for v in viewer._canvas_size)
     value_px, category_px = (height_px, width_px) if cat.orient == "v" else (width_px, height_px)
     value_span = max(float(np.ptp(values)) * 1.1, 1e-12) if len(values) else 1.0
     value_scale = value_px / value_span
     category_scale = category_px / max(len(cat.categories), 1)
 
-    def offsets(position: float, group: np.ndarray, element: float) -> np.ndarray:
-        swarm = beeswarm(group, position, size / 2, value_scale, category_scale)
-        return np.clip(swarm, position - element / 2, position + element / 2)
+    def layout(position: float, group: np.ndarray, element: float) -> np.ndarray:
+        return beeswarm(
+            group,
+            position,
+            (size + linewidth) / 2,
+            value_scale,
+            category_scale,
+            width=element,
+            warn_thresh=warn_thresh,
+        )
+
+    shared: dict[int, dict[ty.Any, np.ndarray]] = {}
+    if cat.hue_levels and len(cat.hue_levels) > 1 and not dodge:
+        for index, category in enumerate(cat.categories):
+            groups = [cat.values(category, level) for level in cat.hue_levels]
+            positions = layout(index, np.concatenate(groups), width)
+            splits = np.cumsum([len(group) for group in groups[:-1]])
+            shared[index] = dict(zip(cat.hue_levels, np.split(positions, splits), strict=True))
+
+    def offsets(index: int, level: ty.Any, position: float, group: np.ndarray, element: float) -> np.ndarray:
+        return shared[index][level] if index in shared else layout(position, group, element)
 
     return _scatter_categorical(
         viewer,

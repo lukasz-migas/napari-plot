@@ -1,4 +1,4 @@
-"""Distribution plots: kernel density, histogram and the combined distplot."""
+"""Distribution plots: kernel density, histogram, rug and the combined distplot."""
 
 from __future__ import annotations
 
@@ -337,6 +337,121 @@ def _kde_for(values: np.ndarray, **kws: ty.Any) -> tuple[np.ndarray, np.ndarray]
     """Evaluate a KDE using only the keyword arguments ``kde`` understands."""
     allowed = {"bw_method", "bw_adjust", "gridsize", "cut", "clip", "cumulative"}
     return kde(values, **{key: value for key, value in kws.items() if key in allowed})
+
+
+def rugplot(
+    viewer: ViewerModel,
+    data: ty.Any = None,
+    *,
+    x: ty.Any = None,
+    y: ty.Any = None,
+    hue: ty.Any = None,
+    height: float = 0.025,
+    expand_margins: bool = True,
+    palette: ty.Any = None,
+    hue_order: list | None = None,
+    hue_norm: ty.Any = None,
+    color: ty.Any = None,
+    linewidth: float = 1.0,
+    alpha: float | None = None,
+    legend: bool = True,
+    name: str = "rugplot",
+) -> list[Layer]:
+    """Draw one tick per observation along the bottom (``x``) or left (``y``) of the plot.
+
+    Pass either or both of ``x`` and ``y`` as columns or vectors. As in seaborn, ``hue`` colors observations
+    using ``palette``, ``hue_order`` and ``hue_norm``. ``height`` is a fraction of the perpendicular axis span
+    at call time. Positive ticks point into the plot and negative ticks point out. ``expand_margins`` adds
+    room between the ticks and existing data. ``linewidth`` is in screen pixels.
+
+    Returns one MultiLine layer per plotted axis. Ticks use data coordinates after placement.
+    """
+    from matplotlib.category import UnitData
+    from matplotlib.figure import Figure
+
+    from napari_plot.stats import _seaborn as sb
+
+    # Seaborn supplies the segments in blended axis/data coordinates on a detached Axes.
+    ax = Figure().subplots()
+    if viewer.layers:
+        xmin, xmax, ymin, ymax = viewer._get_rect_extent()
+        ax.update_datalim(((xmin, ymin), (xmax, ymax)))
+    if viewer.axis.x_categories:
+        ax.xaxis.update_units(viewer.axis.x_categories)
+    if viewer.axis.y_categories:
+        ax.yaxis.update_units(viewer.axis.y_categories)
+    ax.autoscale_view()
+    sb.rugplot(
+        data,
+        x=x,
+        y=y,
+        hue=hue,
+        height=height,
+        expand_margins=expand_margins,
+        palette=palette,
+        hue_order=hue_order,
+        hue_norm=hue_norm,
+        color=color,
+        linewidth=linewidth,
+        alpha=alpha,
+        legend=legend,
+        ax=ax,
+    )
+    # Napari-plot categories increase from bottom to top. Apply log scaling after seaborn finds data bounds.
+    ax.yaxis.set_inverted(False)
+    if viewer.axis.x_scale == "log" and not isinstance(ax.xaxis.units, UnitData):
+        ax.set_xscale("log")
+    if viewer.axis.y_scale == "log" and not isinstance(ax.yaxis.units, UnitData):
+        ax.set_yscale("log")
+    if viewer.camera.x_range is not None:
+        ax.set_xlim(viewer.camera.x_range)
+    if viewer.camera.y_range is not None:
+        ax.set_ylim(viewer.camera.y_range)
+
+    xmin, xmax = ax.get_xlim()
+    ymin, ymax = ax.get_ylim()
+    layers: list[Layer] = []
+    for collection in ax.collections:
+        segments = np.asarray(collection.get_segments(), dtype=float)
+        if not segments.size:
+            continue
+        transform = collection.get_transform()
+        along_x, _ = transform.contains_branch_seperately(ax.transData)
+        orient: Orient = "v" if along_x else "h"
+        role = "x" if along_x else "y"
+        observed, perpendicular = (0, 1) if along_x else (1, 0)
+        converted = (transform - ax.transData).transform(segments.reshape(-1, 2)).reshape(segments.shape)
+        converted[..., observed] = segments[..., observed]
+        layer = cm.add_segments(
+            viewer,
+            converted[..., [observed, perpendicular]],
+            orient,
+            color=collection.get_colors(),
+            width=linewidth,
+            name=name if len(ax.collections) == 1 else f"{name} {role}",
+        )
+        if layer is not None:
+            layers.append(layer)
+        # Include outward ticks in the view unless the perpendicular range is fixed.
+        if height < 0 and along_x and viewer.camera.y_range is None:
+            ymin = min(ymin, float(converted[..., 1].min()))
+        if height < 0 and not along_x and viewer.camera.x_range is None:
+            xmin = min(xmin, float(converted[..., 0].min()))
+
+    if layers:
+        cm.set_axis_labels(viewer, ax.get_xlabel(), ax.get_ylabel())
+        if isinstance(ax.xaxis.units, UnitData):
+            viewer.axis.x_categories = [label.get_text() for label in ax.get_xticklabels()]
+        if isinstance(ax.yaxis.units, UnitData):
+            viewer.axis.y_categories = [label.get_text() for label in ax.get_yticklabels()]
+        if (key := ax.get_legend()) is not None:
+            colors = {
+                label.get_text(): line.get_color() for label, line in zip(key.get_texts(), key.get_lines(), strict=True)
+            }
+            if colors:
+                viewer.set_legend(cm.legend_entries(colors, marker="hbar"))
+        viewer.camera.set_rect(xmin, xmax, ymin, ymax)
+    return layers
 
 
 def distplot(

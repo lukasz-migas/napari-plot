@@ -7,7 +7,7 @@ Keeping every seaborn import in this module means an upgrade can only break in o
 
 from __future__ import annotations
 
-from seaborn import color_palette, light_palette
+from seaborn import color_palette, light_palette, rugplot
 from seaborn._base import categorical_order
 from seaborn._statistics import KDE, EstimateAggregator, Histogram, LetterValues
 from seaborn.categorical import Beeswarm
@@ -27,4 +27,5 @@ __all__ = [
     "color_palette",
     "light_palette",
     "relative_luminance",
+    "rugplot",
 ]

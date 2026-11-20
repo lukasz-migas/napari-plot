@@ -5,7 +5,7 @@ functions are available as viewer methods, e.g. ``viewer.boxplot(df, x="day", y=
 """
 
 from napari_plot.stats.categorical import barplot, boxenplot, boxplot, stripplot, swarmplot, violinplot
-from napari_plot.stats.distributions import distplot, histplot, kdeplot
+from napari_plot.stats.distributions import distplot, histplot, kdeplot, rugplot
 from napari_plot.stats.matrix import clustermap, heatmap
 from napari_plot.stats.relational import lineplot, relplot, scatterplot
 
@@ -20,6 +20,7 @@ __all__ = [
     "kdeplot",
     "lineplot",
     "relplot",
+    "rugplot",
     "scatterplot",
     "stripplot",
     "swarmplot",

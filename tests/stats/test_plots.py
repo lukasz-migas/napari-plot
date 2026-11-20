@@ -107,6 +107,25 @@ def test_strip_and_swarm_plot_every_observation(tips: pd.DataFrame) -> None:
     assert swarm[0].scaling is False
 
 
+@pytest.mark.parametrize("dodge", [False, True])
+def test_swarmplot_separates_overlapping_hues(dodge: bool) -> None:
+    viewer = ViewerModel()
+    red, blue = viewer.swarmplot(x=[1, 1, 1, 1], y=["A"] * 4, hue=["red", "blue"] * 2, dodge=dodge)
+    points = np.vstack((red.data, blue.data))
+    np.testing.assert_array_equal(points[:, 1], np.ones(4))
+    assert len(np.unique(points[:, 0])) == 4
+    assert viewer.axis.y_categories == ("A",)
+    if dodge:
+        assert np.all(red.data[:, 0] < 0)
+        assert np.all(blue.data[:, 0] > 0)
+
+
+def test_swarmplot_warns_when_points_hit_gutters() -> None:
+    with pytest.warns(UserWarning, match="points cannot be placed"):
+        (layer,) = ViewerModel().swarmplot(y=[1, 1, 1], width=0.001)
+    assert np.all(np.abs(layer.data[:, 1]) <= 0.0005)
+
+
 def test_kdeplot_and_histplot(tips: pd.DataFrame) -> None:
     kde = ViewerModel().kdeplot(tips, x="bill", hue="smoker", fill=True)
     assert _types(kde) == ["Areas", "MultiLine"]
@@ -126,6 +145,51 @@ def test_distplot_components(tips: pd.DataFrame) -> None:
     layers = ViewerModel().distplot(tips["bill"].to_numpy(), rug=True)
     assert _types(layers) == ["Bar", "MultiLine", "MultiLine"]
     assert len(layers[-1].data["ys"]) == len(tips)  # one rug tick per observation
+
+
+def test_rugplot_marks_both_margins_with_hue() -> None:
+    viewer = ViewerModel()
+    data = pd.DataFrame({"bill": [1.0, 2.0, np.nan], "tip": [4.0, 5.0, 6.0], "group": ["A", "B", "A"]})
+    x_rug, y_rug = viewer.rugplot(
+        data, x="bill", y="tip", hue="group", palette={"A": "red", "B": "blue"}, hue_order=["B", "A"], height=0.1
+    )
+    assert _types([x_rug, y_rug]) == ["MultiLine", "MultiLine"]
+    xmin, xmax, ymin, ymax = viewer.camera.rect
+    np.testing.assert_array_equal(x_rug.data["xs"], [[1, 1], [2, 2]])
+    np.testing.assert_array_equal(y_rug.data["ys"], [[4, 4], [5, 5]])
+    np.testing.assert_allclose(x_rug.data["ys"], [[ymin, ymin + 0.1 * (ymax - ymin)]] * 2)
+    np.testing.assert_allclose(y_rug.data["xs"], [[xmin, xmin + 0.1 * (xmax - xmin)]] * 2)
+    np.testing.assert_allclose(x_rug.color, [[1, 0, 0, 1], [0, 0, 1, 1]])
+    assert (viewer.axis.x_label, viewer.axis.y_label) == ("bill", "tip")
+    assert [entry.label for entry in viewer.legend.entries] == ["B", "A"]
+
+
+def test_rugplot_expands_margin_on_existing_plot() -> None:
+    baselines = []
+    for expand_margins in (False, True):
+        viewer = ViewerModel()
+        viewer.plot([1, 2], [10, 20])
+        viewer.axis.y_label = "Density"
+        (rug,) = viewer.rugplot([1, 2], expand_margins=expand_margins, color="red", linewidth=2)
+        assert viewer.axis.y_label == "Density"
+        assert rug.width == 2
+        np.testing.assert_array_equal(rug.data["xs"], [[1, 1], [2, 2]])
+        baselines.append(rug.data["ys"][0][0])
+    assert baselines[1] < baselines[0]
+    assert ViewerModel().rugplot(x=[np.nan]) == []
+
+
+def test_rugplot_preserves_axis_coordinates() -> None:
+    viewer = ViewerModel()
+    viewer.axis.x_scale = "log"
+    viewer.axis.y_categories = ("A", "B")
+    x_rug, y_rug = viewer.rugplot(x=[1, 10, 100], y=["B", "A", "C"])
+    assert viewer.axis.y_categories == ("A", "B", "C")
+    xmin, xmax, ymin, ymax = viewer.camera.rect
+    assert 0 < xmin < 1 < 100 < xmax
+    assert ymin < 0 < 2 < ymax
+    np.testing.assert_array_equal(x_rug.data["xs"], [[1, 1], [10, 10], [100, 100]])
+    np.testing.assert_array_equal(y_rug.data["ys"], [[1, 1], [0, 0], [2, 2]])
 
 
 def test_heatmap_orientation_and_annotations() -> None:

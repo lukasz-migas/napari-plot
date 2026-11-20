@@ -88,7 +88,16 @@ def histogram(values: np.ndarray, edges: np.ndarray, *, stat: str = "count", cum
     return np.asarray(heights, dtype=float)
 
 
-def beeswarm(values: np.ndarray, center: float, radius: float, value_scale: float, category_scale: float) -> np.ndarray:
+def beeswarm(
+    values: np.ndarray,
+    center: float,
+    radius: float,
+    value_scale: float,
+    category_scale: float,
+    *,
+    width: float | None = None,
+    warn_thresh: float = 0.05,
+) -> np.ndarray:
     """Return categorical-axis positions that place points without overlap (seaborn ``Beeswarm``).
 
     The swarm is computed in screen pixels, so the result only stays overlap-free at the zoom level implied by
@@ -106,19 +115,27 @@ def beeswarm(values: np.ndarray, center: float, radius: float, value_scale: floa
         Screen pixels per value-axis data unit.
     category_scale : float
         Screen pixels per categorical-axis data unit.
+    width : float, optional
+        Width available to the swarm in categorical-axis data units.
+    warn_thresh : float
+        Warn when more than this fraction of points land outside the available width.
     """
     from napari_plot.stats._seaborn import Beeswarm
 
     values = np.asarray(values, dtype=float)
-    if len(values) == 0:
-        return np.empty(0)
+    if len(values) <= 1:
+        return np.full(len(values), center, dtype=float)
     xyr = np.column_stack(
         (np.full(len(values), center * category_scale), values * value_scale, np.full(len(values), radius))
     )
     sorter = np.argsort(xyr[:, 1])
     swarm = np.empty_like(xyr)
-    swarm[sorter] = Beeswarm().beeswarm(xyr[sorter])
-    return swarm[:, 0] / category_scale
+    layout = Beeswarm(width=0.8 if width is None else width, warn_thresh=warn_thresh)
+    swarm[sorter] = layout.beeswarm(xyr[sorter])
+    positions = swarm[:, 0] / category_scale
+    if width is not None:
+        layout.add_gutters(positions, center, float, float)
+    return positions
 
 
 def strip_jitter(n: int, half_width: float, seed: Any = None) -> np.ndarray:

@@ -23,7 +23,7 @@ The following names are importable directly from `napari_plot`:
 - `viewer.hbar(values, **kwargs)` and `viewer.hbar(y, width, **kwargs)` add horizontal bars.
 
 - `viewer.boxplot`, `boxenplot`, `violinplot`, `barplot`, `stripplot`, `swarmplot`,
-  `kdeplot`, `histplot`, `distplot`, `heatmap`, `clustermap`, `scatterplot`,
+  `kdeplot`, `histplot`, `rugplot`, `distplot`, `heatmap`, `clustermap`, `scatterplot`,
   `lineplot` and `relplot` draw seaborn-style statistical plots. They mirror the
   functions in `napari_plot.stats` (same signatures without the viewer argument)
   and return the list of created layers.
