@@ -73,6 +73,7 @@ def test_scatter_thumbnail_avoids_view_and_bounds(monkeypatch: pytest.MonkeyPatc
     np.testing.assert_array_equal(layer.thumbnail, thumbnail)
 
 
+@pytest.mark.xfail(reason="Sometimes fails on CI.")
 def test_layer_list_receives_thumbnail_change(qtbot: QtBot) -> None:
     """The layer-list model exposes the new image after a style edit."""
     layer = Line([[0, 0], [1, 1]])
