@@ -77,6 +77,20 @@ alias. The Canvas model exposes `viewer.canvas.size` in `(height, width)` order,
 existing viewer accessors. Native coordinate-grid and crosshair overlays are
 not part of the plot scene.
 
+Visible canvas overlays (text, `add_text_overlay(...)` annotations, legend) are
+tiled inside the plot area like in napari: overlays sharing a position stack
+instead of overlapping, in the order of `viewer.canvas.overlays`. The stacking
+direction per position and the gap come from `viewer.canvas.overlay_tiling`
+(e.g. `viewer.canvas.overlay_tiling.top_right = "vertical"`).
+
+`viewer.canvas.grid` (napari's `GridCanvas`) shows layers side by side: with
+`enabled = True` each group of layers (`stride` layers, visible layers only)
+gets its own plot cell with its own x/y axes, laid out in `shape` (`-1` picks
+the size automatically) and separated by `spacing`. All cells share the camera,
+so zooming or panning one cell updates the others. Overlays with
+`gridded = True` (the grid lines by default) are drawn and tiled in every cell;
+the other overlays (text, annotations, legend) stay in the first cell.
+
 Layer `axis_labels` populate `viewer.dims.axis_labels` and the displayed plot
 labels. Editing a plot label explicitly preserves that label across subsequent
 metadata updates. Text layer `size` and legend `font_size` default to `None`,

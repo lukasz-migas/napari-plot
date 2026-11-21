@@ -204,7 +204,7 @@ def test_canvas_background_and_fonts(make_napari_plot_viewer: Callable) -> None:
     with patch.object(get_settings().appearance, "font_size", 19):
         assert canvas.layer_to_visual[text].node.font_size == 19
         assert canvas.layer_to_visual[explicit].node.font_size == 22
-        assert canvas._overlay_to_visual[viewer.legend]._text.font_size == 19
+        assert canvas._overlay_to_visual[viewer.legend][0]._text.font_size == 19
 
 
 @pytest.mark.parametrize("key", ["V", "G", "L"])

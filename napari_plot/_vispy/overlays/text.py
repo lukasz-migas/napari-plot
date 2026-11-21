@@ -1,10 +1,10 @@
-"""Override text visual to fix label cropping"""
+"""Override text visual to fix label cropping and support custom box padding"""
 
 from napari._vispy.overlays.text import VispyTextOverlay as _VispyTextOverlay
 
 
 class VispyTextOverlay(_VispyTextOverlay):
-    """Overwrite text position"""
+    """Text overlay whose size matches the rendered text; positioning is done by the canvas tiler."""
 
     def __init__(self, *, viewer, overlay, font_info, parent=None) -> None:
         self._box_padding: tuple[int, int] | None = None
@@ -31,37 +31,28 @@ class VispyTextOverlay(_VispyTextOverlay):
                 return
             self.box.width, self.box.height = width, height
 
-    def _on_position_change(self, event=None):
-        """Change position of text visual.
+    @property
+    def tile_margin(self) -> tuple[float, float]:
+        """Extra horizontal and vertical space the background box needs beyond the canvas tiling padding.
 
-        This is necessary to account for the offsets caused by the x/y-axis offsets.
+        The canvas adds this on each side of the text when tiling, so a custom ``box_padding`` stays inside the plot
+        and does not cover neighbouring overlays.
+        """
+        if self._box_padding is None:
+            return 0.0, 0.0
+        x_padding, y_padding = self.viewer.canvas.overlay_tiling.padding
+        horizontal, vertical = self._box_padding
+        return max(0.0, horizontal - x_padding), max(0.0, vertical - y_padding)
+
+    def _on_position_change(self, event=None):
+        """Update the text size; the canvas places the overlay when tiling.
+
+        The height is corrected to what vispy actually renders, so the background box and tiling cover all lines.
         """
         super()._on_position_change(event)
         if not self.node.canvas:
             return
         self.y_size = max(self.y_size, self._rendered_height())
-
-        position = self.overlay.position
-        x_offset, y_offset = 10, 5
-        if self._box_padding is not None:
-            horizontal, vertical = self._box_padding
-            x_offset, y_offset = max(x_offset, horizontal), max(y_offset, vertical)
-        # the parent is the plot view box, which excludes the axes and padding and clips its children
-        canvas_size = list(self.node.parent.size)
-
-        if "left" in position:
-            x = x_offset
-        elif "right" in position:
-            x = canvas_size[0] - self.x_size - x_offset
-        else:
-            x = (canvas_size[0] - self.x_size) / 2
-        if "top" in position:
-            y = y_offset
-        elif "bottom" in position:
-            y = canvas_size[1] - self.y_size - y_offset
-        else:
-            y = (canvas_size[1] - self.y_size) / 2
-        self.node.transform.translate = [max(0, x), max(0, y), 0, 0]
         self._on_box_change()
 
     def _rendered_height(self) -> float:

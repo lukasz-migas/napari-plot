@@ -237,28 +237,9 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self.node.update()
 
     def _on_position_change(self, _event=None) -> None:
-        """Position the legend in its selected canvas corner or center."""
+        """Report the legend size; the canvas places the legend when tiling."""
         self._connect_mouse_events()
-        if self.node.canvas is not None and self.node.parent is not None:
-            parent_size = np.asarray(getattr(self.node.parent, "size", self.node.canvas.size), dtype=float)
-            width, height = parent_size[:2]
-            padding = 10.0
-            position = self.overlay.position.value
-            if "left" in position:
-                x = padding
-            elif "right" in position:
-                x = width - self.x_size - padding
-            else:
-                x = (width - self.x_size) / 2
-            if "top" in position:
-                y = padding
-            elif "bottom" in position:
-                y = height - self.y_size - padding
-            else:
-                y = (height - self.y_size) / 2
-            self.node.transform.translate = [max(0.0, x), max(0.0, y), 0.0, 0.0]
-        else:
-            super()._on_position_change()
+        super()._on_position_change()
         self.node.update()
         with suppress(AttributeError):
             self.node.canvas.update()
@@ -267,9 +248,12 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         """Toggle the layer represented by a clicked legend row."""
         if not self.overlay.visible or getattr(event, "button", None) != 1 or self.node.parent is None:
             return
-        parent_pos = np.asarray(getattr(self.node.parent, "pos", (0.0, 0.0)), dtype=float)
-        translation = np.asarray(self.node.transform.translate[:2], dtype=float)
-        local = np.asarray(event.pos[:2], dtype=float) - parent_pos[:2] - translation
+        # the legend's view box can be nested in a plot cell (grid mode), so map through the whole node tree
+        root = self.node.parent
+        while root.parent is not None:
+            root = root.parent
+        origin = np.asarray(self.node.node_transform(root).map([0, 0])[:2], dtype=float)
+        local = np.asarray(event.pos[:2], dtype=float) - origin
         if not (0 <= local[0] <= self.x_size and 0 <= local[1] <= self.y_size):
             return
         row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing

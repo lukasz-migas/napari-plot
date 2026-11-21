@@ -10,8 +10,10 @@ class GridLinesOverlay(CanvasOverlay):
     Set ``color`` to override the automatic black or white grid color.
     ``None`` picks the color with higher contrast against the canvas background.
     Set ``opacity`` to adjust the visibility of the lines (default 0.25).
+    The lines are drawn in every plot cell when the canvas grid mode is enabled.
     """
 
     color: ColorValue | None = None
     opacity: float = 0.25
     box: bool = False
+    gridded: bool = True

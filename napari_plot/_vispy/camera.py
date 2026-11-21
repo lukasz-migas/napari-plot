@@ -27,13 +27,21 @@ class VispyCamera:
         napari camera model.
     viewer :
         instance of the viewer class
+    follow_model : bool
+        When True, the camera starts from the model state without writing its own default state back, so adding a
+        camera (e.g. for another plot cell in grid mode) does not reset the view of the others.
 
     """
 
-    def __init__(self, view, camera: Camera, viewer: ViewerModel):
+    def __init__(self, view, camera: Camera, viewer: ViewerModel, follow_model: bool = False):
         self._view = view
         self._camera = camera
         self._viewer = viewer
+        # rect last exchanged with the model; several cameras can follow one model (grid mode) and only the camera
+        # whose rect changed since then may write it back
+        self._synced_rect: tuple[float, float, float, float] | None = None
+        self._applying = False
+        self._initializing = follow_model
 
         # Create camera
         self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
@@ -55,6 +63,7 @@ class VispyCamera:
 
         self._on_axis_mode_change(None)
         self._on_extent_mode_change(None)
+        self._initializing = False
         self._on_rect_change(None)
 
     @property
@@ -118,15 +127,31 @@ class VispyCamera:
         self._update_rect(rect)
 
     def _on_sync_rect(self, event: ty.Any) -> None:
-        """Sync rect from the Camera object to the Camera model."""
+        """Sync rect from the Camera object to the Camera model when this camera was changed."""
+        if self._initializing or self._applying or self.rect == self._synced_rect:
+            return
+        self._sync_to_model()
+
+    def _sync_to_model(self) -> None:
+        """Write the rect of this camera to the Camera model."""
+        self._synced_rect = self.rect
         with self._camera.events.rect.blocker(self._on_rect_change):
-            self._camera.rect = self.rect
+            self._camera.rect = self._synced_rect
 
     def _update_rect(self, rect: Rect | ty.Iterable[float]) -> None:
         display_rect = self._transform_rect(rect, inverse=False)
         rect_obj = Rect(self.camera.rect)
         rect_obj.left, rect_obj.right, rect_obj.bottom, rect_obj.top = display_rect
-        self.camera.rect = rect_obj
+        previous = self.rect
+        self._applying = True
+        try:
+            self.camera.rect = rect_obj
+        finally:
+            self._applying = False
+        self._synced_rect = self.rect
+        # the camera can limit the rect, so the model gets the rect that is shown when it changed
+        if self._synced_rect != previous:
+            self._sync_to_model()
 
     @property
     def extent(self):
@@ -183,8 +208,8 @@ class VispyCamera:
 
     def on_draw(self, event):
         """Called whenever the canvas is drawn. Update camera model rect."""
-        with self._camera.events.rect.blocker(self._on_rect_change):
-            self._camera.rect = self.rect
+        if self.rect != self._camera.rect:
+            self._sync_to_model()
         with self._camera.events.zoom.blocker(self._on_zoom_change):
             self._camera.zoom = self.zoom
 

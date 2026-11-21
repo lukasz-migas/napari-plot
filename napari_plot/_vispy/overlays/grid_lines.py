@@ -42,7 +42,9 @@ class _GridLines(Line):
         if min(bounds.size) <= 0:
             return False
         limits = ((bounds.left, bounds.right), (bounds.bottom, bounds.top))
-        widgets = (canvas.x_axis.node, canvas.y_axis.node)
+        # each plot cell (grid mode) has its own axes
+        x_axis, y_axis = canvas.view_axes.get(plot, (canvas.x_axis, canvas.y_axis))
+        widgets = (x_axis.node, y_axis.node)
         origins: list[np.ndarray | None] = []
         for widget in widgets:
             axis = widget.axis

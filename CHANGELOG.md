@@ -1,3 +1,13 @@
+# Unreleased
+
+## Improvements and fixes
+
+- Canvas overlays (text, annotations, legend) sharing a position are now tiled inside the plot area instead of overlapping, following napari's `viewer.canvas.overlay_tiling`.
+
+## Added
+
+- Added grid mode (`viewer.canvas.grid.enabled = True`): layers are shown side by side in plot cells with their own axes and a shared camera; gridded overlays (grid lines by default) are drawn in every cell.
+
 # napari-plot v0.3.1
 
 Changes since `v0.2.0`.

@@ -45,7 +45,7 @@ def test_text_overlay_background_tracks_text_geometry(
     canvas.native.setFixedSize(600, 400)
     viewer.add_line([[0, 0], [1, 1]])
     overlay = viewer.text_overlay
-    visual = canvas._overlay_to_visual[overlay]
+    visual = canvas._overlay_to_visual[overlay][0]
 
     overlay.position = CanvasPosition.TOP_LEFT
     overlay.font_size = 12
@@ -75,8 +75,13 @@ def test_text_overlay_background_tracks_text_geometry(
     visual.box_padding = (20, 12)
     assert visual.box.width == pytest.approx(visual.x_size + 40)
     assert visual.box.height == pytest.approx(visual.y_size + 24)
-    position = np.asarray(visual.node.transform.translate[:2])
-    assert np.all(position + (visual.x_size + 20, visual.y_size + 12) <= available_size + 1e-6)
+    # the canvas re-tiles on the next draw after the visual reports its new margin
+    qtbot.waitUntil(
+        lambda: np.all(
+            np.asarray(visual.node.transform.translate[:2]) + (visual.x_size + 20, visual.y_size + 12)
+            <= available_size + 1e-6
+        )
+    )
 
     visual.box_padding = None
     assert (visual.box.width, visual.box.height) == pytest.approx(default_size)

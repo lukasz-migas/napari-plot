@@ -58,7 +58,7 @@ def test_grid_color_tracks_canvas_background(theme: str, channel: int) -> None:
 def _assert_grid_matches_ticks(canvas: VispyCanvas, viewer: Viewer) -> tuple[int, int]:
     """Compare the grid segments with the origins of the major marks on each axis."""
     canvas.grid._prepare_draw(canvas.grid)
-    node = canvas._overlay_to_visual[viewer.grid_lines].node
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
     assert node._prepare_draw(node) is not False
     bounds = canvas.view.inner_rect
     limits = ((bounds.left, bounds.right), (bounds.bottom, bounds.top))
@@ -83,7 +83,7 @@ def test_grid_color_follows_canvas_menu(make_napari_plot_viewer: Callable[[], Vi
     viewer = make_napari_plot_viewer()
     viewer.grid_lines.visible = True
     canvas = viewer.window._qt_viewer.canvas
-    node = canvas._overlay_to_visual[viewer.grid_lines].node
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
     actions = {action.text(): action for action in viewer.window.view_menu.actions()}
 
     actions["Use Light canvas"].trigger()
@@ -97,7 +97,7 @@ def test_grid_color_follows_direct_canvas_changes(make_napari_plot_viewer: Calla
     viewer = make_napari_plot_viewer()
     viewer.grid_lines.visible = True
     canvas = viewer.window._qt_viewer.canvas
-    node = canvas._overlay_to_visual[viewer.grid_lines].node
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
 
     viewer.theme = "dark"
     canvas.bgcolor = "white"
@@ -123,7 +123,7 @@ def test_grid_follows_major_ticks(make_napari_plot_viewer: Callable[[], Viewer],
         viewer.axis.x_scale = viewer.axis.y_scale = scale
 
     viewer.grid_lines.visible = True
-    node = canvas._overlay_to_visual[viewer.grid_lines].node
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
     previous_positions = None
     for rect in ((0.25, 9.75, 0.25, 9.75), (1.5, 8.5, 1.5, 8.5), (0.5, 7.5, 2.5, 9.5)):
         viewer.camera.rect = rect
@@ -156,5 +156,5 @@ def test_grid_handles_view_without_categories(make_napari_plot_viewer: Callable[
     assert y_count > 0
 
     viewer.axis.y_categories = ("outside",)
-    node = canvas._overlay_to_visual[viewer.grid_lines].node
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
     assert node._prepare_draw(node) is False

@@ -31,7 +31,7 @@ def test_text_overlays_get_and_lose_visuals(make_napari_plot_viewer) -> None:
 
     overlay = viewer.add_text_overlay("hello", position="top_right")
     assert overlay in canvas._overlay_to_visual
-    assert canvas._overlay_to_visual[overlay].node.text == "hello"
+    assert canvas._overlay_to_visual[overlay][0].node.text == "hello"
 
     viewer.remove_text_overlays()
     assert overlay not in canvas._overlay_to_visual
