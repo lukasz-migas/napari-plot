@@ -34,10 +34,8 @@ grid.map_diag(histplot, palette=palette, bins=bins, multiple="stack")
 
 # Leave room above the first histogram for the shared legend.
 peak_count = np.histogram(distance, bins=bins)[0].max()
-viewer.canvas.grid.cell(0, 0).ylim = (0, 1.25 * peak_count)
+viewer.canvas.grid.cell(0, 0).ylim = (0, 1.4 * peak_count)
 viewer.legend.gridded = False
-viewer.legend.position = "top_center"
-viewer.legend.ncols = 2
 viewer.legend.font_size = 9
 
 if __name__ == "__main__":
