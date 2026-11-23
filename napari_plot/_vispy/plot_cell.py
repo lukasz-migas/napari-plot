@@ -31,9 +31,13 @@ def detach_widget(grid: Grid, widget: Widget) -> None:
 
 
 def link_axis(axis: VispyXAxisVisual | VispyYAxisVisual, view: ViewBox) -> None:
-    """Make `axis` follow the camera and size of `view`."""
+    """Make `axis` follow the camera, size and position of `view`."""
     axis.node.link_view(view)
     axis.node.events.resize.connect(axis.node._view_changed)
+    # the ticks depend on where the axis sits relative to the view; grid relayouts move both without a resize or
+    # camera change. Moving a widget changes its transform in place, which `Node.events.transform_change` misses.
+    for node in (axis.node, view):
+        node.transform.changed.connect(axis.node._view_changed)
     axis._on_max_size_change()
 
 

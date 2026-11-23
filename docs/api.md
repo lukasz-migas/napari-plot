@@ -89,7 +89,9 @@ gets its own plot cell with its own x/y axes, laid out in `shape` (`-1` picks
 the size automatically) and separated by `spacing`. All cells share the camera,
 so zooming or panning one cell updates the others. Overlays with
 `gridded = True` (the grid lines by default) are drawn and tiled in every cell;
-the other overlays (text, annotations, legend) stay in the first cell.
+the other overlays (text, annotations, legend) stay in the first cell. A
+gridded legend lists only the layers of its cell; rows without a layer are
+listed in every cell, and rows of layers shown in no cell in the first one.
 
 Layer `axis_labels` populate `viewer.dims.axis_labels` and the displayed plot
 labels. Editing a plot label explicitly preserves that label across subsequent

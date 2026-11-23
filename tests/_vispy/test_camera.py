@@ -4,7 +4,9 @@ from types import SimpleNamespace
 
 import numpy as np
 import pytest
+from pytestqt.qtbot import QtBot
 from vispy.geometry import Rect
+from vispy.scene import ViewBox
 
 from napari_plot._vispy.camera import VispyCamera
 from napari_plot._vispy.components.camera import LimitedPanZoomCamera, make_rect
@@ -127,3 +129,28 @@ def test_transform_rect_for_log_axes() -> None:
         camera._transform_rect(display_rect, inverse=True),
         (0.1, 1000.0, 2.0, 5.0),
     )
+
+
+@pytest.mark.parametrize("tiled", [False, True])
+def test_auto_zoom_fits_small_values_with_bottom_lock(qtbot: QtBot, tiled: bool) -> None:
+    """Refit y after a horizontal zoom without pinning it to a negative peak outside the window."""
+    viewer = ViewerModel()
+    viewer.camera.extent_mode = "restricted"
+    viewer.camera.axis_mode = "lock_to_bottom"
+    camera = VispyCamera(ViewBox(), viewer.camera, viewer)
+    viewer.add_line([[655, -0.0025], [656, 0.000001], [660, 0.00003], [664.5, 0.0004], [665, 1]])
+    zoomed = viewer.camera.events.zoomed
+
+    def auto_zoom() -> None:
+        with zoomed.blocker():
+            viewer.reset_current_y_view()
+
+    camera.camera.rect = make_rect(656, 665, 0, 1)
+    assert camera.rect[2] == pytest.approx(viewer.camera.extent[2])
+
+    zoomed.connect(auto_zoom)
+    target = VispyCamera(ViewBox(), viewer.camera, viewer, follow_model=True) if tiled else camera
+    target.camera.rect = make_rect(656, 664.5, 0, 1)
+    assert camera.rect == pytest.approx((656, 664.5, 0, 0.00042))
+    assert target.rect == pytest.approx(camera.rect)
+    assert viewer.camera.rect == pytest.approx(camera.rect)

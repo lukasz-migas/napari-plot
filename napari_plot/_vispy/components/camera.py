@@ -230,12 +230,17 @@ class LimitedPanZoomCamera(PanZoomCamera):
         return super().rect
 
     @rect.setter
-    def rect(self, args):
+    def rect(self, args: Rect | tuple[float, float, float, float]) -> None:
         rect = (Rect(*args) if isinstance(args, tuple) else Rect(args)) if not isinstance(args, Rect) else args
-        # ensure user never goes outside the allowed limits
+        self._set_rect(rect, interactive=True)
+
+    def _set_rect(self, rect: Rect, *, interactive: bool) -> None:
+        """Apply extent limits to all views and axis locks to interactive changes."""
         rect = self._check_zoom_limit(rect)
-        rect = self._check_mode_limit(rect)
+        if interactive:
+            rect = self._check_mode_limit(rect)
         if self._rect != rect:
             self._rect = rect
             self.view_changed()
-            self.viewer.camera.events.zoomed()
+            if interactive:
+                self.viewer.camera.events.zoomed()

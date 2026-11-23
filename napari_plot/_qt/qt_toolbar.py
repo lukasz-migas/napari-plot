@@ -8,6 +8,8 @@ from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
+from napari_plot._qt.component_controls.qt_plot_display_controls import QtPlotDisplayControls
+
 if ty.TYPE_CHECKING:
     from napari_plot._qt.qt_viewer import QtViewer
     from napari_plot.viewer import Viewer
@@ -25,7 +27,7 @@ class QtViewToolbar(QWidget):
         self.ref_qt_viewer = ref(qt_viewer)
 
         # create instance
-        toolbar_right = QtMiniToolbar(qt_viewer, Qt.Orientation.Vertical)
+        toolbar_right = QtMiniToolbar(qt_viewer, Qt.Orientation.Vertical, add_spacer=False)
         self.toolbar_right = toolbar_right
         # view reset/clear
         self.tools_erase_btn = toolbar_right.insert_qta_tool("erase", tooltip="Clear image", func=self._clear_canvas)
@@ -55,11 +57,13 @@ class QtViewToolbar(QWidget):
             func=self._toggle_text_visible,
         )
         self.tools_grid_btn = toolbar_right.insert_qta_tool(
-            "coordinate_grid",
-            tooltip="Show/hide grid",
+            "mdi6.grid-large",
+            tooltip="Show/hide plot grid lines",
             checkable=True,
+            check=viewer.grid_lines.visible,
             func=self._toggle_grid_lines_visible,
         )
+        viewer.grid_lines.events.visible.connect(self._sync_grid_lines_button)
         self.tools_legend_btn = toolbar_right.insert_qta_tool(
             "list",
             tooltip="Show/hide legend. Right-click to change legend settings.",
@@ -80,6 +84,8 @@ class QtViewToolbar(QWidget):
             checkable=False,
             func=self.ref_qt_viewer().on_toggle_controls_dialog,
         )
+        self.display_controls = QtPlotDisplayControls(toolbar_right, viewer)
+        toolbar_right.add_spacer()
 
     def _clear_canvas(self):
         self.ref_viewer().clear_canvas()
@@ -87,8 +93,12 @@ class QtViewToolbar(QWidget):
     def _reset_view(self):
         self.ref_viewer().reset_view()
 
-    def _toggle_grid_lines_visible(self, state):
+    def _toggle_grid_lines_visible(self, state: bool) -> None:
         self.ref_qt_viewer().viewer.grid_lines.visible = state
+
+    def _sync_grid_lines_button(self, _event: object = None) -> None:
+        # napari 0.10 overlays emit plain values (psygnal), so read the state from the model
+        self.tools_grid_btn.setChecked(self.ref_viewer().grid_lines.visible)
 
     def _toggle_text_visible(self, state):
         self.ref_qt_viewer().viewer.text_overlay.visible = state

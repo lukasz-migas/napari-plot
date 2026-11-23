@@ -3,10 +3,13 @@
 ## Improvements and fixes
 
 - Canvas overlays (text, annotations, legend) sharing a position are now tiled inside the plot area instead of overlapping, following napari's `viewer.canvas.overlay_tiling`.
+- Axis tick labels now follow their view when a layout change moves it without a resize (e.g. entering or leaving grid mode).
+- Closed legend visuals no longer react to legend changes.
 
 ## Added
 
 - Added grid mode (`viewer.canvas.grid.enabled = True`): layers are shown side by side in plot cells with their own axes and a shared camera; gridded overlays (grid lines by default) are drawn in every cell.
+  - A gridded legend (`viewer.legend.gridded = True`) lists only the layers of its cell.
 
 # napari-plot v0.3.1
 

@@ -59,7 +59,8 @@ class VispyCamera:
         self._camera.events.axis_mode.connect(self._on_axis_mode_change)
         self._camera.events.extent_mode.connect(self._on_extent_mode_change)
         self._camera.events.force_rect.connect(self._on_force_rect_change)
-        self._camera.events.zoomed.connect(self._on_sync_rect)
+        # A cell added in grid mode must publish its new bounds before auto-zoom handlers read them.
+        self._camera.events.zoomed.connect(self._on_sync_rect, position="first")
 
         self._on_axis_mode_change(None)
         self._on_extent_mode_change(None)
@@ -145,7 +146,7 @@ class VispyCamera:
         previous = self.rect
         self._applying = True
         try:
-            self.camera.rect = rect_obj
+            self.camera._set_rect(rect_obj, interactive=False)
         finally:
             self._applying = False
         self._synced_rect = self.rect
