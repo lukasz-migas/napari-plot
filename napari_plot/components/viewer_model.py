@@ -15,7 +15,6 @@ from app_model.expressions import Context
 from napari import layers as n_layers
 from napari.components import Dims
 from napari.components._layer_slicer import _LayerSlicer
-from napari.components.canvas import Canvas
 from napari.components.cursor import Cursor, CursorStyle
 from napari.components.overlays import BrushCircleOverlay, TextOverlay
 from napari.components.tooltip import Tooltip
@@ -48,6 +47,7 @@ from napari_plot.components._viewer_utils import (
 )
 from napari_plot.components.axis import Axis, AxisScale
 from napari_plot.components.camera import Camera
+from napari_plot.components.canvas import PlotCanvas
 from napari_plot.components.colorbar import ColorBar
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
@@ -190,8 +190,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     # Using frozen=True means these attributes aren't settable and don't
     # have an event emitter associated with them
     scene: Scene = Field(default_factory=Scene, frozen=True)
-    canvas: Canvas = Field(
-        default_factory=lambda: Canvas(size=(400, 400), overlays=EventedDictNamespace()), frozen=True
+    canvas: PlotCanvas = Field(
+        default_factory=lambda: PlotCanvas(size=(400, 400), overlays=EventedDictNamespace()), frozen=True
     )
     cursor: Cursor = Field(default_factory=Cursor, frozen=True)
     dims: Dims = Field(default_factory=Dims, frozen=True)

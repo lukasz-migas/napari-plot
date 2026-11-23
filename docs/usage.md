@@ -186,8 +186,10 @@ rows. Per-row styles and labels follow row order when you replace the data.
 
 Layers can share a group ID using metadata, whether they are napari-plot custom
 layers or native napari layers. Layers with the same string ID belong to the
-same group. An absent key or `None` means the layer is ungrouped. Grouped
-grid placement is a future feature.
+same group. An absent key or `None` means the layer is ungrouped. Enable
+**Group by layer metadata** in the tiled grid button right-click menu
+to overlay members of each group in one grid cell. Ungrouped visible layers each
+get their own cell. Grid mode must also be enabled.
 
 Select two or more layers and choose **Group Layers** from the layer-list
 right-click menu to create a named group. Choose **Add to Group** to assign the
@@ -195,11 +197,12 @@ selection to an existing group in this viewer, or **Ungroup Layers** to clear
 membership. These commands affect the selected layers. Hover over a grouped
 layer to see its group ID.
 
+Assign a new metadata dictionary to emit napari's metadata event and update the grid.
+
 ```python
-custom_layer.metadata["napari_plot.group"] = "my-group"
-native_layer.metadata["napari_plot.group"] = "my-group"
-custom_layer.metadata.pop("napari_plot.group", None)  # clear the group
-native_layer.metadata["napari_plot.group"] = None  # also clears the group
+custom_layer.metadata = {**custom_layer.metadata, "napari_plot.group": "my-group"}
+native_layer.metadata = {**native_layer.metadata, "napari_plot.group": "my-group"}
+custom_layer.metadata = {**custom_layer.metadata, "napari_plot.group": None}  # clear the group
 ```
 
 ## Statistical plots

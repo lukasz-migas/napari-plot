@@ -83,7 +83,7 @@ instead of overlapping, in the order of `viewer.canvas.overlays`. The stacking
 direction per position and the gap come from `viewer.canvas.overlay_tiling`
 (e.g. `viewer.canvas.overlay_tiling.top_right = "vertical"`).
 
-`viewer.canvas.grid` (napari's `GridCanvas`) shows layers side by side: with
+`viewer.canvas.grid` (a napari `GridCanvas` subclass) shows layers side by side: with
 `enabled = True` each group of layers (`stride` layers, visible layers only)
 gets its own plot cell with its own x/y axes, laid out in `shape` (`-1` picks
 the size automatically) and separated by `spacing`. All cells share the camera,
@@ -92,6 +92,13 @@ so zooming or panning one cell updates the others. Overlays with
 the other overlays (text, annotations, legend) stay in the first cell. A
 gridded legend lists only the layers of its cell; rows without a layer are
 listed in every cell, and rows of layers shown in no cell in the first one.
+
+The `viewer.canvas.grid.group_by_metadata` option defaults to `False`. Set it to
+`True` to place layers sharing a string `napari_plot.group` metadata value in the
+same cell. Visible ungrouped layers each get a cell, and the grid dimensions are
+calculated automatically. Assign a new dictionary to `layer.metadata` to emit the
+metadata event and update the grid. When no visible layer has a group ID, the usual
+stride and shape settings apply.
 
 Layer `axis_labels` populate `viewer.dims.axis_labels` and the displayed plot
 labels. Editing a plot label explicitly preserves that label across subsequent

@@ -640,6 +640,8 @@ class VispyCanvas:
         disconnect_events(self.viewer._overlays.events, self)
         disconnect_events(self.viewer.colorbar.events, self.colorbar)
         disconnect_events(self.viewer.axis.events, self.colorbar)
+        for layer in self.layer_to_visual:
+            layer.events.metadata.disconnect(self._on_layer_metadata_change)
         for overlay in self._overlay_to_visual:
             overlay.events.position.disconnect(self._update_overlay_canvas_positions)
             overlay.events.visible.disconnect(self._on_overlay_visibility_change)
@@ -991,9 +993,14 @@ class VispyCanvas:
         napari_layer.events.visible.connect(self._reorder_layers)
         napari_layer.events.visible.connect(self._update_scenegraph)
         napari_layer.events.name.connect(self._update_legend_filters)
+        napari_layer.events.metadata.connect(self._on_layer_metadata_change)
         # self.viewer.camera.events.angles.connect(vispy_layer._on_camera_move)
         self._reorder_layers()
         self._update_scenegraph()
+
+    def _on_layer_metadata_change(self, _event: Event | None = None) -> None:
+        if self.viewer.canvas.grid.enabled and self.viewer.canvas.grid.group_by_metadata:
+            self._update_scenegraph()
 
     def _remove_layer(self, event):
         """When a layer is removed, remove its parent."""
@@ -1001,6 +1008,7 @@ class VispyCanvas:
         layer.events.visible.disconnect(self._reorder_layers)
         layer.events.visible.disconnect(self._update_scenegraph)
         layer.events.name.disconnect(self._update_legend_filters)
+        layer.events.metadata.disconnect(self._on_layer_metadata_change)
         self._layer_name_visuals.pop(layer).close()
         vispy_layer = self.layer_to_visual[layer]
         vispy_layer.close()

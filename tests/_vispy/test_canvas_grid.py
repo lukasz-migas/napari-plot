@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
-from qtpy.QtCore import Qt
+from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
+from qtpy.QtCore import QPoint, Qt
 
+from napari_plot._qt.component_controls.qt_plot_display_controls import QtPlotDisplayControls
 from napari_plot._vispy.components.camera import make_rect
 
 if TYPE_CHECKING:
@@ -663,3 +665,48 @@ def test_one_axis_zoom_survives_drawing_in_grid_mode(plot, qtbot) -> None:
         _settle(qtbot, canvas)
         for cell in canvas._cells:
             assert cell.camera.rect == pytest.approx(rect, abs=1e-4)
+
+
+def test_metadata_grid_updates_canvas_and_menu(make_napari_plot_viewer, monkeypatch: pytest.MonkeyPatch, qtbot) -> None:
+    """Metadata reassignment updates visual parents, legend filters, and the toolbar option."""
+    monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    viewer = make_napari_plot_viewer(show=False)
+    canvas = viewer.window._qt_viewer.canvas
+    first = viewer.add_line([[0, 0], [1, 1]], name="first", metadata={"napari_plot.group": "a"})
+    second = viewer.add_line([[0, 1], [1, 2]], name="second")
+    third = viewer.add_line([[0, 2], [1, 3]], name="third", metadata={"napari_plot.group": "a"})
+    settings_calls = []
+    toolbar = QtMiniToolbar(None)
+    qtbot.addWidget(toolbar)
+    controls = QtPlotDisplayControls(toolbar, viewer, open_grid_settings=lambda: settings_calls.append(True))
+    viewer.set_legend([{"label": layer.name, "layer_name": layer.name} for layer in viewer.layers])
+    viewer.legend.visible = True
+    viewer.canvas.grid.enabled = True
+    controls.grid_btn.customContextMenuRequested.emit(QPoint(0, 0))
+    assert controls.grid_menu.isVisible()
+    controls.grid_menu.hide()
+    controls.grid_menu.actions()[-1].trigger()
+    assert settings_calls == [True]
+    controls.group_by_metadata_action.trigger()
+    assert viewer.canvas.grid.group_by_metadata
+    assert canvas._cell_layers == [[first, third], [second]]
+    assert [[entry.label for entry in visual._entries] for visual in canvas._overlay_to_visual[viewer.legend]] == [
+        ["first", "third"],
+        ["second"],
+    ]
+    assert canvas.layer_to_visual[third].node.parent is canvas._cells[0].data_scene
+    second.metadata = {"napari_plot.group": "a"}
+    assert canvas._cell_layers == [[first, second, third]]
+    assert [entry.label for entry in canvas._overlay_to_visual[viewer.legend][0]._entries] == [
+        "first",
+        "second",
+        "third",
+    ]
+    assert canvas.layer_to_visual[second].node.parent is canvas._cells[0].data_scene
+    second.metadata = {}
+    assert canvas._legend_filter(1) == (frozenset({"second"}), True)
+    viewer.canvas.grid.group_by_metadata = False
+    assert not controls.group_by_metadata_action.isChecked()
+    viewer.canvas.grid.update({"group_by_metadata": True})
+    assert controls.group_by_metadata_action.isChecked()

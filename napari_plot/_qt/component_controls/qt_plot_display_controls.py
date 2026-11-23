@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from qtpy.QtCore import QObject
+from qtextra.helpers import make_menu, make_menu_item
+from qtpy.QtCore import QObject, QPoint
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,13 +32,25 @@ class QtPlotDisplayControls(QObject):
         self._viewer = viewer
         self._name_overlays: set[LayerNameOverlay] = set()
         self.grid_btn = toolbar.add_qta_tool(
-            "mdi6.view-grid-outline",
-            tooltip="Toggle tiled grid view.",
+            "mdi6.grid-off",
+            tooltip="Toggle tiled grid view. Right-click for grid options.",
             checkable=True,
             check=viewer.canvas.grid.enabled,
             func=self._toggle_grid,
-            func_menu=open_grid_settings,
+            func_menu=self._show_grid_menu,
         )
+        self.grid_btn.set_toggle_qta("mdi6.grid-off", "mdi6.grid")
+        self.grid_menu = make_menu(self.grid_btn)
+        self.group_by_metadata_action = make_menu_item(
+            self.grid_btn, "Group by layer metadata", menu=self.grid_menu, checkable=True
+        )
+        self.group_by_metadata_action.toggled.connect(self._toggle_group_by_metadata)
+        self.grid_menu.aboutToShow.connect(self._sync_group_by_metadata)
+        if open_grid_settings is not None:
+            self.grid_menu.addSeparator()
+            make_menu_item(self.grid_btn, "Grid Settings...", menu=self.grid_menu, func=open_grid_settings)
+        viewer.canvas.grid.events.connect(self._sync_group_by_metadata)
+        self._sync_group_by_metadata()
         self.layer_labels_btn = toolbar.add_qta_tool(
             "mdi6.label-multiple",
             tooltip="Show/hide layer labels.",
@@ -58,6 +71,15 @@ class QtPlotDisplayControls(QObject):
         viewer.layers.events.removed.connect(self._refresh_layer_labels)
         viewer.layers.events.changed.connect(self._refresh_layer_labels)
         self._refresh_layer_labels()
+
+    def _show_grid_menu(self, position: QPoint) -> None:
+        self.grid_menu.popup(self.grid_btn.mapToGlobal(position))
+
+    def _toggle_group_by_metadata(self, enabled: bool) -> None:
+        self._viewer.canvas.grid.group_by_metadata = enabled
+
+    def _sync_group_by_metadata(self, _event: Event | None = None) -> None:
+        self.group_by_metadata_action.setChecked(self._viewer.canvas.grid.group_by_metadata)
 
     def _toggle_grid(self, enabled: bool) -> None:
         self._viewer.canvas.grid.enabled = enabled
