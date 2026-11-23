@@ -182,6 +182,20 @@ independently in the layer controls or from Python. Set `text_color` or
 to replace all geometry at once. `peaks.data` holds [x, y, height, width]
 rows. Per-row styles and labels follow row order when you replace the data.
 
+## Layer groups
+
+Layers can share a group ID using metadata, whether they are napari-plot custom
+layers or native napari layers. Layers with the same string ID belong to the
+same group. An absent key or `None` means the layer is ungrouped. Grouped
+grid placement is a future feature.
+
+```python
+custom_layer.metadata["napari_plot.group"] = "my-group"
+native_layer.metadata["napari_plot.group"] = "my-group"
+custom_layer.metadata.pop("napari_plot.group", None)  # clear the group
+native_layer.metadata["napari_plot.group"] = None  # also clears the group
+```
+
 ## Statistical plots
 
 `napari_plot.stats` provides seaborn-style plots built from the layers above.
@@ -196,6 +210,9 @@ heatmap color limits are computed by seaborn itself.
 viewer = napari_plot.Viewer()
 viewer.boxplot(tips, x="day", y="total_bill", hue="smoker")
 ```
+
+By default, each `violinplot` call assigns a fresh group ID to its body and
+inner layers. Pass `group="my-group"` to share an ID with other calls or layers.
 
 | Plot | Function | Layers |
 | --- | --- | --- |

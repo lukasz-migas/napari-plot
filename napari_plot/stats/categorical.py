@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing as ty
+from uuid import uuid4
 
 import numpy as np
 
@@ -332,6 +333,7 @@ def violinplot(
     linewidth: float = 1.0,
     legend: bool = True,
     name: str = "violinplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw violin plots: mirrored kernel density estimates of values per category (and hue).
 
@@ -345,6 +347,8 @@ def violinplot(
         Scale violins to equal area, to their number of observations, or to equal width.
     common_norm : bool
         Normalize the density across all violins rather than within each category.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
     bw_method, bw_adjust, cut, gridsize
         KDE parameters, as in seaborn.
 
@@ -358,6 +362,7 @@ def violinplot(
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     split = split and cat.hue_levels is not None and len(cat.hue_levels) == 2
     line_rgba = to_rgba(linecolor)
+    metadata = {"napari_plot.group": group if group is not None else str(uuid4())}
 
     # Estimate all densities first so the normalization can be shared between violins.
     groups = []
@@ -424,6 +429,7 @@ def violinplot(
                 border_color=line_rgba,
                 border_width=linewidth,
                 name=f"{name} bodies",
+                metadata=metadata,
             ),
             area_groups,
         )
@@ -432,7 +438,13 @@ def violinplot(
         segments = [segment for segment, scale in inner_lines if scale == line_width]
         layers.append(
             cm.add_segments(
-                viewer, segments, cat.orient, color=line_rgba, width=line_width * linewidth, name=f"{name} inner"
+                viewer,
+                segments,
+                cat.orient,
+                color=line_rgba,
+                width=line_width * linewidth,
+                name=f"{name} inner",
+                metadata=metadata,
             )
         )
     if inner_points:
@@ -446,6 +458,7 @@ def violinplot(
                 face_color="white" if inner == "box" else line_rgba,
                 size=5 if inner == "box" else 3,
                 name=f"{name} inner points",
+                metadata=metadata,
             )
         )
     return cm.finish(viewer, layers, entries, legend)

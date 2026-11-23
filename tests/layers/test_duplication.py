@@ -7,6 +7,7 @@ from collections.abc import Callable
 import numpy as np
 import pytest
 from napari.components import LayerList
+from napari.layers import Image
 from napari.layers._layer_actions import _duplicate_layer
 
 from napari_plot.layers import Areas, Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
@@ -137,6 +138,7 @@ def test_native_duplicate_action_preserves_custom_layer_state(
     """Napari's native duplicate action should recreate every custom layer."""
     layer = factory()
     layer.name = "source"
+    layer.metadata["napari_plot.group"] = "shared"
     layer_list = LayerList([layer])
     layer_list.selection.add(layer)
     source_state = layer._get_state()
@@ -147,6 +149,18 @@ def test_native_duplicate_action_preserves_custom_layer_state(
     duplicate_state = duplicate._get_state()
     assert type(duplicate) is type(layer)
     assert duplicate.name == "source copy"
+    assert duplicate.metadata["napari_plot.group"] == "shared"
     np.testing.assert_equal(duplicate.data, layer.data)
     for key in state_keys:
         np.testing.assert_equal(duplicate_state[key], source_state[key])
+
+
+def test_native_duplicate_action_preserves_native_layer_group() -> None:
+    """Napari's duplicate action preserves the group on native layers too."""
+    layer = Image(np.zeros((2, 2)), metadata={"napari_plot.group": "shared"})
+    layer_list = LayerList([layer])
+    layer_list.selection.add(layer)
+
+    _duplicate_layer(layer_list)
+
+    assert layer_list[1].metadata["napari_plot.group"] == "shared"

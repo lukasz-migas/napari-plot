@@ -67,6 +67,7 @@ def add_segments(
     color: ty.Any,
     width: float,
     name: str,
+    metadata: dict[str, ty.Any] | None = None,
 ) -> MultiLine | None:
     """Add (position, value) segments or polylines (each an ``(M, 2)`` array) as one MultiLine layer."""
     lines = [np.asarray(line, dtype=float) for line in segments]
@@ -82,7 +83,7 @@ def add_segments(
         color = color[0]
     if color.ndim == 1:
         color = np.broadcast_to(color, (len(lines), 4)).copy()
-    return viewer.add_multi_line({"xs": xs, "ys": ys}, color=color, width=width, name=name)
+    return viewer.add_multi_line({"xs": xs, "ys": ys}, color=color, width=width, name=name, metadata=metadata)
 
 
 def add_points(

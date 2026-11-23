@@ -76,6 +76,32 @@ def test_violinplot_inner_variants(tips: pd.DataFrame, inner: str | None) -> Non
     assert isinstance(bodies, Areas)
     assert len(bodies.data) == 3
     assert bodies.orientation == "horizontal"  # density spreads along x for vertical violins
+    group = bodies.metadata["napari_plot.group"]
+    assert isinstance(group, str)
+    assert all(layer.metadata["napari_plot.group"] == group for layer in layers)
+
+
+def test_violinplot_group_ids_and_insertions(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    inserted_groups: list[str | None] = []
+    viewer.layers.events.inserted.connect(
+        lambda event: inserted_groups.append(event.value.metadata.get("napari_plot.group"))
+    )
+
+    first = viewer.violinplot(tips, x="day", y="bill", name="same")
+    second = viewer.violinplot(tips, x="day", y="bill", name="same")
+    first_id = first[0].metadata["napari_plot.group"]
+    second_id = second[0].metadata["napari_plot.group"]
+    assert first_id != second_id
+    assert inserted_groups == [first_id] * len(first) + [second_id] * len(second)
+    inserted_groups.clear()
+
+    shared = "shared group"
+    third = viewer.violinplot(tips, x="day", y="bill", group=shared)
+    fourth = stats.violinplot(viewer, tips, x="day", y="bill", group=shared)
+    native = viewer.add_image(np.zeros((2, 2)), metadata={"napari_plot.group": shared})
+    assert all(layer.metadata["napari_plot.group"] == shared for layer in [*third, *fourth, native])
+    assert inserted_groups == [shared] * (len(third) + len(fourth) + 1)
 
 
 def test_split_violin_halves_meet_at_center(tips: pd.DataFrame) -> None:
