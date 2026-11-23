@@ -8,6 +8,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 import pytest
 
+from napari_plot._vispy.components.camera import make_rect
+
 if TYPE_CHECKING:
     from napari_plot import Viewer
     from napari_plot._vispy.canvas import VispyCanvas
@@ -442,3 +444,26 @@ def test_wheel_on_an_axis_zooms_along_it(plot, qtbot, grid: bool) -> None:
         viewer.camera.rect = rect
         wheel(x_pos, 1, modifiers=("Control",))
         assert viewer.camera.rect == pytest.approx(rect)
+
+
+def test_one_axis_zoom_survives_drawing_in_grid_mode(plot, qtbot) -> None:
+    """Drawing publishes the camera zoom; the other cells must not apply it back as a uniform zoom of both axes."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = True
+    viewer.camera.rect = (2.0, 6.0, 0.5, 2.5)
+    _settle(qtbot, canvas)
+
+    pos = _widget_center(canvas, canvas._cells[0].x_axis.node)
+    for delta in (1, 1, -1, -1, -1, -1):
+        canvas._scene_canvas.events.mouse_wheel(pos=tuple(pos), delta=(0, delta), modifiers=())
+        canvas._scene_canvas.render()
+        _settle(qtbot, canvas)
+        assert viewer.camera.rect[2:] == pytest.approx((0.5, 2.5), abs=1e-4)
+
+    # the same holds for a box zoom in another cell (values that the cells do not share exactly after rounding)
+    for rect in ((3.1234567, 4.7654321, 1.1111111, 2.2222229), (2.2, 7.3, 0.35, 0.91)):
+        canvas._cells[1].camera.camera.rect = make_rect(*rect)
+        canvas._scene_canvas.render()
+        _settle(qtbot, canvas)
+        for cell in canvas._cells:
+            assert cell.camera.rect == pytest.approx(rect, abs=1e-4)

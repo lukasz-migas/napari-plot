@@ -33,6 +33,11 @@ class VispyCamera:
 
     """
 
+    # ids of camera models whose zoom is being published by a drawn camera. Plot cells in grid mode share one model,
+    # and a published zoom must not come back to any of them: the zoom setter scales both axes equally, which would
+    # undo zooming a single axis.
+    _publishing_zoom: ty.ClassVar[set[int]] = set()
+
     def __init__(self, view, camera: Camera, viewer: ViewerModel, follow_model: bool = False):
         self._view = view
         self._camera = camera
@@ -184,6 +189,8 @@ class VispyCamera:
         self.camera.mouse_zoom = self._camera.mouse_zoom
 
     def _on_zoom_change(self):
+        if id(self._camera) in self._publishing_zoom:
+            return
         self.zoom = self._camera.zoom
 
     def _on_rect_change(self, event):
@@ -211,8 +218,11 @@ class VispyCamera:
         """Called whenever the canvas is drawn. Update camera model rect."""
         if self.rect != self._camera.rect:
             self._sync_to_model()
-        with self._camera.events.zoom.blocker(self._on_zoom_change):
+        self._publishing_zoom.add(id(self._camera))
+        try:
             self._camera.zoom = self.zoom
+        finally:
+            self._publishing_zoom.discard(id(self._camera))
 
 
 def viewbox_key_event(event):
