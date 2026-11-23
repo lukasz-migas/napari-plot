@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 class QtAxisWidget(QWidget):
     """Popup to control camera model."""
 
-    def __init__(self, viewer: "ViewerModel", parent):
+    def __init__(self, viewer: "ViewerModel", parent: QWidget | None) -> None:
         super().__init__(parent=parent)
         self.ref_viewer = ref(viewer)
         viewer.axis.events.visible.connect(self._on_visible_change)
@@ -29,6 +29,8 @@ class QtAxisWidget(QWidget):
         viewer.axis.events.label_color.connect(self._on_label_color_change)
         viewer.axis.events.label_size.connect(self._on_tick_label_size_change)
         viewer.axis.events.tick_color.connect(self._on_tick_color_change)
+        viewer.events.theme.connect(self._on_tick_color_change)
+        viewer.events.theme.connect(self._on_label_color_change)
         viewer.axis.events.tick_size.connect(self._on_tick_font_size_change)
         viewer.axis.events.x_label_margin.connect(self._on_label_margin_change)
         viewer.axis.events.y_label_margin.connect(self._on_label_margin_change)
@@ -98,7 +100,7 @@ class QtAxisWidget(QWidget):
         self.y_label_margin_spin.valueChanged.connect(self.on_change_label_margin)
 
         self.label_color_swatch = QColorSwatch(
-            initial_color=viewer.axis.label_color,
+            initial_color=viewer.axis.colors_for_theme(viewer.theme)[1],
             tooltip="Click to set label color",
         )
         self.label_color_swatch.color_changed.connect(self.on_change_label_color)
@@ -109,7 +111,7 @@ class QtAxisWidget(QWidget):
         self.label_font_size.valueChanged.connect(self.on_change_label_font_size)
 
         self.tick_color_swatch = QColorSwatch(
-            initial_color=viewer.axis.tick_color,
+            initial_color=viewer.axis.colors_for_theme(viewer.theme)[0],
             tooltip="Click to set tick color",
         )
         self.tick_color_swatch.color_changed.connect(self.on_change_tick_color)
@@ -183,21 +185,21 @@ class QtAxisWidget(QWidget):
 
         set_widgets_enabled_with_opacity(self, [self.x_max_size_spin, self.y_max_size_spin], False)
 
-    def on_change_visible(self):
+    def on_change_visible(self) -> None:
         """Change visibility of the axes."""
         self.ref_viewer().axis.visible = self.visible_checkbox.isChecked()
 
-    def _on_visible_change(self, _event=None):
+    def _on_visible_change(self, _event=None) -> None:
         """Update visibility checkbox."""
         with self.ref_viewer().axis.events.visible.blocker():
             self.visible_checkbox.setChecked(self.ref_viewer().axis.visible)
 
-    def on_change_label(self):
+    def on_change_label(self) -> None:
         """Change visibility of the x/y-axis."""
         self.ref_viewer().axis.x_label = self.x_axis_edit.text()
         self.ref_viewer().axis.y_label = self.y_axis_edit.text()
 
-    def _on_label_change(self, _event=None):
+    def _on_label_change(self, _event=None) -> None:
         """Update x/y-axis checkbox."""
         with self.ref_viewer().axis.events.x_label.blocker():
             self.x_axis_edit.setText(self.ref_viewer().axis.x_label)
@@ -242,83 +244,85 @@ class QtAxisWidget(QWidget):
             with qt_signals_blocked(line_edit):
                 line_edit.setText(", ".join(categories))
 
-    def on_change_label_margin(self):
+    def on_change_label_margin(self) -> None:
         """Update margin of the x/y-axis label."""
         self.ref_viewer().axis.x_label_margin = self.x_label_margin_spin.value()
         self.ref_viewer().axis.y_label_margin = self.y_label_margin_spin.value()
 
-    def _on_label_margin_change(self, _event=None):
+    def _on_label_margin_change(self, _event=None) -> None:
         """Update x/y-axis margin spinboxes."""
         with self.ref_viewer().axis.events.x_label_margin.blocker():
             self.x_label_margin_spin.setValue(self.ref_viewer().axis.x_label_margin)
         with self.ref_viewer().axis.events.y_label_margin.blocker():
             self.y_label_margin_spin.setValue(self.ref_viewer().axis.y_label_margin)
 
-    def on_change_tick_margin(self):
+    def on_change_tick_margin(self) -> None:
         """Update tick margin."""
         self.ref_viewer().axis.x_tick_margin = self.x_tick_margin_spin.value()
         self.ref_viewer().axis.y_tick_margin = self.y_tick_margin_spin.value()
 
-    def _on_tick_margin_change(self, _event=None):
+    def _on_tick_margin_change(self, _event=None) -> None:
         """Update tick margin spinboxes."""
         with self.ref_viewer().axis.events.x_tick_margin.blocker():
             self.x_tick_margin_spin.setValue(self.ref_viewer().axis.x_tick_margin)
         with self.ref_viewer().axis.events.y_tick_margin.blocker():
             self.y_tick_margin_spin.setValue(self.ref_viewer().axis.y_tick_margin)
 
-    def on_change_max_size(self):
+    def on_change_max_size(self) -> None:
         """Change maximum width/height of the axes."""
         self.ref_viewer().axis.x_max_size = self.x_max_size_spin.value()
         self.ref_viewer().axis.y_max_size = self.y_max_size_spin.value()
 
-    def _on_max_size_change(self, _event=None):
+    def _on_max_size_change(self, _event=None) -> None:
         """Update width/height spinboxes."""
         with self.ref_viewer().axis.events.x_max_size.blocker():
             self.x_max_size_spin.setValue(self.ref_viewer().axis.x_max_size)
         with self.ref_viewer().axis.events.y_max_size.blocker():
             self.y_max_size_spin.setValue(self.ref_viewer().axis.y_max_size)
 
-    def on_change_tick_font_size(self):
+    def on_change_tick_font_size(self) -> None:
         """Change font size of the tick."""
         self.ref_viewer().axis.tick_size = self.tick_font_size.value()
 
-    def _on_tick_font_size_change(self, _event=None):
+    def _on_tick_font_size_change(self, _event=None) -> None:
         """Update font size spinbox."""
         with self.ref_viewer().axis.events.tick_size.blocker():
             self.tick_font_size.setValue(self.ref_viewer().axis.tick_size)
 
-    def on_change_tick_color(self, color: str):
+    def on_change_tick_color(self, color: str) -> None:
         """Update tick color from color picker user input."""
         self.ref_viewer().axis.tick_color = color
 
-    def _on_tick_color_change(self, _event=None):
+    def _on_tick_color_change(self, _event=None) -> None:
         """Update color swatch of the tick color."""
         with qt_signals_blocked(self.tick_color_swatch):
-            self.tick_color_swatch.setColor(self.ref_viewer().axis.tick_color)
+            viewer = self.ref_viewer()
+            self.tick_color_swatch.setColor(viewer.axis.colors_for_theme(viewer.theme)[0])
 
-    def on_change_label_font_size(self):
+    def on_change_label_font_size(self) -> None:
         """Change font size of the label."""
         self.ref_viewer().axis.label_size = self.label_font_size.value()
 
-    def _on_tick_label_size_change(self, _event=None):
+    def _on_tick_label_size_change(self, _event=None) -> None:
         """Update label font size spinbox."""
         with self.ref_viewer().axis.events.label_size.blocker():
             self.label_font_size.setValue(self.ref_viewer().axis.label_size)
 
-    def on_change_label_color(self, color: str):
+    def on_change_label_color(self, color: str) -> None:
         """Update label color swatch of the tick color."""
         self.ref_viewer().axis.label_color = color
 
-    def _on_label_color_change(self, _event=None):
+    def _on_label_color_change(self, _event=None) -> None:
         """Update color swatch of the label color."""
         with qt_signals_blocked(self.label_color_swatch):
-            self.label_color_swatch.setColor(self.ref_viewer().axis.label_color)
+            viewer = self.ref_viewer()
+            self.label_color_swatch.setColor(viewer.axis.colors_for_theme(viewer.theme)[1])
 
 
 class QtAxisControls(QtFramelessPopup):
     """Popup to control x/y-axis visual"""
 
-    def __init__(self, viewer: "ViewerModel", parent=None):
+    def __init__(self, viewer: "ViewerModel", parent: QWidget | None = None) -> None:
         self.ref_viewer = ref(viewer)
 
         super().__init__(parent=parent)

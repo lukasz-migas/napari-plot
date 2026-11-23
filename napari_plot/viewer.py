@@ -72,146 +72,54 @@ class Viewer(ViewerModel):
 
     def export_figure(
         self,
-        path: str | None = None,
+        path: str | Path | None = None,
         *,
         scale_factor: float = 1,
         flash: bool = False,
+        dpi: int | None = None,
     ) -> np.ndarray:
-        """Export an image of the full extent of the displayed layer data.
+        """Capture the full plotted data extent and restore the current view.
 
-        This function finds a tight boundary around the data, resets the view
-        around that boundary, takes a screenshot for which each pixel is equal
-        to the pixel resolution of the data, then restores the previous zoom
-        and canvas sizes.
-
-        The pixel resolution can be upscaled or downscaled by the given
-        `scale_factor`. For example, an image with 800 x 600 pixels with
-        scale_factor 1 will be saved as 800 x 600, or 1200 x 900 with
-        scale_factor 1.5.
-
-        For anisotropic images, the resolution is set by the highest-resolution
-        dimension. For an anisotropic 800 x 600 image with scale set to
-        [0.25, 0.5], the screenshot will be 800 x 1200, or 1200 x 1800 with a
-        scale_factor of 1.5.
-
-        Upscaling will be done using the interpolation mode set on each layer.
-
-        Parameters
-        ----------
-        path : str, optional
-            Filename for saving screenshot image.
-        scale_factor : float
-            By default, the zoom will export approximately 1 pixel per
-            smallest-scale pixel on the viewer. For example, if a layer has
-            scale 0.004nm/pixel and another has scale 1µm/pixel, the exported
-            figure will have 0.004nm/pixel. Upscaling by 2 will produce a
-            figure with 0.002nm/pixel through the interpolation mode set on
-            each layer.
-        flash : bool
-            Flag to indicate whether flash animation should be shown after
-            the screenshot was captured. By default, False.
-
-        Returns
-        -------
-        image : array
-            Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
-            upper-left corner of the rendered region.
+        The raster image has shape (height, width, 4). Resolution starts at the
+        current canvas size and is multiplied by ``scale_factor``. Set ``dpi``
+        to change the output density relative to a 96 DPI canvas. An SVG or PDF
+        path also writes the corresponding vector figure.
         """
-        return self.window.export_figure(
-            path=path,
-            scale=scale_factor,
-            flash=flash,
-        )
+        return self.window.export_figure(path=path, scale=scale_factor, flash=flash, dpi=dpi)
+
+    def export_vector(self, path: str | Path, *, scale_factor: float = 1, dpi: int | None = None) -> None:
+        """Export the full data extent as SVG or PDF, preserving line and text geometry."""
+        self.window.export_vector(path, scale=scale_factor, dpi=dpi)
 
     def export_rois(
         self,
         rois: list[np.ndarray],
         paths: str | Path | list[str | Path] | None = None,
         scale: float | None = None,
-    ):
-        """Export the given rectangular rois to specified file paths.
+    ) -> list[np.ndarray]:
+        """Capture each region's bounding box from four world-space (y, x) corners.
 
-        Iteratively take a screenshot of each given roi. Note that 3D rois
-        or taking rois when number of dimensions displayed in the viewer
-        canvas is 3, is currently not supported.
-
-        Parameters
-        ----------
-        rois: numpy array
-            A list of arrays with each having shape (4, 2) representing a
-            rectangular roi.
-        paths: str, Path, list[str, Path], optional
-            Where to save the rois. If a string or a Path, a directory will
-            be created if it does not exist yet and screenshots will be saved
-            with filename `roi_{n}.png` where n is the nth roi. If paths is
-            a list of either string or paths, these need to be the full paths
-            of where to store each individual roi. In this case
-            the length of the list and the number of rois must match.
-            If None, the screenshots will only be returned
-            and not saved to disk.
-        scale: float, optional
-            Scale factor used to increase resolution of canvas for the screenshot.
-            By default, uses the displayed scale.
-
-        Returns
-        -------
-        screenshot_list: list
-            The list containing all the screenshots.
+        Pass a directory to save files as roi_0.png, roi_1.png and so on,
+        or pass one destination path per region. Each capture starts at the
+        current canvas resolution multiplied by ``scale``.
         """
-        # Check to see if roi has shape (n,2,2)
-        if any(roi.shape[-2:] != (4, 2) for roi in rois):
-            raise ValueError(
-                "ROI found with invalid shape, all rois must have shape (4, 2), i.e. have 4 corners defined in 2 "
-                "dimensions. 3D is not supported."
-            )
-
-        screenshot_list = self.window.export_rois(rois, paths=paths, scale=scale)
-
-        return screenshot_list
+        return self.window.export_rois(rois, paths=paths, scale=scale)
 
     def screenshot(
         self,
-        path: str | None = None,
+        path: str | Path | None = None,
         *,
-        size: tuple[str, str] | None = None,
+        size: tuple[int, int] | None = None,
         scale: float | None = None,
         canvas_only: bool = True,
         flash: bool = False,
-    ):
-        """Take currently displayed screen and convert to an image array.
+    ) -> np.ndarray:
+        """Capture the current view as an RGBA array, optionally saving it to a file.
 
-        Parameters
-        ----------
-        path : str, optional
-            Filename for saving screenshot image.
-        size : tuple of two ints, optional
-            Size (resolution height x width) of the screenshot. By default, the currently
-            displayed size. Only used if `canvas_only` is True.
-        scale : float, optional
-            Scale factor used to increase resolution of canvas for the screenshot.
-            By default, the currently displayed resolution.Only used if `canvas_only` is
-            True.
-        canvas_only : bool
-            If True, screenshot shows only the image display canvas, and if False include
-            the napari viewer frame in the screenshot, By default, True.
-        flash : bool
-            Flag to indicate whether flash animation should be shown after
-            the screenshot was captured.
-            By default, False.
-
-        Returns
-        -------
-        image : array
-            Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
-            upper-left corner of the rendered region.
+        ``size`` is a (height, width) in physical pixels. ``size`` and ``scale``
+        apply to canvas-only captures.
         """
-        return self.window.screenshot(
-            path=path,
-            size=size,
-            scale=scale,
-            flash=flash,
-            canvas_only=canvas_only,
-        )
+        return self.window.screenshot(path=path, size=size, scale=scale, flash=flash, canvas_only=canvas_only)
 
     def show(self, *, block=False):
         """Resize, show, and raise the viewer window."""

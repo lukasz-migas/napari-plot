@@ -2,6 +2,7 @@
 
 import numpy as np
 
+from napari_plot.components.canvas import PlotGridCanvas
 from napari_plot.components.viewer_model import ViewerModel
 
 
@@ -39,3 +40,19 @@ def test_grouped_grid_layout_and_fallback() -> None:
     grid.enabled = False
     grid.group_by_metadata = True
     assert all(grid.position(i, viewer.layers) == (0, 0) for i in range(4))
+
+
+def test_grid_cell_settings_emit_and_serialize() -> None:
+    grid = PlotGridCanvas(sharex=False)
+    cell_changes = []
+    grid.events.cell_changed.connect(lambda event: cell_changes.append((event.cell, event.field)))
+    cell = grid.cell(1, 2)
+    cell.x_label = "Time"
+    cell.xlim = (5, 1)
+
+    assert grid.cell(1, 2) is cell
+    assert cell_changes == [(cell, "x_label"), (cell, "xlim")]
+    restored = PlotGridCanvas.model_validate_json(grid.model_dump_json())
+    assert not restored.sharex
+    assert restored.cell(1, 2).x_label == "Time"
+    assert restored.cell(1, 2).xlim == (5, 1)

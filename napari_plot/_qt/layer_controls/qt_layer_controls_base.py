@@ -46,7 +46,6 @@ class QtLayerControls(QFrame):
         self.setObjectName("layer")
         self.setMouseTracking(True)
 
-        self._ndisplay: int = 2
         self._EDIT_BUTTONS: tuple = ()
         self._MODE_BUTTONS: dict = {}
 

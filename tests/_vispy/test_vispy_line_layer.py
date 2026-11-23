@@ -12,3 +12,14 @@ def test_VispyScatterLayer(opacity):
     layer = Line(points, width=5, opacity=opacity)
     visual = VispyLineLayer(layer, font_info=FontInfo())
     assert visual.node.opacity == opacity
+
+
+def test_line_dash_pattern_applies_and_resets() -> None:
+    layer = Line([[0, 0], [1, 2], [2, 1]], dashes=(5, 2))
+    visual = VispyLineLayer(layer, font_info=FontInfo())
+    assert visual.node.method == "agg"
+    assert visual.node._line_visual._U["dash_period"] == 7
+    layer.dashes = (3, 1, 1, 1)
+    assert visual.node._line_visual._U["dash_period"] == 6
+    layer.dashes = None
+    assert visual.node.method == "gl"

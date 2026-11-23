@@ -9,6 +9,7 @@ from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacit
 from napari.layers.points._points_constants import Symbol
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari_plot.layers.rectangles.rectangles import RectangleMode
 
 if TYPE_CHECKING:
     from napari.utils.events import Event
@@ -20,9 +21,19 @@ class QtRectanglesControls(QtLayerControls):
     """Control rectangle outlines, center markers, and labels."""
 
     layer: Rectangles
+    MODE = RectangleMode
 
     def __init__(self, layer: Rectangles) -> None:
         super().__init__(layer)
+        self.add_button = self._radio_button(
+            layer, "draw", RectangleMode.ADD, True, "", tooltip="Drag to add a rectangle"
+        )
+        self.edit_button = self._radio_button(
+            layer, "move", RectangleMode.EDIT, True, "", tooltip="Drag to move a rectangle. Shift-drag to resize."
+        )
+        self.button_grid.addWidget(self.add_button, 0, 4)
+        self.button_grid.addWidget(self.edit_button, 0, 5)
+        self._MODE_BUTTONS[layer.mode].setChecked(True)
         self.outlines_checkbox = hp.make_checkbox(self, value=layer.show_rectangles)
         self.markers_checkbox = hp.make_checkbox(self, value=layer.show_markers)
         self.text_checkbox = hp.make_checkbox(self, value=layer.show_text)
@@ -83,6 +94,8 @@ class QtRectanglesControls(QtLayerControls):
         layer.events.marker_symbol.connect(self._on_style_change)
         layer.events.text_size.connect(self._on_style_change)
         layer.events.visible.connect(self._on_visible_change)
+        layer.events.mode.connect(self._on_mode_change)
+        layer.events.editable.connect(self._on_editable_change)
         self._on_style_change()
         self._on_visible_change()
 
@@ -147,3 +160,9 @@ class QtRectanglesControls(QtLayerControls):
             ],
             self.layer.visible,
         )
+        self._on_editable_change()
+
+    def _on_editable_change(self) -> None:
+        enabled = self.layer.visible and self.layer.editable
+        self.add_button.setEnabled(enabled)
+        self.edit_button.setEnabled(enabled)

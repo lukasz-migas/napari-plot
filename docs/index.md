@@ -6,9 +6,10 @@ or as a dock widget inside napari.
 
 ## Installation
 
-napari-plot requires napari 0.10.0, Python 3.11 or later, and Qt6 (PyQt6 or
-PySide6). Qt5 is no longer supported. Install a specific backend with
+napari-plot requires napari 0.10.x, Python 3.11 or later, and Qt6 (PyQt6 or
+PySide6). Install a specific backend with
 `pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
+Install `napari-plot[stats]` for statistical plots.
 
 ```shell
 pip install "napari-plot[all]"
@@ -50,8 +51,10 @@ summarizes the stable public entry points.
 ## Highlights
 
 - Line, Scatter, MultiLine, Centroids, Text, Region, InfLine, and Bar layers
-- Linear, logarithmic, and categorical axes
-- Interactive selection, zoom, layer controls, and legend
+- Linear, logarithmic, power, datetime, and categorical axes
+- Interactive selection, zoom, layer controls, legend, and colorbar
+- Grid cells with shared or independent axes
+- Native plot sessions, CSV, and PNG, SVG, and PDF export
 - Image display and a scatter-from-image dock widget
 - Concise `plot`, `scatter`, `imshow`, `hbar`, and `vbar` helpers
 - Full access to the lower-level `add_*` layer methods

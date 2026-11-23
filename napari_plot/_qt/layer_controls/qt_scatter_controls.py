@@ -7,8 +7,7 @@ import numpy as np
 import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked, set_widgets_enabled_with_opacity
 from napari._qt.widgets.qt_color_swatch import QColorSwatch
-from napari.layers.base._base_constants import Mode
-from napari.layers.points._points_constants import Symbol
+from napari.layers.points._points_constants import Mode, Symbol
 from napari.utils.events import disconnect_events
 from qtpy.QtCore import Qt, Slot
 
@@ -65,6 +64,21 @@ class QtScatterControls(QtLayerControls):
         self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.text.events.visible.connect(self._on_text_visibility_change)
         self.layer.events.visible.connect(self._on_visible_change)
+        self.layer.events.mode.connect(self._on_mode_change)
+        self.layer.selected_data.events.items_changed.connect(self._on_selection_change)
+        self.layer.events.editable.connect(self._on_editable_change)
+
+        self.add_button = self._radio_button(layer, "add", Mode.ADD, True, "", tooltip="Click to add a point")
+        self.select_button = self._radio_button(
+            layer, "select_points", Mode.SELECT, True, "", tooltip="Select or drag scatter points"
+        )
+        self.delete_button = self._action_button(
+            layer, "delete_shape", slot=layer.remove_selected, tooltip="Delete selected points"
+        )
+        self.button_grid.addWidget(self.delete_button, 0, 3)
+        self.button_grid.addWidget(self.add_button, 0, 4)
+        self.button_grid.addWidget(self.select_button, 0, 5)
+        self._MODE_BUTTONS[layer.mode].setChecked(True)
 
         self.size_slider = hp.make_slider_with_text(
             self,
@@ -331,8 +345,19 @@ class QtScatterControls(QtLayerControls):
             ],
             self.layer.visible,
         )
+        self._on_editable_change()
+
+    def _on_editable_change(self) -> None:
+        enabled = self.layer.visible and self.layer.editable
+        self.add_button.setEnabled(enabled)
+        self.select_button.setEnabled(enabled)
+        self._on_selection_change()
+
+    def _on_selection_change(self) -> None:
+        self.delete_button.setEnabled(self.layer.visible and self.layer.editable and bool(self.layer.selected_data))
 
     def close(self):
         """Disconnect events when widget is closing."""
         disconnect_events(self.layer.text.events, self)
+        self.layer.selected_data.events.items_changed.disconnect(self._on_selection_change, missing_ok=True)
         super().close()

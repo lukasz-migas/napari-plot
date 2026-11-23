@@ -8,7 +8,7 @@ from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari_plot.layers.centroids._centroids_constants import COLORING_TRANSLATIONS
+from napari_plot.layers.centroids._centroids_constants import COLORING_TRANSLATIONS, Orientation
 
 if ty.TYPE_CHECKING:
     from napari_plot.layers import Centroids
@@ -46,7 +46,7 @@ class QtCentroidControls(QtLayerControls):
         self.layer.events.data.connect(self._on_data_change)
         self.layer.events.color.connect(self._on_color_change)
         self.layer.events.width.connect(self._on_width_change)
-        self.layer.events.method.connect(self._on_method_change)
+        self.layer.events.orientation.connect(self._on_orientation_change)
         self.layer.events.visible.connect(self._on_visible_change)
 
         self.selection_text = hp.make_label(self, "Index")
@@ -68,6 +68,11 @@ class QtCentroidControls(QtLayerControls):
         )
         self.coloring_choice.currentTextChanged.connect(self._on_coloring_change)
 
+        self.orientation_combobox = hp.make_combobox(
+            self, items=[str(orientation) for orientation in Orientation], value=str(layer.orientation)
+        )
+        self.orientation_combobox.currentTextChanged.connect(self.on_change_orientation)
+
         self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.color[0] if len(self.layer.color) else "white",
             tooltip="Click to set new line color",
@@ -79,6 +84,7 @@ class QtCentroidControls(QtLayerControls):
         self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "width"), self.width_slider)
+        self.layout().addRow(hp.make_label(self, "orientation"), self.orientation_combobox)
         self.layout().addRow(hp.make_label(self, "color choice"), self.coloring_choice)
         self.layout().addRow(self.selection_text, self.selection_spin)
         self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
@@ -145,26 +151,13 @@ class QtCentroidControls(QtLayerControls):
             index = self.selection_spin.value()
             self.color_swatch.setColor(self.layer.color[index])
 
-    def on_change_method(self, value):
-        """Change size of points on the layer model.
+    def on_change_orientation(self, value: str) -> None:
+        """Set whether the centroid segments run vertically or horizontally."""
+        self.layer.orientation = value
 
-        Parameters
-        ----------
-        value : float
-            Size of points.
-        """
-        self.layer.method = self.method_combobox.currentText()
-
-    def _on_method_change(self, event):
-        """Receive marker symbol change event and update the dropdown menu.
-
-        Parameters
-        ----------
-        event : napari.utils.event.Event
-            The napari event that triggered this method.
-        """
-        with self.layer.events.method.blocker():
-            self.method_combobox.setCurrentText(self.layer.method)
+    def _on_orientation_change(self) -> None:
+        with qt_signals_blocked(self.orientation_combobox):
+            self.orientation_combobox.setCurrentText(str(self.layer.orientation))
 
     def _on_visible_change(self, event=None):
         """Receive layer model editable change event & enable/disable buttons.
@@ -178,6 +171,7 @@ class QtCentroidControls(QtLayerControls):
             self,
             [
                 self.width_slider,
+                self.orientation_combobox,
                 self.opacity_slider,
                 self.blending_combobox,
                 self.coloring_choice,

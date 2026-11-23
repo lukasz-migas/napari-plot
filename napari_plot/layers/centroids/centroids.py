@@ -2,17 +2,21 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
 from napari.utils.events import Event
+from numpy.typing import ArrayLike
 
+from napari_plot.layers._selection import segments_intersect_polygon
 from napari_plot.layers._thumbnail import CENTROIDS, WHITE
-from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.centroids._centroids_constants import Method, Orientation
 from napari_plot.layers.centroids._centroids_utils import get_extents, parse_centroids_data
 
 
-class Centroids(BaseLayer):
+class Centroids(_SelectableLayer):
     """Centroids layer
 
     Parameters
@@ -60,13 +64,13 @@ class Centroids(BaseLayer):
 
     def __init__(
         self,
-        data,
+        data: ArrayLike | None,
         *,
         # napari-plot parameters
-        orientation="vertical",
-        color=(1.0, 1.0, 1.0, 1.0),
-        width=2,
-        method="gl",
+        orientation: str | Orientation = "vertical",
+        color: Any = (1.0, 1.0, 1.0, 1.0),
+        width: float = 2,
+        method: str | Method = "gl",
         # napari parameters
         axis_labels=None,
         name=None,
@@ -82,7 +86,7 @@ class Centroids(BaseLayer):
         projection_mode="none",
         units=None,
         visible=True,
-    ):
+    ) -> None:
         # sanitize data
         data = parse_centroids_data(data)
         super().__init__(
@@ -102,7 +106,7 @@ class Centroids(BaseLayer):
             units=units,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, method=Event, highlight=Event)
+        self.events.add(color=Event, width=Event, method=Event, highlight=Event, orientation=Event)
 
         self._data = data
         self._color = self._initialize_color(color, len(self._data))
@@ -113,7 +117,7 @@ class Centroids(BaseLayer):
         self.visible = visible
 
     @staticmethod
-    def _initialize_color(color, n_lines: int):
+    def _initialize_color(color: Any, n_lines: int) -> np.ndarray:
         """Get the face colors the Shapes layer will be initialized with
 
         Parameters
@@ -140,7 +144,7 @@ class Centroids(BaseLayer):
             init_colors = np.empty((0, 4))
         return init_colors
 
-    def update_color(self, index: int, color: np.ndarray):
+    def update_color(self, index: int, color: np.ndarray) -> None:
         """Update color of single line.
 
         Parameters
@@ -155,14 +159,16 @@ class Centroids(BaseLayer):
         self._update_thumbnail()
 
     @property
-    def orientation(self):
+    def orientation(self) -> Orientation:
         """Orientation of the centroids layer."""
         return self._orientation
 
     @orientation.setter
-    def orientation(self, value):
+    def orientation(self, value: str | Orientation) -> None:
         self._orientation = Orientation(value)
+        self._clear_extent()
         self.events.set_data()
+        self.events.orientation()
         self._update_thumbnail()
 
     def _update_thumbnail(self) -> None:
@@ -180,13 +186,22 @@ class Centroids(BaseLayer):
         """
         return self.data
 
+    def _selection_mask(self, vertices: np.ndarray) -> np.ndarray:
+        """Select each centroid segment that intersects the polygon."""
+        positions, lower, upper = self.data.T
+        starts = np.column_stack((lower, positions))
+        ends = np.column_stack((upper, positions))
+        if self.orientation == Orientation.HORIZONTAL:
+            starts, ends = starts[:, ::-1], ends[:, ::-1]
+        return segments_intersect_polygon(starts, ends, vertices)
+
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data."""
         return self._data
 
     @data.setter
-    def data(self, value: np.ndarray):
+    def data(self, value: ArrayLike | None) -> None:
         """Update data.
 
         If the number of centroids is smaller than what's currently set, colors will be trimmed.
@@ -209,12 +224,12 @@ class Centroids(BaseLayer):
         self._emit_new_data()
 
     @property
-    def color(self):
+    def color(self) -> np.ndarray:
         """Get color"""
         return self._color
 
     @color.setter
-    def color(self, value):
+    def color(self, value: Any) -> None:
         self._color = self._initialize_color(value, len(self._data))
         self.events.color()
         self._update_thumbnail()
@@ -225,28 +240,28 @@ class Centroids(BaseLayer):
         return self._width
 
     @width.setter
-    def width(self, value: float):
+    def width(self, value: float) -> None:
         self._width = value
         self.events.width()
 
     @property
-    def method(self):
+    def method(self) -> Method | str:
         """Get method."""
         return self._method
 
     @method.setter
-    def method(self, value):
+    def method(self, value: Method | str) -> None:
         self._method = value
         self.events.method()
 
-    def _set_view_slice(self):
+    def _set_view_slice(self) -> None:
         self.events.set_data()
 
     def _get_value(self, position):
         """Value of the data at a position in data coordinates"""
         return position[1]
 
-    def _get_state(self):
+    def _get_state(self) -> dict[str, Any]:
         """Get dictionary of layer state"""
         state = self._get_base_state()
         state.update(

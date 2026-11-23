@@ -221,3 +221,30 @@ def test_legend_controls_disconnect_when_qt_closes_popup(qtbot) -> None:
     second.row_spacing_spinbox.setValue(7)
     second.on_change_row_spacing()
     assert viewer.legend.row_spacing == 7
+
+
+def test_theme_colors_and_outside_legend(make_napari_plot_viewer) -> None:
+    viewer = make_napari_plot_viewer()
+    viewer.rectangle((1, 2), 3, 4, color="red", name="regions")
+    viewer.plot([1, 2], name="profile")
+    viewer.set_legend_from_layers(title="Samples", ncols=2, outside=True)
+    canvas = viewer.window._qt_viewer.canvas
+    visual = canvas._overlay_to_visual[viewer.legend][0]
+    canvas._update_overlay_canvas_positions()
+    assert [entry.label for entry in viewer.legend.entries] == ["regions", "profile"]
+    assert visual.node.parent is visual._outside_widget
+    assert list(visual._text.text) == ["Samples", "regions", "profile"]
+    assert visual._text.pos[1, 1] == visual._text.pos[2, 1]
+    assert visual._text.pos[1, 0] < visual._text.pos[2, 0]
+
+    dark_text = canvas.x_axis.node.axis.text_color.rgba[0].copy()
+    dark_background = visual._background.color.rgba.copy()
+    viewer.theme = "light"
+    assert canvas.x_axis.node.axis.text_color.rgba[0, :3].mean() < dark_text[:3].mean()
+    assert visual._background.color.rgba[:3].mean() > dark_background[:3].mean()
+    viewer.axis.label_color = "red"
+    viewer.theme = "dark"
+    np.testing.assert_allclose(canvas.x_axis.node.axis.text_color.rgba[0], [1, 0, 0, 1])
+
+    viewer.legend.outside = False
+    assert visual.node.parent is canvas.view

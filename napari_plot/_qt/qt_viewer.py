@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import sys
 import typing as ty
 import warnings
@@ -10,18 +11,22 @@ import weakref
 from contextlib import contextmanager, suppress
 from pathlib import Path
 from types import FrameType
+from zipfile import BadZipFile
 
 import napari.layers as n_layers
+import numpy as np
+from napari._qt.dialogs.qt_reader_dialog import handle_gui_reading
 from napari._qt.dialogs.screenshot_dialog import ScreenshotDialog
 from napari._qt.qt_viewer import QtViewer as NapariQtViewer
 from napari._qt.utils import QImg2array
 from napari._qt.widgets.qt_dims import QtDims
 from napari._qt.widgets.qt_viewer_dock_widget import QtViewerDockWidget
 from napari._vispy.utils.qt_font import QtFontManager
+from napari.errors import MultipleReaderError, ReaderPluginError
 from napari.utils.key_bindings import KeymapHandler
-from napari.utils.notifications import show_info
+from napari.utils.notifications import show_error, show_info
 from qtpy.QtCore import QCoreApplication, Qt, QUrl
-from qtpy.QtGui import QFocusEvent, QGuiApplication, QImage
+from qtpy.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFocusEvent, QGuiApplication, QImage
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
@@ -34,6 +39,7 @@ from napari_plot._qt.qt_welcome import QtWidgetOverlay
 from napari_plot._vispy.canvas import VispyCanvas
 from napari_plot._vispy.overlays import register_vispy_overlays
 from napari_plot._vispy.utils.visual import create_vispy_layer
+from napari_plot.components.camera import ExtentMode
 from napari_plot.resources import load_assets
 
 logger = logging.getLogger(__name__)
@@ -85,7 +91,7 @@ class QtViewer(QSplitter):
 
         self._instances.append(self)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
-        self.setAcceptDrops(False)
+        self.setAcceptDrops(True)
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         QCoreApplication.setAttribute(Qt.ApplicationAttribute.AA_UseStyleSheetPropagationInWidgetStyles, True)
 
@@ -129,9 +135,6 @@ class QtViewer(QSplitter):
 
         # setup events
         self.viewer._layer_slicer.events.ready.connect(self._on_slice_ready)
-        # self.viewer.layers.events.inserted.connect(self._update_camera_depth)
-        # self.viewer.layers.events.removed.connect(self._update_camera_depth)
-        # self.viewer.dims.events.ndisplay.connect(self._update_camera_depth)
         self.viewer.layers.events.inserted.connect(self._update_welcome_screen)
         self.viewer.layers.events.removed.connect(self._update_welcome_screen)
         self.viewer.layers.selection.events.active.connect(self._on_active_change)
@@ -218,7 +221,7 @@ class QtViewer(QSplitter):
         # Stacked widget to provide a welcome page
         self._welcome_widget = QtWidgetOverlay(self, widget)
         self._welcome_widget.set_welcome_visible(self._show_welcome_screen)
-        self._welcome_widget.sig_dropped.connect(self.dropEvent)
+        self._welcome_widget.sig_dropped.connect(self._open_from_list_of_urls_data)
         self._welcome_widget.leave.connect(self._leave_canvas)
         self._welcome_widget.enter.connect(self._enter_canvas)
 
@@ -454,7 +457,7 @@ class QtViewer(QSplitter):
         if dialog.exec():
             pass
 
-    def screenshot(self, path=None, flash=True):
+    def screenshot(self, path: str | Path | None = None, flash: bool = True) -> np.ndarray:
         """Take currently displayed screen and convert to an image array.
 
         Parameters
@@ -470,10 +473,10 @@ class QtViewer(QSplitter):
             Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
             upper-left corner of the rendered region.
         """
-        from napari.utils.io import imsave
-
-        img = self.canvas.screenshot()
+        img = QImg2array(self._screenshot(flash=flash))
         if path is not None:
+            from napari.utils.io import imsave
+
             imsave(path, img)
         return img
 
@@ -483,34 +486,77 @@ class QtViewer(QSplitter):
         size: tuple[int, int] | None = None,
         scale: float = 1.0,
         fit_to_data_extent: bool = False,
+        rect: tuple[float, float, float, float] | None = None,
     ) -> QImage:
         """Return a Qt image of the plot canvas."""
         if size is not None and len(size) != 2:
             raise ValueError(f"screenshot size must be 2 values, got {len(size)}")
-        if fit_to_data_extent:
-            self.viewer.reset_view()
+        if not math.isfinite(scale) or scale <= 0:
+            raise ValueError("Screenshot scale must be finite and positive.")
 
-        with self.resize_canvas(size, scale):
-            if self._welcome_widget.isVisible():
-                image = self.canvas.native.grab().toImage()
-            else:
-                image = self.canvas.screenshot()
-            if flash:
-                from napari._qt.utils import add_flash_animation
+        # The canvas reports logical pixels. Public screenshot sizes are physical pixels.
+        if size is not None:
+            ratio = self.canvas.native.devicePixelRatioF()
+            size = tuple(round(value / ratio) for value in size)
 
-                add_flash_animation(self)
-            return image
+        with self._capture_view(size, scale, fit_to_data_extent=fit_to_data_extent, rect=rect):
+            image = self.canvas.screenshot()
+        if flash:
+            from napari._qt.utils import add_flash_animation
+
+            add_flash_animation(self)
+        return image
+
+    @contextmanager
+    def _capture_view(
+        self,
+        size: tuple[int, int] | None,
+        scale: float,
+        *,
+        fit_to_data_extent: bool = False,
+        rect: tuple[float, float, float, float] | None = None,
+    ) -> ty.Iterator[None]:
+        """Prepare a capture and restore the camera and canvas on exit."""
+        camera = self.viewer.camera
+        old_rect, old_extent, old_mode = camera.rect, camera.extent, camera.extent_mode
+        old_zoom = camera.zoom
+        restore_view = fit_to_data_extent or rect is not None
+        cell_rects = [(cell, cell.camera.rect) for cell in self.canvas._cells] if restore_view else []
+        try:
+            with self.resize_canvas(size, scale):
+                if restore_view:
+                    camera.extent_mode = ExtentMode.UNRESTRICTED
+                    if rect is not None:
+                        camera.rect = rect
+                    else:
+                        self.viewer.reset_view(margin=0, use_camera_range=False)
+                yield
+        finally:
+            if restore_view:
+                camera.extent_mode = old_mode
+                camera.extent = old_extent
+                camera.rect = old_rect
+                for cell, cell_rect in cell_rects:
+                    cell.camera.restore_cell_rect(cell_rect)
+            if restore_view or size is not None or scale != 1:
+                with camera.events.zoom.blocker():
+                    camera.zoom = old_zoom
 
     @contextmanager
     def resize_canvas(self, size: tuple[int, int] | None, scale: float) -> ty.Iterator[None]:
         """Temporarily resize the canvas while capturing a screenshot."""
         previous_size = self.canvas.size
         target_size = size or previous_size
-        self.canvas.size = tuple(round(value * scale) for value in target_size)
+        target_size = tuple(round(value * scale) for value in target_size)
+        if min(target_size) < 1:
+            raise ValueError("Screenshot size must have positive height and width.")
+        if target_size != previous_size:
+            self.canvas.size = target_size
         try:
             yield
         finally:
-            self.canvas.size = previous_size
+            if self.canvas.size != previous_size:
+                self.canvas.size = previous_size
 
     def clipboard(self, flash: bool = True) -> None:
         """Copy the current canvas screenshot to the system clipboard."""
@@ -559,7 +605,7 @@ class QtViewer(QSplitter):
 
     def _screenshot_dialog(self):
         """Save screenshot of current display, default .png"""
-        ScreenshotDialog(self.screenshot, self)
+        ScreenshotDialog(self.screenshot, self).exec()
 
     def keyPressEvent(self, event):
         """Called whenever a key is pressed.
@@ -583,7 +629,7 @@ class QtViewer(QSplitter):
         self.canvas._scene_canvas._backend._keyEvent(self.canvas._scene_canvas.events.key_release, event)
         event.accept()
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         """Ignore event if not dragging & dropping a file or URL to open.
 
         Using event.ignore() here allows the event to pass through the
@@ -597,9 +643,14 @@ class QtViewer(QSplitter):
         """
         if event.mimeData().hasUrls():
             self._set_drag_status()
-            event.accept()
+            event.acceptProposedAction()
         else:
             event.ignore()
+
+    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:
+        """Clear the file drag instructions."""
+        self.viewer.status = "Ready"
+        event.accept()
 
     def _set_drag_status(self):
         """Set dedicated status message when dragging files into viewer"""
@@ -636,7 +687,7 @@ class QtViewer(QSplitter):
                 return
         show_info("No image or link in clipboard.")
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QDropEvent) -> None:
         """Add local files and web URLS with drag and drop.
 
         For each file, attempt to open with existing associated reader
@@ -650,16 +701,18 @@ class QtViewer(QSplitter):
         event : qtpy.QtCore.QDropEvent
             Event from the Qt context.
         """
-        shift_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.ShiftModifier
-        alt_down = QGuiApplication.keyboardModifiers() & Qt.KeyboardModifier.AltModifier
-
-        self._qt_open(
-            event.mimeData().urls(),
-            stack=bool(shift_down),
-            choose_plugin=bool(alt_down),
+        if not event.mimeData().hasUrls():
+            event.ignore()
+            return
+        shift_down = event.modifiers() & Qt.KeyboardModifier.ShiftModifier
+        alt_down = event.modifiers() & Qt.KeyboardModifier.AltModifier
+        self._open_from_list_of_urls_data(
+            event.mimeData().urls(), stack=bool(shift_down), choose_plugin=bool(alt_down)
         )
+        event.acceptProposedAction()
 
-    def _open_from_list_of_urls_data(self, urls_list: list[QUrl], stack: bool, choose_plugin: bool):
+    def _open_from_list_of_urls_data(self, urls_list: list[QUrl], stack: bool, choose_plugin: bool) -> None:
+        self.viewer.status = "Ready"
         filenames = []
         for url in urls_list:
             if url.isLocalFile():
@@ -681,8 +734,8 @@ class QtViewer(QSplitter):
         choose_plugin: bool = False,
         plugin: str | None = None,
         layer_type: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: ty.Any,
+    ) -> None:
         """Open files, potentially popping reader dialog for plugin selection.
 
         Call ViewerModel.open and catch errors that could
@@ -702,32 +755,20 @@ class QtViewer(QSplitter):
         layer_type : str
             layer type for opened layers
         """
-        # if choose_plugin:
-        #     handle_gui_reading(
-        #         filenames, self, stack, plugin_override=choose_plugin, **kwargs
-        #     )
-        #     return
-        #
-        # try:
-        #     self.viewer.open(
-        #         filenames,
-        #         stack=stack,
-        #         plugin=plugin,
-        #         layer_type=layer_type,
-        #         **kwargs,
-        #     )
-        # except ReaderPluginError as e:
-        #     handle_gui_reading(
-        #         filenames,
-        #         self,
-        #         stack,
-        #         e.reader_plugin,
-        #         e,
-        #         layer_type=layer_type,
-        #         **kwargs,
-        #     )
-        # except MultipleReaderError:
-        #     handle_gui_reading(filenames, self, stack, **kwargs)
+        if not filenames:
+            return
+        try:
+            if choose_plugin:
+                handle_gui_reading(filenames, self, stack, plugin_override=True, layer_type=layer_type, **kwargs)
+                return
+            try:
+                self.viewer.open(filenames, stack=stack, plugin=plugin, layer_type=layer_type, **kwargs)
+            except ReaderPluginError as error:
+                handle_gui_reading(error.paths, self, stack, error.reader_plugin, error, layer_type=layer_type, **kwargs)
+            except MultipleReaderError as error:
+                handle_gui_reading(error.paths, self, stack, layer_type=layer_type, **kwargs)
+        except (BadZipFile, KeyError, OSError, RuntimeError, TypeError, ValueError) as error:
+            show_error(str(error))
 
     def closeEvent(self, event):
         """Cleanup and close.

@@ -154,3 +154,27 @@ def test_auto_zoom_fits_small_values_with_bottom_lock(qtbot: QtBot, tiled: bool)
     assert camera.rect == pytest.approx((656, 664.5, 0, 0.00042))
     assert target.rect == pytest.approx(camera.rect)
     assert viewer.camera.rect == pytest.approx(camera.rect)
+
+
+def test_grid_cell_camera_shares_only_configured_dimensions() -> None:
+    viewer = ViewerModel()
+    first = viewer.add_line([[1, 2], [10, 8]])
+    second = viewer.add_line([[1, 50], [10, 80]])
+    a = VispyCamera(ViewBox(), viewer.camera, viewer)
+    b = VispyCamera(ViewBox(), viewer.camera, viewer, follow_model=True)
+    settings = viewer.canvas.grid.cell(0, 1)
+    settings.ylim = (85, 45)
+    settings.x_scale = "log"
+    a.configure_cell(None, [first], (True, False))
+    b.configure_cell(settings, [second], (True, False))
+
+    assert b.camera.flip == (False, True, False)
+    assert a.rect[2:] == pytest.approx(viewer._get_rect_extent(layers=[first])[2:])
+    assert b.rect[2:] == pytest.approx((45, 85))
+
+    b.camera.rect = make_rect(np.log10(2), np.log10(6), 55, 75)
+    assert a.rect[:2] == pytest.approx((2, 6))
+    assert a.rect[2:] == pytest.approx(viewer._get_rect_extent(layers=[first])[2:])
+    assert b.rect[2:] == pytest.approx((55, 75))
+    assert b.reset_cell_axis("y")
+    assert b.rect == pytest.approx((2, 6, 45, 85))

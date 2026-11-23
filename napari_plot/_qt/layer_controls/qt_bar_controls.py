@@ -29,6 +29,13 @@ class QtBarControls(QtLayerControls):
         ):
             getattr(layer.events, event_name).connect(self._on_layer_change)
         layer.events.visible.connect(self._on_visible_change)
+        layer.events.editable.connect(self._on_selection_change)
+        layer.events.highlight.connect(self._on_selection_change)
+
+        self.delete_button = self._action_button(
+            layer, "delete_shape", slot=layer.remove_selected, tooltip="Delete selected bars (Shift-click to select)"
+        )
+        self.button_grid.addWidget(self.delete_button, 0, 5)
 
         self.orientation_combobox = hp.make_combobox(
             self,
@@ -140,6 +147,10 @@ class QtBarControls(QtLayerControls):
             ],
             self.layer.visible,
         )
+        self._on_selection_change()
+
+    def _on_selection_change(self) -> None:
+        self.delete_button.setEnabled(self.layer.visible and self.layer.editable and bool(self.layer.selected_data))
 
 
 __all__ = ["QtBarControls"]

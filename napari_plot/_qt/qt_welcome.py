@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from qtpy.QtCore import QSize, Qt, Signal
-from qtpy.QtGui import QPainter
+from qtpy.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QPainter
 from qtpy.QtWidgets import QLabel, QStackedWidget, QStyle, QStyleOption, QVBoxLayout, QWidget
 
 
@@ -16,7 +16,7 @@ class QtShortcutLabel(QLabel):
 class QtWelcomeWidget(QWidget):
     """Welcome widget to display initial information and shortcuts to user."""
 
-    sig_dropped = Signal("QEvent")
+    sig_dropped = Signal(list, bool, bool)
 
     def __init__(self, parent) -> None:
         super().__init__(parent)
@@ -79,7 +79,7 @@ class QtWelcomeWidget(QWidget):
         self.style().unpolish(self)
         self.style().polish(self)
 
-    def dragEnterEvent(self, event):
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         """Override Qt method.
 
         Provide style updates on event.
@@ -89,15 +89,13 @@ class QtWelcomeWidget(QWidget):
         event : qtpy.QtCore.QDragEnterEvent
             Event from the Qt context.
         """
-        self._update_property("drag", True)
         if event.mimeData().hasUrls():
-            viewer = self.parentWidget().nativeParentWidget()._qt_viewer
-            viewer._set_drag_status()
-            event.accept()
+            self._update_property("drag", True)
+            event.acceptProposedAction()
         else:
             event.ignore()
 
-    def dragLeaveEvent(self, event):
+    def dragLeaveEvent(self, event: QDragLeaveEvent) -> None:
         """Override Qt method.
 
         Provide style updates on event.
@@ -109,7 +107,7 @@ class QtWelcomeWidget(QWidget):
         """
         self._update_property("drag", False)
 
-    def dropEvent(self, event):
+    def dropEvent(self, event: QDropEvent) -> None:
         """Override Qt method.
 
         Provide style updates on event and emit the drop event.
@@ -120,7 +118,15 @@ class QtWelcomeWidget(QWidget):
             Event from the Qt context.
         """
         self._update_property("drag", False)
-        self.sig_dropped.emit(event)
+        if not event.mimeData().hasUrls():
+            event.ignore()
+            return
+        urls = event.mimeData().urls()
+        modifiers = event.modifiers()
+        event.acceptProposedAction()
+        self.sig_dropped.emit(
+            urls, bool(modifiers & Qt.KeyboardModifier.ShiftModifier), bool(modifiers & Qt.KeyboardModifier.AltModifier)
+        )
 
 
 class QtWidgetOverlay(QStackedWidget):
@@ -128,7 +134,7 @@ class QtWidgetOverlay(QStackedWidget):
     Stacked widget providing switching between the widget and a welcome page.
     """
 
-    sig_dropped = Signal("QEvent")
+    sig_dropped = Signal(list, bool, bool)
     resized = Signal()
     leave = Signal()
     enter = Signal()

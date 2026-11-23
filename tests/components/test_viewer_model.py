@@ -332,6 +332,43 @@ def test_extent_leaves_room_for_pixel_sized_markers() -> None:
     np.testing.assert_allclose((xmin, xmax, ymin, ymax), (-0.025, 1.025, -0.05, 1.05))
 
 
+def test_limits_support_inversion_and_reset_each_axis() -> None:
+    viewer = ViewerModel()
+    viewer.add_line([[0, 0], [10, 12]])
+    viewer.xlim = (8, 2)
+    viewer.ylim = (1, 9)
+
+    assert viewer.axis.x_inverted
+    assert viewer.xlim == (8, 2)
+    assert viewer.camera.rect == (2, 8, 1, 9)
+
+    viewer.xlim = None
+    assert viewer.xlim == viewer._get_rect_extent()[:2][::-1]
+    assert viewer.ylim == (1, 9)
+
+
+def test_autoscale_updates_fitted_axes_and_preserves_manual_limits() -> None:
+    viewer = ViewerModel()
+    line = viewer.add_line([[0, 0], [10, 10]])
+    viewer.xlim = (2, 8)
+    viewer.margins = (0.0, 0.1)
+    assert viewer.xlim == (2, 8)
+    assert viewer.ylim[1] > 11
+
+    first_ylim = viewer.ylim
+    viewer.autoscale = False
+    line.data = [[0, 0], [20, 20]]
+    assert viewer.ylim == first_ylim
+    viewer.autoscale = True
+    assert viewer.camera.rect == viewer.camera.extent
+
+
+def test_empty_cell_extent_is_independent_of_other_layers() -> None:
+    viewer = ViewerModel()
+    viewer.add_line([[10, 20], [40, 50]])
+    assert viewer._get_rect_extent(layers=[]) == (-0.5, 0.5, -0.5, 0.5)
+
+
 def test_extent_padding_keeps_positive_data_positive() -> None:
     """Padding never pushes strictly positive data below zero, so switching to a log axis stays valid."""
     viewer = ViewerModel()

@@ -11,12 +11,17 @@ from vispy.scene import Node
 from vispy.scene.widgets import Grid
 
 from napari_plot._vispy.camera import VispyCamera
+from napari_plot._vispy.components.axis_transform import axis_transform
 from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 
 if ty.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from napari.layers import Layer
     from vispy.scene import ViewBox, Widget
     from vispy.scene.events import SceneMouseEvent
 
+    from napari_plot.components.canvas import PlotGridCell
     from napari_plot.components.viewer_model import ViewerModel
 
 AXIS_ORDER = 1e6 + 1
@@ -89,8 +94,8 @@ def _on_axis_mouse(axis: VispyXAxisVisual | VispyYAxisVisual, view: ViewBox, eve
 class VispyPlotCell:
     """Plot area with its own view box, data scene, camera and x/y axes.
 
-    The canvas always has one cell, built from its main view and axes. In grid mode, each group of layers gets a
-    cell; the cameras of all cells follow the single camera model, so every cell shows the same x/y range.
+    The canvas always has one cell, built from its main view and axes. In grid mode each layer group gets a cell,
+    with shared or independent limits along each axis.
     In grid mode each cell is laid out in its own small grid: the y-axis left of the view and the x-axis below it.
     """
 
@@ -111,6 +116,8 @@ class VispyPlotCell:
         self.x_axis = x_axis
         self.y_axis = y_axis
         self.layout = layout
+        self.position: tuple[int, int] = (0, 0)
+        self._axis_transform_key: tuple | None = None
 
     @classmethod
     def create(cls, viewer: ViewerModel) -> VispyPlotCell:
@@ -150,9 +157,29 @@ class VispyPlotCell:
         disconnect_events(self.viewer.camera.events, self.camera)
         for axis in (self.x_axis, self.y_axis):
             disconnect_events(self.viewer.axis.events, axis)
+            self.viewer.events.theme.disconnect(axis._on_color_change)
         if self.layout is not None and isinstance(self.layout.parent, Grid):
             detach_widget(self.layout.parent, self.layout)
         # Detach children before the cell's scene is collected so VisPy can remove its clipper.
         for child in self.data_scene.children:
             child.parent = None
         self.view.parent = None
+
+    def configure_axes(
+        self,
+        model: PlotGridCell | None,
+        layers: Sequence[Layer] | None,
+        shared: tuple[bool, bool],
+        *,
+        reset: tuple[bool, bool] = (False, False),
+    ) -> None:
+        """Apply the grid cell's overrides and synchronize its transforms."""
+        self.camera.configure_cell(model, layers, shared, reset=reset)
+        axis = self.viewer.axis
+        key = (self.camera.axis_scale("x"), self.camera.axis_scale("y"), axis.x_power, axis.y_power)
+        if key != self._axis_transform_key:
+            self._axis_transform_key = key
+            self.data_scene.transform = axis_transform(*key)
+        for visual in (self.x_axis, self.y_axis):
+            visual.configure_cell(model)
+            visual.node._view_changed()

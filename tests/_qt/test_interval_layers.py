@@ -49,6 +49,17 @@ def test_areas_controls_and_visual_updates(make_napari_plot_viewer) -> None:
     assert node.mesh.visible
     assert node.border.visible
     assert node.mesh.mesh_data.get_vertices().shape[0] == 12
+    vertical_vertices = node.mesh.mesh_data.get_vertices().copy()
+    controls.orientation_combobox.setCurrentText("horizontal")
+    assert layer.orientation == "horizontal"
+    np.testing.assert_equal(node.mesh.mesh_data.get_vertices(), vertical_vertices[:, ::-1])
+    layer.orientation = "vertical"
+    assert controls.orientation_combobox.currentText() == "vertical"
+    controls.fill_color_swatch.set_color("red")
+    controls.border_color_swatch.set_color("blue")
+    np.testing.assert_array_equal(layer.fill_color, [[1, 0, 0, 1]] * 2)
+    np.testing.assert_array_equal(layer.border_color, [[0, 0, 1, 1]] * 2)
+    np.testing.assert_array_equal(node.mesh.mesh_data.get_face_colors(), [[1, 0, 0, 1]] * 4)
     controls.border_width_spinbox.setValue(0)
     assert layer.border_width == 0
     assert not node.border.visible

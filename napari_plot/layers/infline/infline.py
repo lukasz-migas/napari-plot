@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import warnings
+from collections.abc import Collection
 from copy import copy
-from typing import ClassVar
+from typing import Any, ClassVar
 
 import numpy as np
 from napari.layers.base import ActionType, no_op
@@ -175,7 +176,6 @@ class InfLine(BaseLayer):
 
         # Data container
         self._data_view = InfiniteLineList()
-        self._ndisplay_stored = self._slice_input.ndisplay
 
         # indices of selected lines
         self._value = (None, None)
@@ -354,7 +354,6 @@ class InfLine(BaseLayer):
             self._add_line_to_view(region_inputs, self._data_view)
 
         self._display_order_stored = copy(self._slice_input.order)
-        self._ndisplay_stored = copy(self._slice_input.ndisplay)
         self._update_dims()
 
     @staticmethod
@@ -384,7 +383,7 @@ class InfLine(BaseLayer):
         return str(self._mode)
 
     @mode.setter
-    def mode(self, mode: str | Mode):
+    def mode(self, mode: str | Mode) -> None:
         mode: Mode = self._mode_setter_helper(mode)
         if mode == self._mode:
             return
@@ -404,12 +403,12 @@ class InfLine(BaseLayer):
         self.events.mode(mode=mode)
 
     @property
-    def width(self):
+    def width(self) -> float:
         """Get width"""
         return self._width
 
     @width.setter
-    def width(self, value: float):
+    def width(self, value: float) -> None:
         self._width = value
         self.events.width()
 
@@ -424,12 +423,12 @@ class InfLine(BaseLayer):
         self.events.line_style()
 
     @property
-    def selected_data(self) -> set:
+    def selected_data(self) -> set[int]:
         """set: set of currently selected points."""
         return self._selected_data
 
     @selected_data.setter
-    def selected_data(self, selected_data):
+    def selected_data(self, selected_data: Collection[int]) -> None:
         self._selected_data = set(selected_data)
 
         # Update properties based on selected shapes
@@ -464,7 +463,7 @@ class InfLine(BaseLayer):
         return self._data_view.color
 
     @color.setter
-    def color(self, color):
+    def color(self, color: ColorType) -> None:
         """Set the face_color property
 
         Parameters
@@ -488,12 +487,12 @@ class InfLine(BaseLayer):
         self._update_thumbnail()
 
     @property
-    def current_color(self):
+    def current_color(self) -> np.ndarray:
         """Get current color."""
         return self._current_color
 
     @current_color.setter
-    def current_color(self, color: ColorType):
+    def current_color(self, color: ColorType) -> None:
         """Update current color."""
         self._current_color = transform_color(color)[0]
 
@@ -506,7 +505,7 @@ class InfLine(BaseLayer):
         self.events.current_color()
 
     @staticmethod
-    def _initialize_color(color, n_lines: int):
+    def _initialize_color(color: ColorType, n_lines: int) -> np.ndarray:
         """Get the face colors the Shapes layer will be initialized with
 
         Parameters
@@ -533,7 +532,7 @@ class InfLine(BaseLayer):
             init_colors = np.empty((0, 4))
         return init_colors
 
-    def _get_state(self):
+    def _get_state(self) -> dict[str, Any]:
         """Get dictionary of layer state"""
         state = self._get_base_state()
         state.update(
@@ -604,7 +603,7 @@ class InfLine(BaseLayer):
         """Return list of orientations."""
         return self._data_view.orientations
 
-    def remove_selected(self):
+    def remove_selected(self) -> None:
         """Remove any selected shapes."""
         index = list(self.selected_data)
         to_remove = sorted(index, reverse=True)
@@ -614,7 +613,7 @@ class InfLine(BaseLayer):
         self.selected_data = set()
         self._emit_new_data()
 
-    def _set_view_slice(self):
+    def _set_view_slice(self) -> None:
         self.events.set_data()
 
     def _get_value(self, position):

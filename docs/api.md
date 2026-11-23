@@ -20,13 +20,18 @@ The following names are importable directly from `napari_plot`:
 - `viewer.errorbar(x, y, xerr=..., yerr=..., **kwargs)` adds an ErrorBar layer.
 - `viewer.imshow(data, **kwargs)` adds one or more napari Image layers.
 - `viewer.vbar(values, **kwargs)` and `viewer.vbar(x, height, **kwargs)` add vertical bars.
-- `viewer.hbar(values, **kwargs)` and `viewer.hbar(y, width, **kwargs)` add horizontal bars.
+- `viewer.hbar(values, **kwargs)` and `viewer.hbar(y, length, **kwargs)` add horizontal bars.
 
-- `viewer.boxplot`, `boxenplot`, `violinplot`, `barplot`, `stripplot`, `swarmplot`,
-  `kdeplot`, `histplot`, `rugplot`, `distplot`, `heatmap`, `clustermap`, `scatterplot`,
-  `lineplot` and `relplot` draw seaborn-style statistical plots. They mirror the
-  functions in `napari_plot.stats` (same signatures without the viewer argument)
-  and return the list of created layers.
+- `viewer.fill_betweenx(y, x1, x2=0, **kwargs)` fills between x bounds.
+- `viewer.axhline`, `axvline`, `axhspan`, and `axvspan` add reference marks.
+- `viewer.text` and `annotate` label data, optionally with an annotation arrow.
+- `viewer.stem`, `stackplot`, `hist`, and `rectangle` add Centroids,
+  Areas, Bar, and Rectangles layers, respectively.
+
+The `stats` extra provides statistical functions under `napari_plot.stats`
+and on the viewer. Axes-level functions return a list of created layers.
+`displot`, `catplot`, `lmplot`, `pairplot`, and `jointplot` return
+a `FacetGrid` with access to each cell's layers.
 
 Keyword arguments are forwarded to the corresponding layer constructor. The
 lower-level methods `add_line`, `add_scatter`, `add_image`, `add_areas`, `add_band`, `add_bar`,
@@ -86,8 +91,9 @@ direction per position and the gap come from `viewer.canvas.overlay_tiling`
 `viewer.canvas.grid` (a napari `GridCanvas` subclass) shows layers side by side: with
 `enabled = True` each group of layers (`stride` layers, visible layers only)
 gets its own plot cell with its own x/y axes, laid out in `shape` (`-1` picks
-the size automatically) and separated by `spacing`. All cells share the camera,
-so zooming or panning one cell updates the others. Overlays with
+the size automatically) and separated by `spacing`. The `sharex` and `sharey`
+options link the corresponding limits by default. Use `grid.cell(row, column)`
+to set cell axis labels, scale, categories, or limits. Overlays with
 `gridded = True` (the grid lines by default) are drawn and tiled in every cell;
 the other overlays (text, annotations, legend) stay in the first cell. A
 gridded legend lists only the layers of its cell; rows without a layer are
@@ -95,8 +101,8 @@ listed in every cell, and rows of layers shown in no cell in the first one.
 
 The `viewer.canvas.grid.group_by_metadata` option defaults to `False`. Set it to
 `True` to place layers sharing a string `napari_plot.group` metadata value in the
-same cell. Visible ungrouped layers each get a cell, and the grid dimensions are
-calculated automatically. Assign a new dictionary to `layer.metadata` to emit the
+same cell. Visible ungrouped layers each get a cell, and the grid dimensions use the configured
+shape or are calculated automatically. Assign a new dictionary to `layer.metadata` to emit the
 metadata event and update the grid. When no visible layer has a group ID, the usual
 stride and shape settings apply.
 
@@ -110,3 +116,40 @@ existing defaults.
 Selecting multiple custom layers, or a mixture of custom and built-in layers,
 provides shared opacity and blending controls. Custom single-layer panels stay
 available even when napari's experimental dynamic-controls setting is enabled.
+
+## Viewer reference
+
+::: napari_plot.components.viewer_model.ViewerModel
+    options:
+      members:
+        - xlim
+        - ylim
+        - reset_view
+        - set_legend_from_layers
+        - set_colorbar_from_layer
+        - colorbar_for_cell
+        - save_session
+        - load_session
+        - export_csv
+
+## Layer reference
+
+::: napari_plot.layers.centroids.centroids.Centroids
+    options:
+      members: false
+
+::: napari_plot.layers.multiline.multiline.MultiLine
+    options:
+      members: false
+
+::: napari_plot.layers.region.region.Region
+    options:
+      members: false
+
+::: napari_plot.layers.infline.infline.InfLine
+    options:
+      members: false
+
+::: napari_plot.layers.text.text.Text
+    options:
+      members: false

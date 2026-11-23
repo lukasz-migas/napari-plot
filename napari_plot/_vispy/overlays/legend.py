@@ -10,8 +10,11 @@ from napari._vispy.overlays.base import ViewerOverlayMixin, VispyCanvasOverlay
 from napari._vispy.utils.qt_font import FontInfo
 from napari.utils.colormaps import ensure_colormap
 from napari.utils.events import disconnect_events
+from vispy.scene import Widget
 from vispy.scene.visuals import Compound, Line, Markers, Rectangle, Text
+from vispy.scene.widgets import Grid
 
+from napari_plot._vispy.plot_cell import detach_widget
 from napari_plot.components.legend import LegendEntry, LegendOverlay
 
 FALLBACK_MARKER = "square"
@@ -32,26 +35,42 @@ def legend_entry_color(entry: LegendEntry, fallback: ty.Any) -> np.ndarray:
     return np.asarray(fallback, dtype=float)
 
 
-def _has_marker_column(entries: ty.Sequence[LegendEntry]) -> bool:
-    return any(entry.marker is not None or entry.color is not None or entry.colormap is not None for entry in entries)
+def _has_marker(entry: LegendEntry) -> bool:
+    return entry.marker is not None or entry.color is not None or entry.colormap is not None
+
+
+def _legend_layout(
+    overlay: LegendOverlay, entries: ty.Sequence[LegendEntry]
+) -> tuple[tuple[float, float], np.ndarray, np.ndarray]:
+    font_size = overlay.effective_font_size
+    content_height = max(font_size, overlay.marker_size)
+    row_height = content_height + overlay.row_spacing
+    columns = min(overlay.ncols, max(len(entries), 1))
+    rows = (len(entries) + columns - 1) // columns
+    title_height = row_height if overlay.title else 0.0
+    positions = np.zeros((len(entries), 3))
+    edges = [float(overlay.padding)]
+    for col in range(columns):
+        column_entries = entries[col::columns]
+        if not column_entries:
+            break
+        marker_width = overlay.marker_size + MARKER_TEXT_GAP if any(map(_has_marker, column_entries)) else 0.0
+        text_width = max(len(entry.label) for entry in column_entries) * font_size * TEXT_WIDTH_FACTOR
+        positions[col::columns, 0] = edges[-1] + marker_width
+        positions[col::columns, 1] = (
+            overlay.padding + title_height + content_height / 2 + np.arange(rows)[: len(column_entries)] * row_height
+        )
+        edges.append(edges[-1] + marker_width + text_width + font_size * TEXT_EXTRA_PADDING_FACTOR)
+    title_width = len(overlay.title) * font_size * TEXT_WIDTH_FACTOR + font_size * TEXT_EXTRA_PADDING_FACTOR
+    width = max(edges[-1] - overlay.padding, title_width if overlay.title else 0.0)
+    height = (rows * row_height) + title_height - overlay.row_spacing
+    size = (width + 2 * overlay.padding, height + 2 * overlay.padding) if entries or overlay.title else (0.0, 0.0)
+    return size, positions, np.asarray(edges)
 
 
 def legend_layout_size(overlay: LegendOverlay, entries: ty.Sequence[LegendEntry] | None = None) -> tuple[float, float]:
-    """Estimate legend canvas size from its labels and style.
-
-    `entries` are the rows to measure, by default all entries of `overlay`.
-    """
-    entries = overlay.entries if entries is None else entries
-    if not entries:
-        return 0.0, 0.0
-    labels = [entry.label for entry in entries]
-    row_height = max(overlay.effective_font_size, overlay.marker_size) + overlay.row_spacing
-    marker_width = overlay.marker_size + MARKER_TEXT_GAP if _has_marker_column(entries) else 0.0
-    text_width = max(len(label) for label in labels) * overlay.effective_font_size * TEXT_WIDTH_FACTOR
-    extra_padding = overlay.effective_font_size * TEXT_EXTRA_PADDING_FACTOR
-    x_size = (2 * overlay.padding) + marker_width + text_width + extra_padding
-    y_size = (2 * overlay.padding) + (len(labels) * row_height) - overlay.row_spacing
-    return float(x_size), float(y_size)
+    """Estimate the legend size for the given entries, including its title."""
+    return _legend_layout(overlay, overlay.entries if entries is None else entries)[0]
 
 
 _STYLE_EVENTS = (
@@ -63,6 +82,8 @@ _STYLE_EVENTS = (
     "background_color",
     "border_color",
     "border_width",
+    "title",
+    "ncols",
 )
 
 
@@ -94,6 +115,8 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._border = Line(connect="segments", method="gl")
         self._text = Text(text="", pos=(0, 0, 0), anchor_x="left", anchor_y="center")
         self._markers: list[Markers] = []
+        self._column_edges = np.empty(0)
+        self._outside_widget = Widget()
         self._connected_entries: tuple[LegendEntry, ...] = ()
         self._mouse_emitter = None
         node = Compound([self._background, self._border, self._text], parent=parent)
@@ -103,6 +126,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         overlay.events.entries.connect(self._on_entries_change)
         for event_name in _STYLE_EVENTS:
             getattr(overlay.events, event_name).connect(self._on_data_change)
+        viewer.events.theme.connect(self._on_data_change)
         self._connect_entry_events()
         self._connect_mouse_events()
         self.reset()
@@ -184,59 +208,54 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._text.visible = False
         self._ensure_marker_count(0)
 
-    def _row_positions(self, entries: ty.Sequence[LegendEntry]) -> np.ndarray:
-        row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing
-        row_center = max(self.overlay.effective_font_size, self.overlay.marker_size) / 2
-        text_x = self.overlay.padding
-        if _has_marker_column(entries):
-            text_x += self.overlay.marker_size + MARKER_TEXT_GAP
-        return np.asarray(
-            [[text_x, self.overlay.padding + row_center + (index * row_height), 0.0] for index in range(len(entries))],
-            dtype=float,
-        )
-
     def _on_data_change(self, _event=None) -> None:
         """Redraw the legend from the overlay model."""
         entries = self._entries
-        if not entries:
+        if not entries and not self.overlay.title:
             self._clear_visuals()
             self._on_position_change()
             self.node.update()
             return
 
-        self.x_size, self.y_size = legend_layout_size(self.overlay, entries)
-        text_positions = self._row_positions(entries)
+        (self.x_size, self.y_size), text_positions, self._column_edges = _legend_layout(self.overlay, entries)
+        text_color, background_color, border_color = self.overlay.colors_for_theme(self.viewer.theme)
         self._background.center = self.x_size / 2, self.y_size / 2
         self._background.width = self.x_size
         self._background.height = self.y_size
-        self._background.color = self.overlay.background_color
+        self._background.color = background_color
         self._background.visible = True
         self._background.update()
 
         if self.overlay.border_width > 0:
             self._border.set_data(
                 pos=_border_segments(self.x_size, self.y_size),
-                color=self.overlay.border_color,
+                color=border_color,
                 width=self.overlay.border_width,
             )
         else:
             self._border.set_data(pos=np.empty((0, 3)), color=(0, 0, 0, 0), width=0)
 
-        self._text.text = [entry.label for entry in entries]
-        self._text.pos = text_positions
-        self._text.color = self.overlay.text_color
+        labels = [entry.label for entry in entries]
+        positions = text_positions
+        if self.overlay.title:
+            height = max(self.overlay.effective_font_size, self.overlay.marker_size)
+            labels.insert(0, self.overlay.title)
+            positions = np.vstack(([self.overlay.padding, self.overlay.padding + height / 2, 0], positions))
+        self._text.text = labels
+        self._text.pos = positions
+        self._text.color = text_color
         self._text.font_size = self.overlay.effective_font_size
         self._text.visible = True
 
         marker_entries = [
-            (entry, position)
-            for entry, position in zip(entries, text_positions, strict=True)
-            if entry.marker is not None or entry.color is not None or entry.colormap is not None
+            (entry, position, self._column_edges[index % (len(self._column_edges) - 1)])
+            for index, (entry, position) in enumerate(zip(entries, text_positions, strict=True))
+            if _has_marker(entry)
         ]
         self._ensure_marker_count(len(marker_entries))
-        marker_x = self.overlay.padding + (self.overlay.marker_size / 2)
-        for marker, (entry, position) in zip(self._markers, marker_entries, strict=True):
-            color = legend_entry_color(entry, self.overlay.text_color)
+        for marker, (entry, position, column_x) in zip(self._markers, marker_entries, strict=True):
+            color = legend_entry_color(entry, text_color)
+            marker_x = column_x + self.overlay.marker_size / 2
             marker_pos = np.asarray([[marker_x, position[1], 0.0]], dtype=float)
             try:
                 marker.set_data(
@@ -282,17 +301,47 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         if not (0 <= local[0] <= self.x_size and 0 <= local[1] <= self.y_size):
             return
         row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing
-        row = int((local[1] - self.overlay.padding) // row_height)
+        title_height = row_height if self.overlay.title else 0.0
+        row = int((local[1] - self.overlay.padding - title_height) // row_height)
+        columns = len(self._column_edges) - 1
         entries = self._entries
-        if row < 0 or row >= len(entries):
+        if not entries or row < 0:
             return
-        layer_name = entries[row].layer_name
+        column = int(np.clip(np.searchsorted(self._column_edges, local[0], side="right") - 1, 0, columns - 1))
+        index = row * columns + column
+        if index >= len(entries):
+            return
+        layer_name = entries[index].layer_name
         if layer_name is None:
             return
         with suppress(KeyError):
             layer = self.viewer.layers[layer_name]
             layer.visible = not layer.visible
             event.handled = True
+
+    def place(self, view: Widget, grid: Grid, row: int) -> None:
+        """Move the legend between the plot and a dedicated column to its right."""
+        widget = self._outside_widget
+        outside = self.overlay.outside and self.overlay.visible and self.x_size > 0
+        if isinstance(widget.parent, Grid) and (not outside or widget.parent is not grid):
+            self.node.parent = view
+            detach_widget(widget.parent, widget)
+        if not outside:
+            return
+        width = self.x_size + 12
+        if widget.parent is not grid:
+            widget.width_max = width
+            grid.add_widget(widget, row=row, col=3)
+            self.node.parent = widget
+        elif widget.width_max != width:
+            widget.width_max = width
+            grid._need_solver_recreate = True
+        height = float(view.size[1])
+        vertical = str(self.overlay.position).split("_")[0]
+        extra_height = max(0.0, height - self.y_size - 12)
+        offset = {"top": 0.0, "middle": extra_height / 2, "bottom": extra_height}[vertical]
+        self.node.transform.translate = [6, 6 + offset, 0, 0]
+        self._on_box_change()
 
     def close(self) -> None:
         # the overlay model outlives this visual (e.g. a legend copy in a plot cell that was removed)
@@ -305,6 +354,8 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
                 self._mouse_emitter.disconnect(self._on_mouse_press)
             self._mouse_emitter = None
         self._ensure_marker_count(0)
+        if isinstance(self._outside_widget.parent, Grid):
+            detach_widget(self._outside_widget.parent, self._outside_widget)
         super().close()
 
 

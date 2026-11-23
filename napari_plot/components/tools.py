@@ -169,14 +169,11 @@ class PolygonTool(MeshBaseTool):
         data = np.delete(self.data, index, axis=0)
         self.data = data
 
-    def remove_nearby_point(self, point: tuple[float, float]):
+    def remove_nearby_point(self, point: tuple[float, float]) -> None:
         """Remove point that is nearby to the specified point."""
-        from scipy.spatial.distance import cdist
-
         if len(self.data) == 0:
             return
-        index = cdist(self.data, [point])
-        index = index.argmin()
+        index = int(np.linalg.norm(self.data - point, axis=1).argmin())
         self.remove_point(index)
 
     def clear(self):

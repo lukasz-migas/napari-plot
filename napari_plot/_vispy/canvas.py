@@ -30,14 +30,13 @@ from superqt.utils import qthrottled
 from vispy.scene import Node, SceneCanvas as SceneCanvas_, Widget
 from vispy.scene.widgets import Grid
 from vispy.util.event import Event
-from vispy.visuals.transforms import LogTransform
 
 from napari_plot._vispy.camera import VispyCamera
 from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 from napari_plot._vispy.overlays.colorbar import VispyColorBarVisual
 from napari_plot._vispy.plot_cell import VispyPlotCell, detach_widget, link_axis
 from napari_plot._vispy.tools.drag import VispyDragTool
-from napari_plot.components.axis import AxisScale, transform_axis_values
+from napari_plot.components.dragtool import SELECT_TOOLS
 from napari_plot.components.legend import LegendOverlay
 
 if ty.TYPE_CHECKING:
@@ -122,20 +121,24 @@ class NapariSceneCanvas(SceneCanvas_):
         """
         if event.button != 1 or event.pos is None:
             return
-        axis = self._axis_at(event.pos)
+        axis, view = self._axis_view_at(event.pos)
         if axis == "x":
-            self.events.reset_x()
+            self.events.reset_x(view=view)
         elif axis == "y":
-            self.events.reset_y()
+            self.events.reset_y(view=view)
 
     def _axis_at(self, pos: ty.Sequence[float]) -> str | None:
         """Return "x" or "y" when the canvas position `pos` is on the x- or y-axis of any plot cell."""
-        for x_axis, y_axis in self.view_axes.values():
+        return self._axis_view_at(pos)[0]
+
+    def _axis_view_at(self, pos: ty.Sequence[float]) -> tuple[str | None, ViewBox | None]:
+        """Identify which cell axis contains the canvas position."""
+        for view, (x_axis, y_axis) in self.view_axes.items():
             if self._widget_contains(x_axis.node, pos):
-                return "x"
+                return "x", view
             if self._widget_contains(y_axis.node, pos):
-                return "y"
-        return None
+                return "y", view
+        return None, None
 
     def _widget_contains(self, widget: Widget, pos: ty.Sequence[float]) -> bool:
         """Whether the canvas position `pos` falls inside `widget`."""
@@ -212,6 +215,10 @@ class VispyCanvas:
         self._active_cell: VispyPlotCell | None = None
         self.viewer.axis.events.x_scale.connect(self._on_axis_scale_change)
         self.viewer.axis.events.y_scale.connect(self._on_axis_scale_change)
+        self.viewer.axis.events.x_power.connect(self._on_axis_scale_change)
+        self.viewer.axis.events.y_power.connect(self._on_axis_scale_change)
+        self.viewer.axis.events.x_inverted.connect(self._on_axis_flip_change)
+        self.viewer.axis.events.y_inverted.connect(self._on_axis_flip_change)
 
         self.layer_to_visual: dict[Layer, VispyBaseLayer] = {}
         # one visual per overlay, or one per plot cell for gridded overlays in grid mode
@@ -237,9 +244,9 @@ class VispyCanvas:
         self.grid.add_widget(self.y_axis.node, row=1, col=0)
         link_axis(self.y_axis, self.view)
 
-        # colorbar right of the plot, in the column of the right padding
-        padding = self._scene_canvas.padding_x
-        self.colorbar = VispyColorBarVisual(self.viewer, self.grid, padding, padding.width_max)
+        self.colorbar = VispyColorBarVisual(self.viewer, self.viewer.colorbar, self._font_info)
+        self._cell_colorbars: dict[tuple[int, int], VispyColorBarVisual] = {}
+        self._cell_colorbar_paddings: dict[Grid, Widget] = {}
 
         with self._scene_canvas.modify_context():
             self._scene_canvas.x_axis = self.x_axis
@@ -249,6 +256,8 @@ class VispyCanvas:
             VispyPlotCell(self.viewer, self.view, self._data_scene, self.camera, self.x_axis, self.y_axis)
         )
         self._active_cell = self._cells[0]
+        self._update_colorbars()
+        self.viewer.events.colorbars_change.connect(self._update_colorbars)
 
         for overlay in self.viewer._overlays.values():
             self._add_overlay_to_visual(overlay)
@@ -263,8 +272,8 @@ class VispyCanvas:
         # self._scene_canvas.events.draw.connect(self.enable_dims_play)
         self._scene_canvas.events.draw.connect(self.camera.on_draw)
         self._scene_canvas.events.reset_view.connect(self.viewer.reset_view)
-        self._scene_canvas.events.reset_x.connect(self.viewer.reset_x_view)
-        self._scene_canvas.events.reset_y.connect(self.viewer.reset_y_view)
+        self._scene_canvas.events.reset_x.connect(self._reset_cell_axis)
+        self._scene_canvas.events.reset_y.connect(self._reset_cell_axis)
 
         self._scene_canvas.events.mouse_double_click.connect(self._on_mouse_double_click)
         self._scene_canvas.events.mouse_double_click.connect(self._scene_canvas._on_mouse_double_click)
@@ -285,6 +294,10 @@ class VispyCanvas:
         self.viewer.layers.events.reordered.connect(self._update_scenegraph)
         self.viewer.layers.events.removed.connect(self._remove_layer)
         self.viewer.canvas.grid.events.connect(self._update_scenegraph)
+        self.viewer.canvas.grid.events.cell_changed.connect(self._update_scenegraph)
+        self.viewer.events.layers_change.connect(self._refresh_cell_views)
+        self.viewer.events.reset_view.connect(self._reset_cell_views)
+        self.viewer.events.margins.connect(self._refresh_cell_views)
 
         self.viewer.canvas.events.background_color.connect(self._update_background_color)
         self.viewer.canvas.events._overlay_positions_changed.connect(self._request_overlay_positions)
@@ -300,18 +313,45 @@ class VispyCanvas:
 
     def _on_axis_scale_change(self, _event: Event | None = None) -> None:
         """Apply the selected axis transforms to scene data."""
-        x_base = 10.0 if self.viewer.axis.x_scale is AxisScale.LOG else 0.0
-        y_base = 10.0 if self.viewer.axis.y_scale is AxisScale.LOG else 0.0
         if self.viewer.layers:
             self.viewer._on_update_extent()
-            self.viewer.reset_view()
-        for cell in self._cells:
-            if self.viewer.layers:
-                cell.camera.extent = self.viewer.camera.extent
-            cell.data_scene.transform = LogTransform((x_base, y_base, 0.0))
-            cell.x_axis.node._view_changed()
-            cell.y_axis.node._view_changed()
+            if _event is None or _event.type.endswith("_scale"):
+                self.viewer.reset_view()
+        self._refresh_cell_views(_event)
         self._scene_canvas.update()
+
+    def _on_axis_flip_change(self, _event: Event | None = None) -> None:
+        for cell in self._cells:
+            cell.camera._update_flip()
+
+    def _refresh_cell_views(self, event: Event | None = None) -> None:
+        """Refresh limits, transforms and axis labels for the layers assigned to each cell."""
+        grid = self.viewer.canvas.grid
+        for index, cell in enumerate(self._cells):
+            if index >= len(self._cell_layers):
+                cell.configure_axes(None, None, (True, True))
+                continue
+            model = grid._find_cell(*cell.position)
+            field = getattr(event, "field", getattr(event, "type", ""))
+            changed_model = getattr(event, "cell", None)
+            reset = tuple(
+                field in (f"{name}lim", f"{name}_scale", f"{name}_categories")
+                and (changed_model is None or changed_model is model)
+                for name in ("x", "y")
+            )
+            cell.configure_axes(model, self._cell_layers[index], (grid.sharex, grid.sharey), reset=reset)
+
+    def _reset_cell_axis(self, event: Event) -> None:
+        name = "x" if event.type == "reset_x" else "y"
+        cell = next((cell for cell in self._cells if cell.view is getattr(event, "view", None)), self._cells[0])
+        if not cell.camera.reset_cell_axis(name):
+            reset = self.viewer.reset_x_view if name == "x" else self.viewer.reset_y_view
+            reset()
+
+    def _reset_cell_views(self, _event: Event | None = None) -> None:
+        for cell in self._cells:
+            for name in ("x", "y"):
+                cell.camera.reset_cell_axis(name)
 
     def _grid_active(self) -> bool:
         """Whether layers are shown in a grid of plot cells."""
@@ -324,15 +364,22 @@ class VispyCanvas:
             return
         viewboxes = []
         if self._grid_active():
+            grid = self.viewer.canvas.grid
+            assigned = (
+                {(cell.row, cell.column) for cell in grid.cells if cell.group is not None}
+                if grid.group_by_metadata
+                else set()
+            )
             viewboxes = [
                 (position, indices)
-                for position, indices in self.viewer.canvas.grid.iter_viewboxes(self.viewer.layers)
-                if indices
+                for position, indices in grid.iter_viewboxes(self.viewer.layers)
+                if indices or position in assigned
             ]
         if viewboxes:
             self._layout_cells([position for position, _ in viewboxes])
             self._cell_layers = [[self.viewer.layers[index] for index in indices] for _, indices in viewboxes]
-            for cell, (_, indices) in zip(self._cells, viewboxes, strict=True):
+            for cell, (position, indices) in zip(self._cells, viewboxes, strict=True):
+                cell.position = position
                 for index in indices:
                     layer = self.viewer.layers[index]
                     if layer in self.layer_to_visual:
@@ -341,10 +388,13 @@ class VispyCanvas:
         else:
             self._layout_single()
             self._cell_layers = []
+            self._cells[0].position = (0, 0)
             for layer, vispy_layer in self.layer_to_visual.items():
                 vispy_layer.node.parent = self._data_scene
                 self._layer_name_visuals[layer].node.parent = self.view
+        self._refresh_cell_views(_event)
         self._update_gridded_overlays()
+        self._update_colorbars()
         self._on_interactive()
         self._request_overlay_positions()
 
@@ -422,9 +472,6 @@ class VispyCanvas:
     def _create_cell(self) -> VispyPlotCell:
         """Create a plot cell that follows the camera, axis scales and overlay tiling of the main view."""
         cell = VispyPlotCell.create(self.viewer)
-        x_base = 10.0 if self.viewer.axis.x_scale is AxisScale.LOG else 0.0
-        y_base = 10.0 if self.viewer.axis.y_scale is AxisScale.LOG else 0.0
-        cell.data_scene.transform = LogTransform((x_base, y_base, 0.0))
         self._scene_canvas.events.draw.connect(cell.camera.on_draw)
         cell.view.events.resize.connect(self._update_overlay_canvas_positions)
         self._scene_canvas.view_axes[cell.view] = (cell.x_axis, cell.y_axis)
@@ -445,6 +492,30 @@ class VispyCanvas:
             return
         self._active_cell = cell
         self.tool._polygon.node.parent = cell.data_scene
+
+    def _update_colorbars(self, _event: Event | None = None) -> None:
+        """Attach the figure colorbar and any configured per-cell colorbars."""
+        tiled = self._cells_grid is not None
+        self.colorbar.place(
+            self.grid, 1, 2 if tiled else 3, 0 if tiled else 1, self._scene_canvas.padding_x, 2 if tiled else 1
+        )
+        layouts = {cell.position: cell.layout for cell in self._cells if cell.layout is not None}
+        stale_positions = self._cell_colorbars.keys() - layouts.keys()
+        for position in stale_positions:
+            self._cell_colorbars.pop(position).close()
+        for layout in self._cell_colorbar_paddings.keys() - set(layouts.values()):
+            detach_widget(layout, self._cell_colorbar_paddings.pop(layout))
+        for position, layout in layouts.items():
+            if layout not in self._cell_colorbar_paddings:
+                padding = layout.add_widget(row=1, col=2)
+                padding.width_max = 0
+                self._cell_colorbar_paddings[layout] = padding
+            model = self.viewer._cell_colorbars.get(position)
+            if model is None:
+                continue
+            if position not in self._cell_colorbars:
+                self._cell_colorbars[position] = VispyColorBarVisual(self.viewer, model, self._font_info)
+            self._cell_colorbars[position].place(layout, 0, 2, 1, self._cell_colorbar_paddings[layout])
 
     def _update_gridded_overlays(self) -> None:
         """Give gridded overlays one visual per plot cell; other overlays stay in the first cell."""
@@ -565,7 +636,11 @@ class VispyCanvas:
                 if view >= min(len(visuals), len(self._cells)):
                     continue
                 visual = visuals[view]
-                if visual.x_size > 0 and visual.y_size > 0:
+                if (
+                    visual.x_size > 0
+                    and visual.y_size > 0
+                    and not (isinstance(overlay, LegendOverlay) and overlay.outside)
+                ):
                     yield overlay, visual, view
         view_indices = {cell.view: index for index, cell in enumerate(self._cells)}
         layers = (
@@ -593,8 +668,11 @@ class VispyCanvas:
             for overlay, visuals in self._overlay_to_visual.items():
                 if isinstance(overlay, CanvasOverlay):
                     selected = visuals if target is None else visuals[target : target + 1]
-                    for visual in selected:
+                    for index, visual in enumerate(selected, start=target or 0):
                         visual._on_position_change()
+                        if isinstance(overlay, LegendOverlay):
+                            cell = self._cells[index]
+                            visual.place(cell.view, cell.layout or self.grid, 0 if cell.layout is not None else 1)
             layers = (
                 self._cell_layers[target]
                 if target is not None and target < len(self._cell_layers)
@@ -633,18 +711,19 @@ class VispyCanvas:
 
     def _disconnect_theme(self) -> None:
         disconnect_events(self.viewer.events, self)
+        disconnect_events(self.viewer.axis.events, self)
         disconnect_events(self.viewer.canvas.events, self)
         disconnect_events(self.viewer.canvas.overlay_tiling.events, self)
         disconnect_events(self.viewer.canvas.grid.events, self)
         disconnect_events(get_settings().appearance.events, self)
         disconnect_events(self.viewer._overlays.events, self)
-        disconnect_events(self.viewer.colorbar.events, self.colorbar)
-        disconnect_events(self.viewer.axis.events, self.colorbar)
         for layer in self.layer_to_visual:
             layer.events.metadata.disconnect(self._on_layer_metadata_change)
         for overlay in self._overlay_to_visual:
             overlay.events.position.disconnect(self._update_overlay_canvas_positions)
             overlay.events.visible.disconnect(self._on_overlay_visibility_change)
+            if isinstance(overlay, LegendOverlay):
+                overlay.events.outside.disconnect(self._update_overlay_canvas_positions)
             if isinstance(overlay, CanvasOverlay):
                 overlay.events.gridded.disconnect(self._update_scenegraph)
 
@@ -727,6 +806,9 @@ class VispyCanvas:
     def delete(self) -> None:
         """Schedules the native widget for deletion"""
         self._disconnect_theme()
+        self.colorbar.close()
+        for colorbar in self._cell_colorbars.values():
+            colorbar.close()
         for layer in self.layer_to_visual:
             layer.events.name.disconnect(self._update_legend_filters)
         while len(self._cells) > 1:
@@ -777,27 +859,13 @@ class VispyCanvas:
             Position in world coordinates, matches the total dimensionality
             of the viewer.
         """
-        if view is None:
-            view = self._cell_at(position).view
+        cell = self._cell_at(position) if view is None else next(cell for cell in self._cells if cell.view is view)
+        view = cell.view
         position = list(np.asarray(position[:2], dtype=float) - self._view_offset(view))
         transform = view.camera.transform.inverse
         mapped_position = transform.map(position)[:2]
-        mapped_position[0] = transform_axis_values(
-            mapped_position[0],
-            self.viewer.axis.x_scale,
-            inverse=True,
-        )
-        mapped_position[1] = transform_axis_values(
-            mapped_position[1],
-            self.viewer.axis.y_scale,
-            inverse=True,
-        )
-        position_world_slice = mapped_position[::-1]
-
-        position_world = [0, 0]
-        for i, d in enumerate((0, 1)):
-            position_world[d] = position_world_slice[i]
-        return tuple(position_world)
+        x, y = cell.camera.to_data(*mapped_position)
+        return y, x
 
     def _process_mouse_event(self, mouse_callbacks, event):
         """Called whenever mouse pressed in canvas.
@@ -811,17 +879,22 @@ class VispyCanvas:
         if event.pos is None:
             return
 
+        cell = self._cell_at(event.pos)
+        if getattr(event, "press_event", None) is not None and event.type in ("mouse_move", "mouse_release"):
+            cell = self._active_cell or cell
         event.scale = 1.0
         napari_event = NapariMouseEvent(
             event=event,
             view_direction=None,
             up_direction=None,
-            camera_zoom=self.viewer.camera.zoom,
-            position=self._map_canvas2world(event.pos),
+            camera_zoom=cell.camera.zoom,
+            position=self._map_canvas2world(event.pos, cell.view),
             dims_displayed=[0, 1],
             dims_point=list(self.viewer.dims.point),
-            viewbox=(0, 0),
+            viewbox=cell.position,
         )
+        napari_event.plot_rect = cell.camera.rect
+        napari_event.plot_selection_tool = self.viewer.drag_tool.active in SELECT_TOOLS
 
         # Add the view ray to the event
         event.view_direction = None  # always None because we will display 2d data
@@ -922,15 +995,16 @@ class VispyCanvas:
         corners : 2-tuple
             Coordinates of top left and bottom right canvas pixel in the world.
         """
+        return self._cell_corners_in_world(self._cells[0])
+
+    def _cell_corners_in_world(self, cell: VispyPlotCell) -> np.ndarray:
         if self._cells_grid is None:
-            top_left = self._map_canvas2world([0, 0])
-            bottom_right = self._map_canvas2world(self._scene_canvas.size)
+            offset = np.zeros(2)
+            size = self._scene_canvas.size
         else:
-            # the cameras are synchronized, so every cell shows the range of the main view
-            offset = self._view_offset(self.view)
-            top_left = self._map_canvas2world(offset, self.view)
-            bottom_right = self._map_canvas2world(offset + np.asarray(self.view.size), self.view)
-        return np.array([top_left, bottom_right])
+            offset = self._view_offset(cell.view)
+            size = cell.view.size
+        return np.array([self._map_canvas2world(offset, cell.view), self._map_canvas2world(offset + size, cell.view)])
 
     @property
     def _draw_shape_threshold(self) -> tuple[float, float]:
@@ -946,15 +1020,17 @@ class VispyCanvas:
         # The canvas corners in full world coordinates (i.e. across all layers).
         if self._needs_overlay_position_update:
             self._update_overlay_canvas_positions()
-        canvas_corners_world = self._canvas_corners_in_world
-        shape_threshold = self._draw_shape_threshold
-        for layer in self.viewer.layers:
-            if layer.ndim <= 2:
-                layer._update_draw(
-                    scale_factor=1 / self.viewer.camera.zoom,
-                    corner_pixels_displayed=canvas_corners_world[:, -layer.ndim :],
-                    shape_threshold=shape_threshold,
-                )
+        cell_layers = self._cell_layers or [self.viewer.layers]
+        for cell, layers in zip(self._cells, cell_layers, strict=True):
+            world_corners = self._cell_corners_in_world(cell)
+            threshold = self._draw_shape_threshold if self._cells_grid is None else cell.view.size
+            for layer in layers:
+                if layer.ndim <= 2:
+                    layer._update_draw(
+                        scale_factor=1 / cell.camera.zoom,
+                        corner_pixels_displayed=world_corners[:, -layer.ndim :],
+                        shape_threshold=threshold,
+                    )
 
     def on_resize(self, event: ResizeEvent) -> None:
         """Called whenever canvas is resized."""
@@ -1055,6 +1131,8 @@ class VispyCanvas:
         self._overlay_to_visual[overlay] = [self._create_overlay_visual(overlay, self._cells[0])]
         overlay.events.position.connect(self._update_overlay_canvas_positions)
         overlay.events.visible.connect(self._on_overlay_visibility_change)
+        if isinstance(overlay, LegendOverlay):
+            overlay.events.outside.connect(self._update_overlay_canvas_positions)
         if isinstance(overlay, CanvasOverlay):
             overlay.events.gridded.connect(self._update_scenegraph)
 
@@ -1075,6 +1153,8 @@ class VispyCanvas:
         if visuals is not None:
             overlay.events.position.disconnect(self._update_overlay_canvas_positions)
             overlay.events.visible.disconnect(self._on_overlay_visibility_change)
+            if isinstance(overlay, LegendOverlay):
+                overlay.events.outside.disconnect(self._update_overlay_canvas_positions)
             if isinstance(overlay, CanvasOverlay):
                 overlay.events.gridded.disconnect(self._update_scenegraph)
             for visual in visuals:

@@ -33,60 +33,19 @@ Data selection is also permitted by enabling one of the available selection tool
 
 ![scatter-select](https://github.com/lukasz-migas/napari-plot/raw/main/misc/napariplot-scatter-select.gif)
 
-## Roadmap:
+## Roadmap
 
-This is only provisional list of features that I would like to see implemented. It barely scratches the surface of what plotting tool should cover so as soon as the basics are covered,
-focus will be put towards adding more exotic features. If there are features that you certainly wish to be included,
-please modify the list below or create a [new issue](https://github.com/lukasz-migas/napari-plot/issues/new)
-
-- [ ] Support for new layer types. Layers are based on `napari's` `Layer`, albeit in a two-dimensional setting. Supported and planned layers:
-  - [x] Line Layer - simple line plot.
-  - [x] Scatter Layer - scatter plot (similar to `napari's Points` layer).
-  - [x] Centroids/Segments Layer - horizontal or vertical line segments.
-  - [x] InfLine Layer - infinite horizontal or vertical lines that span over very broad range. Useful for defining regions of interest.
-  - [x] Region Layer - infinite horizontal or vertical rectangular boxes that span over very broad range. Useful for defining regions of interest.
-  - [x] Shapes Layer - `napari's` own `Shapes` layer
-  - [x] Points Layer - `napari's` own `Points` layer
-  - [x] Multi-line Layer - more efficient implementation of `Line` layer when multiple lines are necessary.
-  - [x] Bar - horizontal and vertical bar charts.
-- [x] Proper interactivity of each layer type (e.g. moving `Region` or `InfLine`, adding points, etc...)
-- [x] Intuitive interactivity. `napari-plot` will provide excellent level of interactivity with the plotted data. We plan to support several types of `Tools` that permit efficient interrogation of the data. We currently provide several `zoom` and `select` tools and hope to add few extras in the future.
-  - [x] Box-zoom - standard zooming rectangle. Simply `left-mouse + drag/release` in the canvas on region of interest
-  - [x] Horizontal span - zoom-in only in the y-axis by `Ctrl + left-mouse + drag/release` in the canvas.
-  - [x] Vertical span - span-in only in the x-axis by `Shift + left-mouse + drag/release` in the canvas.
-  - [x] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part.
-  - [x] Polygon select - polygon tool allowing sub-selection of data in the canvas.
-  - [x] Lasso select - lasso tool allowing sub-selection of data in the canvas.
-  - [x] Pan - `right-mouse + drag` in the canvas moves the view; on the x- or y-axis it moves only that axis.
-  - [x] Zoom - `mouse wheel` in the canvas zooms about the mouse; on the x- or y-axis it zooms only that axis.
-  - [x] Reset axis - `double-click` the x- or y-axis to reset that range.
-- [x] Interactive plot legend
-- [x] Customizable axis visuals.
-  - [x] Plot axis enabling customization of tick/label size and color
-  - [x] Support for logarithmic and categorical scales
-- [x] Add convenient plotting interface:
-  - [x] Add `.plot` functionality
-  - [x] Add `.scatter` functionality
-  - [x] Add `.hbar` and `.vbar` functionality
-  - [x] Add `.imshow` functionality
-
-----------------------------------
-
-This [napari] plugin was generated with [Cookiecutter] using with [@napari]'s [cookiecutter-napari-plugin] template.
-
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
-
-and review the napari docs for plugin developers:
-https://napari.org/docs/plugins/index.html
--->
+The plotting core includes grid cells with independently configurable axes,
+data selection by box, lasso or polygon, and layer-linked legends and colorbars.
+The [feature roadmap](TODO/feature-complete-roadmap.md) tracks remaining work,
+including per-vertex line colormaps, secondary axes, navigation history, and
+deeper links to napari layers.
 
 ## Installation
 
-napari-plot requires napari 0.10.0 and Python 3.11 or later. Use a Qt6 backend
+napari-plot requires napari 0.10.x and Python 3.11 or later. Use a Qt6 backend
 with `pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
-Qt5 is no longer supported.
+Install `napari-plot[stats]` for seaborn-style statistical plotting.
 
 You can install `napari-plot` directly from PyPI via:
 

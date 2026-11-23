@@ -39,3 +39,19 @@ def test_scatter_controls_creation(qtbot, layer):
     # change to non-relative edge width
     layer.border_width_is_relative = False
     assert qtctrl.border_width_slider.maximum() > 1.0
+
+
+def test_scatter_controls_edit_modes_and_delete(qtbot) -> None:
+    """Scatter exposes add, select, and delete through the layer controls."""
+    layer = Scatter([[1, 2], [3, 4]])
+    controls = QtScatterControls(layer)
+    qtbot.addWidget(controls)
+
+    controls.add_button.click()
+    assert layer.mode == "add"
+    controls.select_button.click()
+    assert layer.mode == "select"
+    layer.selected_data = {0}
+    controls.delete_button.click()
+    np.testing.assert_array_equal(layer.data, [[3, 4]])
+    assert not controls.delete_button.isEnabled()

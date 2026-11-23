@@ -73,3 +73,46 @@ def test_colorbar_widens_canvas_column(make_napari_plot_viewer) -> None:
     viewer.colorbar.visible = False
     assert padding.width_max == default
     assert not canvas.colorbar.node.visible
+
+
+def test_scatter_colorbar_follow_and_cell_independence() -> None:
+    """Follow the Scatter face properties without changing the figure colorbar."""
+    viewer = ViewerModel()
+    scatter = viewer.add_scatter(
+        [[1, 2], [3, 4]],
+        features={"intensity": [1, 100]},
+        face_color="intensity",
+        face_contrast_limits=(1, 100),
+        face_colormap="magma",
+    )
+    bar = viewer.set_colorbar_from_layer(scatter, cell=(1, 0), norm="log", orientation="horizontal")
+    assert bar is viewer.colorbar_for_cell(1, 0)
+    assert bar.position == "bottom"
+    assert bar.norm == "log"
+    assert bar.contrast_limits == (1, 100)
+    assert bar.colormap.name == "magma"
+    assert not viewer.colorbar.visible
+    scatter.face_colormap = "viridis"
+    scatter.face_contrast_limits = (10, 1000)
+    assert bar.colormap.name == "viridis"
+    assert bar.contrast_limits == (10, 1000)
+    viewer.layers.remove(scatter)
+    assert not bar.visible
+
+
+def test_horizontal_log_colorbar_renders_in_grid_cell(make_napari_plot_viewer) -> None:
+    viewer = make_napari_plot_viewer()
+    canvas = viewer.window._qt_viewer.canvas
+    image = viewer.add_image(np.arange(1.0, 13.0).reshape(3, 4), contrast_limits=(1, 100))
+    viewer.canvas.grid.enabled = True
+    bar = viewer.set_colorbar_from_layer(image, cell=(0, 0), position="bottom", norm="log")
+    visual = canvas._cell_colorbars[(0, 0)]
+    assert visual.node.parent is canvas._cells[0].layout
+    assert visual.axis.scale_type == "logarithmic"
+    assert visual.axis.domain == (0, 2)
+    assert canvas.colorbar.node.parent is None
+    bar.position = "right"
+    np.testing.assert_allclose(visual.axis.tick_direction, (1, 0))
+    viewer.canvas.grid.enabled = False
+    assert visual.node.parent is None
+    assert bar.visible

@@ -14,6 +14,7 @@ from qtpy.QtCore import Qt
 from qtpy.QtGui import QFontDatabase, QGuiApplication
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari_plot.layers.text.text import TextMode
 
 if TYPE_CHECKING:
     from napari_plot.layers import Text
@@ -26,6 +27,8 @@ class QtTextControls(QtLayerControls):
     control applies the selected value to every label in the layer.
     """
 
+    MODE = TextMode
+
     def __init__(self, layer: Text) -> None:
         super().__init__(layer)
         self.layer.events.size.connect(self._on_size_change)
@@ -37,6 +40,14 @@ class QtTextControls(QtLayerControls):
         self.layer.events.alignment.connect(self._on_alignment_change)
         self.layer.events.vertical_alignment.connect(self._on_vertical_alignment_change)
         self.layer.events.visible.connect(self._on_visible_change)
+        self.layer.events.mode.connect(self._on_mode_change)
+        self.layer.events.editable.connect(self._on_editable_change)
+
+        self.move_button = self._radio_button(
+            layer, "move", TextMode.MOVE, True, "", tooltip="Drag a label to change its position"
+        )
+        self.button_grid.addWidget(self.move_button, 0, 5)
+        self._MODE_BUTTONS[layer.mode].setChecked(True)
 
         current_font_face = self._current_font_face()
         font_faces = QFontDatabase.families()
@@ -224,6 +235,10 @@ class QtTextControls(QtLayerControls):
             ],
             self.layer.visible,
         )
+        self._on_editable_change()
+
+    def _on_editable_change(self) -> None:
+        self.move_button.setEnabled(self.layer.visible and self.layer.editable)
 
 
 __all__ = ["QtTextControls"]

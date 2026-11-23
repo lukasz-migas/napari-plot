@@ -1,12 +1,11 @@
 include LICENSE
 include README.md
 recursive-include napari_plot *.pyi
+include napari_plot/py.typed
 recursive-include napari_plot _tests/*.py
 recursive-include napari_plot *.png *.svg *.qss *.gif *.ico *.icns
 recursive-include napari_plot *.yaml
 exclude napari_plot/resources/_qt_resources*.py
-
-exclude requirements.txt
 
 # explicit excludes to keep check-manifest happy and remind us that
 # these things are not being included unless we ask

@@ -1,7 +1,9 @@
 """Axes visual"""
 
+from __future__ import annotations
+
 from collections.abc import Callable
-from typing import ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, Literal
 
 import numpy as np
 from vispy.scene import AxisWidget
@@ -9,6 +11,11 @@ from vispy.scene.widgets import Grid
 
 from napari_plot._vispy.components.axis import _tick_label_sizes, rotated_label_growth
 from napari_plot.components.axis import AxisScale
+
+if TYPE_CHECKING:
+    from napari.utils.events import Event
+
+    from napari_plot.components.canvas import PlotGridCell
 
 
 def _format_categories(categories: tuple[str, ...] | None, formatter: Callable[[str], str] | None) -> tuple[str, ...]:
@@ -30,9 +37,11 @@ class VispyAxisVisual:
     """Axes visual"""
 
     node_kwargs: ClassVar[dict] = {}
+    dimension: ClassVar[Literal["x", "y"]]
 
     def __init__(self, viewer, parent=None, order=1e6):
         self._viewer = viewer
+        self._cell_model: PlotGridCell | None = None
 
         self.node = AxisWidget(
             axis_font_size=10,
@@ -47,8 +56,11 @@ class VispyAxisVisual:
         self._viewer.axis.events.visible.connect(self._on_visible_change)
         self._viewer.axis.events.tick_color.connect(self._on_color_change)
         self._viewer.axis.events.label_color.connect(self._on_color_change)
+        self._viewer.events.theme.connect(self._on_color_change)
         self._viewer.axis.events.tick_size.connect(self._on_size_change)
         self._viewer.axis.events.label_size.connect(self._on_size_change)
+        for field in ("minor_ticks", "tick_notation", "power", "datetime_origin"):
+            getattr(self._viewer.axis.events, f"{self.dimension}_{field}").connect(self._on_tick_options_change)
 
         self._on_visible_change(None)
         self._on_color_change(None)
@@ -57,16 +69,39 @@ class VispyAxisVisual:
         self._on_margin_change(None)
         self._on_max_size_change(None)
         self.on_tick_formatter_change(None)
+        self._on_tick_options_change()
+
+    def configure_cell(self, cell: PlotGridCell | None) -> None:
+        """Apply the grid cell's axis settings, using the viewer's defaults for unspecified fields."""
+        self._cell_model = cell
+        self._on_scale_change()
+        self._on_label_change()
+
+    def _axis_setting(self, field: str) -> Any:
+        if field == "scale" and self._cell_model is not None:
+            return self._cell_model.axis_scale(self.dimension, self._viewer.axis)
+        name = f"{self.dimension}_{field}"
+        value = getattr(self._cell_model, name, None)
+        return getattr(self._viewer.axis, name) if value is None else value
+
+    def _on_tick_options_change(self, _evt: Event | None = None) -> None:
+        ticker = self.node.axis.ticker
+        ticker.minor_ticks = self._axis_setting("minor_ticks")
+        ticker.notation = self._axis_setting("tick_notation")
+        ticker.power = self._axis_setting("power")
+        ticker.datetime_origin = self._axis_setting("datetime_origin")
+        self._refresh_tick_layout()
 
     def _on_visible_change(self, _evt=None):
         """Change grid lines visibility"""
         self.node.visible = self._viewer.axis.visible
 
-    def _on_color_change(self, _evt=None):
-        """Change node color"""
-        self.node.axis.axis_color = self._viewer.axis.tick_color
-        self.node.axis.tick_color = self._viewer.axis.tick_color
-        self.node.axis.text_color = self._viewer.axis.label_color
+    def _on_color_change(self, _evt=None) -> None:
+        """Update axis colors from explicit settings and the viewer theme."""
+        tick_color, label_color = self._viewer.axis.colors_for_theme(self._viewer.theme)
+        self.node.axis.axis_color = tick_color
+        self.node.axis.tick_color = tick_color
+        self.node.axis.text_color = label_color
         self.node.axis.update()
 
     def _on_size_change(self, _evt=None):
@@ -96,11 +131,24 @@ class VispyAxisVisual:
 
     def on_tick_formatter_change(self, _evt=None):
         """Change tick formatter."""
-        raise NotImplementedError("Must implement method")
+        self.node.axis.ticker.tick_format_func = self._axis_setting("tick_formatter")
+        self._refresh_tick_layout()
 
     def _on_label_change(self, _evt=None):
         """Change label"""
-        raise NotImplementedError("Must implement method")
+        label = self._axis_setting("label")
+        self.node.axis.ticker.axis_label = label
+        self.node.axis.axis_label = label
+
+    def _on_scale_change(self, _evt=None) -> None:
+        """Update the axis scale and categorical labels."""
+        scale = self._axis_setting("scale")
+        self.node.axis.scale_type = "logarithmic" if scale is AxisScale.LOG else scale.value
+        self.node.axis.ticker.category_labels = _format_categories(
+            self._axis_setting("categories"), self._axis_setting("category_formatter")
+        )
+        self._update_label_space()
+        self._refresh_tick_layout()
 
     def _on_margin_change(self, _evt=None):
         """Change margin"""
@@ -115,6 +163,7 @@ class VispyXAxisVisual(VispyAxisVisual):
     """X-axis visual"""
 
     node_kwargs: ClassVar[dict] = {"orientation": "bottom", "tick_label_margin": 20}
+    dimension = "x"
 
     def __init__(self, viewer, parent=None, order=1e6):
         super().__init__(viewer, parent, order)
@@ -150,7 +199,7 @@ class VispyXAxisVisual(VispyAxisVisual):
         """Return the extra height that rotated category labels need."""
         ticker = getattr(self.node.axis, "ticker", None)
         rotation = float(self._viewer.axis.x_tick_rotation)
-        if ticker is None or rotation == 0 or self._viewer.axis.x_scale is not AxisScale.CATEGORICAL:
+        if ticker is None or rotation == 0 or self._axis_setting("scale") is not AxisScale.CATEGORICAL:
             return 0.0
         try:
             return rotated_label_growth(self.node.axis, ticker.category_labels, rotation)
@@ -165,10 +214,6 @@ class VispyXAxisVisual(VispyAxisVisual):
         self.node.axis._need_update = True
         self.node.update()
 
-    def _on_label_change(self, _evt=None):
-        """Change label"""
-        self.node.axis.axis_label = self._viewer.axis.x_label
-
     def _on_margin_change(self, _evt=None):
         """Change margin"""
         self.node.axis.tick_label_margin = self._viewer.axis.x_tick_margin
@@ -178,31 +223,12 @@ class VispyXAxisVisual(VispyAxisVisual):
         """Change the maximum width/height of the axis visual"""
         self._update_label_space()
 
-    def on_tick_formatter_change(self, _evt=None):
-        """Change tick formatter."""
-        if self._viewer.axis.x_tick_formatter is not None:
-            self.node.axis.ticker.tick_format_func = self._viewer.axis.x_tick_formatter
-            self._refresh_tick_layout()
-
-    def _on_scale_change(self, _evt=None) -> None:
-        """Update the x-axis tick layout scale."""
-        scale = self._viewer.axis.x_scale
-        self.node.axis.scale_type = {
-            AxisScale.LINEAR: "linear",
-            AxisScale.LOG: "logarithmic",
-            AxisScale.CATEGORICAL: "categorical",
-        }[scale]
-        self.node.axis.ticker.category_labels = _format_categories(
-            self._viewer.axis.x_categories, self._viewer.axis.x_category_formatter
-        )
-        self._update_label_space()
-        self._refresh_tick_layout()
-
 
 class VispyYAxisVisual(VispyAxisVisual):
     """Y-axis visual"""
 
     node_kwargs: ClassVar[dict] = {"tick_label_margin": 10}
+    dimension = "y"
 
     def __init__(self, viewer, parent=None, order=1e6):
         super().__init__(viewer, parent, order)
@@ -223,10 +249,6 @@ class VispyYAxisVisual(VispyAxisVisual):
         self.node.axis.ticker.thin_categories = self._viewer.axis.y_thin_categories
         self._refresh_tick_layout()
 
-    def _on_label_change(self, _evt=None):
-        """Change label"""
-        self.node.axis.axis_label = self._viewer.axis.y_label
-
     def _on_margin_change(self, _evt=None):
         """Change margin"""
         self.node.axis.tick_label_margin = self._viewer.axis.y_tick_margin
@@ -240,7 +262,7 @@ class VispyYAxisVisual(VispyAxisVisual):
         """Return the extra width that category labels wider than the default label space need."""
         ticker = getattr(self.node.axis, "ticker", None)
         labels = getattr(ticker, "category_labels", ())
-        if not labels or self._viewer.axis.y_scale is not AxisScale.CATEGORICAL:
+        if not labels or self._axis_setting("scale") is not AxisScale.CATEGORICAL:
             return 0.0
         try:
             widths, _ = _tick_label_sizes(self.node.axis, labels)
@@ -258,23 +280,3 @@ class VispyYAxisVisual(VispyAxisVisual):
         self.node.axis.axis_label_margin = self._viewer.axis.y_label_margin + growth
         self.node.axis._need_update = True
         self.node.update()
-
-    def on_tick_formatter_change(self, _evt=None):
-        """Change tick formatter."""
-        if self._viewer.axis.y_tick_formatter is not None:
-            self.node.axis.ticker.tick_format_func = self._viewer.axis.y_tick_formatter
-            self._refresh_tick_layout()
-
-    def _on_scale_change(self, _evt=None) -> None:
-        """Update the y-axis tick layout scale."""
-        scale = self._viewer.axis.y_scale
-        self.node.axis.scale_type = {
-            AxisScale.LINEAR: "linear",
-            AxisScale.LOG: "logarithmic",
-            AxisScale.CATEGORICAL: "categorical",
-        }[scale]
-        self.node.axis.ticker.category_labels = _format_categories(
-            self._viewer.axis.y_categories, self._viewer.axis.y_category_formatter
-        )
-        self._update_label_space()
-        self._refresh_tick_layout()

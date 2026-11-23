@@ -8,7 +8,7 @@ from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from qtpy.QtCore import Qt
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
-from napari_plot.layers.infline._infline_constants import Mode
+from napari_plot.layers.infline._infline_constants import LineStyle, Mode
 
 if ty.TYPE_CHECKING:
     from napari_plot.layers import InfLine
@@ -47,6 +47,7 @@ class QtInfLineControls(QtLayerControls):
         self.layer.events.mode.connect(self._on_mode_change)
         self.layer.events.current_color.connect(self._on_current_color_change)
         self.layer.events.width.connect(self._on_width_change)
+        self.layer.events.line_style.connect(self._on_line_style_change)
         self.layer.events.visible.connect(self._on_visible_change)
         self.layer.events.selected.connect(self._on_edit_mode_active)
 
@@ -59,6 +60,11 @@ class QtInfLineControls(QtLayerControls):
             focus_policy=Qt.FocusPolicy.NoFocus,
         )
         self.width_slider.valueChanged.connect(self.on_change_width)
+
+        self.line_style_combobox = hp.make_combobox(
+            self, items=[str(style) for style in LineStyle], value=str(layer.line_style)
+        )
+        self.line_style_combobox.currentTextChanged.connect(self.on_change_line_style)
 
         self.color_swatch = QColorSwatchEdit(
             initial_color=self.layer.color,
@@ -112,7 +118,16 @@ class QtInfLineControls(QtLayerControls):
         self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
         self.layout().addRow(hp.make_label(self, "color"), self.color_swatch)
         self._on_visible_change()
+        self.layout().addRow(hp.make_label(self, "line style"), self.line_style_combobox)
         self._on_edit_mode_active()
+
+    def on_change_line_style(self, value: str) -> None:
+        """Set the line dash style."""
+        self.layer.line_style = value
+
+    def _on_line_style_change(self) -> None:
+        with qt_signals_blocked(self.line_style_combobox):
+            self.line_style_combobox.setCurrentText(str(self.layer.line_style))
 
     def _on_edit_mode_active(self, event=None):
         """Enable/disable `edit` mode when correct number of regions is selected."""
@@ -213,6 +228,7 @@ class QtInfLineControls(QtLayerControls):
             self,
             [
                 self.width_slider,
+                self.line_style_combobox,
                 self.color_swatch,
                 self.opacity_slider,
                 self.blending_combobox,

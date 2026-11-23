@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import math
 import os
 import sys
 import time
@@ -804,6 +805,12 @@ class Window:
         self.file_menu.addAction(clipboard)
         self.file_menu.addAction(clipboard_wv)
         self.file_menu.addSeparator()
+        self.file_menu.addAction("Export Figure...", self._export_figure_dialog)
+        self.file_menu.addAction("Export Active Layer as CSV...", self._export_csv_dialog)
+        self.file_menu.addSeparator()
+        self.file_menu.addAction("Save Plot Session...", self._save_session_dialog)
+        self.file_menu.addAction("Open Plot Session...", self._open_session_dialog)
+        self.file_menu.addSeparator()
         self.file_menu.addAction(closeAction)
         self.file_menu.addAction(quitAction)
 
@@ -1267,179 +1274,109 @@ class Window:
         """
         from napari._qt.utils import add_flash_animation
 
-        canvas = self._qt_viewer.canvas
-        prev_size = canvas.size
-        camera = self._qt_viewer.viewer.camera
-        old_rect = camera.rect
-        old_extent = camera.extent
-        old_zoom = camera.zoom
-        ndisplay = self._qt_viewer.viewer.dims.ndisplay
-
-        # Part 1: validate incompatible parameters
         if not canvas_only and (fit_to_data_extent or size is not None or scale is not None):
             raise ValueError("scale, size, and fit_to_data_extent can only be set for canvas_only screenshots.")
-        if fit_to_data_extent and ndisplay > 2:
-            raise NotImplementedError("fit_to_data_extent is not yet implemented for 3D view.")
-        if size is not None and len(size) != 2:
-            raise ValueError(f"screenshot size must be 2 values, got {len(size)}")
-
-        # Part 2: compute canvas size and view based on parameters
-        if fit_to_data_extent:
-            extent_world = self._qt_viewer.viewer.layers.extent.world[1][-ndisplay:]
-            extent_step = min(self._qt_viewer.viewer.layers.extent.step[-ndisplay:])
-            size = extent_world / extent_step + 1
-        size = np.asarray(size) / self._qt_window.devicePixelRatio() if size is not None else np.asarray(prev_size)
-        if scale is not None:
-            # multiply canvas dimensions by the scale factor to get new size
-            size *= scale
-
-        # Part 3: take the screenshot
         if canvas_only:
-            canvas.size = tuple(size.astype(int))
-            if fit_to_data_extent:
-                # tight view around data
-                self._qt_viewer.viewer.reset_view(margin=0)
-            try:
-                img = canvas.screenshot()
-                if flash:
-                    add_flash_animation(self._qt_viewer._welcome_widget)
-            finally:
-                # make sure we always go back to the right canvas size
-                canvas.size = prev_size
-                camera.rect = old_rect
-                camera.extent = old_extent
-                camera.zoom = old_zoom
-        else:
-            img = self._qt_window.grab().toImage()
-            if flash:
-                add_flash_animation(self._qt_window)
+            return self._qt_viewer._screenshot(
+                flash=flash, size=size, scale=1 if scale is None else scale, fit_to_data_extent=fit_to_data_extent
+            )
+
+        img = self._qt_window.grab().toImage()
+        if flash:
+            add_flash_animation(self._qt_window)
         return img
 
     def export_figure(
         self,
-        path: str | None = None,
+        path: str | Path | None = None,
         scale: float = 1,
-        flash=True,
+        flash: bool = True,
+        *,
+        dpi: int | None = None,
     ) -> np.ndarray:
-        """Export an image of the full extent of the displayed layer data.
-
-        This function finds a tight boundary around the data, resets the view
-        around that boundary (and, when scale=1, such that 1 captured pixel is
-        equivalent to one data pixel), takes a screenshot, then restores the
-        previous zoom and canvas sizes. Currently, only works when 2 dimensions
-        are displayed.
-
-        Parameters
-        ----------
-        path : str, optional
-            Filename for saving screenshot image.
-        scale : float
-            Scale factor used to increase resolution of canvas for the
-            screenshot. By default, a scale of 1.
-        flash : bool
-            Flag to indicate whether flash animation should be shown after
-            the screenshot was captured.
-            By default, True.
-
-        Returns
-        -------
-        image : array
-            Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
-            upper-left corner of the rendered region.
-        """
+        """Capture the full plot extent at the canvas resolution multiplied by ``scale``."""
         from napari.utils.io import imsave
 
+        path = Path(path).expanduser() if path is not None else None
         if not isinstance(scale, (float, int)):
             raise TypeError("Scale must be a float or an int.")
-        img = QImg2array(
-            self._screenshot(
-                scale=scale,
-                flash=flash,
-                canvas_only=True,
-                fit_to_data_extent=True,
-            )
-        )
+        if dpi is not None and (type(dpi) is not int or dpi <= 0):
+            raise ValueError("Export DPI must be a positive integer.")
+        if path is not None and path.suffix.lower() in (".svg", ".pdf"):
+            self.export_vector(path, scale=scale, dpi=dpi)
+            return QImg2array(self._screenshot(scale=scale, flash=flash, canvas_only=True, fit_to_data_extent=True))
+        if dpi is not None:
+            scale *= dpi / (96 * self._qt_viewer.canvas.native.devicePixelRatioF())
+        image = self._screenshot(scale=scale, flash=flash, canvas_only=True, fit_to_data_extent=True)
+        img = QImg2array(image)
         if path is not None:
-            imsave(path, img)
+            if dpi is None:
+                imsave(path, img)
+            else:
+                image.setDotsPerMeterX(round(dpi / 0.0254))
+                image.setDotsPerMeterY(round(dpi / 0.0254))
+                if not image.save(str(path)):
+                    raise OSError(f"Could not save figure to {path}.")
         return img
+
+    def export_vector(self, path: str | Path, *, scale: float = 1, dpi: int | None = None) -> None:
+        """Save the full data extent as SVG or PDF using the current plot layout."""
+        from napari_plot._qt._vector_export import export_vector
+
+        path = Path(path).expanduser()
+        if path.suffix.lower() not in (".svg", ".pdf"):
+            raise ValueError("Vector export requires an .svg or .pdf filename.")
+        if not math.isfinite(scale) or scale <= 0:
+            raise ValueError("Export scale must be finite and positive.")
+        if dpi is not None and (type(dpi) is not int or dpi <= 0):
+            raise ValueError("Export DPI must be a positive integer.")
+        with self._qt_viewer._capture_view(None, scale, fit_to_data_extent=True):
+            export_vector(self._qt_viewer.canvas, path, dpi)
 
     def export_rois(
         self,
         rois: list[np.ndarray],
         paths: str | Path | list[str | Path] | None = None,
         scale: float | None = None,
-    ):
-        """Export the given rectangular rois to specified file paths.
+    ) -> list[np.ndarray]:
+        """Capture each ROI's bounding box from four world-space ``(y, x)`` corners."""
+        from napari.utils.io import imsave
 
-        For each shape, moves the camera to the center of the shape
-        and adjust the canvas size to fit the shape.
-        Note: The shape height and width can be of type float.
-        However, the canvas size only accepts a tuple of integers.
-        This can result in slight misalignment.
-
-        Parameters
-        ----------
-        rois: list[np.ndarray]
-            A list of arrays  with each being of shape (4, 2) representing
-            a rectangular roi.
-        paths: str, Path, list[str, Path], optional
-            Where to save the rois. If a string or a Path, a directory will
-            be created if it does not exist yet and screenshots will be
-            saved with filename `roi_{n}.png` where n is the nth roi. If
-            paths is a list of either string or paths, these need to be the
-            full paths of where to store each individual roi. In this case
-            the length of the list and the number of rois must match.
-            If None, the screenshots will only be returned and not saved
-            to disk.
-        scale: float, optional
-            Scale factor used to increase resolution of canvas for the screenshot.
-            By default, uses the displayed scale.
-
-        Returns
-        -------
-        screenshot_list: list
-            The list with roi screenshots.
-
-        """
-        from napari.utils.geometry import get_center_bbox
-
-        if paths is not None and isinstance(paths, list) and len(paths) != len(rois):
+        if isinstance(paths, list) and len(paths) != len(rois):
             raise ValueError("The number of file paths does not match the number of ROI shapes")
+
+        bounds = []
+        for roi in rois:
+            roi = np.asarray(roi, dtype=float)
+            if roi.shape != (4, 2) or not np.isfinite(roi).all():
+                raise ValueError("Each ROI must contain four finite (y, x) corners.")
+            ymin, xmin = roi.min(axis=0)
+            ymax, xmax = roi.max(axis=0)
+            if ymin == ymax or xmin == xmax:
+                raise ValueError("Each ROI must have nonzero height and width.")
+            bounds.append((xmin, xmax, ymin, ymax))
 
         if isinstance(paths, (str, Path)):
             storage_dir = Path(paths).expanduser()
             storage_dir.mkdir(parents=True, exist_ok=True)
             paths = [storage_dir / f"roi_{n}.png" for n in range(len(rois))]
 
-        if self._qt_viewer.viewer.dims.ndisplay > 2:
-            raise NotImplementedError("'export_rois' is not implemented for 3D view.")
+        screenshots = []
+        for index, rect in enumerate(bounds):
+            image = QImg2array(self._qt_viewer._screenshot(flash=False, scale=1 if scale is None else scale, rect=rect))
+            if paths is not None:
+                imsave(paths[index], image)
+            screenshots.append(image)
+        return screenshots
 
-        screenshot_list = []
-        camera = self._qt_viewer.viewer.camera
-        start_camera_center = camera.center
-        start_camera_zoom = camera.zoom
-        canvas = self._qt_viewer.canvas
-        prev_size = canvas.size
-
-        visible_dims = list(self._qt_viewer.viewer.dims.displayed)
-        step = min(self._qt_viewer.viewer.layers.extent.step[visible_dims])
-
-        for index, roi in enumerate(rois):
-            center_coord, height, width = get_center_bbox(roi)
-            camera.center = center_coord
-            canvas.size = (int(height / step), int(width / step))
-
-            camera.zoom = 1 / step
-            path = paths[index] if paths is not None else None
-            screenshot_list.append(self.screenshot(path=path, canvas_only=True, scale=scale))
-
-        canvas.size = prev_size
-        camera.center = start_camera_center
-        camera.zoom = start_camera_zoom
-
-        return screenshot_list
-
-    def screenshot(self, path=None, size=None, scale=None, flash=True, canvas_only=False):
+    def screenshot(
+        self,
+        path: str | Path | None = None,
+        size: tuple[int, int] | None = None,
+        scale: float | None = None,
+        flash: bool = True,
+        canvas_only: bool = False,
+    ) -> np.ndarray:
         """Take currently displayed viewer and convert to an image array.
 
         Parameters
@@ -1473,7 +1410,7 @@ class Window:
             imsave(path, img)  # scikit-image imsave method
         return img
 
-    def clipboard(self, flash=True):
+    def clipboard(self, flash: bool = True) -> None:
         """Take a screenshot of the currently displayed viewer and copy the image to the clipboard.
 
         Parameters
@@ -1484,7 +1421,7 @@ class Window:
         """
         from qtpy.QtGui import QGuiApplication
 
-        img = self._screenshot(flash)
+        img = self._screenshot(flash=flash)
         cb = QGuiApplication.clipboard()
         cb.setImage(img)
 
@@ -1507,6 +1444,49 @@ class Window:
 
         if dial.exec():
             pass
+
+    def _export_figure_dialog(self) -> None:
+        """Ask where to write the full figure."""
+        filename = hp.get_save_filename(
+            self._qt_window, "Export Figure", file_filter="Figure files (*.png *.svg *.pdf *.tif *.tiff)"
+        )
+        if filename:
+            path = Path(filename)
+            if path.suffix.lower() in (".svg", ".pdf"):
+                self.export_vector(path)
+            else:
+                self.export_figure(path if path.suffix else path.with_suffix(".png"))
+
+    def _export_csv_dialog(self) -> None:
+        """Ask where to write the active layer's data."""
+        from napari.utils.notifications import show_info
+
+        viewer = self._qt_viewer.viewer
+        layer = viewer.layers.selection.active
+        if layer is None:
+            show_info("Select one layer to export its data.")
+            return
+        filename = hp.get_save_filename(
+            self._qt_window, "Export Layer Data", file_filter="CSV files (*.csv)", base_filename=f"{layer.name}.csv"
+        )
+        if filename:
+            path = Path(filename)
+            viewer.export_csv(layer, path if path.suffix else path.with_suffix(".csv"))
+
+    def _save_session_dialog(self) -> None:
+        """Ask where to save the current plot session."""
+        from napari_plot._session import SESSION_SUFFIX
+
+        filename = hp.get_save_filename(self._qt_window, "Save Plot Session", file_filter="Plot sessions (*.napari-plot)")
+        if filename:
+            path = Path(filename)
+            self._qt_viewer.viewer.save_session(path if path.suffix else path.with_suffix(SESSION_SUFFIX))
+
+    def _open_session_dialog(self) -> None:
+        """Choose a session file to load in this viewer."""
+        filename = hp.get_filename(self._qt_window, "Open Plot Session", file_filter="Plot sessions (*.napari-plot)")
+        if filename:
+            self._qt_viewer.viewer.load_session(filename)
 
     def _register_task_status(
         self,

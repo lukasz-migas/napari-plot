@@ -8,6 +8,7 @@ import qtextra.helpers as hp
 from napari._qt.utils import qt_signals_blocked
 
 from napari_plot._qt.layer_controls.qt_layer_controls_base import QtLayerControls
+from napari_plot.layers.areas import AreasOrientation
 
 if TYPE_CHECKING:
     import numpy as np
@@ -16,12 +17,22 @@ if TYPE_CHECKING:
 
 
 class QtAreasControls(QtLayerControls):
-    """Edit areas opacity, blending, and outline width."""
+    """Edit area orientation, fill, and outlines."""
 
     layer: Areas
 
     def __init__(self, layer: Areas) -> None:
         super().__init__(layer)
+        self.orientation_combobox = hp.make_combobox(
+            self, items=[str(orientation) for orientation in AreasOrientation], value=str(layer.orientation)
+        )
+        self.orientation_combobox.currentTextChanged.connect(self._set_orientation)
+        self.fill_color_swatch = hp.make_swatch(
+            self, layer.fill_color[0] if len(layer.data) else "white", func=self._set_fill_color
+        )
+        self.border_color_swatch = hp.make_swatch(
+            self, layer.border_color[0] if len(layer.data) else "dimgray", func=self._set_border_color
+        )
         self.border_width_spinbox = hp.make_double_spin_box(
             self,
             minimum=0,
@@ -31,12 +42,42 @@ class QtAreasControls(QtLayerControls):
             value=layer.border_width,
             func=self._set_border_width,
         )
+        layer.events.orientation.connect(self._on_orientation_change)
+        layer.events.fill_color.connect(self._on_color_change)
+        layer.events.border_color.connect(self._on_color_change)
+        layer.events.data.connect(self._on_color_change)
         layer.events.border_width.connect(self._on_border_width_change)
 
         self.layout().addRow(self.button_grid)
         self.layout().addRow(self.opacity_label, self.opacity_slider)
         self.layout().addRow(hp.make_label(self, "blending"), self.blending_combobox)
+        self.layout().addRow(hp.make_label(self, "orientation"), self.orientation_combobox)
+        self.layout().addRow(hp.make_label(self, "fill color"), self.fill_color_swatch)
+        self.layout().addRow(hp.make_label(self, "border color"), self.border_color_swatch)
         self.layout().addRow(hp.make_label(self, "border width (px)"), self.border_width_spinbox)
+        self._on_color_change()
+
+    def _set_orientation(self, value: str) -> None:
+        self.layer.orientation = value
+
+    def _on_orientation_change(self) -> None:
+        with qt_signals_blocked(self.orientation_combobox):
+            self.orientation_combobox.setCurrentText(str(self.layer.orientation))
+
+    def _set_fill_color(self, value: np.ndarray) -> None:
+        self.layer.fill_color = value
+
+    def _set_border_color(self, value: np.ndarray) -> None:
+        self.layer.border_color = value
+
+    def _on_color_change(self) -> None:
+        self.fill_color_swatch.setEnabled(bool(self.layer.data))
+        self.border_color_swatch.setEnabled(bool(self.layer.data))
+        if self.layer.data:
+            with qt_signals_blocked(self.fill_color_swatch):
+                self.fill_color_swatch.set_color(self.layer.fill_color[0], force=True)
+            with qt_signals_blocked(self.border_color_swatch):
+                self.border_color_swatch.set_color(self.layer.border_color[0], force=True)
 
     def _set_border_width(self, value: float) -> None:
         self.layer.border_width = value

@@ -1,15 +1,22 @@
 """Line layer"""
 
+from __future__ import annotations
+
+from collections.abc import Sequence
+from typing import Any
+
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
+from numpy.typing import ArrayLike
 
+from napari_plot.layers._selection import points_in_polygon
 from napari_plot.layers._thumbnail import LINE
-from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.line._line_constants import Method
 
 
-class Line(BaseLayer):
+class Line(_SelectableLayer):
     """Line layer
 
     Parameters
@@ -23,6 +30,9 @@ class Line(BaseLayer):
         Width of the line in pixel units.
     method : str or Method
         Rendering method. Either `gl` or `agg`.
+    dashes : sequence of float, optional
+        Alternating visible and hidden lengths in multiples of line width.
+        Dashed lines use VisPy's antialiased rendering method.
     name : str
         Name of the layer.
     metadata : dict
@@ -52,12 +62,13 @@ class Line(BaseLayer):
 
     def __init__(
         self,
-        data,
+        data: ArrayLike | None,
         *,
         # napari-plot parameters
-        color=(1.0, 1.0, 1.0, 1.0),
-        width=2,
-        method="gl",
+        color: Any = (1.0, 1.0, 1.0, 1.0),
+        width: float = 2,
+        method: str | Method = "gl",
+        dashes: Sequence[float] | None = None,
         # napari parameters
         axis_labels=None,
         name=None,
@@ -73,7 +84,7 @@ class Line(BaseLayer):
         projection_mode="none",
         units=None,
         visible=True,
-    ):
+    ) -> None:
         # sanitize data
         data = np.empty((0, 2)) if data is None else np.asarray(data)
 
@@ -94,15 +105,16 @@ class Line(BaseLayer):
             units=units,
             visible=visible,
         )
-        self.events.add(color=Event, width=Event, method=Event, highlight=Event)
+        self.events.add(color=Event, width=Event, method=Event, dashes=Event, highlight=Event)
 
         self._data = data
         self._color = transform_color(color)[0]
         self._width = width
-        self._method = Method(method)
+        self._method: Method | str = Method(method)
+        self.dashes = dashes
         self.visible = visible
 
-    def _get_state(self):
+    def _get_state(self) -> dict[str, Any]:
         """Get dictionary of layer state"""
         state = self._get_base_state()
         state.update(
@@ -111,6 +123,7 @@ class Line(BaseLayer):
                 "color": self.color,
                 "width": self.width,
                 "method": self.method,
+                "dashes": self.dashes,
             }
         )
         return state
@@ -129,23 +142,27 @@ class Line(BaseLayer):
         """
         return self.data
 
+    def _selection_mask(self, vertices: np.ndarray) -> np.ndarray:
+        """Select sample indices whose coordinates are inside the polygon."""
+        return points_in_polygon(np.asarray(self.data)[:, ::-1], vertices)
+
     @property
-    def data(self):
+    def data(self) -> np.ndarray:
         """Return data."""
         return self._data
 
     @data.setter
-    def data(self, value: np.ndarray):
+    def data(self, value: np.ndarray) -> None:
         self._data = value
         self._emit_new_data()
 
     @property
-    def x(self):
+    def x(self) -> np.ndarray:
         """Return x-axis array."""
         return self.data[:, 0]
 
     @x.setter
-    def x(self, value):
+    def x(self, value: ArrayLike) -> None:
         value = np.asarray(value)
         if self.data.shape[0] != value.shape[0]:
             raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
@@ -153,12 +170,12 @@ class Line(BaseLayer):
         self._emit_new_data()
 
     @property
-    def y(self):
+    def y(self) -> np.ndarray:
         """Return y-axis array."""
         return self.data[:, 1]
 
     @y.setter
-    def y(self, value):
+    def y(self, value: ArrayLike) -> None:
         value = np.asarray(value)
         if self.data.shape[0] != value.shape[0]:
             raise ValueError("The shape of the `x-axis` array does not match the shape of the `data` array.")
@@ -166,35 +183,48 @@ class Line(BaseLayer):
         self._emit_new_data()
 
     @property
-    def color(self):
+    def color(self) -> np.ndarray:
         """Get color."""
         return self._color
 
     @color.setter
-    def color(self, value):
+    def color(self, value: Any) -> None:
         self._color = transform_color(value)[0]
         self.events.color()
         self._update_thumbnail()
 
     @property
-    def width(self):
+    def width(self) -> float:
         """Get width"""
         return self._width
 
     @width.setter
-    def width(self, value):
+    def width(self, value: float) -> None:
         self._width = value
         self.events.width()
 
     @property
-    def method(self):
+    def method(self) -> Method | str:
         """Get method"""
         return self._method
 
     @method.setter
-    def method(self, value):
+    def method(self, value: Method | str) -> None:
         self._method = value
         self.events.method()
+
+    @property
+    def dashes(self) -> tuple[float, ...] | None:
+        """Return the dash pattern, or None for a solid line."""
+        return self._dashes
+
+    @dashes.setter
+    def dashes(self, value: Sequence[float] | None) -> None:
+        pattern = tuple(map(float, value)) if value is not None else ()
+        if pattern and (len(pattern) % 2 or not np.isfinite(pattern).all() or min(pattern) <= 0):
+            raise ValueError("A dash pattern needs positive, finite pairs of visible and hidden lengths.")
+        self._dashes = pattern or None
+        self.events.dashes()
 
     def _set_view_slice(self):
         self.events.set_data()

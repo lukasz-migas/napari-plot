@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-  "setuptools >= 69",
+  "setuptools >= 77",
   "wheel",
   "setuptools_scm[toml]>=8"
 ]
@@ -10,6 +10,8 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "napari_plot"
 description = "Plugin providing support for 1d plotting in napari"
+license = "BSD-3-Clause"
+license-files = ["LICENSE"]
 authors = [
     { name = "Lukasz Migas", email = "lukas.migas@yahoo.com" },
 ]
@@ -18,7 +20,6 @@ classifiers = [
     "Environment :: X11 Applications :: Qt",
     "Intended Audience :: Education",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: BSD License",
     "Programming Language :: C",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3 :: Only",
@@ -38,25 +39,17 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-  	"napari-plugin-engine>=0.2.0",
 	"numpy",
 	"qtpy",
 	"qtawesome>=1.2.0",
-	"napari==0.10.0",
-	"matplotlib",
+	"napari>=0.10,<0.11",
 	"vispy",
 	"koyo",
     "qtextra",
-    "pandas",
-    "scipy",
-    "seaborn>=0.13.2,<0.14",
 ]
 dynamic = [
   "version"
 ]
-
-[project.license]
-text = "BSD 3-Clause"
 
 [project.readme]
 file = "README.md"
@@ -71,8 +64,14 @@ Documentation = "https://github.com/lukasz-migas/napari-plot#README.md"
 
 
 [project.optional-dependencies]
+stats = [
+    "matplotlib",
+    "pandas",
+    "scipy",
+    "seaborn>=0.13.2,<0.14",
+]
 pyside6 = [
-    "napari[pyside6]==0.10.0",
+    "napari[pyside6]>=0.10,<0.11",
     # 6.12.0 can over-decrement None's refcount on Python 3.11 (none_dealloc).
     # https://github.com/bucknova/Open-SSTV/pull/84
     "pyside6!=6.12.0; python_version < '3.12'",
@@ -83,7 +82,7 @@ pyside = [
     "napari_plot[pyside6]"
 ]
 pyqt6 = [
-    "napari[pyqt6]==0.10.0",
+    "napari[pyqt6]>=0.10,<0.11",
     "pyqt6 >= 6.9.0",
     "pyqt6 != 6.6.1 ; platform_system == 'Darwin'"
 ]
@@ -94,7 +93,7 @@ qt = [
     "napari_plot[pyqt]"
 ]
 all = [
-    "napari_plot[pyqt,optional]",
+    "napari_plot[pyqt,optional,stats]",
     "napari-plugin-manager >=0.1.10, <0.2.0",
 ]
 optional = [
@@ -107,7 +106,7 @@ test = [
     "fsspec>=2023.10.0",
     "hypothesis>=6.8.0",
     "lxml[html_clean]>5",
-    "matplotlib >= 3.6.1",
+    "napari_plot[stats]",
     "numba>=0.57.1",
     "pooch>=1.6.0",
     "coverage>7",
@@ -147,7 +146,7 @@ build = [
     "pyqt6",
 ]
 docs = [
-    "mkdocs",
+    "mkdocs<2",
     "mkdocs-material",
     "mkdocs-minify-plugin",
     "mkdocstrings",
@@ -161,7 +160,7 @@ test = [
     "fsspec>=2023.10.0",
     "hypothesis>=6.8.0",
     "lxml[html_clean]>5",
-    "matplotlib >= 3.6.1",
+    "napari_plot[stats]",
     "numba>=0.57.1",
     "pooch>=1.6.0",
     "coverage>7",
@@ -205,14 +204,12 @@ napari_plot = "napari_plot.__main__:main"
 [tool.setuptools]
 zip-safe = false
 include-package-data = true
-license-files = [
-    "LICENSE",
-]
-
 [tool.setuptools.packages.find]
 namespaces = false
+include = ["napari_plot*"]
 
 [tool.setuptools.package-data]
+"napari_plot" = ["py.typed"]
 "*" = [
     "*.pyi",
 ]
@@ -227,14 +224,12 @@ ignore = [
     ".pre-commit-config.yaml",
     "asv.conf.json",
     "codecov.yml",
-    "Makefile",
     "mypy.ini",
     "tools/minreq.py",
     ".deepsource.toml",
-    "*.pyi",  # added by make typestubs
+    "*.pyi",
     "napari_plot/_version.py",  # added during build by setuptools_scm
     "scripts/*.bat",  # scripts
-    "renovate.json",
     "conftest.py",
     "CHANGELOG.md"
 ]

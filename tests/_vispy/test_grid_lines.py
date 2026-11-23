@@ -158,3 +158,24 @@ def test_grid_handles_view_without_categories(make_napari_plot_viewer: Callable[
     viewer.axis.y_categories = ("outside",)
     node = canvas._overlay_to_visual[viewer.grid_lines][0].node
     assert node._prepare_draw(node) is False
+
+
+def test_minor_grid_can_be_shown_without_minor_tick_marks(make_napari_plot_viewer: Callable[[], Viewer]) -> None:
+    viewer = make_napari_plot_viewer()
+    canvas = viewer.window._qt_viewer.canvas
+    canvas._scene_canvas.central_widget.size = (900, 650)
+    canvas.grid._prepare_draw(canvas.grid)
+    viewer.camera.rect = (0, 10, 0, 10)
+    viewer.grid_lines.visible = True
+    node = canvas._overlay_to_visual[viewer.grid_lines][0].node
+    node._prepare_draw(node)
+    major_count = len(node.pos)
+
+    viewer.axis.x_minor_ticks = viewer.axis.y_minor_ticks = False
+    viewer.grid_lines.minor = True
+    node._prepare_draw(node)
+    assert len(node.pos) > major_count
+    for widget in (canvas.x_axis.node, canvas.y_axis.node):
+        visual = widget.axis
+        assert len(visual.ticker.minor_tick_origins)
+        assert len(visual._ticks.pos) == 2 * len(visual.ticker.major_tick_origins)

@@ -7,7 +7,7 @@ import typing as ty
 import numpy as np
 
 from napari_plot.stats import _common as cm
-from napari_plot.stats._data import CategoricalData, normalize_categorical
+from napari_plot.stats._data import CategoricalData, long_frame, normalize_categorical
 from napari_plot.stats._estimators import aggregate, beeswarm, box_stats, kde, letter_values, strip_jitter
 from napari_plot.stats._palette import categorical_color_fn, desaturate, level_colors, to_rgba
 
@@ -569,6 +569,131 @@ def barplot(
                 width=err_width,
                 cap_size=capsize,
                 name=f"{name} errors",
+                metadata=metadata,
+            )
+        )
+    return cm.finish(viewer, layers, entries, legend)
+
+
+def countplot(
+    viewer: ViewerModel,
+    data: ty.Any = None,
+    *,
+    x: ty.Any = None,
+    y: ty.Any = None,
+    hue: ty.Any = None,
+    stat: str = "count",
+    name: str = "countplot",
+    **kwargs: ty.Any,
+) -> list[Layer]:
+    """Count rows per category, optionally split by hue or normalized over all rows."""
+    if x is not None and y is not None:
+        raise ValueError("Pass either x or y to countplot.")
+    if stat not in {"count", "probability", "proportion", "percent"}:
+        raise ValueError("stat must be 'count', 'probability', 'proportion' or 'percent'.")
+    horizontal = y is not None
+    categories = y if horizontal else x
+    if categories is None:
+        categories, data = data, None
+    frame, labels = long_frame(data, category=categories, hue=hue, dropna=("category", "hue"))
+    factor = (100.0 if stat == "percent" else 1.0) / max(len(frame), 1) if stat != "count" else 1.0
+    frame["value"] = factor
+    layers = barplot(
+        viewer,
+        frame,
+        x="value" if horizontal else "category",
+        y="category" if horizontal else "value",
+        hue="hue" if hue is not None else None,
+        orient="h" if horizontal else "v",
+        estimator="sum",
+        errorbar=None,
+        name=name,
+        **kwargs,
+    )
+    category_label = labels.get("category") or "Category"
+    cm.set_axis_labels(
+        viewer, stat.capitalize() if horizontal else category_label, category_label if horizontal else stat.capitalize()
+    )
+    return layers
+
+
+def pointplot(
+    viewer: ViewerModel,
+    data: ty.Any = None,
+    *,
+    x: ty.Any = None,
+    y: ty.Any = None,
+    hue: ty.Any = None,
+    order: list | None = None,
+    hue_order: list | None = None,
+    orient: str | None = None,
+    palette: ty.Any = None,
+    color: ty.Any = None,
+    estimator: ty.Any = "mean",
+    errorbar: ty.Any = ("ci", 95),
+    n_boot: int = 1000,
+    seed: ty.Any = None,
+    dodge: bool = False,
+    width: float = 0.4,
+    markers: str = "disc",
+    size: float = 7,
+    linewidth: float = 2,
+    capsize: float = 0,
+    legend: bool = True,
+    name: str = "pointplot",
+    group: str | None = None,
+) -> list[Layer]:
+    """Draw category estimates as points joined by lines, with optional error intervals."""
+    cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
+    metadata = cm.group_metadata(group)
+    layers: list[Layer | None] = []
+    for level, cells, _ in cm.iter_cells(cat, width, dodge):
+        if not cells:
+            continue
+        estimates = np.asarray(
+            [(position, *aggregate(values, estimator, errorbar, n_boot, seed)) for _, position, values in cells]
+        )
+        positions, values, lower, upper = estimates.T
+        colors = np.asarray([color_fn(index, level) for index, _, _ in cells])
+        first_color = colors[0]
+        if linewidth > 0 and len(estimates) > 1:
+            layers.append(
+                cm.add_segments(
+                    viewer,
+                    [estimates[:, :2]],
+                    cat.orient,
+                    color=first_color,
+                    width=linewidth,
+                    name=_layer_name(name, level, "line"),
+                    metadata=metadata,
+                )
+            )
+        valid = np.isfinite(lower) & np.isfinite(upper)
+        if valid.any():
+            error_x, error_y = cm.to_xy(positions[valid], values[valid], cat.orient)
+            minus, plus = (values - lower)[valid], (upper - values)[valid]
+            empty = np.full_like(minus, np.nan)
+            offsets = (empty, empty, minus, plus) if cat.orient == "v" else (minus, plus, empty, empty)
+            layers.append(
+                viewer.add_error_bar(
+                    np.column_stack((error_x, error_y, *offsets)),
+                    color=first_color,
+                    width=linewidth or 1,
+                    cap_size=capsize,
+                    name=_layer_name(name, level, "errors"),
+                    metadata=metadata,
+                )
+            )
+        layers.append(
+            cm.add_points(
+                viewer,
+                positions,
+                values,
+                cat.orient,
+                face_color=colors,
+                size=size,
+                symbol=markers,
+                name=_layer_name(name, level, "points"),
                 metadata=metadata,
             )
         )

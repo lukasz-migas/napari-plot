@@ -10,6 +10,7 @@ from napari.layers.base import ActionType
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._selection import segments_intersect_polygon
 from napari_plot.layers._thumbnail import BAR, WHITE
 from napari_plot.layers.base import BaseLayer
 
@@ -320,6 +321,15 @@ class Bar(BaseLayer):
                 (position - half_width, position - half_width, position + half_width, position + half_width)
             )
         return vertices
+
+    def _selection_mask(self, vertices: np.ndarray) -> np.ndarray:
+        """Select bars whose rectangles touch or overlap the polygon."""
+        corners = self._rectangle_vertices()[..., ::-1]
+        edge_hit = segments_intersect_polygon(corners, np.roll(corners, -1, axis=1), vertices).any(axis=1)
+        low = corners.min(axis=1)[:, np.newaxis]
+        high = corners.max(axis=1)[:, np.newaxis]
+        enclosed = np.all((vertices >= low) & (vertices <= high), axis=-1).any(axis=1)
+        return edge_hit | enclosed
 
     def _mesh_data(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """Return flattened vertices, triangle faces, and vertex colors."""

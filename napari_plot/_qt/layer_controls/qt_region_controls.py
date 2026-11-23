@@ -67,7 +67,7 @@ class QtRegionControls(QtLayerControls):
             layer,
             "delete_shape",
             slot=layer.remove_selected,
-            tooltip="Delete selected infinite lines (Backspace)",
+            tooltip="Delete selected regions (Backspace)",
             edit_button=True,
         )
         self.add_button = self._radio_button(
@@ -115,13 +115,6 @@ class QtRegionControls(QtLayerControls):
             "move_back",
             slot=layer.move_to_back,
             tooltip="Move to back",
-            edit_button=True,
-        )
-        self.delete_button = self._action_button(
-            layer,
-            "delete_shape",
-            slot=layer.remove_selected,
-            tooltip="Delete selected infinite lines (Backspace)",
             edit_button=True,
         )
         self.transform_button.hide()

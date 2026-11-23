@@ -14,6 +14,8 @@ from napari_plot.components.dragtool import BOX_ZOOM_TOOLS
 from napari_plot.components.tools import Shape
 
 if ty.TYPE_CHECKING:
+    from collections.abc import Callable
+
     from napari_plot.components.viewer_model import ViewerModel
 
 MIN_ZOOM_PIXELS: int = 2
@@ -33,15 +35,24 @@ class LimitedPanZoomCamera(PanZoomCamera):
     _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
 
-    def __init__(self, viewer: ViewerModel, *args, **kwargs):
+    def __init__(
+        self,
+        viewer: ViewerModel,
+        *args: ty.Any,
+        to_data: Callable[[float, float], tuple[float, float]] | None = None,
+        **kwargs: ty.Any,
+    ) -> None:
         self.viewer = viewer
+        self._to_data = to_data
         super().__init__(*args, **kwargs)
 
     def _to_data_coordinates(self, x: float, y: float) -> tuple[float, float]:
         """Convert displayed camera coordinates to layer data coordinates."""
+        if self._to_data is not None:
+            return self._to_data(x, y)
         return (
-            transform_axis_values(x, self.viewer.axis.x_scale, inverse=True),
-            transform_axis_values(y, self.viewer.axis.y_scale, inverse=True),
+            transform_axis_values(x, self.viewer.axis.x_scale, inverse=True, power=self.viewer.axis.x_power),
+            transform_axis_values(y, self.viewer.axis.y_scale, inverse=True, power=self.viewer.axis.y_power),
         )
 
     @property

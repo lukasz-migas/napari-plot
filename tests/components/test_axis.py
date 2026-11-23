@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from napari_plot.components.axis import Axis, AxisScale, transform_axis_values
+from napari_plot.components.axis import Axis, AxisScale, datetime_axis_values, transform_axis_values
 
 
 def test_axis_scales_default_to_linear() -> None:
@@ -82,6 +82,21 @@ def test_categorical_axis_values_are_not_transformed() -> None:
 def test_log_axis_rejects_non_positive_limits() -> None:
     with pytest.raises(ValueError, match="must be positive"):
         transform_axis_values(0.0, AxisScale.LOG)
+
+
+def test_power_axis_transform_preserves_negative_coordinates() -> None:
+    values = np.array([-4.0, 0.0, 3.0])
+    displayed = transform_axis_values(values, AxisScale.POWER, power=3)
+    np.testing.assert_allclose(displayed, [-64.0, 0.0, 27.0])
+    np.testing.assert_allclose(transform_axis_values(displayed, AxisScale.POWER, inverse=True, power=3), values)
+
+
+def test_datetime_coordinates_can_use_a_nearby_origin() -> None:
+    from datetime import UTC, datetime, timedelta, timezone
+
+    origin = datetime(2026, 11, 23, tzinfo=UTC)
+    timestamps = [origin, datetime(2026, 11, 23, 2, 0, 1, tzinfo=timezone(timedelta(hours=2)))]
+    np.testing.assert_array_equal(datetime_axis_values(timestamps, origin=origin), [0, 1])
 
 
 @pytest.mark.parametrize(

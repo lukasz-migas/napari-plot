@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Generator, Sequence
+from enum import StrEnum
+from typing import Any, ClassVar
 
 import numpy as np
+from napari.layers.base import no_op
+from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
 from napari.settings import get_settings
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
@@ -26,6 +29,37 @@ _NOMINAL_VIEWPORT_SIZE = 400.0
 _POINT_TO_PIXEL = 4.0 / 3.0
 _BASELINE_DESCENT = 0.2
 _MAX_EXTENT_REFINEMENTS = 8
+
+
+class TextMode(StrEnum):
+    """Mouse modes for placing labels on the plot."""
+
+    PAN_ZOOM = "pan_zoom"
+    TRANSFORM = "transform"
+    MOVE = "move"
+
+
+def _move_text(layer: Text, event: Event) -> Generator[None, None, None]:
+    if event.button != 1 or not layer.editable or getattr(event, "plot_selection_tool", False):
+        return
+    start = layer.world_to_data(event.position)
+    index = layer._get_value(start)
+    if index is None:
+        return
+    origin = layer.data[index].copy()
+    event.handled = True
+    yield
+    while event.type in {"mouse_move", "mouse_release"}:
+        if layer.mode != TextMode.MOVE or not layer.editable or index >= len(layer.data):
+            return
+        position = origin + (layer.world_to_data(event.position) - start)[::-1]
+        if np.any(position != layer.data[index]):
+            data = layer.data.copy()
+            data[index] = position
+            layer.data = data
+        if event.type == "mouse_release":
+            return
+        yield
 
 
 def _coerce_data(data: Any) -> np.ndarray:
@@ -185,6 +219,8 @@ def _label_bounds(
 class Text(BaseLayer):
     """Display text labels at xy plot coordinates.
 
+    Set ``mode`` to ``"move"`` to drag individual labels in the canvas.
+
     Parameters
     ----------
     data : array-like, shape (N, 2), optional
@@ -213,6 +249,23 @@ class Text(BaseLayer):
     italic : bool
         Whether to render the layer text in italics.
     """
+
+    _modeclass = TextMode
+    _drag_modes: ClassVar[dict] = {
+        TextMode.PAN_ZOOM: no_op,
+        TextMode.TRANSFORM: transform_with_box,
+        TextMode.MOVE: _move_text,
+    }
+    _move_modes: ClassVar[dict] = {
+        TextMode.PAN_ZOOM: no_op,
+        TextMode.TRANSFORM: highlight_box_handles,
+        TextMode.MOVE: no_op,
+    }
+    _cursor_modes: ClassVar[dict[TextMode, str]] = {
+        TextMode.PAN_ZOOM: "standard",
+        TextMode.TRANSFORM: "standard",
+        TextMode.MOVE: "standard",
+    }
 
     def __init__(
         self,
@@ -278,6 +331,7 @@ class Text(BaseLayer):
             units=units,
             visible=visible,
         )
+        self._data_per_pixel: np.ndarray | None = None
         self.events.add(
             text=Event,
             size=Event,
@@ -570,9 +624,37 @@ class Text(BaseLayer):
     def _set_view_slice(self) -> None:
         self.events.set_data()
 
-    def _get_value(self, position: np.ndarray) -> None:
-        """Return no value because labels do not implement hit testing."""
-        return
+    def _update_draw(self, scale_factor: float, corner_pixels_displayed: Any, shape_threshold: Any) -> None:
+        corners = np.asarray(corner_pixels_displayed, dtype=float)
+        if corners.shape == (2, 2) and len(shape_threshold) == 2:
+            width, height = shape_threshold
+            # Transform screen x and y independently, including layer rotation and scale.
+            origin = self.world_to_data(corners[0])
+            x_step = self.world_to_data([corners[0, 0], corners[1, 1]]) - origin
+            y_step = self.world_to_data([corners[1, 0], corners[0, 1]]) - origin
+            self._data_per_pixel = np.stack((x_step[::-1] / max(width, 1), -y_step[::-1] / max(height, 1)))
+        super()._update_draw(scale_factor, corners, shape_threshold)
+
+    def _get_value(self, position: np.ndarray) -> int | None:
+        """Return the topmost label at the given data-space position."""
+        pixel = self._data_per_pixel
+        if self.mode != TextMode.MOVE or not len(self.data) or pixel is None:
+            return None
+        em_size = self.effective_size * _POINT_TO_PIXEL
+        anchors = self.data + self.offset + self.pixel_offset @ pixel
+        xy = position[::-1]
+        for index in range(len(self.data) - 1, -1, -1):
+            if not self.text[index]:
+                continue
+            corners = _label_bounds(self.text[index], self.alignment, self.vertical_alignment, self.rotation[index])
+            bounds = anchors[index] + em_size * (corners @ pixel)
+            if np.all((xy >= bounds.min(axis=0)) & (xy <= bounds.max(axis=0))):
+                return index
+        return None
+
+    def _on_editable_changed(self) -> None:
+        if not self.editable:
+            self.mode = TextMode.PAN_ZOOM
 
     def _update_thumbnail(self) -> None:
         color = self.color[0] if len(self.color) else self._default_color

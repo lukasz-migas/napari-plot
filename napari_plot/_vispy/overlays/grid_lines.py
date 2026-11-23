@@ -24,12 +24,13 @@ _WHITE = ColorValue("white")
 
 
 class _GridLines(Line):
-    """Draw major grid lines in the plot view's local coordinates."""
+    """Draw grid lines in the plot view's local coordinates."""
 
     def __init__(self) -> None:
         self._last_layout: tuple[tuple[float, float], ...] | None = None
-        self._last_origins: list[np.ndarray | None] = [None, None]
+        self._last_origins: list[tuple[np.ndarray, ...]] = [(), ()]
         self._has_lines = False
+        self.minor = False
         super().__init__(connect="segments", width=0.5)
 
     def _prepare_draw(self, view: LineVisual) -> bool | None:
@@ -45,31 +46,36 @@ class _GridLines(Line):
         # each plot cell (grid mode) has its own axes
         x_axis, y_axis = canvas.view_axes.get(plot, (canvas.x_axis, canvas.y_axis))
         widgets = (x_axis.node, y_axis.node)
-        origins: list[np.ndarray | None] = []
+        origins: list[tuple[np.ndarray, ...]] = []
         for widget in widgets:
             axis = widget.axis
             if axis.pos is None:
-                origins.append(None)
+                origins.append(())
                 continue
             # The grid can draw before its axes and needs their current layout.
             if axis._need_update:
                 if np.array_equal(axis.pos[0], axis.pos[1]):
-                    origins.append(None)
+                    origins.append(())
                     continue
                 axis._update_subvisuals()
-            origins.append(axis.ticker.major_tick_origins)
+            major = axis.ticker.major_tick_origins
+            origins.append((major, axis.ticker.minor_tick_origins) if self.minor else (major,))
 
         layout = (*limits, plot.pos, widgets[0].pos, widgets[1].pos)
-        if layout == self._last_layout and origins[0] is self._last_origins[0] and origins[1] is self._last_origins[1]:
+        same_origins = all(
+            len(current) == len(previous) and all(a is b for a, b in zip(current, previous, strict=True))
+            for current, previous in zip(origins, self._last_origins, strict=True)
+        )
+        if layout == self._last_layout and same_origins:
             return super()._prepare_draw(view) if self._has_lines else False
         self._last_layout = layout
         self._last_origins = origins
 
         segments = []
         for dimension, (widget, tick_origins) in enumerate(zip(widgets, origins, strict=True)):
-            if tick_origins is None or not len(tick_origins):
+            if not tick_origins:
                 continue
-            ticks = widget.node_transform(plot).map(tick_origins)[:, dimension]
+            ticks = widget.node_transform(plot).map(np.concatenate(tick_origins))[:, dimension]
             low, high = limits[dimension]
             ticks = ticks[(ticks >= low) & (ticks <= high)]
             if not len(ticks):
@@ -106,6 +112,7 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         super().__init__(node=_GridLines(), viewer=viewer, overlay=overlay, font_info=font_info, parent=parent)
 
         self.overlay.events.color.connect(self._on_color_change)
+        self.overlay.events.minor.connect(self._on_minor_change)
         self._scene_canvas: NapariSceneCanvas | None = self.node.canvas
         if self._scene_canvas is None:
             self.viewer.canvas.events.background_color.connect(self._on_color_change)
@@ -113,6 +120,11 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
             self._scene_canvas.events.background_color.connect(self._on_color_change)
         self.reset()
         self._on_color_change()
+        self._on_minor_change()
+
+    def _on_minor_change(self, _event: Event | None = None) -> None:
+        self.node.minor = self.overlay.minor
+        self.node.update()
 
     def _on_color_change(self, _event: VispyEvent | None = None) -> None:
         color = self.overlay.color
@@ -133,6 +145,7 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
     def close(self) -> None:
         """Disconnect the color override and close the visual."""
         self.overlay.events.color.disconnect(self._on_color_change)
+        self.overlay.events.minor.disconnect(self._on_minor_change)
         if self._scene_canvas is not None:
             self._scene_canvas.events.background_color.disconnect(self._on_color_change)
         super().close()

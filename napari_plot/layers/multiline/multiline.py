@@ -9,14 +9,15 @@ from napari.layers.utils.color_transformations import (
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
 
+from napari_plot.layers._selection import points_in_polygon, segments_intersect_polygon
 from napari_plot.layers._thumbnail import MULTILINE
-from napari_plot.layers.base import BaseLayer
+from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.multiline._multiline_constants import Method
 from napari_plot.layers.multiline._multiline_list import MultiLineList
 from napari_plot.layers.multiline._multiline_utils import parse_multiline_data
 
 
-class MultiLine(BaseLayer):
+class MultiLine(_SelectableLayer):
     """MultiLine layer
 
     Parameters
@@ -102,6 +103,7 @@ class MultiLine(BaseLayer):
             visible=visible,
         )
         self.events.add(color=Event, width=Event, method=Event, highlight=Event, stream=Event)
+        self.events.stream.connect(self._prune_selected_data)
 
         self._data_view = MultiLineList()
 
@@ -256,6 +258,24 @@ class MultiLine(BaseLayer):
     def data(self):
         """Return data"""
         return self._data_view.data
+
+    @property
+    def _selection_size(self) -> int:
+        return self._data_view.n_lines
+
+    def _selection_mask(self, vertices: np.ndarray) -> np.ndarray:
+        """Select each line with a sample or segment in the polygon."""
+        selected = np.zeros(self._selection_size, dtype=bool)
+        xs = self._data_view.xs
+        if len(xs) == 1:
+            xs = xs * self._selection_size
+        for index, (x, y) in enumerate(zip(xs, self._data_view.ys, strict=True)):
+            points = np.column_stack((y, x))
+            selected[index] = (
+                points_in_polygon(points, vertices).any()
+                or segments_intersect_polygon(points[:-1], points[1:], vertices).any()
+            )
+        return selected
 
     @data.setter
     def data(self, value):

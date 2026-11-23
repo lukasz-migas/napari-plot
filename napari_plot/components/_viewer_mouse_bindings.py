@@ -28,6 +28,7 @@ def polygon_select(viewer: "Viewer", event):
         4. Right mouse click cancels polygon
     """
     # on press
+    cell = getattr(event, "viewbox", None)
     viewer.drag_tool.tool.finished = False
     if event.button == 1:  # left-click
         if "Control" in event.modifiers:
@@ -49,6 +50,7 @@ def polygon_select(viewer: "Viewer", event):
     # on release
     viewer.drag_tool.tool.finished = True
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    viewer._select_data(viewer.drag_tool.vertices, cell=cell)
     # viewer.drag_tool.tool.visible = False
 
 
@@ -64,6 +66,7 @@ def lasso_select(viewer: "Viewer", event):
         3. Right mouse click cancels lasso.
     """
     # on press
+    cell = getattr(event, "viewbox", None)
     viewer.drag_tool.tool.finished = False
     if event.button == 1:  # left-click
         viewer.drag_tool.tool.add_point(event.position)
@@ -85,12 +88,14 @@ def lasso_select(viewer: "Viewer", event):
     # on release
     viewer.drag_tool.tool.finished = True
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
+    viewer._select_data(viewer.drag_tool.vertices, cell=cell)
     # viewer.drag_tool.tool.visible = False
 
 
 def box_select(viewer: "Viewer", event):
-    """Enable box zoom."""
+    """Select data with the drag box."""
     # on press
+    cell = getattr(event, "viewbox", None)
     if event.button == 1:  # left-click
         viewer.drag_tool.tool.finished = False
         viewer.drag_tool.tool.visible = True
@@ -109,6 +114,7 @@ def box_select(viewer: "Viewer", event):
     viewer.drag_tool.tool.color = color
     viewer.drag_tool.vertices = viewer.drag_tool.tool.data
     viewer.drag_tool.tool.finished = True
+    viewer._select_data(viewer.drag_tool.vertices, cell=cell)
     # viewer.drag_tool.tool.position = (0, 0, 0, 0)
     # viewer.drag_tool.tool.visible = False
 
@@ -188,7 +194,7 @@ def box_zoom_auto(viewer: "Viewer", event):
 
     # on press
     press_pos = np.asarray(event.pos)
-    view_rect = viewer.camera.rect
+    view_rect = getattr(event, "plot_rect", viewer.camera.rect)
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.shape = _get_shape()
     yield
@@ -215,7 +221,7 @@ def box_zoom_auto_trigger(viewer: "Viewer", event):
 
     # on press
     press_pos = np.asarray(event.pos)
-    view_rect = viewer.camera.rect
+    view_rect = getattr(event, "plot_rect", viewer.camera.rect)
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.visible = True
     viewer.drag_tool.tool.shape = Shape.BOX
@@ -241,7 +247,7 @@ def box_zoom_auto_trigger(viewer: "Viewer", event):
 def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     """Enable box zoom."""
     # on press
-    view_rect = viewer.camera.rect
+    view_rect = getattr(event, "plot_rect", viewer.camera.rect)
     color = viewer.drag_tool.tool.color
     viewer.drag_tool.tool.visible = True
     viewer.drag_tool.tool.shape = shape

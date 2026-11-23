@@ -18,6 +18,7 @@ if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
 DEFAULT_MARKERS = ("disc", "x", "square", "triangle_up", "diamond", "cross", "star", "triangle_down", "ring", "clobber")
+DEFAULT_DASHES = (None, (4, 2), (1, 2), (5, 2, 1, 2), (2, 2, 1, 2))
 
 
 def _is_numeric(series: pd.Series) -> bool:
@@ -99,6 +100,7 @@ def scatterplot(
     opacity: float = 1.0,
     legend: bool = True,
     name: str = "scatterplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw a scatter plot whose color, size and marker can encode extra variables.
 
@@ -130,6 +132,8 @@ def scatterplot(
         Show a legend for hue and style levels.
     name : str
         Layer name.
+    group : str, optional
+        Layer group ID used to place related layers in the same plot cell.
 
     Returns
     -------
@@ -140,10 +144,11 @@ def scatterplot(
     if "x" not in frame or "y" not in frame:
         raise ValueError("scatterplot needs both x and y.")
     entries: list[dict] = []
-    face = np.broadcast_to(to_rgba(color) if color is not None else level_colors([0], palette)[0], (len(frame), 4))
     if "hue" in frame:
         face, hue_entries = _map_hue(frame["hue"], hue_order, palette, color, hue_norm)
         entries += hue_entries
+    else:
+        face = np.broadcast_to(to_rgba(color) if color is not None else level_colors([0], palette)[0], (len(frame), 4))
     sizes_px = _map_size(frame["size"], size_order, sizes) if "size" in frame else marker_size
     symbols: ty.Any = "disc"
     if "style" in frame:
@@ -160,6 +165,7 @@ def scatterplot(
         border_color=linecolor,
         opacity=opacity,
         name=name,
+        **({"metadata": cm.group_metadata(group)} if group is not None else {}),
     )
     cm.set_axis_labels(viewer, labels.get("x"), labels.get("y"))
     return cm.finish(viewer, [layer], entries, legend)
@@ -172,7 +178,14 @@ def lineplot(
     x: ty.Any = None,
     y: ty.Any = None,
     hue: ty.Any = None,
+    size: ty.Any = None,
+    style: ty.Any = None,
     hue_order: list | None = None,
+    size_order: list | None = None,
+    style_order: list | None = None,
+    sizes: tuple[float, float] = (1, 4),
+    dashes: ty.Any = True,
+    markers: ty.Any = None,
     palette: ty.Any = None,
     color: ty.Any = None,
     estimator: ty.Any = "mean",
@@ -195,6 +208,11 @@ def lineplot(
         Viewer to draw on.
     data, x, y, hue, hue_order, palette, color
         As in :func:`scatterplot`; one line per hue level.
+    size, sizes, size_order
+        Map a variable to a line width within the specified width range.
+    style, dashes, markers, style_order
+        Map a variable to dash patterns and optional markers.
+        Pass a mapping of style levels to patterns or symbols for explicit styling.
     estimator : str, callable or None
         Aggregate of ``y`` at each ``x``; None draws the raw observations.
     errorbar : str, (str, float), callable or None
@@ -225,48 +243,86 @@ def lineplot(
 
     if err_style not in {"band", "bars"}:
         raise ValueError("err_style must be 'band' or 'bars'.")
-    frame, labels = long_frame(data, x=x, y=y, hue=hue, dropna=("x", "y"))
+    frame, labels = long_frame(
+        data, x=x, y=y, hue=hue, size=size, style=style, dropna=("x", "y", "hue", "size", "style")
+    )
     if "x" not in frame or "y" not in frame:
         raise ValueError("lineplot needs both x and y.")
     has_hue = "hue" in frame
     levels = list(categorical_order(frame["hue"], hue_order)) if has_hue else [None]
     colors = level_colors(levels, palette, color) if has_hue else {None: level_colors([0], palette, color)[0]}
 
+    style_levels = list(categorical_order(frame["style"], style_order)) if style is not None else [None]
+    if style is not None:
+        frame = frame[frame["style"].isin(style_levels)].copy()
+    if size_order is not None and size is not None:
+        frame = frame[frame["size"].isin(size_order)].copy()
+    if size is not None and not frame.empty:
+        frame["_width"] = _map_size(frame["size"], size_order, sizes)
+    if dashes is None or dashes is False:
+        patterns = dict.fromkeys(style_levels)
+    elif isinstance(dashes, dict):
+        patterns = {level: dashes[level] for level in style_levels}
+    elif dashes is True:
+        patterns = {level: DEFAULT_DASHES[i % len(DEFAULT_DASHES)] for i, level in enumerate(style_levels)}
+    elif style is None:
+        patterns = {None: dashes}
+    else:
+        patterns = dict(zip(style_levels, dashes, strict=True))
+    marker_map: dict[ty.Any, str] = {}
+    if markers is not None and markers is not False:
+        if style is None:
+            marker_map[None] = "disc" if markers is True else markers
+        elif not frame.empty:
+            symbols, _ = _map_style(frame["style"], style_levels, markers)
+            marker_map = dict(zip(frame["style"], symbols, strict=True))
+
     metadata = cm.group_metadata(group)
     lines, line_colors, bands, band_colors = [], [], [], []
+    line_settings: list[tuple[float, ty.Any, str | None]] = []
     error_layers: list[Layer | None] = []
+    split_by = [name for name in ("style", "size") if name in frame]
     for level in levels:
         observations = frame if level is None else frame[frame["hue"] == level]
-        if sort:
-            observations = observations.sort_values("x", kind="stable")
-        if estimator is None:
-            xs, est = observations["x"].to_numpy(dtype=float), observations["y"].to_numpy(dtype=float)
-            low = high = np.full_like(est, np.nan)
-        else:
-            rows = [
-                (value, *aggregate(sub["y"].to_numpy(), estimator, errorbar, n_boot, seed))
-                for value, sub in observations.groupby("x", sort=sort)
-            ]
-            xs, est, low, high = (np.asarray(column, dtype=float) for column in zip(*rows, strict=True))
-        if not len(xs):
-            continue
-        lines.append(np.column_stack((xs, est)))
-        line_colors.append(colors[level])
-        valid = np.isfinite(low) & np.isfinite(high)
-        if err_style == "band" and valid.sum() >= 2:
-            bands.append(np.column_stack((xs[valid], low[valid], high[valid])))
-            band_colors.append(colors[level])
-        elif err_style == "bars" and valid.any():
-            nan = np.full(valid.sum(), np.nan)
-            error_layers.append(
-                viewer.add_error_bar(
-                    np.column_stack((xs[valid], est[valid], nan, nan, (est - low)[valid], (high - est)[valid])),
-                    color=colors[level],
-                    width=1.5,
-                    name=name if level is None else f"{name} [{level}] errors",
-                    metadata=metadata,
+        subsets = (
+            (sub for _, sub in observations.groupby(split_by, sort=False, observed=True))
+            if split_by
+            else (observations,)
+        )
+        for subset in subsets:
+            if subset.empty:
+                continue
+            if sort:
+                subset = subset.sort_values("x", kind="stable")
+            if estimator is None:
+                xs, est = subset["x"].to_numpy(dtype=float), subset["y"].to_numpy(dtype=float)
+                low = high = np.full_like(est, np.nan)
+            else:
+                rows = [
+                    (value, *aggregate(sub["y"].to_numpy(), estimator, errorbar, n_boot, seed))
+                    for value, sub in subset.groupby("x", sort=sort, observed=True)
+                ]
+                xs, est, low, high = np.asarray(rows, dtype=float).T
+            style_level = None if style is None else subset["style"].iloc[0]
+            width = linewidth if size is None else float(subset["_width"].iloc[0])
+            lines.append(np.column_stack((xs, est)))
+            line_colors.append(colors[level])
+            line_settings.append((width, patterns[style_level], marker_map.get(style_level)))
+            valid = np.isfinite(low) & np.isfinite(high)
+            if err_style == "band" and valid.sum() >= 2:
+                bands.append(np.column_stack((xs[valid], low[valid], high[valid])))
+                band_colors.append(colors[level])
+            elif err_style == "bars" and valid.any():
+                nan = np.full(valid.sum(), np.nan)
+                error_layers.append(
+                    viewer.add_error_bar(
+                        np.column_stack((xs[valid], est[valid], nan, nan, (est - low)[valid], (high - est)[valid])),
+                        color=colors[level],
+                        width=1.5,
+                        name=name if level is None else f"{name} [{level}] errors",
+                        metadata=metadata,
+                    )
                 )
-            )
 
     layers: list[Layer | None] = []
     if bands:
@@ -281,12 +337,97 @@ def lineplot(
             )
         )
     layers += error_layers
-    layers.append(
-        cm.add_segments(viewer, lines, "v", color=line_colors, width=linewidth, name=f"{name} lines", metadata=metadata)
-    )
+    if all(width == linewidth and not dash and symbol is None for width, dash, symbol in line_settings):
+        layers.append(
+            cm.add_segments(
+                viewer, lines, "v", color=line_colors, width=linewidth, name=f"{name} lines", metadata=metadata
+            )
+        )
+    else:
+        for index, (points, rgba, (width, dash, symbol)) in enumerate(
+            zip(lines, line_colors, line_settings, strict=True)
+        ):
+            layers.append(
+                viewer.add_line(
+                    points, color=rgba, width=width, dashes=dash, name=f"{name} line {index + 1}", metadata=metadata
+                )
+            )
+            if symbol is not None:
+                layers.append(
+                    cm.add_points(
+                        viewer,
+                        points[:, 0],
+                        points[:, 1],
+                        "v",
+                        face_color=rgba,
+                        size=max(4.0, 3 * width),
+                        symbol=symbol,
+                        name=f"{name} markers {index + 1}",
+                        metadata=metadata,
+                    )
+                )
     cm.set_axis_labels(viewer, labels.get("x"), labels.get("y"))
     entries = cm.legend_entries(colors, marker="hbar") if has_hue else []
+    if style is not None and style is not hue and not (isinstance(style, str) and style == labels.get("hue")):
+        entries += [
+            {"label": str(level), "marker": marker_map.get(level, "hbar"), "color": "gray"} for level in style_levels
+        ]
     return cm.finish(viewer, layers, entries, legend)
+
+
+def regplot(
+    viewer: ViewerModel,
+    data: ty.Any = None,
+    *,
+    x: ty.Any = None,
+    y: ty.Any = None,
+    order: int = 1,
+    ci: float | None = 95,
+    n_boot: int = 1000,
+    seed: ty.Any = None,
+    logx: bool = False,
+    scatter: bool = True,
+    fit_reg: bool = True,
+    color: ty.Any = None,
+    scatter_kws: dict[str, ty.Any] | None = None,
+    line_kws: dict[str, ty.Any] | None = None,
+    name: str = "regplot",
+    group: str | None = None,
+) -> list[Layer]:
+    """Plot observations and a linear, polynomial, or logarithmic regression with a bootstrap band."""
+    from napari_plot.stats._seaborn import RegressionPlotter
+
+    frame, labels = long_frame(data, x=x, y=y, dropna=("x", "y"))
+    if not {"x", "y"} <= set(frame):
+        raise ValueError("regplot needs both x and y.")
+    if order < 1 or (ci is not None and not 0 <= ci <= 100) or n_boot < 1:
+        raise ValueError("Expect a positive order and n_boot, and a confidence level from 0 to 100.")
+    points = frame[["x", "y"]].to_numpy(dtype=float)
+    points = points[np.isfinite(points).all(axis=1)]
+    xs, ys = points.T
+    if logx and (xs <= 0).any():
+        raise ValueError("Logarithmic regression requires positive x values.")
+    rgba = level_colors([0], None, color)[0]
+    layer_style = {"metadata": cm.group_metadata(group)}
+    layers: list[Layer] = []
+    if fit_reg and len(np.unique(xs)) > order:
+        plotter = RegressionPlotter(xs, ys, order=order, ci=ci, n_boot=n_boot, seed=seed, logx=logx, truncate=True)
+        grid, prediction, interval = plotter.fit_regression()
+        if interval is not None:
+            layers.append(
+                viewer.fill_between(grid, *interval, fill_color=rgba, name=f"{name} confidence", **layer_style)
+            )
+        layers.append(
+            viewer.plot(grid, prediction, **({"color": rgba, "name": f"{name} fit"} | layer_style | (line_kws or {})))
+        )
+    if scatter and len(points):
+        layers.append(
+            viewer.scatter(
+                xs, ys, **({"face_color": rgba, "name": f"{name} points"} | layer_style | (scatter_kws or {}))
+            )
+        )
+    cm.set_axis_labels(viewer, labels.get("x"), labels.get("y"))
+    return cm.finish(viewer, layers)
 
 
 def relplot(
@@ -314,6 +455,6 @@ def relplot(
         return scatterplot(viewer, data, x=x, y=y, hue=hue, size=size, style=style, **kwargs)
     if kind == "line":
         if size is not None or style is not None:
-            raise ValueError("size and style are only supported for kind='scatter'.")
+            raise ValueError("size and style are only supported for kind='scatter'. Use lineplot for styled lines.")
         return lineplot(viewer, data, x=x, y=y, hue=hue, **kwargs)
     raise ValueError("kind must be 'scatter' or 'line'.")

@@ -164,3 +164,34 @@ class BaseLayer(LayerMixin, Layer):
 
     def _get_layer_slicing_state(self, data: LayerDataType, cache: bool) -> _BaseLayerSlicingState:
         return _BaseLayerSlicingState(layer=self, data=data, cache=cache)
+
+
+class _SelectableLayer(BaseLayer):
+    """A layer with one index per selectable item."""
+
+    def __init__(self, data: ty.Any, **kwargs: ty.Any) -> None:
+        self._selected_data: set[int] = set()
+        super().__init__(data, **kwargs)
+        self.events.data.connect(self._prune_selected_data)
+
+    @property
+    def selected_data(self) -> set[int]:
+        """Indices of the selected items in this layer."""
+        return self._selected_data
+
+    @selected_data.setter
+    def selected_data(self, value: ty.Iterable[int]) -> None:
+        selected = {int(index) for index in value}
+        if any(index < 0 or index >= self._selection_size for index in selected):
+            raise IndexError("Selected index is outside the layer data.")
+        if selected != self._selected_data:
+            self._selected_data = selected
+            self.events.highlight()
+
+    @property
+    def _selection_size(self) -> int:
+        return len(self.data)
+
+    def _prune_selected_data(self, _event: ty.Any = None) -> None:
+        if self.selected_data:
+            self.selected_data = {index for index in self.selected_data if index < self._selection_size}

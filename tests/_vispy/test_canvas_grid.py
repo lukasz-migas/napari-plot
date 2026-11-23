@@ -89,6 +89,35 @@ def test_grid_cameras_stay_synchronized(plot, qtbot) -> None:
     assert viewer.camera.rect == pytest.approx((1.0, 4.0, 0.0, 2.0))
 
 
+def test_cell_axis_overrides_apply_to_ticks_interactions_and_reset(plot, qtbot) -> None:
+    viewer, canvas = plot
+    grid = viewer.canvas.grid
+    grid.sharex = False
+    grid.enabled = True
+    first, second, *_ = canvas._cells
+    settings = grid.cell(*second.position)
+    settings.x_label = "Second x"
+    settings.x_scale = "log"
+    settings.xlim = (100, 1)
+    _settle(qtbot, canvas)
+
+    assert second.x_axis.node.axis.axis_label == "Second x"
+    assert second.x_axis.node.axis.scale_type == "logarithmic"
+    assert second.camera.camera.flip[0]
+    assert second.camera.rect[:2] == pytest.approx((1, 100))
+    assert first.camera.rect[:2] != pytest.approx((1, 100))
+    assert canvas._map_canvas2world(_widget_center(canvas, second.view))[1] == pytest.approx(10, rel=1e-3)
+
+    second.camera.rect = (2, 20, 0, 2)
+    assert first.camera.rect[2:] == pytest.approx((0, 2))
+    _double_click(canvas, _widget_center(canvas, second.x_axis.node))
+    assert second.camera.rect[:2] == pytest.approx((1, 100))
+
+    grid.enabled = False
+    assert canvas.x_axis.node.axis.scale_type == "linear"
+    assert not canvas.camera.camera.flip[0]
+
+
 def test_grid_mouse_maps_through_the_cell_under_cursor(plot, qtbot) -> None:
     """Canvas positions map to world coordinates through the cell they fall in."""
     viewer, canvas = plot

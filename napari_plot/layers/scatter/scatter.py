@@ -3,22 +3,38 @@
 from __future__ import annotations
 
 import typing as ty
+from collections.abc import Generator
 
 import numpy as np
 from napari.layers import Points
-from napari.layers.base import Layer, no_op
-from napari.layers.base._base_constants import Mode
-from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
+from napari.layers.points._points_constants import Mode
+from napari.layers.points._points_mouse_bindings import add, select
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument
+from numpy.typing import ArrayLike
 
+from napari_plot.layers._selection import points_in_polygon
 from napari_plot.layers._thumbnail import SCATTER, WHITE
 from napari_plot.layers.base import LayerMixin
 
 
+def _edit_points(
+    callback: ty.Callable[[Scatter, Event], Generator[None, None, None]],
+) -> ty.Callable[[Scatter, Event], Generator[None, None, None]]:
+    def edit(layer: Scatter, event: Event) -> Generator[None, None, None]:
+        if event.button == 1 and not getattr(event, "plot_selection_tool", False):
+            event.handled = True
+            yield from callback(layer, event)
+
+    return edit
+
+
 class Scatter(Points, LayerMixin):
     """Scatter layer based on napari Points layer.
+
+    Set ``mode`` to ``"add"`` to add points by clicking, or to ``"select"``
+    to select and drag points. Use ``remove_selected`` to delete them.
 
     Parameters
     ----------
@@ -118,19 +134,10 @@ class Scatter(Points, LayerMixin):
         Whether to scale the points with the zoom level.
     """
 
-    _modeclass = Mode
     _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
-        Mode.PAN_ZOOM: no_op,
-        Mode.TRANSFORM: transform_with_box,
-    }
-
-    _move_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
-        Mode.PAN_ZOOM: no_op,
-        Mode.TRANSFORM: highlight_box_handles,
-    }
-    _cursor_modes: ty.ClassVar[dict[Mode, str]] = {
-        Mode.PAN_ZOOM: "standard",
-        Mode.TRANSFORM: "standard",
+        **Points._drag_modes,
+        Mode.ADD: _edit_points(add),
+        Mode.SELECT: _edit_points(select),
     }
 
     _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
@@ -270,11 +277,11 @@ class Scatter(Points, LayerMixin):
             color = border[0] if len(border) else self._border.current_color
         self._set_thumbnail_glyph(SCATTER, WHITE if color is None else color)
 
-    def _mode_setter_helper(self, mode):
-        mode = Layer._mode_setter_helper(self, mode)
-        if mode == self._mode:
-            return mode
-        self._set_highlight()
+    def _mode_setter_helper(self, mode: Mode | str) -> Mode:
+        mode = super()._mode_setter_helper(mode)
+        if mode == Mode.ADD:
+            # Plot pan/zoom mode uses left drag to zoom. Adding points owns that gesture.
+            self.mouse_pan = False
         return mode
 
     @classmethod
@@ -302,12 +309,12 @@ class Scatter(Points, LayerMixin):
             )
 
     @property
-    def scaling(self):
+    def scaling(self) -> bool:
         """Scaling of the markers"""
         return self._scaling
 
     @scaling.setter
-    def scaling(self, value):
+    def scaling(self, value: bool) -> None:
         self._scaling = value
         self.events.scaling()
 
@@ -336,7 +343,7 @@ class Scatter(Points, LayerMixin):
         index = int(np.argmin(distance))
         return int(self._view_indices[index]) if distance[index] <= 1 else None
 
-    def _get_state(self):
+    def _get_state(self) -> dict[str, ty.Any]:
         """Get the serializable layer state."""
         state = super()._get_state()
         state["scaling"] = self.scaling
@@ -348,19 +355,19 @@ class Scatter(Points, LayerMixin):
         return self._data
 
     @data.setter
-    def data(self, data):
+    def data(self, data: ArrayLike | None) -> None:
         data, _ = fix_data_points(data, self.ndim)
         if data.ndim > 2:
             raise ValueError("Scatter layer only supports 2D data.")
         super(Scatter, self.__class__).data.fset(self, data)
 
     @property
-    def x(self):
+    def x(self) -> np.ndarray:
         """Return x-axis array."""
         return self.data[:, 1]
 
     @x.setter
-    def x(self, value):
+    def x(self, value: ArrayLike) -> None:
         value = np.asarray(value)
         if value.ndim > 1:
             raise ValueError("The `x-axis` array must be 1D.")
@@ -370,12 +377,12 @@ class Scatter(Points, LayerMixin):
         self._emit_new_data()
 
     @property
-    def y(self):
+    def y(self) -> np.ndarray:
         """Return y-axis array."""
         return self.data[:, 0]
 
     @y.setter
-    def y(self, value):
+    def y(self, value: ArrayLike) -> None:
         value = np.asarray(value)
         if value.ndim > 1:
             raise ValueError("The `y-axis` array must be 1D.")
@@ -384,13 +391,13 @@ class Scatter(Points, LayerMixin):
         self.data[:, 0] = value
         self._emit_new_data()
 
-    def _get_mask_from_path(self, vertices, as_indices: bool = False) -> np.ndarray:
+    def _get_mask_from_path(self, vertices: np.ndarray, as_indices: bool = False) -> np.ndarray:
         """Return data contained for specified vertices. Only certain layers implement this."""
-        from matplotlib.path import Path
-
-        # swap x and y coordinates of the vertices to match the [y, x] format of the data
-        path = Path(vertices)
-        mask = path.contains_points(self.data)
+        mask = points_in_polygon(self.data, vertices, include_boundary=False)
         if as_indices:
-            return np.nonzero(mask)[0]
+            return np.flatnonzero(mask)
         return mask
+
+    def _selection_mask(self, vertices: np.ndarray) -> np.ndarray:
+        """Select shown points whose centers are inside the polygon."""
+        return self.shown & points_in_polygon(self.data, vertices)

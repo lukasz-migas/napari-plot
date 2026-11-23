@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+from enum import StrEnum
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import numpy as np
-from napari.layers.base import ActionType
+from napari.layers.base import ActionType, no_op
+from napari.layers.base._base_mouse_bindings import highlight_box_handles, transform_with_box
 from napari.layers.points._points_constants import SYMBOL_DICT
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event
@@ -14,7 +16,7 @@ from napari_plot.layers._thumbnail import RECTANGLES
 from napari_plot.layers.base import BaseLayer
 
 if TYPE_CHECKING:
-    from collections.abc import Sequence
+    from collections.abc import Generator, Sequence
 
     from napari.utils.transforms import Affine
     from numpy.typing import ArrayLike
@@ -22,6 +24,63 @@ if TYPE_CHECKING:
 _DEFAULT_COLOR = (1.0, 1.0, 1.0, 1.0)
 _DEFAULT_MARKER_SIZE = 6.0
 _DEFAULT_MARKER_SYMBOL = "disc"
+
+
+class RectangleMode(StrEnum):
+    """Mouse modes for editing rectangle geometry."""
+
+    PAN_ZOOM = "pan_zoom"
+    TRANSFORM = "transform"
+    ADD = "add"
+    EDIT = "edit"
+
+
+def _add_rectangle(layer: Rectangles, event: Event) -> Generator[None, None, None]:
+    if event.button != 1 or not layer.editable or getattr(event, "plot_selection_tool", False):
+        return
+    start = layer.world_to_data(event.position)[::-1]
+    event.handled = True
+    yield
+    while event.type == "mouse_move":
+        yield
+    end = layer.world_to_data(event.position)[::-1]
+    size = abs(end - start)
+    if layer.mode == RectangleMode.ADD and layer.editable and np.all(size > 0):
+        row = np.concatenate(((start + end) / 2, size[::-1]))
+        layer.data = np.vstack((layer.data, row))
+
+
+def _edit_rectangle(layer: Rectangles, event: Event) -> Generator[None, None, None]:
+    if event.button != 1 or not layer.editable or getattr(event, "plot_selection_tool", False):
+        return
+    start = layer.world_to_data(event.position)[::-1]
+    index = layer._get_value(start[::-1])
+    if index is None:
+        return
+    center = layer.centers[index].copy()
+    resize = "Shift" in event.modifiers
+    corner_delta = np.where(start >= center, 1, -1) * layer.data[index, 3:1:-1] / 2
+    fixed_corner = center - corner_delta
+    event.handled = True
+    yield
+    while event.type in {"mouse_move", "mouse_release"}:
+        if layer.mode != RectangleMode.EDIT or not layer.editable or index >= len(layer.data):
+            return
+        delta = layer.world_to_data(event.position)[::-1] - start
+        data = layer.data.copy()
+        if resize:
+            moving_corner = center + corner_delta + delta
+            size = abs(moving_corner - fixed_corner)
+            if np.all(size > 0):
+                data[index, :2] = (moving_corner + fixed_corner) / 2
+                data[index, 2:] = size[::-1]
+        else:
+            data[index, :2] = center + delta
+        if np.any(data[index] != layer.data[index]):
+            layer.data = data
+        if event.type == "mouse_release":
+            return
+        yield
 
 
 def _positive(value: float, name: str) -> float:
@@ -109,7 +168,30 @@ class Rectangles(BaseLayer):
     and `marker_symbol`. Pass one literal string per rectangle as `text`.
     Labels use a shared `text_size` in screen points (None uses the application
     setting), `text_color`, and an [x, y] `text_offset` in data units.
+
+    Set ``mode`` to ``"add"`` to draw a rectangle by dragging. In ``"edit"``
+    mode, drag an existing rectangle to move it, or Shift-drag to resize it.
     """
+
+    _modeclass = RectangleMode
+    _drag_modes: ClassVar[dict] = {
+        RectangleMode.PAN_ZOOM: no_op,
+        RectangleMode.TRANSFORM: transform_with_box,
+        RectangleMode.ADD: _add_rectangle,
+        RectangleMode.EDIT: _edit_rectangle,
+    }
+    _move_modes: ClassVar[dict] = {
+        RectangleMode.PAN_ZOOM: no_op,
+        RectangleMode.TRANSFORM: highlight_box_handles,
+        RectangleMode.ADD: no_op,
+        RectangleMode.EDIT: no_op,
+    }
+    _cursor_modes: ClassVar[dict[RectangleMode, str]] = {
+        RectangleMode.PAN_ZOOM: "standard",
+        RectangleMode.TRANSFORM: "standard",
+        RectangleMode.ADD: "crosshair",
+        RectangleMode.EDIT: "standard",
+    }
 
     def __init__(
         self,
@@ -397,8 +479,17 @@ class Rectangles(BaseLayer):
     def _set_view_slice(self) -> None:
         pass
 
-    def _get_value(self, position: np.ndarray) -> None:
-        return None
+    def _get_value(self, position: np.ndarray) -> int | None:
+        """Return the topmost rectangle containing the data-space position."""
+        if self.mode != RectangleMode.EDIT or not (self.show_rectangles or self.show_markers or self.show_text):
+            return None
+        half_size = self.data[:, 3:1:-1] * 0.5
+        hits = np.flatnonzero(np.all(abs(self.centers - position[::-1]) <= half_size, axis=1))
+        return int(hits[-1]) if hits.size else None
+
+    def _on_editable_changed(self) -> None:
+        if not self.editable:
+            self.mode = RectangleMode.PAN_ZOOM
 
     def _update_thumbnail(self) -> None:
         colors = self.outline_color.reshape(-1, 4)

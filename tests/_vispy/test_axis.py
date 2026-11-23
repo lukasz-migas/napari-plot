@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from types import SimpleNamespace
 
 import numpy as np
@@ -19,6 +20,7 @@ from napari_plot._vispy.components.axis import (
     _tick_labels_overlap,
     rotated_label_growth,
 )
+from napari_plot.components.axis import TickNotation
 
 
 def _make_axis(
@@ -53,6 +55,51 @@ def test_format_ticks_preserves_single_argument_formatters() -> None:
 
     assert labels == ["0.0", "0.5", "1.0"]
     assert calls == [0.0, 0.5, 1.0]
+
+
+def test_power_ticks_are_labeled_in_data_coordinates(monkeypatch) -> None:
+    axis = _make_axis(domain=(9, -4), scale_type="power")
+    monkeypatch.setattr(axis_module, "_get_ticks_talbot", lambda *_args: np.array([-4, 0, 9]))
+
+    fractions, _minor, labels = Ticker(axis)._get_tick_frac_labels()
+
+    np.testing.assert_allclose(fractions, [1, 9 / 13, 0])
+    assert labels == ["-2", "0", "3"]
+
+
+def test_datetime_ticks_use_the_configured_origin(monkeypatch) -> None:
+    axis = _make_axis(domain=(0, 86400), scale_type="datetime")
+    monkeypatch.setattr(axis_module, "_get_ticks_talbot", lambda *_args: np.array([0, 86400]))
+    ticker = Ticker(axis)
+    ticker.datetime_origin = datetime(2026, 11, 23, tzinfo=UTC)
+    assert ticker._get_tick_frac_labels()[2] == ["2026-11-23", "2026-11-24"]
+
+
+def test_offset_ticks_report_the_common_base(monkeypatch) -> None:
+    axis = _make_axis(domain=(1e9, 1e9 + 2))
+    monkeypatch.setattr(axis_module, "_get_ticks_talbot", lambda *_args: np.array([1e9, 1e9 + 1, 1e9 + 2]))
+    ticker = Ticker(axis)
+    ticker.notation = TickNotation.OFFSET
+    ticker.axis_label = "Reading"
+
+    assert ticker._get_tick_frac_labels()[2] == ["0", "1", "2"]
+    assert axis._axis_label == "Reading (+1e+09)"
+
+
+def test_reset_tick_formatter_retains_the_selected_notation(qapp) -> None:
+    from vispy.scene import ViewBox
+
+    from napari_plot._vispy.overlays.axis import VispyXAxisVisual
+    from napari_plot.components.viewer_model import ViewerModel
+
+    viewer = ViewerModel()
+    visual = VispyXAxisVisual(viewer, parent=ViewBox())
+    axis = visual.node.axis
+    viewer.axis.x_tick_notation = "scientific"
+    viewer.axis.x_tick_formatter = lambda _value: "custom"
+    assert axis.ticker._formatter(np.array([0, 1]))(1) == "custom"
+    viewer.axis.x_tick_formatter = None
+    assert axis.ticker._formatter(np.array([0, 1]))(1) == "1.000e+00"
 
 
 def test_format_ticks_passes_spacing_to_opted_in_formatters() -> None:

@@ -59,3 +59,14 @@ def test_infline_controls_creation(qtbot, layer):
     layer.mode = "pan_zoom"
     assert layer._mode == Mode.PAN_ZOOM
     assert qtctrl.panzoom_button.isChecked()
+
+
+def test_infline_line_style_control(qtbot) -> None:
+    """The dash choice updates from the layer and can be set from Qt."""
+    layer = InfLine([1])
+    controls = QtInfLineControls(layer)
+    qtbot.addWidget(controls)
+    controls.line_style_combobox.setCurrentText("dashed")
+    assert str(layer.line_style) == "dashed"
+    layer.line_style = "dotted"
+    assert controls.line_style_combobox.currentText() == "dotted"

@@ -11,8 +11,10 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from napari.components.overlays import LayerNameOverlay
+    from napari.layers import Layer
     from napari.utils.events import Event
     from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
+    from qtpy.QtWidgets import QMenu
 
     from napari_plot.components.viewer_model import ViewerModel
 
@@ -60,11 +62,13 @@ class QtPlotDisplayControls(QObject):
         )
         self.colorbar_btn = toolbar.add_qta_tool(
             "colorbar",
-            tooltip="Show/hide plot colorbar.",
+            tooltip="Show/hide plot colorbar. Right-click for colorbar options.",
             checkable=True,
             check=viewer.colorbar.visible,
             func=self._toggle_colorbar,
+            func_menu=self._show_colorbar_menu,
         )
+        self.colorbar_menu = make_menu(self.colorbar_btn)
         viewer.canvas.grid.events.enabled.connect(self._sync_grid)
         viewer.colorbar.events.visible.connect(self._sync_colorbar)
         viewer.layers.events.inserted.connect(self._refresh_layer_labels)
@@ -112,3 +116,71 @@ class QtPlotDisplayControls(QObject):
 
     def _sync_colorbar(self, _event: Event | None = None) -> None:
         self.colorbar_btn.setChecked(self._viewer.colorbar.visible)
+
+    def _show_colorbar_menu(self, position: QPoint) -> None:
+        self.colorbar_menu.deleteLater()
+        self.colorbar_menu = make_menu(self.colorbar_btn)
+        viewer = self._viewer
+        self._populate_colorbar_menu(self.colorbar_menu, None, list(viewer.layers))
+        if viewer.canvas.grid.enabled:
+            for cell, indices in viewer.canvas.grid.iter_viewboxes(viewer.layers):
+                if indices:
+                    row, col = cell
+                    menu = make_menu(self.colorbar_menu, f"Cell {row + 1}, {col + 1}", menu=self.colorbar_menu)
+                    self._populate_colorbar_menu(menu, cell, [viewer.layers[index] for index in indices])
+        self.colorbar_menu.popup(self.colorbar_btn.mapToGlobal(position))
+
+    def _populate_colorbar_menu(self, menu: QMenu, cell: tuple[int, int] | None, layers: list[Layer]) -> None:
+        viewer = self._viewer
+        current = viewer.colorbar if cell is None else viewer._cell_colorbars.get(cell)
+
+        def update(name: str, value: object) -> None:
+            colorbar = viewer.colorbar if cell is None else viewer.colorbar_for_cell(*cell)
+            setattr(colorbar, name, value)
+
+        make_menu_item(
+            menu,
+            "Visible",
+            menu=menu,
+            checkable=True,
+            checked=bool(current and current.visible),
+            func=lambda checked: update("visible", checked),
+        )
+        make_menu_item(
+            menu,
+            "Right",
+            menu=menu,
+            checkable=True,
+            checked=current is None or current.position == "right",
+            func=lambda: update("position", "right"),
+        )
+        make_menu_item(
+            menu,
+            "Bottom",
+            menu=menu,
+            checkable=True,
+            checked=bool(current and current.position == "bottom"),
+            func=lambda: update("position", "bottom"),
+        )
+        make_menu_item(
+            menu,
+            "Logarithmic scale",
+            menu=menu,
+            checkable=True,
+            checked=bool(current and current.norm == "log"),
+            func=lambda checked: update("norm", "log" if checked else "linear"),
+        )
+        sources = [layer for layer in layers if viewer._colorbar_events(layer)]
+        if sources:
+            source_menu = make_menu(menu, "Follow layer", menu=menu)
+            for layer in sources:
+                make_menu_item(
+                    source_menu,
+                    layer.name,
+                    menu=source_menu,
+                    checkable=True,
+                    checked=viewer._colorbar_sources.get(cell) is layer,
+                    func=lambda _checked=False, source=layer: viewer.set_colorbar_from_layer(
+                        source, current.label if current else "", cell=cell
+                    ),
+                )

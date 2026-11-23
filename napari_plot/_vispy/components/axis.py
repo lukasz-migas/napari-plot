@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import inspect
 import typing as ty
+from datetime import UTC, datetime, timedelta
+from functools import partial
 from itertools import pairwise
 
 import numpy as np
@@ -11,7 +13,13 @@ import vispy.visuals.axis
 from qtpy.QtGui import QFont, QFontMetricsF
 from vispy.visuals.axis import Ticker as _Ticker, _get_ticks_talbot
 
-default_tick_formatter = lambda x: "%g" % x  # noqa
+from napari_plot.components.axis import UNIX_EPOCH, AxisScale, TickNotation, transform_axis_values
+
+
+def default_tick_formatter(value: float) -> str:
+    """Format a number as a compact tick label."""
+    return f"{value:g}"
+
 
 _INITIAL_TICK_DENSITY = 2.0
 _DENSITY_REDUCTION = 0.75
@@ -251,6 +259,27 @@ def _get_categorical_ticks(
     return major, labels
 
 
+def _datetime_tick_formatter(origin: datetime, value: float, *, tick_spacing: float | None = None) -> str:
+    """Choose date and time precision using the distance between labels."""
+    tick_spacing = tick_spacing or 0.0
+    if tick_spacing >= 86_400:
+        format_string = "%Y-%m-%d"
+    elif tick_spacing >= 60:
+        format_string = "%m-%d %H:%M"
+    else:
+        format_string = "%H:%M:%S"
+    try:
+        if origin.tzinfo is None:
+            origin = origin.replace(tzinfo=UTC)
+        timestamp = (origin.astimezone(UTC) + timedelta(seconds=value)).astimezone(origin.tzinfo)
+    except OverflowError:
+        return default_tick_formatter(value)
+    result = timestamp.strftime(format_string)
+    if tick_spacing < 1 and timestamp.microsecond:
+        result += f".{timestamp.microsecond:06d}".rstrip("0")
+    return result
+
+
 class Ticker(_Ticker):
     """Monkey-patched Ticker class"""
 
@@ -261,94 +290,108 @@ class Ticker(_Ticker):
         self.thin_categories = True
         self.label_rotation = 0.0  # degrees, counter-clockwise
         self.major_tick_origins = np.empty((0, 2))
+        self.minor_tick_origins = np.empty((0, 2))
+        self.minor_ticks = True
+        self.notation = TickNotation.DEFAULT
+        self.power = 2.0
+        self.datetime_origin = UNIX_EPOCH
+        self.axis_label: str | None = None
+        self._number_offset = 0.0
 
     def _get_tick_positions(
         self, major_tick_fractions: np.ndarray, minor_tick_fractions: np.ndarray
     ) -> tuple[np.ndarray, np.ndarray, np.ndarray, ty.Sequence[str]]:
         """Save the major tick origins from the layout used to draw the marks."""
+        # Keep minor coordinates for the grid independently of the minor tick marks.
+        tick_fractions = minor_tick_fractions if self.minor_ticks else np.empty(0)
         positions, label_pos, axis_label_pos, anchors = super()._get_tick_positions(
-            major_tick_fractions, minor_tick_fractions
+            major_tick_fractions, tick_fractions
         )
-        self.major_tick_origins = positions[: 2 * len(major_tick_fractions) : 2]
+        end = 2 * len(major_tick_fractions)
+        self.major_tick_origins = positions[:end:2]
+        self.minor_tick_origins = self.axis.pos[0] + minor_tick_fractions[:, None] * self.axis._vec
         return positions, label_pos, axis_label_pos, anchors
 
-    def _get_tick_frac_labels(self):
-        """Get the major ticks, minor ticks, and major labels"""
-        minor_num = 4  # number of minor ticks per major division
-        if self.axis.scale_type == "linear":
-            domain = self.axis.domain
-            if domain[1] < domain[0]:
-                flip = True
-                domain = domain[::-1]
-            else:
-                flip = False
-            offset = domain[0]
-            scale = domain[1] - domain[0]
+    def _formatter(self, domain: np.ndarray) -> ty.Callable[..., str]:
+        """Choose a formatter for the current axis and compute its shared offset."""
+        self._number_offset = 0.0
+        if self.tick_format_func not in (None, default_tick_formatter):
+            return self.tick_format_func
+        if self.axis.scale_type == "datetime":
+            return partial(_datetime_tick_formatter, self.datetime_origin)
+        if self.notation is TickNotation.SCIENTIFIC:
+            return lambda value: f"{value:.3e}"
+        if self.notation is TickNotation.OFFSET and self.axis.scale_type == "linear":
+            span = float(domain[1] - domain[0])
+            if span > 0 and abs(domain[0]) >= 100 * span:
+                unit = 10.0 ** np.ceil(np.log10(span))
+                self._number_offset = float(np.floor(domain[0] / unit) * unit)
+            return lambda value: default_tick_formatter(value - self._number_offset)
+        return default_tick_formatter
 
-            transforms = self.axis.transforms
-            length = self.axis.pos[1] - self.axis.pos[0]  # in logical coords
-            n_inches = np.sqrt(np.sum(length**2)) / transforms.dpi
-
-            major, labels = _get_major_ticks(self.axis, self.tick_format_func, domain, n_inches)
-            majstep = major[1] - major[0]
-            minor = []
-            minstep = majstep / (minor_num + 1)
-            minstart = 0 if self.axis._stop_at_major[0] else -1
-            minstop = -1 if self.axis._stop_at_major[1] else 0
-            for i in range(minstart, len(major) + minstop):
-                maj = major[0] + i * majstep
-                minor.extend(np.linspace(maj + minstep, maj + majstep - minstep, minor_num))
-            major_frac = (major - offset) / scale
-            minor_frac = (np.array(minor) - offset) / scale
-            if flip:
-                major_frac = 1 - major_frac
-                minor_frac = 1 - minor_frac
-            use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
-            major_frac = major_frac[use_mask]
-            labels = [label for index, label in enumerate(labels) if use_mask[index]]
-            minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
-        elif self.axis.scale_type == "logarithmic":
-            domain = np.asarray(self.axis.domain, dtype=float)
-            if domain[1] < domain[0]:
-                flip = True
-                domain = domain[::-1]
-            else:
-                flip = False
-            major, minor, labels = _get_log_ticks(self.axis, self.tick_format_func, domain)
-            scale = domain[1] - domain[0]
-            major_frac = (major - domain[0]) / scale
-            minor_frac = (minor - domain[0]) / scale
-            if flip:
-                major_frac = 1 - major_frac
-                minor_frac = 1 - minor_frac
-            use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
-            major_frac = major_frac[use_mask]
-            labels = [label for index, label in enumerate(labels) if use_mask[index]]
-            minor_frac = minor_frac[(minor_frac > -0.0001) & (minor_frac < 1.0001)]
-        elif self.axis.scale_type == "categorical":
-            domain = np.asarray(self.axis.domain, dtype=float)
-            if domain[1] < domain[0]:
-                flip = True
-                domain = domain[::-1]
-            else:
-                flip = False
+    def _get_tick_frac_labels(self) -> tuple[np.ndarray, np.ndarray, list[str]]:
+        """Return visible major and minor tick positions and the major labels."""
+        displayed_domain = np.asarray(self.axis.domain, dtype=float)
+        flip = displayed_domain[1] < displayed_domain[0]
+        domain = displayed_domain[::-1] if flip else displayed_domain
+        scale_type = self.axis.scale_type
+        formatter = self._formatter(domain)
+        if scale_type == "categorical":
             major, labels = _get_categorical_ticks(
                 self.axis,
                 self.category_labels,
                 domain,
                 thin=self.thin_categories,
             )
-            scale = float(domain[1] - domain[0])
-            major_frac = np.full(len(major), 0.5) if scale == 0 else (major - domain[0]) / scale
-            if flip:
-                major_frac = 1 - major_frac
-            use_mask = (major_frac > -0.0001) & (major_frac < 1.0001)
-            major_frac = major_frac[use_mask]
-            labels = [label for index, label in enumerate(labels) if use_mask[index]]
-            minor_frac = np.asarray([], dtype=float)
-        elif self.axis.scale_type == "power":
-            return NotImplementedError
-        return major_frac, minor_frac, labels
+            minor = np.empty(0)
+        elif scale_type == "logarithmic" and domain[0] != domain[1]:
+            major, minor, labels = _get_log_ticks(self.axis, formatter, domain)
+        elif scale_type == "power" and domain[0] != domain[1]:
+            # Tick spacing is uniform in the transformed coordinates. Labels show the original values.
+            major, minor, labels = self._get_linear_ticks(
+                domain,
+                lambda value: formatter(transform_axis_values(value, AxisScale.POWER, inverse=True, power=self.power)),
+            )
+        elif domain[0] == domain[1]:
+            value = float(domain[0])
+            if scale_type in ("logarithmic", "power"):
+                scale = AxisScale.LOG if scale_type == "logarithmic" else AxisScale.POWER
+                value = transform_axis_values(value, scale, inverse=True, power=self.power)
+            major, minor, labels = domain[:1], np.empty(0), _format_ticks(formatter, np.array([value]), None)
+        else:
+            major, minor, labels = self._get_linear_ticks(domain, formatter)
+
+        if self.axis_label is not None:
+            suffix = f" ({self._number_offset:+g})" if self._number_offset else ""
+            self.axis._axis_label = self.axis_label + suffix
+        span = float(domain[1] - domain[0])
+        if span == 0:
+            use_mask = np.isclose(major, domain[0], rtol=0)
+            visible_labels = [label for label, keep in zip(labels, use_mask, strict=True) if keep]
+            return np.full(int(use_mask.sum()), 0.5), np.empty(0), visible_labels
+        major_frac = (major - domain[0]) / span
+        minor_frac = (minor - domain[0]) / span
+        if flip:
+            major_frac = 1 - major_frac
+            minor_frac = 1 - minor_frac
+        use_mask = _visible_tick_mask(major, domain)
+        return (
+            major_frac[use_mask],
+            minor_frac[_visible_tick_mask(minor, domain)],
+            [label for label, keep in zip(labels, use_mask, strict=True) if keep],
+        )
+
+    def _get_linear_ticks(
+        self, domain: np.ndarray, formatter: ty.Callable[..., str]
+    ) -> tuple[np.ndarray, np.ndarray, list[str]]:
+        """Find major labels and four minor ticks between each major pair."""
+        length = np.linalg.norm(self.axis.pos[1] - self.axis.pos[0])
+        major, labels = _get_major_ticks(self.axis, formatter, domain, length / self.axis.transforms.dpi)
+        step = major[1] - major[0]
+        start = 0 if self.axis._stop_at_major[0] else -1
+        stop = len(major) - int(self.axis._stop_at_major[1])
+        intervals = np.arange(start, stop)[:, None] + np.arange(1, 5) / 5
+        return major, (major[0] + step * intervals).ravel(), labels
 
 
 vispy.visuals.axis.Ticker = Ticker

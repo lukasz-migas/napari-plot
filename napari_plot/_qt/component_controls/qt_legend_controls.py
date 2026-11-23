@@ -51,6 +51,10 @@ class QtLegendControls(QtFramelessPopup):
             (overlay.events.background_color, self._on_background_color_change),
             (overlay.events.border_color, self._on_border_color_change),
             (overlay.events.border_width, self._on_border_width_change),
+            (overlay.events.title, self._on_layout_change),
+            (overlay.events.ncols, self._on_layout_change),
+            (overlay.events.outside, self._on_layout_change),
+            (viewer.events.theme, self._on_color_theme_change),
         )
         for signal, callback in self._overlay_connections:
             signal.connect(callback)
@@ -70,6 +74,9 @@ class QtLegendControls(QtFramelessPopup):
         self.position_combobox = hp.make_combobox(self)
         hp.set_combobox_data(self.position_combobox, POSITION_TRANSLATIONS, overlay.position)
         self.position_combobox.currentIndexChanged.connect(self.on_change_position)
+        self.title_edit = hp.make_line_edit(self, text=overlay.title, func=self._set_title)
+        self.columns_spinbox = hp.make_int_spin_box(self, 1, 100, value=overlay.ncols, func=self._set_columns)
+        self.outside_checkbox = hp.make_checkbox(self, "", value=overlay.outside, func=self._set_outside)
         self.auto_sync_checkbox = hp.make_checkbox(
             self,
             "",
@@ -83,11 +90,12 @@ class QtLegendControls(QtFramelessPopup):
             tooltip="Regenerate entries from the configured source.",
             func=self.viewer.refresh_legend_from_source,
         )
-        self.text_color_swatch = QColorSwatchEdit(self, initial_color=overlay.text_color)
+        text_color, background_color, border_color = overlay.colors_for_theme(self.viewer.theme)
+        self.text_color_swatch = QColorSwatchEdit(self, initial_color=text_color)
         self.text_color_swatch.color_changed.connect(self.on_change_text_color)
-        self.background_color_swatch = QColorSwatchEdit(self, initial_color=overlay.background_color)
+        self.background_color_swatch = QColorSwatchEdit(self, initial_color=background_color)
         self.background_color_swatch.color_changed.connect(self.on_change_background_color)
-        self.border_color_swatch = QColorSwatchEdit(self, initial_color=overlay.border_color)
+        self.border_color_swatch = QColorSwatchEdit(self, initial_color=border_color)
         self.border_color_swatch.color_changed.connect(self.on_change_border_color)
         self.font_size_spinbox = hp.make_double_slider_with_text(
             self,
@@ -135,6 +143,9 @@ class QtLegendControls(QtFramelessPopup):
         layout.addRow(self._make_move_handle("Legend controls"))
         layout.addRow(hp.make_label(self, "Visible"), self.visible_checkbox)
         layout.addRow(hp.make_label(self, "Position"), self.position_combobox)
+        layout.addRow(hp.make_label(self, "Outside plot"), self.outside_checkbox)
+        layout.addRow(hp.make_label(self, "Title"), self.title_edit)
+        layout.addRow(hp.make_label(self, "Columns"), self.columns_spinbox)
         layout.addRow(hp.make_label(self, "Auto sync"), self.auto_sync_checkbox)
         layout.addRow(hp.make_label(self, "Entries"), self.refresh_button)
         layout.addRow(hp.make_label(self, "Text color"), self.text_color_swatch)
@@ -168,6 +179,29 @@ class QtLegendControls(QtFramelessPopup):
         """Update automatic layer synchronization."""
         self.viewer.set_legend_auto_sync(self.auto_sync_checkbox.isChecked())
 
+    def _set_title(self) -> None:
+        self.viewer.legend.title = self.title_edit.text()
+
+    def _set_columns(self, value: int) -> None:
+        self.viewer.legend.ncols = value
+
+    def _set_outside(self) -> None:
+        self.viewer.legend.outside = self.outside_checkbox.isChecked()
+
+    def _on_layout_change(self, _event=None) -> None:
+        legend = self.viewer.legend
+        with qt_signals_blocked(self.title_edit):
+            self.title_edit.setText(legend.title)
+        with qt_signals_blocked(self.columns_spinbox):
+            self.columns_spinbox.setValue(legend.ncols)
+        with qt_signals_blocked(self.outside_checkbox):
+            self.outside_checkbox.setChecked(legend.outside)
+
+    def _on_color_theme_change(self, _event=None) -> None:
+        self._on_text_color_change()
+        self._on_background_color_change()
+        self._on_border_color_change()
+
     def _on_auto_sync_change(self, _event=None) -> None:
         with qt_signals_blocked(self.auto_sync_checkbox):
             self.auto_sync_checkbox.setChecked(self.viewer.legend.sync_with_source)
@@ -178,7 +212,7 @@ class QtLegendControls(QtFramelessPopup):
 
     def _on_text_color_change(self, _event=None) -> None:
         with qt_signals_blocked(self.text_color_swatch):
-            self.text_color_swatch.setColor(self.viewer.legend.text_color)
+            self.text_color_swatch.setColor(self.viewer.legend.colors_for_theme(self.viewer.theme)[0])
 
     def on_change_background_color(self, color: np.ndarray) -> None:
         """Update legend background color."""
@@ -186,7 +220,7 @@ class QtLegendControls(QtFramelessPopup):
 
     def _on_background_color_change(self, _event=None) -> None:
         with qt_signals_blocked(self.background_color_swatch):
-            self.background_color_swatch.setColor(self.viewer.legend.background_color)
+            self.background_color_swatch.setColor(self.viewer.legend.colors_for_theme(self.viewer.theme)[1])
 
     def on_change_border_color(self, color: np.ndarray) -> None:
         """Update legend border color."""
@@ -194,7 +228,7 @@ class QtLegendControls(QtFramelessPopup):
 
     def _on_border_color_change(self, _event=None) -> None:
         with qt_signals_blocked(self.border_color_swatch):
-            self.border_color_swatch.setColor(self.viewer.legend.border_color)
+            self.border_color_swatch.setColor(self.viewer.legend.colors_for_theme(self.viewer.theme)[2])
 
     def on_change_font_size(self) -> None:
         """Update legend font size."""

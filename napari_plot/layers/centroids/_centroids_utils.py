@@ -1,9 +1,10 @@
 """Various utilities."""
 
 import numpy as np
+from numpy.typing import ArrayLike
 
 
-def parse_centroids_data(data: np.ndarray):
+def parse_centroids_data(data: ArrayLike | None) -> np.ndarray:
     """Preprocess centroids data. Ensure that user-specified data matches expected dimensions."""
     if data is None:
         return np.empty((0, 3))

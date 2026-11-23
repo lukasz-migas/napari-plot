@@ -30,9 +30,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@v9.0.0
+        with:
+          python-version: "3.11"
       - run: uvx check-manifest
       - run: uvx ruff check napari_plot tests
       - run: uvx --from npe2 npe2 validate napari_plot/napari.yaml
+      - name: Type check plot models and data I/O
+        run: >
+          uv run --no-dev --extra pyqt6 --with mypy mypy --follow-imports=silent
+          napari_plot/components/axis.py napari_plot/components/colorbar.py
+          napari_plot/layers/band.py napari_plot/layers/line/line.py
+          napari_plot/_vispy/overlays/colorbar.py napari_plot/_data_io.py
 
   build-smoke:
     name: Build and installed-package smoke test

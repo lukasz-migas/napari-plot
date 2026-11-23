@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 from napari.layers.base import ActionType
@@ -50,9 +50,10 @@ def band_triangles(left: np.ndarray, right: np.ndarray) -> np.ndarray:
 
 
 class Band(BaseLayer):
-    """Fill between two curves.
+    """Fill between two curves along a shared axis.
 
-    Data contains (x, y1, y2) rows with strictly monotonic x coordinates.
+    Data contains (x, y1, y2) rows, or (y, x1, x2) rows for horizontal bands.
+    The first column must be strictly monotonic.
     NaN in either bound creates a gap. Curves may cross.
     """
 
@@ -60,6 +61,7 @@ class Band(BaseLayer):
         self,
         data: ArrayLike | None = None,
         *,
+        orientation: Literal["vertical", "horizontal"] = "vertical",
         fill_color: Any = "white",
         axis_labels: Sequence[str] | None = None,
         name: str | None = None,
@@ -77,6 +79,8 @@ class Band(BaseLayer):
         visible: bool = True,
     ) -> None:
         values = _band_data(data)
+        if orientation not in ("vertical", "horizontal"):
+            raise ValueError("Band orientation must be vertical or horizontal.")
         super().__init__(
             values,
             axis_labels=axis_labels,
@@ -96,6 +100,7 @@ class Band(BaseLayer):
         )
         self.events.add(fill_color=Event)
         self._data = values
+        self._orientation = orientation
         self.fill_color = fill_color
         self.events.fill_color.connect(self._update_thumbnail)
 
@@ -123,7 +128,12 @@ class Band(BaseLayer):
         self.events.fill_color()
 
     def _get_state(self) -> dict[str, Any]:
-        return dict(self._get_base_state(), data=self.data, fill_color=self.fill_color)
+        return dict(self._get_base_state(), data=self.data, fill_color=self.fill_color, orientation=self.orientation)
+
+    @property
+    def orientation(self) -> Literal["vertical", "horizontal"]:
+        """Return which coordinate the band uses for its shared grid."""
+        return self._orientation
 
     def _segments(self) -> tuple[np.ndarray, np.ndarray]:
         valid = np.isfinite(self.data[:, 1:]).all(axis=1)
@@ -132,17 +142,26 @@ class Band(BaseLayer):
 
     def _triangles(self) -> np.ndarray:
         """Return the two fill triangles for each connected interval."""
-        return band_triangles(*self._segments())
+        triangles = band_triangles(*self._segments())
+        return triangles[:, :, ::-1] if self.orientation == "horizontal" else triangles
 
     @property
     def _extent_data(self) -> np.ndarray:
         valid = self.data[np.isfinite(self.data[:, 1:]).all(axis=1)]
         if not len(valid):
             return np.full((2, 2), np.nan)
-        return np.array([[valid[:, 1:].min(), valid[:, 0].min()], [valid[:, 1:].max(), valid[:, 0].max()]])
+        extent = np.array([[valid[:, 1:].min(), valid[:, 0].min()], [valid[:, 1:].max(), valid[:, 0].max()]])
+        return extent[:, ::-1] if self.orientation == "horizontal" else extent
 
     def _get_x_region_extent(self, x_min: float, x_max: float) -> tuple[float | None, float | None]:
         left, right = self._segments()
+        if self.orientation == "horizontal":
+            bounds = np.column_stack((left[:, 1:], right[:, 1:]))
+            intersects = (bounds.min(axis=1) <= x_max) & (bounds.max(axis=1) >= x_min)
+            if not intersects.any():
+                return None, None
+            positions = np.column_stack((left[intersects, 0], right[intersects, 0]))
+            return float(positions.min()), float(positions.max())
         lo = np.maximum(np.minimum(left[:, 0], right[:, 0]), x_min)
         hi = np.minimum(np.maximum(left[:, 0], right[:, 0]), x_max)
         intersects = lo <= hi

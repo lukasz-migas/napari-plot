@@ -9,11 +9,18 @@ from napari._vispy.camera import add_mouse_pan_zoom_toggles
 from vispy.geometry import Rect
 
 from napari_plot._vispy.components.camera import LimitedPanZoomCamera
-from napari_plot.components.axis import transform_axis_values
+from napari_plot.components.axis import AxisScale, transform_axis_values
 
 if ty.TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from napari.layers import Layer
+
     from napari_plot.components.camera import Camera
+    from napari_plot.components.canvas import PlotGridCell
     from napari_plot.components.viewer_model import ViewerModel
+
+RectLimits = tuple[float, float, float, float]
 
 
 class VispyCamera:
@@ -37,6 +44,7 @@ class VispyCamera:
     # and a published zoom must not come back to any of them: the zoom setter scales both axes equally, which would
     # undo zooming a single axis.
     _publishing_zoom: ty.ClassVar[set[int]] = set()
+    _cell: PlotGridCell | None = None
 
     def __init__(self, view, camera: Camera, viewer: ViewerModel, follow_model: bool = False):
         self._view = view
@@ -47,9 +55,15 @@ class VispyCamera:
         self._synced_rect: tuple[float, float, float, float] | None = None
         self._applying = False
         self._initializing = follow_model
+        self._layers: Sequence[Layer] | None = None
+        self._shared = (True, True)
+        self._local_extent: RectLimits | None = None
+        self._local_rect: RectLimits | None = None
 
         # Create camera
-        self._view.camera = MouseToggledLimitedPanZoomCamera(viewer=self._viewer, aspect=camera.aspect)
+        self._view.camera = MouseToggledLimitedPanZoomCamera(
+            viewer=self._viewer, aspect=camera.aspect, to_data=self.to_data
+        )
         self._view.camera.viewbox_key_event = viewbox_key_event
 
         # connect events
@@ -110,12 +124,111 @@ class VispyCamera:
         """Transform a camera rectangle between data and display coordinates."""
         values = (rect.left, rect.right, rect.bottom, rect.top) if isinstance(rect, Rect) else tuple(rect)
         xmin, xmax, ymin, ymax = values
+        low = self._transform_position(xmin, ymin, inverse=inverse)
+        high = self._transform_position(xmax, ymax, inverse=inverse)
+        return low[0], high[0], low[1], high[1]
+
+    def axis_scale(self, name: ty.Literal["x", "y"]) -> AxisScale:
+        """Return the selected scale for this view, including a grid cell override."""
+        axis = self._viewer.axis
+        return self._cell.axis_scale(name, axis) if self._cell is not None else getattr(axis, f"{name}_scale")
+
+    def _transform_position(self, x: float, y: float, *, inverse: bool) -> tuple[float, float]:
+        axis = self._viewer.axis
         return (
-            transform_axis_values(xmin, self._viewer.axis.x_scale, inverse=inverse),
-            transform_axis_values(xmax, self._viewer.axis.x_scale, inverse=inverse),
-            transform_axis_values(ymin, self._viewer.axis.y_scale, inverse=inverse),
-            transform_axis_values(ymax, self._viewer.axis.y_scale, inverse=inverse),
+            transform_axis_values(x, self.axis_scale("x"), inverse=inverse, power=axis.x_power),
+            transform_axis_values(y, self.axis_scale("y"), inverse=inverse, power=axis.y_power),
         )
+
+    def to_data(self, x: float, y: float) -> tuple[float, float]:
+        """Convert coordinates from the displayed plane to the data plane."""
+        return self._transform_position(x, y, inverse=True)
+
+    def configure_cell(
+        self,
+        cell: PlotGridCell | None,
+        layers: Sequence[Layer] | None,
+        shared: tuple[bool, bool],
+        *,
+        reset: tuple[bool, bool] = (False, False),
+    ) -> None:
+        """Apply per-cell axis settings and recompute its local data bounds."""
+        previous_extent = self._local_extent
+        previous_rect = self._local_rect
+        previous_shared = self._shared
+        previous_cell = self._cell
+        self._cell, self._layers, self._shared = cell, layers, shared
+        self._local_extent = (
+            self._viewer._get_rect_extent(layers=layers, cell=cell, use_camera_range=False)
+            if layers is not None and not all(shared)
+            else None
+        )
+        self._local_rect = self._local_extent
+        if (
+            self._local_extent is not None
+            and previous_extent is not None
+            and previous_rect is not None
+            and previous_cell is cell
+        ):
+            values = list(self._local_extent)
+            for i in (0, 1):
+                part = slice(i * 2, i * 2 + 2)
+                was_fitted = self._viewer.autoscale and np.allclose(
+                    previous_rect[part], previous_extent[part], rtol=1e-12, atol=1e-10
+                )
+                if not shared[i] and not previous_shared[i] and not reset[i] and not was_fitted:
+                    values[part] = previous_rect[part]
+            self._local_rect = tuple(values)
+        self._on_extent_change(None)
+        self._on_force_rect_change(None)
+        self._update_flip()
+
+    def _update_flip(self) -> None:
+        """Apply axis direction independently of the canonical camera limits."""
+        axis = self._viewer.axis
+        flips = [axis.x_inverted, axis.y_inverted]
+        for index, name in enumerate(("x", "y")):
+            limits = getattr(self._cell, f"{name}lim", None)
+            if not self._shared[index] and limits is not None:
+                flips[index] = limits[0] > limits[1]
+        self.camera.flip = (*flips, False)
+
+    def reset_cell_axis(self, name: ty.Literal["x", "y"]) -> bool:
+        """Restore one independent axis to its fit limits, or return False if it is shared."""
+        index = 0 if name == "x" else 1
+        if self._shared[index] or self._local_extent is None or self._local_rect is None:
+            return False
+        start = index * 2
+        self._local_rect = (
+            *self._local_rect[:start],
+            *self._local_extent[start : start + 2],
+            *self._local_rect[start + 2 :],
+        )
+        self._on_rect_change(None)
+        return True
+
+    def restore_cell_rect(self, rect: RectLimits) -> None:
+        """Restore local grid limits after a temporary viewport change."""
+        if self._local_rect is not None:
+            self._local_rect = rect
+            self._on_rect_change(None)
+
+    def _effective_rect(self, shared_rect: RectLimits, local_rect: RectLimits | None) -> RectLimits:
+        """Combine shared view coordinates and local coordinates for the active grid cell."""
+        xlim, ylim = shared_rect[:2], shared_rect[2:]
+        if local_rect is not None:
+            if not self._shared[0]:
+                xlim = local_rect[:2]
+            if not self._shared[1]:
+                ylim = local_rect[2:]
+        for name, limits in (("x", xlim), ("y", ylim)):
+            if self.axis_scale(name) is AxisScale.LOG:
+                bounds = self._viewer._sanitize_log_extent(*limits, name, scale=AxisScale.LOG, layers=self._layers)
+                if name == "x":
+                    xlim = bounds
+                else:
+                    ylim = bounds
+        return (*xlim, *ylim)
 
     @property
     def rect(self) -> tuple[float, float, float, float]:
@@ -127,10 +240,11 @@ class VispyCamera:
         )
 
     @rect.setter
-    def rect(self, rect: Rect | ty.Iterable[float]):
+    def rect(self, rect: Rect | ty.Iterable[float]) -> None:
         if self.rect == rect:
             return
         self._update_rect(rect)
+        self._sync_to_model()
 
     def _on_sync_rect(self, event: ty.Any) -> None:
         """Sync rect from the Camera object to the Camera model when this camera was changed."""
@@ -141,8 +255,15 @@ class VispyCamera:
     def _sync_to_model(self) -> None:
         """Write the rect of this camera to the Camera model."""
         self._synced_rect = self.rect
+        if self._local_rect is not None:
+            self._local_rect = self._synced_rect
+        xlim, ylim = self._camera.rect[:2], self._camera.rect[2:]
+        if self._shared[0]:
+            xlim = self._synced_rect[:2]
+        if self._shared[1]:
+            ylim = self._synced_rect[2:]
         with self._camera.events.rect.blocker(self._on_rect_change):
-            self._camera.rect = self._synced_rect
+            self._camera.rect = (*xlim, *ylim)
 
     def _update_rect(self, rect: Rect | ty.Iterable[float]) -> None:
         display_rect = self._transform_rect(rect, inverse=False)
@@ -156,7 +277,12 @@ class VispyCamera:
             self._applying = False
         self._synced_rect = self.rect
         # the camera can limit the rect, so the model gets the rect that is shown when it changed
-        if self._synced_rect != previous:
+        # A local logarithmic axis can clip the shared linear range for this cell alone.
+        if (
+            self._synced_rect != previous
+            and not np.allclose(self._synced_rect, rect, rtol=1e-10, atol=1e-10)
+            and all(self.axis_scale(name) is getattr(self._viewer.axis, f"{name}_scale") for name in ("x", "y"))
+        ):
             self._sync_to_model()
 
     @property
@@ -175,9 +301,6 @@ class VispyCamera:
         if self.extent == extent:
             return
         self.camera.extent = self._transform_rect(extent, inverse=False)
-        self.camera.set_default_state()
-        self.camera.reset()
-        self._on_rect_change(None)
 
     def _on_aspect_change(self):
         self.camera.aspect = self._camera.aspect
@@ -194,16 +317,19 @@ class VispyCamera:
         self.zoom = self._camera.zoom
 
     def _on_rect_change(self, event):
-        self.rect = self._camera.rect
+        rect = self._effective_rect(self._camera.rect, self._local_rect)
+        if self.rect != rect:
+            self._update_rect(rect)
 
     def _on_force_rect_change(self, event):
-        self._update_rect(self._camera.rect)
+        self._update_rect(self._effective_rect(self._camera.rect, self._local_rect))
 
     def _on_extent_change(self, event):
-        self.extent = self._camera.get_effective_extent()
+        self.extent = self._effective_rect(self._camera.get_effective_extent(), self._local_extent)
+        self._on_rect_change(None)
 
     def _on_range_change(self, event):
-        self.extent = self._camera.get_effective_extent()
+        self._on_extent_change(None)
         self.camera.reset_view()
 
     def _on_axis_mode_change(self, event):
@@ -216,7 +342,7 @@ class VispyCamera:
 
     def on_draw(self, event):
         """Called whenever the canvas is drawn. Update camera model rect."""
-        if self.rect != self._camera.rect:
+        if self.rect != self._synced_rect:
             self._sync_to_model()
         self._publishing_zoom.add(id(self._camera))
         try:

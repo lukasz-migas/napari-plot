@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import inspect
+from collections.abc import Sequence
 from contextlib import suppress
-from functools import lru_cache
+from functools import cached_property, lru_cache
+from itertools import pairwise
+from pathlib import Path
 from typing import Any, Literal
 
 import numpy as np
@@ -21,7 +24,7 @@ from napari.components.tooltip import Tooltip
 from napari.layers.utils.stack_utils import split_channels
 from napari.utils._register import create_func as create_add_method
 from napari.utils.colormaps import ensure_colormap
-from napari.utils.events import Event, EventedDictNamespace, EventedModel, disconnect_events
+from napari.utils.events import Event, EventedDictNamespace, EventedModel, EventEmitter, disconnect_events
 from napari.utils.interactions import _discard_active_generators
 from napari.utils.key_bindings import KeymapProvider
 from napari.utils.misc import camel_to_snake, is_sequence
@@ -45,9 +48,9 @@ from napari_plot.components._viewer_utils import (
     get_layers_y_region_extent,
     get_range_extent,
 )
-from napari_plot.components.axis import Axis, AxisScale
+from napari_plot.components.axis import Axis, AxisScale, transform_axis_values
 from napari_plot.components.camera import Camera
-from napari_plot.components.canvas import PlotCanvas
+from napari_plot.components.canvas import PlotCanvas, PlotGridCell
 from napari_plot.components.colorbar import ColorBar
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
@@ -90,6 +93,7 @@ LEGEND_LAYER_EVENTS = (
     "fill_color",
     "face_color",
     "border_color",
+    "outline_color",
     "symbol",
     "size",
     "orientation",
@@ -148,6 +152,20 @@ def _create_stats_method(func):
     return _plot
 
 
+class _StatsMethod:
+    """Bind a stats function lazily while preserving its signature and docstring."""
+
+    def __init__(self, name: str) -> None:
+        self._name = name
+
+    @cached_property
+    def _method(self) -> Any:
+        return _create_stats_method(getattr(stats, self._name))
+
+    def __get__(self, instance: ViewerModel | None, owner: type[ViewerModel]) -> Any:
+        return self._method.__get__(instance, owner)
+
+
 def _pad_by_pixels(lower: float, upper: float, pad_px: float, size_px: float) -> tuple[float, float]:
     """Widen ``lower``-``upper`` so ``pad_px`` screen pixels fit on each side when shown across ``size_px`` pixels."""
     span = upper - lower
@@ -173,6 +191,29 @@ def _plot_data(x: Any, y: Any | None = None) -> np.ndarray:
     if x_values.shape != y_values.shape:
         raise ValueError("x and y must have the same shape.")
     return np.column_stack((x_values, y_values))
+
+
+def _plot_color(kwargs: dict[str, Any], target: str) -> None:
+    """Accept `color` on the plotting facade for layers with a named primary color."""
+    if "color" in kwargs:
+        if target in kwargs:
+            raise TypeError(f"Pass only one of color and {target}.")
+        kwargs[target] = kwargs.pop("color")
+
+
+def _band_rows(t: ArrayLike, lower: ArrayLike, upper: ArrayLike) -> np.ndarray:
+    coordinates = np.asarray(t)
+    if coordinates.ndim != 1:
+        raise ValueError("Band coordinates must be one-dimensional.")
+    bounds = []
+    for bound in (lower, upper):
+        values = np.asarray(bound)
+        if values.ndim == 0:
+            values = np.broadcast_to(values, coordinates.shape)
+        if values.shape != coordinates.shape:
+            raise ValueError("Band bounds must be scalars or have the same shape as the coordinates.")
+        bounds.append(values)
+    return np.column_stack((coordinates, *bounds))
 
 
 class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
@@ -202,6 +243,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     # Attributes
     help: str = ""
+    autoscale: bool = True
+    margins: tuple[float, float] = (0.0, 0.0)
     status: str | dict = "Ready"
     tooltip: Tooltip = Field(default_factory=Tooltip, frozen=True)
     theme: str = "dark"
@@ -220,7 +263,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     # is required for default values.
     _layer_slicer: _LayerSlicer = PrivateAttr(default_factory=_LayerSlicer)
     _legend_source_layers: list[n_layers.Layer] = PrivateAttr(default_factory=list)
-    _colorbar_source: n_layers.Layer | None = PrivateAttr(None)
+    _colorbar_sources: dict[tuple[int, int] | None, n_layers.Layer] = PrivateAttr(default_factory=dict)
+    _cell_colorbars: dict[tuple[int, int], ColorBar] = PrivateAttr(default_factory=dict)
     _text_overlay_names: list[str] = PrivateAttr(default_factory=list)
 
     def __init__(self, title="napari_plot"):
@@ -240,12 +284,16 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             layers_change=Event,
             reset_view=Event,
             span=Event,
+            selection=Event,
             clear_canvas=Event,
+            colorbars_change=Event,
         )
         self.events.theme.connect(self.canvas._update_bgcolor_from_viewer)
         self.canvas._update_bgcolor_from_viewer(Event("theme", value=self.theme))
         self.axis.events.x_label.connect(self._on_axis_label_changed)
         self.axis.events.y_label.connect(self._on_axis_label_changed)
+        self.events.margins.connect(self._on_update_extent)
+        self.events.autoscale.connect(self._on_autoscale_changed)
 
         # Connect events
         # dims
@@ -333,14 +381,17 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         *,
         visible: bool = True,
         position: str = "top_right",
-        text_color: LegendColorLike = "white",
+        text_color: LegendColorLike = None,
         font_size: float | None = None,
         marker_size: float = 10.0,
         row_spacing: float = 9.0,
         padding: float = 6.0,
-        background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
-        border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
+        background_color: LegendColorLike = None,
+        border_color: LegendColorLike = None,
         border_width: float = 1.0,
+        title: str = "",
+        ncols: int = 1,
+        outside: bool = False,
     ) -> LegendOverlay:
         """Configure the default canvas legend from explicit entries."""
         overlay = self.legend
@@ -356,6 +407,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         overlay.background_color = background_color
         overlay.border_color = border_color
         overlay.border_width = border_width
+        overlay.title = title
+        overlay.ncols = ncols
+        overlay.outside = outside
         overlay.set_entries(entries)
         self._refresh_legend_source_connections()
         return overlay
@@ -366,14 +420,17 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         sync: bool = True,
         visible: bool = True,
         position: str = "top_right",
-        text_color: LegendColorLike = "white",
+        text_color: LegendColorLike = None,
         font_size: float | None = None,
         marker_size: float = 10.0,
         row_spacing: float = 9.0,
         padding: float = 6.0,
-        background_color: LegendColorLike = (0.0, 0.0, 0.0, 0.65),
-        border_color: LegendColorLike = (1.0, 1.0, 1.0, 0.8),
+        background_color: LegendColorLike = None,
+        border_color: LegendColorLike = None,
         border_width: float = 1.0,
+        title: str = "",
+        ncols: int = 1,
+        outside: bool = False,
     ) -> LegendOverlay:
         """Configure the default legend from visible plot layers."""
         overlay = self.set_legend(
@@ -388,6 +445,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             background_color=background_color,
             border_color=border_color,
             border_width=border_width,
+            title=title,
+            ncols=ncols,
+            outside=outside,
         )
         overlay.sync_with_source = sync
         self._refresh_legend_source_connections()
@@ -534,6 +594,38 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         exclude = exclude.union(EXCLUDE_JSON)
         return super().json(exclude=exclude, **kwargs)
 
+    def save_session(self, path: str | Path) -> None:
+        """Save the current plot settings and layer data to a portable session archive."""
+        from napari_plot._session import save_session
+
+        save_session(self, path)
+
+    def load_session(self, path: str | Path) -> list[n_layers.Layer]:
+        """Replace the current plot with a saved session and return the restored layers."""
+        from napari_plot._session import load_session
+
+        return load_session(self, path)
+
+    def export_csv(self, layer: n_layers.Layer | str, path: str | Path) -> None:
+        """Write the source data of a layer (or named layer) to a CSV file."""
+        from napari_plot._data_io import export_csv
+
+        export_csv(self.layers[layer] if isinstance(layer, str) else layer, path)
+
+    def open(
+        self,
+        path: str | Path | Sequence[str | Path],
+        *,
+        stack: bool | list[list[str]] = False,
+        plugin: str | None = None,
+        layer_type: str | None = None,
+        **kwargs: Any,
+    ) -> list[n_layers.Layer]:
+        """Open saved sessions, two-column CSV plots, or files supported by napari readers."""
+        from napari_plot._data_io import open_paths
+
+        return open_paths(self, path, stack=stack, plugin=plugin, layer_type=layer_type, **kwargs)
+
     def model_dump(self, **kwargs) -> dict:
         """Convert to a dictionary."""
         # Manually exclude the layer list and active layer which cannot be serialized at this point
@@ -553,17 +645,71 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def _on_update_extent(self, _event=None):
         """Update data extent when there has been a change to the list of layers"""
-        was_fitted = self.camera.rect == self.camera._extent
+        fitted = self.camera.rect
+        previous = self.camera.get_effective_extent()
         extent = self._get_rect_extent()
         # Private extent that is always the same as extent of the data. It is essential that whenever extent is set
         # on the camera, the value of `_extent` is also set as it will be used as a value for resetting axis values
         # if e.g. user uses the `camera.x_range` or `camera.set_x_range`.
-        self.camera._extent = extent
+        self.camera._extent = (
+            self._get_rect_extent(use_camera_range=False)
+            if self.camera.x_range is not None or self.camera.y_range is not None
+            else extent
+        )
         # update extent - must be done after `_extent`
         self.camera.extent = extent
-        # Extent invalidation can follow insertion; retain the initial fit.
-        if len(self.layers) == 1 and was_fitted:
+        if self.autoscale and self.layers:
+            xlim = extent[:2] if np.allclose(fitted[:2], previous[:2], rtol=1e-12, atol=1e-10) else fitted[:2]
+            ylim = extent[2:] if np.allclose(fitted[2:], previous[2:], rtol=1e-12, atol=1e-10) else fitted[2:]
+            self.camera.set_rect(*xlim, *ylim)
+
+    def _on_autoscale_changed(self, _event: Event | None = None) -> None:
+        if self.autoscale and self.layers:
             self.reset_view()
+
+    @field_validator("margins")
+    @classmethod
+    def _validate_margins(cls, value: tuple[float, float]) -> tuple[float, float]:
+        if any(not np.isfinite(margin) or margin < 0 for margin in value):
+            raise ValueError("Data margins must be finite, nonnegative fractions.")
+        return value
+
+    @property
+    def xlim(self) -> tuple[float, float]:
+        """Current x limits in data coordinates and display order."""
+        low, high = self.camera.rect[:2]
+        return (high, low) if self.axis.x_inverted else (low, high)
+
+    @xlim.setter
+    def xlim(self, value: tuple[float, float] | None) -> None:
+        self._set_axis_limits("x", value)
+
+    @property
+    def ylim(self) -> tuple[float, float]:
+        """Current y limits in data coordinates and display order."""
+        low, high = self.camera.rect[2:]
+        return (high, low) if self.axis.y_inverted else (low, high)
+
+    @ylim.setter
+    def ylim(self, value: tuple[float, float] | None) -> None:
+        self._set_axis_limits("y", value)
+
+    def _set_axis_limits(self, axis: Literal["x", "y"], value: tuple[float, float] | None) -> None:
+        """Apply one axis's data limits; descending limits invert the displayed axis."""
+        index = 0 if axis == "x" else 2
+        if value is None:
+            limits = self._get_rect_extent()[index : index + 2]
+        else:
+            first, last = map(float, value)
+            if not np.isfinite((first, last)).all() or first == last:
+                raise ValueError("Axis limits must be two distinct finite values.")
+            lower, upper = sorted((first, last))
+            if getattr(self.axis, f"{axis}_scale") is AxisScale.LOG and lower <= 0:
+                raise ValueError("Logarithmic axis limits must be positive.")
+            setattr(self.axis, f"{axis}_inverted", first > last)
+            limits = (lower, upper)
+        rect = self.camera.rect
+        self.camera.rect = (*rect[:index], *limits, *rect[index + 2 :])
 
     def clear_canvas(self):
         """Remove all layers from the canvas"""
@@ -586,8 +732,13 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.axis.y_thin_categories = True
         self.axis.x_scale = "linear"
         self.axis.y_scale = "linear"
+        self.axis.x_inverted = False
+        self.axis.y_inverted = False
+        self.canvas.grid.cells = ()
         self.clear_legend()
         self.clear_colorbar()
+        for cell in self._cell_colorbars:
+            self.clear_colorbar(cell=cell)
         self.remove_text_overlays()
 
     def add_text_overlay(
@@ -620,93 +771,156 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
                 del self._overlays[key]
         self._text_overlay_names.clear()
 
-    def set_colorbar_from_layer(self, layer: n_layers.Layer | str, label: str = "") -> ColorBar:
-        """Show a colorbar that follows the colormap and contrast limits of an image `layer` (or its name)."""
+    def colorbar_for_cell(self, row: int, col: int) -> ColorBar:
+        """Return the independent colorbar settings for the given grid cell."""
+        if row < 0 or col < 0:
+            raise ValueError("Colorbar cell coordinates must be non-negative.")
+        cell = (row, col)
+        if cell not in self._cell_colorbars:
+            self._cell_colorbars[cell] = ColorBar()
+            self.events.colorbars_change()
+        return self._cell_colorbars[cell]
+
+    def set_colorbar_from_layer(
+        self,
+        layer: n_layers.Layer | str,
+        label: str = "",
+        *,
+        cell: tuple[int, int] | None = None,
+        position: Literal["right", "bottom"] | None = None,
+        orientation: Literal["vertical", "horizontal"] | None = None,
+        norm: Literal["linear", "log"] | None = None,
+    ) -> ColorBar:
+        """Show the continuous color scale of an image or scatter layer, optionally in a grid cell."""
         if isinstance(layer, str):
             layer = self.layers[layer]
-        self._disconnect_colorbar_source()
-        self._colorbar_source = layer
-        layer.events.colormap.connect(self._sync_colorbar)
-        layer.events.contrast_limits.connect(self._sync_colorbar)
-        self.colorbar.label = label
+        emitters = self._colorbar_events(layer)
+        if not emitters:
+            raise TypeError("Colorbars require a layer with an intensity or face colormap.")
+        colorbar = self.colorbar if cell is None else self.colorbar_for_cell(*cell)
+        if position is not None:
+            colorbar.position = position
+        if orientation is not None:
+            colorbar.orientation = orientation
+        if norm is not None:
+            colorbar.norm = norm
+        self._disconnect_colorbar_source(cell)
+        if layer not in self._colorbar_sources.values():
+            for emitter in emitters:
+                emitter.connect(self._sync_colorbar)
+        self._colorbar_sources[cell] = layer
+        colorbar.label = label
         self._sync_colorbar()
-        self.colorbar.visible = True
-        return self.colorbar
+        colorbar.visible = True
+        return colorbar
 
-    def clear_colorbar(self) -> None:
-        """Hide the colorbar and stop following its layer."""
-        self._disconnect_colorbar_source()
-        self.colorbar.visible = False
+    def clear_colorbar(self, *, cell: tuple[int, int] | None = None) -> None:
+        """Hide the global or per-cell colorbar and disconnect its source."""
+        self._disconnect_colorbar_source(cell)
+        colorbar = self.colorbar if cell is None else self._cell_colorbars.get(cell)
+        if colorbar is not None:
+            colorbar.visible = False
 
-    def _disconnect_colorbar_source(self) -> None:
-        layer, self._colorbar_source = self._colorbar_source, None
-        if layer is not None:
-            layer.events.colormap.disconnect(self._sync_colorbar)
-            layer.events.contrast_limits.disconnect(self._sync_colorbar)
+    @staticmethod
+    def _colorbar_events(layer: n_layers.Layer) -> tuple[EventEmitter, ...]:
+        if isinstance(layer, n_layers.Points):
+            return layer._face.events.continuous_colormap, layer._face.events.contrast_limits
+        if not hasattr(layer, "contrast_limits") or not hasattr(layer, "colormap"):
+            return ()
+        return tuple(
+            getattr(layer.events, name)
+            for name in ("colormap", "contrast_limits", "gamma")
+            if hasattr(layer.events, name)
+        )
+
+    def _disconnect_colorbar_source(self, cell: tuple[int, int] | None) -> None:
+        layer = self._colorbar_sources.pop(cell, None)
+        if layer is not None and layer not in self._colorbar_sources.values():
+            for emitter in self._colorbar_events(layer):
+                emitter.disconnect(self._sync_colorbar)
 
     def _sync_colorbar(self, _event: Event | None = None) -> None:
         """Copy the colormap and contrast limits of the source layer to the colorbar."""
-        layer = self._colorbar_source
-        if layer is not None:
-            self.colorbar.colormap = layer.colormap
-            self.colorbar.contrast_limits = tuple(float(value) for value in layer.contrast_limits)
+        for cell, layer in self._colorbar_sources.items():
+            colorbar = self.colorbar if cell is None else self._cell_colorbars[cell]
+            if isinstance(layer, n_layers.Points):
+                colorbar.colormap = layer.face_colormap
+                limits = layer.face_contrast_limits or (0.0, 1.0)
+            else:
+                colorbar.colormap = layer.colormap
+                limits = layer.contrast_limits
+            colorbar.contrast_limits = (float(limits[0]), float(limits[1]))
+            colorbar.gamma = getattr(layer, "gamma", 1.0)
 
     @property
     def _sliced_extent_world(self) -> np.ndarray:
-        """Extent of layers in world coordinates after slicing.
-
-        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
-
-        Returns
-        -------
-        sliced_extent_world : array, shape (2, D)
-        """
+        """Return plot layer bounds as two world-coordinate (y, x) pairs."""
         return self.layers.extent.world[:, (0, 1)]
 
     @property
     def _sliced_extent_world_augmented(self) -> np.ndarray:
-        """Extent of layers in world coordinates after slicing.
-
-        D is either 2 or 3 depending on if the displayed data is 2D or 3D.
-
-        Returns
-        -------
-        sliced_extent_world : array, shape (2, D)
-        """
+        """Return plot bounds padded by half a sample step where applicable."""
         # if not layers are present, assume image-like with dimensions of size 512
         if len(self.layers) == 0:
             return np.vstack([np.full(self.dims.ndim, -0.5), np.full(self.dims.ndim, 511.5)])
         return self.layers._extent_world_augmented[:, self.dims.displayed]
 
-    def _get_rect_extent(self) -> tuple[float, ...]:
+    def _get_rect_extent(
+        self,
+        *,
+        layers: Sequence[n_layers.Layer] | None = None,
+        cell: PlotGridCell | None = None,
+        margin: float | tuple[float, float] | None = None,
+        use_camera_range: bool = True,
+    ) -> tuple[float, float, float, float]:
         """Get data extent, including image pixel edges and room for line widths and marker sizes."""
-        extent = self._sliced_extent_world
+        if layers is None:
+            extent = self._sliced_extent_world
+        elif len(layers):
+            extent = self.layers.get_extent(layers).world[:, -2:]
+        else:
+            extent = np.array([[-0.5, -0.5], [0.5, 0.5]])
+        layers = self.layers if layers is None else layers
         ymin, ymax = get_min_max(extent[:, 0])
         xmin, xmax = get_min_max(extent[:, 1])
-        for layer in self.layers:
+        for layer in layers:
             # image pixels are centered on their coordinates, so the rendered image extends half a pixel further
             if layer.visible and isinstance(layer, (n_layers.Image, n_layers.Labels)):
                 augmented = layer._extent_world_augmented[:, -2:]
                 ymin, ymax = min(ymin, augmented[0, 0]), max(ymax, augmented[1, 0])
                 xmin, xmax = min(xmin, augmented[0, 1]), max(xmax, augmented[1, 1])
-        pad_px = self._extent_padding_px()
+        pad_px = self._extent_padding_px(layers)
         height, width = self._canvas_size
-        if self.axis.x_scale is AxisScale.LINEAR:
-            xmin, xmax = _pad_by_pixels(xmin, xmax, pad_px, width)
-        if self.axis.y_scale is AxisScale.LINEAR:
-            ymin, ymax = _pad_by_pixels(ymin, ymax, pad_px, height)
-        if self.camera.y_range is not None:
-            ymin, ymax = self.camera.y_range
-        if self.camera.x_range is not None:
-            xmin, xmax = self.camera.x_range
-        xmin, xmax = self._sanitize_log_extent(xmin, xmax, "x")
-        ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
-        return xmin, xmax, ymin, ymax
+        if margin is None:
+            margin = self.margins
+        if np.isscalar(margin):
+            margin = (margin, margin)
+        rect = []
+        for name, bounds, size, padding in zip(
+            ("x", "y"), ((xmin, xmax), (ymin, ymax)), (width, height), margin, strict=True
+        ):
+            scale = cell.axis_scale(name, self.axis) if cell is not None else getattr(self.axis, f"{name}_scale")
+            lower, upper = bounds
+            if scale in (AxisScale.LINEAR, AxisScale.DATETIME):
+                lower, upper = _pad_by_pixels(lower, upper, pad_px, size)
+            custom_range = getattr(self.camera, f"{name}_range") if use_camera_range else None
+            if cell is not None:
+                custom_range = getattr(cell, f"{name}lim") or custom_range
+            if custom_range is not None:
+                lower, upper = sorted(custom_range)
+            lower, upper = self._sanitize_log_extent(lower, upper, name, scale=scale, layers=layers)
+            if custom_range is None and padding and scale is not AxisScale.CATEGORICAL:
+                power = getattr(self.axis, f"{name}_power")
+                transformed = transform_axis_values(np.asarray([lower, upper]), scale, power=power)
+                pad = (transformed[1] - transformed[0]) * padding
+                lower, upper = transform_axis_values(transformed + (-pad, pad), scale, power=power, inverse=True)
+            rect.extend((float(lower), float(upper)))
+        return rect[0], rect[1], rect[2], rect[3]
 
-    def _extent_padding_px(self) -> float:
+    def _extent_padding_px(self, layers: Sequence[n_layers.Layer]) -> float:
         """Return the screen-pixel padding needed so lines and pixel-sized markers at the data edge are not clipped."""
         pad = 0.0
-        for layer in self.layers:
+        for layer in layers:
             if not layer.visible:
                 continue
             if isinstance(layer, (np_layers.Line, np_layers.MultiLine)):
@@ -721,14 +935,18 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         lower: float,
         upper: float,
         axis: Literal["x", "y"],
+        *,
+        scale: AxisScale | None = None,
+        layers: Sequence[n_layers.Layer] | None = None,
     ) -> tuple[float, float]:
         """Return positive limits for a logarithmic axis."""
-        scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
+        if scale is None:
+            scale = self.axis.x_scale if axis == "x" else self.axis.y_scale
         if scale is not AxisScale.LOG:
             return lower, upper
 
-        positive_min = self._get_positive_axis_min(axis, upper)
-        lower = lower if lower > 0 else positive_min
+        if lower <= 0:
+            lower = self._get_positive_axis_min(axis, upper, layers=layers)
         upper = upper if upper > lower else lower * 10.0
         return lower, upper
 
@@ -736,11 +954,13 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self,
         axis: Literal["x", "y"],
         fallback_max: float,
+        *,
+        layers: Sequence[n_layers.Layer] | None = None,
     ) -> float:
         """Return the smallest positive layer coordinate on an axis."""
         candidates: list[float] = []
         world_axis = 1 if axis == "x" else 0
-        for layer in self.layers:
+        for layer in self.layers if layers is None else layers:
             if not layer.visible:
                 continue
             values = getattr(layer, axis, None)
@@ -825,10 +1045,17 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         ymin, ymax = self._sanitize_log_extent(ymin, ymax, "y")
         self.camera.set_rect(xmin, xmax, ymin, ymax)
 
-    def reset_view(self, _event: Event = None) -> None:
-        """Reset the camera view."""
-        xmin, xmax, ymin, ymax = self._get_rect_extent()
+    def reset_view(
+        self,
+        _event: Event | None = None,
+        *,
+        margin: float | tuple[float, float] | None = None,
+        use_camera_range: bool = True,
+    ) -> None:
+        """Fit the view to the data with optional fractional margins and camera range overrides."""
+        xmin, xmax, ymin, ymax = self._get_rect_extent(margin=margin, use_camera_range=use_camera_range)
         self.camera.set_rect(xmin, xmax, ymin, ymax)
+        self.events.reset_view()
 
     def reset_x_view(self, _event=None):
         """Reset the camera view, but only in the y-axis dimension"""
@@ -965,9 +1192,41 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             self.camera.mouse_zoom = active_layer.mouse_zoom
             self.update_status_from_cursor()
 
+    def _select_data(self, vertices: np.ndarray, *, cell: tuple[int, int] | None = None) -> None:
+        """Replace the selected indices in the visible, selected plot layers."""
+        valid = len(vertices) >= 3 and np.isfinite(vertices).all()
+        if valid:
+            span = np.ptp(vertices, axis=0)
+            valid = np.all(span > 0) and np.linalg.matrix_rank((vertices[1:] - vertices[0]) / span) == 2
+        layers: Sequence[n_layers.Layer] = self.layers
+        if cell is not None and self.canvas.grid.enabled:
+            layers = [
+                self.layers[index]
+                for position, indices in self.canvas.grid.iter_viewboxes(self.layers)
+                if position == cell
+                for index in indices
+            ]
+        selection: dict[n_layers.Layer, set[int]] = {}
+        for layer in layers:
+            if layer not in self.layers.selection or not layer.visible:
+                continue
+            if not isinstance(
+                layer, (np_layers.Scatter, np_layers.Line, np_layers.MultiLine, np_layers.Bar, np_layers.Centroids)
+            ):
+                continue
+            indices: set[int] = set()
+            if valid:
+                layer_vertices = np.asarray([layer.world_to_data(vertex) for vertex in vertices])
+                indices = set(np.flatnonzero(layer._selection_mask(layer_vertices)).tolist())
+            layer.selected_data = indices
+            selection[layer] = indices.copy()
+        self.events.selection(value=selection, vertices=vertices.copy())
+
     def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
         self._update_axis_labels()
+        if getattr(_event, "type", None) in {"data", "scale", "translate", "rotate", "shear", "affine"}:
+            self._on_update_extent()
         self.events.layers_change()  # TODO: remove
 
     def _on_axis_label_changed(self, event: Event) -> None:
@@ -1085,7 +1344,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self._update_layers(layers=[layer])
 
         if len(self.layers) == 1:
-            self.reset_view()
+            if self.autoscale:
+                self.reset_view()
             self.dims._go_to_center_step()
 
     @staticmethod
@@ -1159,8 +1419,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             The layer that was added (same as input).
         """
         layer = event.value
-        if layer is self._colorbar_source:
-            self.clear_colorbar()
+        for cell, source in tuple(self._colorbar_sources.items()):
+            if source is layer:
+                self.clear_colorbar(cell=cell)
 
         # Disconnect all connections from layer
         disconnect_events(layer.events, self)
@@ -1198,23 +1459,19 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
 
     def scatter(self, x: Any, y: Any | None = None, **kwargs: Any) -> np_layers.Scatter:
         """Add scatter points from ``scatter(y)`` or ``scatter(x, y)`` coordinates."""
+        _plot_color(kwargs, "face_color")
         # Scatter follows napari's row/column convention and stores (y, x).
         return self.add_scatter(_plot_data(x, y)[:, ::-1], **kwargs)
 
     def fill_between(self, x: ArrayLike, y1: ArrayLike, y2: ArrayLike = 0, **kwargs: Any) -> np_layers.Band:
         """Fill between two bounds on a shared x grid. Either bound can be a scalar."""
-        x_values = np.asarray(x)
-        if x_values.ndim != 1:
-            raise ValueError("x must be one-dimensional.")
-        bounds = []
-        for bound in (y1, y2):
-            values = np.asarray(bound)
-            if values.ndim == 0:
-                values = np.broadcast_to(values, x_values.shape)
-            if values.shape != x_values.shape:
-                raise ValueError("Band bounds must be scalars or have the same shape as x.")
-            bounds.append(values)
-        return self.add_band(np.column_stack((x_values, *bounds)), **kwargs)
+        _plot_color(kwargs, "fill_color")
+        return self.add_band(_band_rows(x, y1, y2), **kwargs)
+
+    def fill_betweenx(self, y: ArrayLike, x1: ArrayLike, x2: ArrayLike = 0, **kwargs: Any) -> np_layers.Band:
+        """Fill between two bounds on a shared y grid. Either bound can be a scalar."""
+        _plot_color(kwargs, "fill_color")
+        return self.add_band(_band_rows(y, x1, x2), orientation="horizontal", **kwargs)
 
     def errorbar(
         self,
@@ -1240,15 +1497,132 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         """Display an image using the standard image-layer API."""
         return self.add_image(data, **kwargs)
 
-    def vbar(self, x: Any, height: Any | None = None, **kwargs: Any) -> np_layers.Bar:
+    def vbar(
+        self, x: ArrayLike, height: ArrayLike | None = None, *, baseline: float | None = None, **kwargs: Any
+    ) -> np_layers.Bar:
         """Add vertical bars from values or explicit x positions and heights."""
+        _plot_color(kwargs, "fill_color")
+        baseline = kwargs.pop("bottom", 0.0) if baseline is None else baseline
         data = np.asarray(x) if height is None else _plot_data(x, height)
-        return self.add_bar(data, orientation="vertical", **kwargs)
+        return self.add_bar(data, orientation="vertical", baseline=baseline, **kwargs)
 
-    def hbar(self, y: Any, width: Any | None = None, **kwargs: Any) -> np_layers.Bar:
-        """Add horizontal bars from values or explicit y positions and widths."""
-        data = np.asarray(y) if width is None else _plot_data(y, width)
-        return self.add_bar(data, orientation="horizontal", **kwargs)
+    def hbar(
+        self,
+        y: ArrayLike,
+        length: ArrayLike | None = None,
+        *,
+        baseline: float | None = None,
+        width: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> np_layers.Bar:
+        """Add horizontal bars. Use `width` for thickness when `length` is provided."""
+        _plot_color(kwargs, "fill_color")
+        baseline = kwargs.pop("left", 0.0) if baseline is None else baseline
+        if length is None and width is not None and np.ndim(width) != 0:
+            length, width = width, None  # Previous keyword for explicit lengths.
+        data = np.asarray(y) if length is None else _plot_data(y, length)
+        if width is not None:
+            kwargs["width"] = float(np.asarray(width))
+        return self.add_bar(data, orientation="horizontal", baseline=baseline, **kwargs)
+
+    def axhline(self, y: float = 0, **kwargs: Any) -> np_layers.InfLine:
+        """Add a horizontal reference line at y."""
+        return self.add_inf_line([y], orientation="horizontal", **kwargs)
+
+    def axvline(self, x: float = 0, **kwargs: Any) -> np_layers.InfLine:
+        """Add a vertical reference line at x."""
+        return self.add_inf_line([x], orientation="vertical", **kwargs)
+
+    def axhspan(self, ymin: float, ymax: float, **kwargs: Any) -> np_layers.Region:
+        """Shade a horizontal span between two y coordinates."""
+        return self.add_region([(ymin, ymax)], orientation="horizontal", **kwargs)
+
+    def axvspan(self, xmin: float, xmax: float, **kwargs: Any) -> np_layers.Region:
+        """Shade a vertical span between two x coordinates."""
+        return self.add_region([(xmin, xmax)], orientation="vertical", **kwargs)
+
+    def text(self, x: ArrayLike, y: ArrayLike, text: str | list[str], **kwargs: Any) -> np_layers.Text:
+        """Add one label or a sequence of labels at xy coordinates."""
+        return self.add_text(_plot_data(np.atleast_1d(x), np.atleast_1d(y)), text=text, **kwargs)
+
+    def annotate(
+        self,
+        text: str,
+        xy: tuple[float, float],
+        xytext: tuple[float, float] | None = None,
+        *,
+        arrow_color: Any = None,
+        arrow_width: float = 1.0,
+        **kwargs: Any,
+    ) -> np_layers.Text:
+        """Label a point and draw an arrow from xytext when it differs from xy."""
+        target = np.asarray(xy, dtype=float)
+        start = target if xytext is None else np.asarray(xytext, dtype=float)
+        if start.shape != (2,) or target.shape != (2,) or not np.isfinite([start, target]).all():
+            raise ValueError("Annotation positions must be finite (x, y) pairs.")
+        label = self.text(*start, text, **kwargs)
+        delta = target - start
+        if np.any(delta):
+            base = target - 0.12 * delta
+            wing = 0.05 * np.asarray((-delta[1], delta[0]))
+            self.add_line(
+                np.vstack((start, target, base + wing, target, base - wing)),
+                color=label.color[0] if arrow_color is None else arrow_color,
+                width=arrow_width,
+                name=f"{label.name} arrow",
+                metadata=dict(label.metadata),
+                visible=label.visible,
+            )
+            self.layers.selection.active = label
+        return label
+
+    def stem(
+        self, x: ArrayLike, y: ArrayLike | None = None, *, baseline: float = 0.0, **kwargs: Any
+    ) -> np_layers.Centroids:
+        """Draw stems from a shared baseline to y values."""
+        values = _plot_data(x, y)
+        return self.add_centroids(
+            np.column_stack((values[:, 0], np.full(len(values), baseline), values[:, 1])), **kwargs
+        )
+
+    def stackplot(self, x: ArrayLike, *ys: ArrayLike, baseline: float = 0.0, **kwargs: Any) -> np_layers.Areas:
+        """Fill successive cumulative bands, with one row of values per band."""
+        positions = np.asarray(x)
+        values = np.atleast_2d(np.asarray(ys[0] if len(ys) == 1 else ys, dtype=float))
+        if positions.ndim != 1 or len(positions) < 2 or values.ndim != 2 or values.shape[1] != len(positions):
+            raise ValueError("Stackplot needs matching one-dimensional x and y series with at least two points.")
+        bounds = baseline + np.vstack((np.zeros(len(positions)), np.cumsum(values, axis=0)))
+        _plot_color(kwargs, "fill_color")
+        return self.add_areas(
+            [np.column_stack((positions, lower, upper)) for lower, upper in pairwise(bounds)],
+            **kwargs,
+        )
+
+    def hist(
+        self,
+        values: ArrayLike,
+        bins: int | str | ArrayLike = 10,
+        *,
+        range: tuple[float, float] | None = None,  # noqa: A002
+        weights: ArrayLike | None = None,
+        density: bool = False,
+        baseline: float = 0.0,
+        orientation: Literal["vertical", "horizontal"] = "vertical",
+        **kwargs: Any,
+    ) -> np_layers.Bar:
+        """Add a histogram with NumPy binning and support for uneven bin widths."""
+        counts, edges = np.histogram(values, bins=bins, range=range, weights=weights, density=density)
+        _plot_color(kwargs, "fill_color")
+        widths = np.diff(edges)
+        centers = edges[:-1] + widths / 2
+        data = np.column_stack((centers, baseline + counts, np.full(len(counts), baseline), widths))
+        return self.add_bar(data, orientation=orientation, **kwargs)
+
+    def rectangle(self, xy: tuple[float, float], width: float, height: float, **kwargs: Any) -> np_layers.Rectangles:
+        """Add a rectangle from its lower-left corner and dimensions."""
+        _plot_color(kwargs, "outline_color")
+        x, y = xy
+        return self.add_rectangles([[x + width / 2, y + height / 2, height, width]], **kwargs)
 
     def add_image(
         self,
@@ -1506,8 +1880,6 @@ for _layer in [
     n_layers.Image,
     n_layers.Labels,
     n_layers.Vectors,
-    # n_layers.Tracks,  # 3d
-    # n_layers.Surface,  # 3d
     # napari-plot layers
     np_layers.Areas,
     np_layers.Band,
@@ -1529,4 +1901,4 @@ for _layer in [
     setattr(ViewerModel, func.__name__, func)
 
 for _name in stats.__all__:
-    setattr(ViewerModel, _name, _create_stats_method(getattr(stats, _name)))
+    setattr(ViewerModel, _name, _StatsMethod(_name))

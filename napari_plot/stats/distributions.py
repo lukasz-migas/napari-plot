@@ -81,6 +81,80 @@ def _label_axes(viewer: ViewerModel, dist: _Distribution, value_label: str) -> N
         cm.set_axis_labels(viewer, value_label, dist.label)
 
 
+def _bivariate(
+    viewer: ViewerModel,
+    data: ty.Any,
+    x: ty.Any,
+    y: ty.Any,
+    hue: ty.Any,
+    hue_order: list | None,
+    palette: ty.Any,
+    color: ty.Any,
+    group: str | None,
+    name: str,
+    estimate: ty.Callable[[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray, np.ndarray]],
+    *,
+    common_norm: bool,
+    legend: bool,
+) -> list[Layer]:
+    from napari.utils.colormaps import Colormap
+
+    from napari_plot.stats._seaborn import categorical_order
+
+    frame, labels = long_frame(data, x=x, y=y, hue=hue, dropna=("x", "y", "hue"))
+    frame = frame[np.isfinite(frame["x"]) & np.isfinite(frame["y"])]
+    levels = list(categorical_order(frame["hue"], hue_order)) if "hue" in frame else [None]
+    colors = level_colors(levels, palette, color) if hue is not None or color is not None else {}
+    layers = []
+    metadata = cm.group_metadata(group)
+    for level in levels:
+        subset = frame if level is None else frame[frame["hue"] == level]
+        if subset.empty:
+            continue
+        density, x_edges, y_edges = estimate(subset["x"].to_numpy(), subset["y"].to_numpy())
+        if not density.size:
+            continue
+        if common_norm:
+            density *= len(subset) / len(frame)
+        top = float(np.nanmax(density))
+        basis = colors.get(level)
+        cmap = "viridis" if basis is None else Colormap(colors=[(*basis[:3], 0), basis], name=f"{name}-{level}")
+        widths, heights = np.diff(x_edges), np.diff(y_edges)
+        layer_name = name if level is None else f"{name} [{level}]"
+        if np.allclose(widths, widths[0]) and np.allclose(heights, heights[0]):
+            layer = viewer.add_image(
+                density,
+                colormap=cmap,
+                contrast_limits=(0, top or 1),
+                scale=(heights[0], widths[0]),
+                translate=(y_edges[0] + heights[0] / 2, x_edges[0] + widths[0] / 2),
+                name=layer_name,
+                metadata=metadata,
+            )
+        else:
+            from napari.utils.colormaps import ensure_colormap
+
+            rows, cols = np.nonzero(density > 0)
+            if not len(rows):
+                continue
+            areas = [
+                np.array(
+                    ((x_edges[col], y_edges[row], y_edges[row + 1]), (x_edges[col + 1], y_edges[row], y_edges[row + 1]))
+                )
+                for row, col in zip(rows, cols, strict=True)
+            ]
+            layer = viewer.add_areas(
+                areas,
+                fill_color=ensure_colormap(cmap).map(density[rows, cols] / top),
+                border_width=0,
+                name=layer_name,
+                metadata=metadata,
+            )
+        layers.append(layer)
+    cm.set_axis_labels(viewer, labels.get("x"), labels.get("y"))
+    return cm.finish(viewer, layers, cm.legend_entries(colors) if hue is not None else [], legend)
+
+
 def kdeplot(
     viewer: ViewerModel,
     data: ty.Any = None,
@@ -92,6 +166,7 @@ def kdeplot(
     palette: ty.Any = None,
     color: ty.Any = None,
     fill: bool = False,
+    multiple: str = "layer",
     common_norm: bool = True,
     cumulative: bool = False,
     bw_method: ty.Any = "scott",
@@ -105,7 +180,7 @@ def kdeplot(
     name: str = "kdeplot",
     group: str | None = None,
 ) -> list[Layer]:
-    """Draw univariate kernel density estimates, one curve per hue level.
+    """Draw univariate curves or a bivariate density when both coordinates are supplied.
 
     Parameters
     ----------
@@ -122,6 +197,8 @@ def kdeplot(
         Level order and colors, as in seaborn.
     fill : bool
         Fill the area under each curve.
+    multiple : {"layer", "stack", "fill"}
+        Overlay, stack, or normalize univariate curves at each coordinate.
     common_norm : bool
         Scale each curve by its share of observations so all curves integrate to 1 together.
     cumulative : bool
@@ -144,6 +221,45 @@ def kdeplot(
     list of Layer
         Created layers in drawing order.
     """
+    if multiple not in {"layer", "stack", "fill"}:
+        raise ValueError("multiple must be 'layer', 'stack' or 'fill'.")
+    if x is not None and y is not None:
+        from napari_plot.stats._seaborn import KDE
+
+        if multiple != "layer":
+            raise ValueError("Bivariate KDE supports multiple='layer'.")
+
+        def estimate(xs: np.ndarray, ys: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+            if len(xs) < 3:
+                return np.empty(0), np.empty(0), np.empty(0)
+            estimator = KDE(
+                bw_method=bw_method, bw_adjust=bw_adjust, gridsize=gridsize, cut=cut, clip=clip, cumulative=cumulative
+            )
+            try:
+                density, (xs, ys) = estimator(xs, ys)
+            except np.linalg.LinAlgError:
+                return np.empty(0), np.empty(0), np.empty(0)
+            x_edges = np.append(xs - (xs[1] - xs[0]) / 2, xs[-1] + (xs[1] - xs[0]) / 2)
+            y_edges = np.append(ys - (ys[1] - ys[0]) / 2, ys[-1] + (ys[1] - ys[0]) / 2)
+            return density, x_edges, y_edges
+
+        if gridsize < 2:
+            raise ValueError("gridsize must be at least 2.")
+        return _bivariate(
+            viewer,
+            data,
+            x,
+            y,
+            hue,
+            hue_order,
+            palette,
+            color,
+            group,
+            name,
+            estimate,
+            common_norm=common_norm,
+            legend=legend,
+        )
     dist = _distribution(data, x, y, hue, hue_order)
     colors = _colors(dist, palette, color)
     curves, curve_colors, areas = [], [], []
@@ -164,6 +280,21 @@ def kdeplot(
         curves.append(np.column_stack((support, density)))
         curve_colors.append(colors[level])
         areas.append(np.column_stack((support, np.zeros_like(density), density)))
+
+    if multiple != "layer" and curves:
+        support = np.linspace(min(curve[0, 0] for curve in curves), max(curve[-1, 0] for curve in curves), gridsize)
+        densities = np.asarray(
+            [
+                np.interp(support, curve[:, 0], curve[:, 1], left=0, right=curve[-1, 1] if cumulative else 0)
+                for curve in curves
+            ]
+        )
+        if multiple == "fill":
+            total = densities.sum(axis=0)
+            densities = np.divide(densities, total, out=np.zeros_like(densities), where=total > 0)
+        tops = densities.cumsum(axis=0)
+        curves = [np.column_stack((support, top)) for top in tops]
+        areas = [np.column_stack((support, top - density, top)) for top, density in zip(tops, densities, strict=True)]
 
     metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
@@ -227,6 +358,8 @@ def histplot(
     common_bins: bool = True,
     common_norm: bool = True,
     multiple: str = "layer",
+    element: str = "bars",
+    fill: bool = True,
     shrink: float = 1.0,
     kde: bool = False,
     kde_kws: dict | None = None,
@@ -237,7 +370,7 @@ def histplot(
     name: str = "histplot",
     group: str | None = None,
 ) -> list[Layer]:
-    """Draw histograms of univariate observations, optionally split and arranged by hue.
+    """Draw univariate or bivariate histograms, optionally split by hue.
 
     Parameters
     ----------
@@ -257,6 +390,10 @@ def histplot(
         Normalize normalized stats over all levels rather than within each level.
     multiple : {"layer", "stack", "dodge", "fill"}
         Arrangement of hue levels.
+    element : {"bars", "step", "poly"}
+        Geometry of a univariate histogram.
+    fill : bool
+        Fill the histogram geometry.
     shrink : float
         Fraction of the bin width each bar occupies.
     kde : bool
@@ -281,6 +418,36 @@ def histplot(
     """
     if multiple not in {"layer", "stack", "dodge", "fill"}:
         raise ValueError("multiple must be 'layer', 'stack', 'dodge' or 'fill'.")
+    if element not in {"bars", "step", "poly"}:
+        raise ValueError("element must be 'bars', 'step' or 'poly'.")
+    if x is not None and y is not None:
+        from napari_plot.stats._seaborn import Histogram
+
+        if multiple != "layer" or kde:
+            raise ValueError("Bivariate histograms support multiple='layer' without a KDE overlay.")
+
+        def estimate(xs: np.ndarray, ys: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+            estimator = Histogram(
+                stat=stat, bins=bins, binwidth=binwidth, binrange=binrange, discrete=discrete, cumulative=cumulative
+            )
+            counts, (x_edges, y_edges) = estimator(xs, ys)
+            return np.asarray(counts.T, dtype=float), x_edges, y_edges
+
+        return _bivariate(
+            viewer,
+            data,
+            x,
+            y,
+            hue,
+            hue_order,
+            palette,
+            color,
+            group,
+            name,
+            estimate,
+            common_norm=common_norm and stat in _NORMALIZED_STATS,
+            legend=legend,
+        )
     dist = _distribution(data, x, y, hue, hue_order)
     colors = _colors(dist, palette, color)
     if multiple != "layer":
@@ -317,15 +484,48 @@ def histplot(
             widths = widths / n_levels
             centers = centers - np.diff(edges) * shrink / 2 + widths * (hue_index + 0.5)
         opacity = alpha if alpha is not None else (0.5 if multiple == "layer" and n_levels > 1 else 0.75)
+        layer_name = name if level is None else f"{name} [{level}]"
+        if element != "bars":
+            if element == "step":
+                coordinates = np.column_stack((centers - widths / 2, centers + widths / 2)).ravel()
+                lower, upper = np.repeat(base, 2), np.repeat(base + counts, 2)
+            else:
+                coordinates, lower, upper = centers, base, base + counts
+            if fill and len(coordinates) >= 2:
+                path = np.column_stack((coordinates, lower, upper))
+                layers.append(
+                    viewer.add_areas(
+                        [path],
+                        orientation=cm.bar_orientation(dist.orient),
+                        fill_color=colors[level],
+                        border_width=0,
+                        opacity=opacity,
+                        name=layer_name,
+                        metadata=metadata,
+                    )
+                )
+            outline = np.column_stack((coordinates, upper))
+            layers.append(
+                cm.add_segments(
+                    viewer,
+                    [outline],
+                    dist.orient,
+                    color=colors[level],
+                    width=linewidth,
+                    name=f"{layer_name} outline",
+                    metadata=metadata,
+                )
+            )
+            continue
         layers.append(
             viewer.add_bar(
                 np.column_stack((centers, base + counts, base, widths)),
                 orientation=cm.bar_orientation(dist.orient),
-                fill_color=colors[level],
-                border_color=linecolor,
+                fill_color=colors[level] if fill else "transparent",
+                border_color=linecolor if fill else colors[level],
                 border_width=linewidth,
                 opacity=opacity,
-                name=name if level is None else f"{name} [{level}]",
+                name=layer_name,
                 metadata=metadata,
             )
         )
@@ -353,6 +553,47 @@ def histplot(
     _label_axes(viewer, dist, stat.capitalize())
     entries = cm.legend_entries(colors) if dist.has_hue else []
     return cm.finish(viewer, layers, entries, legend)
+
+
+def ecdfplot(
+    viewer: ViewerModel,
+    data: ty.Any = None,
+    *,
+    x: ty.Any = None,
+    y: ty.Any = None,
+    hue: ty.Any = None,
+    hue_order: list | None = None,
+    stat: str = "proportion",
+    complementary: bool = False,
+    palette: ty.Any = None,
+    color: ty.Any = None,
+    linewidth: float = 2,
+    legend: bool = True,
+    name: str = "ecdfplot",
+    group: str | None = None,
+) -> list[Layer]:
+    """Draw the empirical cumulative distribution as a step curve for each group."""
+    if stat not in {"proportion", "percent", "count"}:
+        raise ValueError("stat must be 'proportion', 'percent' or 'count'.")
+    dist = _distribution(data, x, y, hue, hue_order)
+    colors = _colors(dist, palette, color)
+    curves, curve_colors = [], []
+    for level, values in dist.groups.items():
+        if not len(values):
+            continue
+        positions, counts = np.unique(values, return_counts=True)
+        steps = np.r_[0.0, np.cumsum(counts)]
+        if complementary:
+            steps = len(values) - steps
+        if stat != "count":
+            steps *= (100 if stat == "percent" else 1) / len(values)
+        curves.append(np.column_stack((np.repeat(positions, 2), np.column_stack((steps[:-1], steps[1:])).ravel())))
+        curve_colors.append(colors[level])
+    layer = cm.add_segments(
+        viewer, curves, dist.orient, color=curve_colors, width=linewidth, name=name, metadata=cm.group_metadata(group)
+    )
+    _label_axes(viewer, dist, stat.capitalize())
+    return cm.finish(viewer, [layer], cm.legend_entries(colors, marker="hbar") if dist.has_hue else [], legend)
 
 
 def _kde_for(values: np.ndarray, **kws: ty.Any) -> tuple[np.ndarray, np.ndarray]:

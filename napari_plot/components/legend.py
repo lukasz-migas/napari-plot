@@ -15,9 +15,23 @@ from napari.settings import get_settings
 from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import EventedModel
 from napari.utils.events.custom_types import Array
-from pydantic import field_validator
+from napari.utils.theme import get_theme
+from pydantic import Field, field_validator
 
-from napari_plot.layers import Areas, Band, Bar, Centroids, ErrorBar, InfLine, Line, MultiLine, Region, Scatter, Text
+from napari_plot.layers import (
+    Areas,
+    Band,
+    Bar,
+    Centroids,
+    ErrorBar,
+    InfLine,
+    Line,
+    MultiLine,
+    Rectangles,
+    Region,
+    Scatter,
+    Text,
+)
 
 ColorLike = ty.Any
 
@@ -235,11 +249,11 @@ def legend_entry_from_layer(layer: Layer) -> LegendEntry | None:
         color = _first_color(getattr(layer, "color", None))
         marker = _orientation_marker(layer) if isinstance(layer, (Region, InfLine, Centroids)) else "hbar"
         return LegendEntry(label=layer.name, marker=marker, color=color, layer_name=layer.name)
-    if isinstance(layer, (Areas, Band, Bar)):
+    if isinstance(layer, (Areas, Band, Bar, Rectangles)):
         return LegendEntry(
             label=layer.name,
             marker="square",
-            color=_first_color(layer.fill_color),
+            color=_first_color(layer.outline_color if isinstance(layer, Rectangles) else layer.fill_color),
             layer_name=layer.name,
         )
     if isinstance(layer, ErrorBar):
@@ -269,14 +283,17 @@ class LegendOverlay(CanvasOverlay):
     gridded: bool = True
     position: CanvasPosition = CanvasPosition.TOP_RIGHT
     entries: tuple[LegendEntry, ...] = ()
-    text_color: Array[float, (4,)] = DEFAULT_LEGEND_TEXT_COLOR
+    text_color: Array[float, (4,)] | None = None
     font_size: float | None = None
     marker_size: float = 10.0
     row_spacing: float = 9.0
     padding: float = 6.0
-    background_color: Array[float, (4,)] = DEFAULT_LEGEND_BACKGROUND_COLOR
-    border_color: Array[float, (4,)] = DEFAULT_LEGEND_BORDER_COLOR
+    background_color: Array[float, (4,)] | None = None
+    border_color: Array[float, (4,)] | None = None
     border_width: float = 1.0
+    title: str = ""
+    ncols: int = Field(1, ge=1)
+    outside: bool = False
     source_layer: str | None = None
     label_property: str = "label"
     color_source: str = "face"
@@ -291,8 +308,22 @@ class LegendOverlay(CanvasOverlay):
 
     @field_validator("text_color", "background_color", "border_color", mode="before")
     @classmethod
-    def _coerce_color(cls, value: ColorLike) -> np.ndarray:
-        return _coerce_single_color(value)
+    def _coerce_color(cls, value: ColorLike) -> np.ndarray | None:
+        return None if value is None else _coerce_single_color(value)
+
+    def colors_for_theme(self, theme: str) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """Return text, background and border RGBA colors for the viewer theme."""
+        style = get_theme(theme)
+        text = transform_color(style.text.as_hex())[0]
+        background = transform_color(style.background.as_hex())[0]
+        background[3] = DEFAULT_LEGEND_BACKGROUND_COLOR[3]
+        border = text.copy()
+        border[3] = DEFAULT_LEGEND_BORDER_COLOR[3]
+        return (
+            text if self.text_color is None else self.text_color,
+            background if self.background_color is None else self.background_color,
+            border if self.border_color is None else self.border_color,
+        )
 
     @field_validator("marker_size", "row_spacing", mode="before")
     @classmethod

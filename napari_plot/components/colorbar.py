@@ -10,7 +10,7 @@ from pydantic import Field, field_validator
 
 
 class ColorBar(EventedModel):
-    """Colorbar shown to the right of the plot, like a matplotlib colorbar.
+    """Color scale shown at the right or bottom edge of a plot.
 
     Attributes
     ----------
@@ -19,18 +19,34 @@ class ColorBar(EventedModel):
     colormap : Colormap
         Colormap of the bar; any value accepted by napari's ``ensure_colormap``.
     contrast_limits : tuple of float
-        Values at the bottom and top of the bar.
+        Lowest and highest values shown on the bar.
     label : str
         Text drawn along the bar, outside its tick labels.
     bar_width : int
-        Width of the color gradient in screen pixels.
+        Thickness of the color gradient in screen pixels.
+    norm : {"linear", "log"}
+        Scale used to space the ticks. Log spacing applies to positive limits.
     """
 
     visible: bool = False
     colormap: Colormap = Field(default_factory=lambda: ensure_colormap("viridis"))
     contrast_limits: tuple[float, float] = (0.0, 1.0)
     label: str = ""
-    bar_width: int = 15
+    bar_width: int = Field(15, gt=0)
+    position: ty.Literal["right", "bottom"] = "right"
+    norm: ty.Literal["linear", "log"] = "linear"
+    gamma: float = Field(1.0, gt=0)
+
+    @property
+    def orientation(self) -> ty.Literal["vertical", "horizontal"]:
+        """Return the orientation implied by the edge placement."""
+        return "vertical" if self.position == "right" else "horizontal"
+
+    @orientation.setter
+    def orientation(self, value: ty.Literal["vertical", "horizontal"]) -> None:
+        if value not in ("vertical", "horizontal"):
+            raise ValueError("Colorbar orientation must be vertical or horizontal.")
+        self.position = "right" if value == "vertical" else "bottom"
 
     @field_validator("colormap", mode="before")
     @classmethod
