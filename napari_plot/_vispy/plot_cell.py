@@ -152,4 +152,7 @@ class VispyPlotCell:
             disconnect_events(self.viewer.axis.events, axis)
         if self.layout is not None and isinstance(self.layout.parent, Grid):
             detach_widget(self.layout.parent, self.layout)
+        # Detach children before the cell's scene is collected so VisPy can remove its clipper.
+        for child in self.data_scene.children:
+            child.parent = None
         self.view.parent = None

@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
+import gc
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
 
 import numpy as np
 import pytest
+from qtpy.QtCore import Qt
 
 from napari_plot._vispy.components.camera import make_rect
 
 if TYPE_CHECKING:
+    from napari.layers import Layer
+
     from napari_plot import Viewer
     from napari_plot._vispy.canvas import VispyCanvas
 
@@ -136,20 +140,115 @@ def test_canvas_corners_span_one_cell_in_grid_mode(plot, qtbot) -> None:
     assert canvas._draw_shape_threshold == pytest.approx(canvas.view.size)
 
 
-def test_resize_rebuilds_grid_only_when_spacing_changes(plot, qtbot, monkeypatch: pytest.MonkeyPatch) -> None:
-    """A canvas resize re-lays out the cells only when it changes the spacing between them."""
+def test_spacing_and_resize_keep_cells_and_legends(plot, qtbot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Spacing changes preserve the attached cells and do not redraw or reassign layers."""
     viewer, canvas = plot
-    viewer.canvas.grid.spacing = 10
+    viewer.legend.visible = True
+    viewer.legend.gridded = True
     viewer.canvas.grid.enabled = True
-    calls = []
-    monkeypatch.setattr(canvas, "_update_scenegraph", lambda *_args: calls.append(1))
-    resize = SimpleNamespace(size=canvas._scene_canvas.size)
-    canvas.on_resize(resize)
-    assert not calls
-
+    _settle(qtbot, canvas)
+    grid = canvas._cells_grid
+    cells = tuple(canvas._cells)
+    layouts = tuple(cell.layout for cell in cells)
+    parents = [canvas.layer_to_visual[layer].node.parent for layer in viewer.layers]
+    width = canvas._cells[0].view.size[0]
+    redraws = []
+    detachments = []
+    for cell in cells:
+        cell.view.events.canvas_change.connect(lambda event: detachments.append(event))
+    for visual in canvas._overlay_to_visual[viewer.legend]:
+        monkeypatch.setattr(visual, "_on_data_change", lambda *_args: redraws.append(1))
+    viewer.canvas.grid.spacing = 15
+    assert canvas._cells_grid is grid
+    assert tuple(canvas._cells) == cells
+    assert all(layout.parent is grid for layout in layouts)
+    assert [canvas.layer_to_visual[layer].node.parent for layer in viewer.layers] == parents
+    assert not redraws
+    assert grid.spacing == 15
+    _settle(qtbot, canvas)
+    assert canvas._cells[0].view.size[0] < width
+    viewer.canvas.grid.spacing = 0.1
+    canvas.native.setFixedSize(900, 600)
+    qtbot.waitUntil(lambda: canvas._scene_canvas.size[0] == 900)
+    assert grid.spacing == viewer.canvas.grid._compute_canvas_spacing(canvas._scene_canvas.size, viewer.layers)
+    assert not detachments
+    assert not redraws
     monkeypatch.setattr(type(viewer.canvas.grid), "_compute_canvas_spacing", lambda *_args: 4)
-    canvas.on_resize(resize)
+    canvas.on_resize(SimpleNamespace(size=canvas._scene_canvas.size))
+    assert grid.spacing == 4
+    assert canvas._cells_grid is grid
+    assert not redraws
+
+
+def test_grid_model_update_batches_relayout(plot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Combined grid model changes do not create intermediate layouts."""
+    viewer, canvas = plot
+    calls = []
+    layout = canvas._layout_cells
+
+    def track(positions):
+        calls.append(positions)
+        layout(positions)
+
+    monkeypatch.setattr(canvas, "_layout_cells", track)
+    viewer.canvas.grid.update({"enabled": True, "shape": (3, 1), "stride": 2})
+    assert len(calls) == 1
+    assert len(canvas._cells) == 2
+
+
+def test_regroup_preserves_surviving_layouts_and_restores_from_hidden(plot, qtbot) -> None:
+    """Regrouping moves attached layouts, and hiding all layers restores the single view."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = True
+    grid = canvas._cells_grid
+    cells = tuple(canvas._cells)
+    viewer.canvas.grid.shape = (3, 1)
+    assert canvas._cells_grid is grid
+    assert tuple(canvas._cells) == cells
+    assert all(cell.layout.parent is grid for cell in cells)
+    _settle(qtbot, canvas)
+    assert all(cell.view.size[0] > 50 for cell in cells)
+    for layer in viewer.layers:
+        layer.visible = False
+    assert canvas._cells_grid is None
+    assert canvas.view.parent is canvas.grid
+    viewer.layers[0].visible = True
+    assert canvas._cells_grid is not None
+    assert canvas._cells[0] is cells[0]
+
+
+def test_cell_resize_only_positions_its_overlays(plot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A cell resize leaves other cells untouched and retains pending global positioning."""
+    viewer, canvas = plot
+    viewer.text_overlay.text = "title"
+    viewer.text_overlay.visible = True
+    viewer.text_overlay.gridded = True
+    viewer.canvas.grid.enabled = True
+    visuals = canvas._overlay_to_visual[viewer.text_overlay]
+    calls = []
+    for index, visual in enumerate(visuals):
+        monkeypatch.setattr(visual, "_on_position_change", lambda *_args, index=index: calls.append(index))
+    canvas._needs_overlay_position_update = True
+    canvas._update_overlay_canvas_positions(SimpleNamespace(source=canvas._cells[1].view))
     assert calls == [1]
+    assert canvas._needs_overlay_position_update
+
+
+def test_hidden_gridded_overlay_is_lazy_and_reused(plot) -> None:
+    """Hidden overlay copies are made on first show and retained on hide."""
+    viewer, canvas = plot
+    text = viewer.text_overlay
+    text.visible = False
+    text.gridded = True
+    main = canvas._overlay_to_visual[text][0]
+    viewer.canvas.grid.enabled = True
+    assert canvas._overlay_to_visual[text] == [main]
+    text.visible = True
+    visuals = tuple(canvas._overlay_to_visual[text])
+    assert len(visuals) == len(canvas._cells)
+    text.visible = False
+    text.visible = True
+    assert tuple(canvas._overlay_to_visual[text]) == visuals
 
 
 @pytest.mark.parametrize("scale", [1, 2])
@@ -180,6 +279,74 @@ def test_screenshot_draws_each_layer_in_its_cell(plot, qtbot, scale: int) -> Non
         assert (np.abs(cell - color).sum(axis=-1) < 60).sum() > 20
     assert canvas.size == size
     assert len(canvas._cells) == 3
+
+
+@pytest.mark.parametrize("mode", ["layer_list", "automatic_legend", "explicit_legend"])
+def test_restored_grid_layers_are_drawn(plot, qtbot, mode: str) -> None:
+    """Restored layers remain rendered after their former cells are collected."""
+    viewer, canvas = plot
+    viewer.add_line([[0, 3], [10, 4]], name="line 3")
+    colors = ([255, 0, 0], [0, 255, 0], [0, 0, 255], [255, 255, 0])
+    for layer, color in zip(viewer.layers, colors, strict=True):
+        layer.color = np.asarray(color) / 255
+        layer.width = 5
+    if mode == "explicit_legend":
+        viewer.set_legend([{"label": layer.name, "layer_name": layer.name} for layer in viewer.layers])
+    else:
+        viewer.set_legend_from_layers()
+    viewer.canvas.grid.enabled = True
+    viewer.reset_view()
+    _settle(qtbot, canvas)
+
+    def set_list_visible(layer: Layer, visible: bool) -> None:
+        model = viewer.window._qt_viewer.layers.model().sourceModel()
+        index = next(
+            model.index(i, 0) for i in range(model.rowCount()) if model.getItemStrict(model.index(i, 0)) is layer
+        )
+        state = Qt.CheckState.Checked if visible else Qt.CheckState.Unchecked
+        assert model.setData(index, state, Qt.ItemDataRole.CheckStateRole)
+
+    def click_legend(layer: Layer) -> None:
+        _settle(qtbot, canvas)
+        canvas._update_overlay_canvas_positions()
+        visual = canvas._overlay_to_visual[viewer.legend][0]
+        row = next(i for i, entry in enumerate(visual._entries) if entry.layer_name == layer.name)
+        origin = visual.node.node_transform(canvas._scene_canvas.central_widget).map([0, 0])[:2]
+        row_height = max(viewer.legend.effective_font_size, viewer.legend.marker_size) + viewer.legend.row_spacing
+        event = SimpleNamespace(
+            pos=(origin[0] + 5, origin[1] + viewer.legend.padding + row * row_height + 2),
+            button=1,
+            handled=False,
+        )
+        visual._on_mouse_press(event)
+        assert event.handled
+
+    for layer in (viewer.layers[2], viewer.layers[3]):
+        if mode == "layer_list":
+            set_list_visible(layer, False)
+        else:
+            click_legend(layer)
+        assert not layer.visible
+        _settle(qtbot, canvas)
+        gc.collect()
+    for layer in (viewer.layers[2], viewer.layers[3]):
+        if mode == "explicit_legend":
+            click_legend(layer)
+        else:
+            set_list_visible(layer, True)
+        assert layer.visible
+        _settle(qtbot, canvas)
+        gc.collect()
+
+    viewer.legend.visible = False
+    _settle(qtbot, canvas)
+    image = viewer.window.screenshot(flash=False, canvas_only=True)
+    ratio = image.shape[0] / canvas.size[0]
+    for cell, color in zip(canvas._cells, colors, strict=True):
+        left, top = (canvas._view_offset(cell.view) * ratio).astype(int)
+        width, height = (np.asarray(cell.view.size) * ratio).astype(int)
+        pixels = image[top : top + height, left : left + width, :3].astype(int)
+        assert (np.abs(pixels - color).sum(axis=-1) < 60).sum() > 20
 
 
 def test_gridded_overlays_are_copied_per_cell(plot, qtbot) -> None:

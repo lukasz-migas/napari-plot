@@ -319,12 +319,17 @@ class VispyCanvas:
 
     def _update_scenegraph(self, _event: Event | None = None) -> None:
         """Lay out the plot cells and put each layer in the cell of its group (a single cell outside grid mode)."""
+        if getattr(_event, "type", None) == "spacing":
+            self._update_grid_spacing()
+            return
+        viewboxes = []
         if self._grid_active():
             viewboxes = [
                 (position, indices)
                 for position, indices in self.viewer.canvas.grid.iter_viewboxes(self.viewer.layers)
                 if indices
             ]
+        if viewboxes:
             self._layout_cells([position for position, _ in viewboxes])
             self._cell_layers = [[self.viewer.layers[index] for index in indices] for _, indices in viewboxes]
             for cell, (_, indices) in zip(self._cells, viewboxes, strict=True):
@@ -345,11 +350,6 @@ class VispyCanvas:
 
     def _layout_cells(self, positions: list[tuple[int, int]]) -> None:
         """Show one plot cell per grid position, reusing existing cells; the first cell is the main view."""
-        grid = self.viewer.canvas.grid
-        spacing = grid._compute_canvas_spacing(self._scene_canvas.size, self.viewer.layers)
-        key = (tuple(positions), spacing)
-        if self._cells_grid is not None and key == self._cells_key:
-            return
         while len(self._cells) < len(positions):
             self._cells.append(self._create_cell())
         while len(self._cells) > len(positions):
@@ -358,19 +358,40 @@ class VispyCanvas:
         if self._cells_grid is None:
             for widget in self._cells[0].widgets:
                 detach_widget(self.grid, widget)
+            spacing = self.viewer.canvas.grid._compute_canvas_spacing(self._scene_canvas.size, self.viewer.layers)
+            self._cells_grid = Grid(spacing=spacing)
+            self.grid.add_widget(self._cells_grid, row=1, col=0, col_span=2)
         else:
-            detach_widget(self.grid, self._cells_grid)
-        # vispy grids are not designed to be rearranged, so the container is rebuilt
-        self._cells_grid = Grid(spacing=spacing)
-        self.grid.add_widget(self._cells_grid, row=1, col=0, col_span=2)
+            self._update_grid_spacing()
+        if tuple(positions) == self._cells_key:
+            return
+        container = self._cells_grid
         for cell, (row, col) in zip(self._cells, positions, strict=True):
             layout = cell.ensure_layout()
-            if isinstance(layout.parent, Grid):
-                detach_widget(layout.parent, layout)
-            self._cells_grid.add_widget(layout, row=row, col=col)
-            # adding a grid to another grid replaces its size variables, so its own layout solver must be rebuilt
-            layout._need_solver_recreate = True
-        self._cells_key = key
+            if layout.parent is not container:
+                container.add_widget(layout, row=row, col=col)
+                layout._need_solver_recreate = True
+        # Reposition attached layouts without replacing their solver variables.
+        container._grid_widgets = {
+            index: (row, col, 1, 1, cell.layout)
+            for index, (cell, (row, col)) in enumerate(zip(self._cells, positions, strict=True))
+        }
+        container._cells = {}
+        for cell, (row, col) in zip(self._cells, positions, strict=True):
+            container._cells.setdefault(row, {})[col] = cell.layout
+        container._n_added = len(positions)
+        container._next_cell = [positions[-1][0], positions[-1][1] + 1]
+        container._need_solver_recreate = True
+        self._cells_key = tuple(positions)
+
+    def _update_grid_spacing(self) -> None:
+        """Update the existing grid when the computed pixel spacing changes."""
+        if self._cells_grid is None:
+            return
+        spacing = self.viewer.canvas.grid._compute_canvas_spacing(self._scene_canvas.size, self.viewer.layers)
+        if spacing != self._cells_grid.spacing:
+            self._cells_grid.spacing = spacing
+            self._scene_canvas.update()
 
     def _layout_single(self) -> None:
         """Close the extra plot cells and put the main view and axes back in the canvas grid."""
@@ -430,10 +451,13 @@ class VispyCanvas:
         for overlay, visuals in self._overlay_to_visual.items():
             gridded = overlay.gridded if isinstance(overlay, CanvasOverlay) else True
             wanted = len(self._cells) if gridded and self._cells_grid is not None else 1
+            if not overlay.visible and len(visuals) < wanted:
+                wanted = len(visuals)
             while len(visuals) > wanted:
                 visuals.pop().close()
-            for cell in self._cells[len(visuals) : wanted]:
-                visuals.append(self._create_overlay_visual(overlay, cell))
+            for index in range(len(visuals), wanted):
+                layer_filter = self._legend_filter(index) if isinstance(overlay, LegendOverlay) else None
+                visuals.append(self._create_overlay_visual(overlay, self._cells[index], layer_filter))
         self._update_legend_filters()
 
     def _update_legend_filters(self) -> None:
@@ -442,16 +466,20 @@ class VispyCanvas:
         The first cell also lists rows of layers that are in no cell, so they stay visible and clickable. Names are
         looked up when the legend is drawn, so renamed layers keep their cell.
         """
-        others = [layer for layers in self._cell_layers[1:] for layer in layers]
         for overlay, visuals in self._overlay_to_visual.items():
             if not isinstance(overlay, LegendOverlay):
                 continue
-            if len(visuals) == 1:
-                visuals[0].set_layer_filter(None)
-                continue
-            visuals[0].set_layer_filter(lambda name: name not in {layer.name for layer in others})
-            for visual, layers in zip(visuals[1:], self._cell_layers[1:], strict=True):
-                visual.set_layer_filter(lambda name, layers=layers: name in {layer.name for layer in layers})
+            for index, visual in enumerate(visuals):
+                visual.set_layer_filter(
+                    self._legend_filter(index) if self._cells_grid is not None and overlay.gridded else None
+                )
+
+    def _legend_filter(self, index: int) -> tuple[frozenset[Layer], bool] | None:
+        if not self._cell_layers:
+            return None
+        if index == 0:
+            return (frozenset(layer for layers in self._cell_layers[1:] for layer in layers), False)
+        return (frozenset(self._cell_layers[index]), True)
 
     @property
     def events(self):
@@ -518,6 +546,7 @@ class VispyCanvas:
 
     def _get_ordered_visible_canvas_overlays(
         self,
+        target: int | None = None,
     ) -> Iterator[tuple[CanvasOverlay, VispyCanvasOverlay, int]]:
         """Iterate over visible, tileable canvas overlays in tiling order.
 
@@ -532,11 +561,18 @@ class VispyCanvas:
             ):
                 continue
             visuals = self._overlay_to_visual.get(overlay, [])
-            for view, visual in enumerate(visuals[: len(self._cells)]):
+            indices = range(len(visuals)) if target is None else (target,)
+            for view in indices:
+                if view >= min(len(visuals), len(self._cells)):
+                    continue
+                visual = visuals[view]
                 if visual.x_size > 0 and visual.y_size > 0:
                     yield overlay, visual, view
         view_indices = {cell.view: index for index, cell in enumerate(self._cells)}
-        for layer in self.viewer.layers:
+        layers = (
+            self._cell_layers[target] if target is not None and target < len(self._cell_layers) else self.viewer.layers
+        )
+        for layer in layers:
             visual = self._layer_name_visuals.get(layer)
             if visual is not None and visual.node.visible and visual.x_size > 0 and visual.y_size > 0:
                 view = view_indices.get(visual.node.parent)
@@ -550,20 +586,30 @@ class VispyCanvas:
         in ``viewer.canvas.overlay_tiling``, separated by its padding. Unlike napari, a group whose stacking axis is
         centered (e.g. ``middle_center``) is centered as a whole instead of overlapping.
         """
+        # A view resize only affects overlays in that view.
+        source = getattr(_event, "source", None)
+        target = next((i for i, cell in enumerate(self._cells) if cell.view is source), None)
         # refresh sizes first; the size-changed event is blocked since the overlays are placed right after
         with self.viewer.canvas.events._overlay_positions_changed.blocker():
             for overlay, visuals in self._overlay_to_visual.items():
                 if isinstance(overlay, CanvasOverlay):
-                    for visual in visuals:
+                    selected = visuals if target is None else visuals[target : target + 1]
+                    for visual in selected:
                         visual._on_position_change()
-            for visual in self._layer_name_visuals.values():
-                if visual.node.visible:
+            layers = (
+                self._cell_layers[target]
+                if target is not None and target < len(self._cell_layers)
+                else self.viewer.layers
+            )
+            for layer in layers:
+                visual = self._layer_name_visuals.get(layer)
+                if visual is not None and visual.node.visible:
                     visual._on_position_change()
 
         tiling = self.viewer.canvas.overlay_tiling
         x_padding, y_padding = tiling.padding
         groups: dict[tuple[int, CanvasPosition], list[VispyCanvasOverlay]] = {}
-        for overlay, visual, view in self._get_ordered_visible_canvas_overlays():
+        for overlay, visual, view in self._get_ordered_visible_canvas_overlays(target):
             groups.setdefault((view, CanvasPosition(overlay.position)), []).append(visual)
 
         for (view, position), visuals in groups.items():
@@ -577,7 +623,8 @@ class VispyCanvas:
             ys = _tile_axis(vertical_side, heights, height, y_padding, stacked=not horizontal)
             for visual, (mx, my), x, y in zip(visuals, margins, xs, ys, strict=True):
                 visual.node.transform.translate = [max(0.0, x + mx), max(0.0, y + my), 0, 0]
-        self._needs_overlay_position_update = False
+        if target is None:
+            self._needs_overlay_position_update = False
 
     def _update_font_sizes(self, _event: Event | None = None) -> None:
         font_size = get_settings().appearance.font_size
@@ -596,7 +643,7 @@ class VispyCanvas:
         disconnect_events(self.viewer.axis.events, self.colorbar)
         for overlay in self._overlay_to_visual:
             overlay.events.position.disconnect(self._update_overlay_canvas_positions)
-            overlay.events.visible.disconnect(self._update_overlay_canvas_positions)
+            overlay.events.visible.disconnect(self._on_overlay_visibility_change)
             if isinstance(overlay, CanvasOverlay):
                 overlay.events.gridded.disconnect(self._update_scenegraph)
 
@@ -909,11 +956,7 @@ class VispyCanvas:
     def on_resize(self, event: ResizeEvent) -> None:
         """Called whenever canvas is resized."""
         self.viewer._canvas_size = self.size
-        if self._cells_grid is not None:
-            # relative grid spacing depends on the canvas size; the cells are only re-laid out when it changes
-            spacing = self.viewer.canvas.grid._compute_canvas_spacing(self._scene_canvas.size, self.viewer.layers)
-            if spacing != self._cells_key[1]:
-                self._update_scenegraph()
+        self._update_grid_spacing()
         self._update_overlay_canvas_positions()
 
     def add_layer_visual_mapping(self, napari_layer: Layer, vispy_layer: VispyBaseLayer) -> None:
@@ -981,7 +1024,9 @@ class VispyCanvas:
         self._scene_canvas._draw_order.clear()
         self._scene_canvas.update()
 
-    def _create_overlay_visual(self, overlay: Overlay, cell: VispyPlotCell) -> VispyBaseOverlay:
+    def _create_overlay_visual(
+        self, overlay: Overlay, cell: VispyPlotCell, layer_filter: tuple[frozenset[Layer], bool] | None = None
+    ) -> VispyBaseOverlay:
         """Create the visual of `overlay` in plot `cell`."""
         parent = cell.view if isinstance(overlay, CanvasOverlay) else cell.data_scene
         vispy_overlay = create_vispy_overlay(
@@ -989,6 +1034,7 @@ class VispyCanvas:
             viewer=self.viewer,
             font_info=self._font_info,
             parent=parent,
+            **({"layer_filter": layer_filter} if isinstance(overlay, LegendOverlay) else {}),
         )
         vispy_overlay.set_default_font_size(get_settings().appearance.font_size)
         return vispy_overlay
@@ -997,9 +1043,13 @@ class VispyCanvas:
         """Create vispy overlay and add to dictionary of overlay visuals"""
         self._overlay_to_visual[overlay] = [self._create_overlay_visual(overlay, self._cells[0])]
         overlay.events.position.connect(self._update_overlay_canvas_positions)
-        overlay.events.visible.connect(self._update_overlay_canvas_positions)
+        overlay.events.visible.connect(self._on_overlay_visibility_change)
         if isinstance(overlay, CanvasOverlay):
             overlay.events.gridded.connect(self._update_scenegraph)
+
+    def _on_overlay_visibility_change(self, _event: Event | None = None) -> None:
+        self._update_gridded_overlays()
+        self._update_overlay_canvas_positions()
 
     def _on_overlay_added(self, event: Event) -> None:
         """Create the visual of an overlay added after the canvas was made."""
@@ -1013,7 +1063,7 @@ class VispyCanvas:
         visuals = self._overlay_to_visual.pop(overlay, None)
         if visuals is not None:
             overlay.events.position.disconnect(self._update_overlay_canvas_positions)
-            overlay.events.visible.disconnect(self._update_overlay_canvas_positions)
+            overlay.events.visible.disconnect(self._on_overlay_visibility_change)
             if isinstance(overlay, CanvasOverlay):
                 overlay.events.gridded.disconnect(self._update_scenegraph)
             for visual in visuals:

@@ -14,6 +14,9 @@ from vispy.scene.visuals import Compound, Line, Markers, Rectangle, Text
 
 from napari_plot.components.legend import LegendEntry, LegendOverlay
 
+if ty.TYPE_CHECKING:
+    from napari.layers import Layer
+
 FALLBACK_MARKER = "square"
 TEXT_WIDTH_FACTOR = 1.05
 TEXT_EXTRA_PADDING_FACTOR = 1.5
@@ -87,7 +90,9 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         overlay: LegendOverlay,
         font_info: FontInfo,
         parent=None,
+        layer_filter: tuple[frozenset[Layer], bool] | None = None,
     ) -> None:
+        self._layer_filter = layer_filter
         self._background = Rectangle(center=(0, 0), width=1, height=1, color=(0, 0, 0, 0))
         self._border = Line(connect="segments", method="gl")
         self._text = Text(text="", pos=(0, 0, 0), anchor_x="left", anchor_y="center")
@@ -98,7 +103,6 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         super().__init__(node=node, viewer=viewer, overlay=overlay, font_info=font_info, parent=parent)
 
         # shows only rows whose layer passes the filter (one cell's layers in grid mode); `None` shows all rows
-        self._layer_filter: ty.Callable[[str], bool] | None = None
         overlay.events.entries.connect(self._on_entries_change)
         for event_name in _STYLE_EVENTS:
             getattr(overlay.events, event_name).connect(self._on_data_change)
@@ -138,16 +142,14 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         entries = tuple(self.overlay.entries)
         if self._layer_filter is None:
             return entries
-        return tuple(entry for entry in entries if entry.layer_name is None or self._layer_filter(entry.layer_name))
+        layers, include = self._layer_filter
+        names = {layer.name for layer in layers}
+        return tuple(entry for entry in entries if entry.layer_name is None or (entry.layer_name in names) == include)
 
-    def set_layer_filter(self, layer_filter: ty.Callable[[str], bool] | None) -> None:
-        """Show only rows whose layer name passes `layer_filter`; rows without a layer are always shown.
-
-        Parameters
-        ----------
-        layer_filter : callable, optional
-            Called with the layer name of each row. `None` shows every row.
-        """
+    def set_layer_filter(self, layer_filter: tuple[frozenset[Layer], bool] | None) -> None:
+        """Show rows for the given layer membership, preserving manual rows."""
+        if self._layer_filter == layer_filter:
+            return
         self._layer_filter = layer_filter
         self._on_data_change()
 
@@ -185,11 +187,10 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self._text.visible = False
         self._ensure_marker_count(0)
 
-    def _row_positions(self) -> np.ndarray:
+    def _row_positions(self, entries: ty.Sequence[LegendEntry]) -> np.ndarray:
         row_height = max(self.overlay.effective_font_size, self.overlay.marker_size) + self.overlay.row_spacing
         row_center = max(self.overlay.effective_font_size, self.overlay.marker_size) / 2
         text_x = self.overlay.padding
-        entries = self._entries
         if _has_marker_column(entries):
             text_x += self.overlay.marker_size + MARKER_TEXT_GAP
         return np.asarray(
@@ -207,7 +208,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
             return
 
         self.x_size, self.y_size = legend_layout_size(self.overlay, entries)
-        text_positions = self._row_positions()
+        text_positions = self._row_positions(entries)
         self._background.center = self.x_size / 2, self.y_size / 2
         self._background.width = self.x_size
         self._background.height = self.y_size
@@ -295,10 +296,6 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
             layer = self.viewer.layers[layer_name]
             layer.visible = not layer.visible
             event.handled = True
-
-    def reset(self) -> None:
-        super().reset()
-        self._on_data_change()
 
     def close(self) -> None:
         # the overlay model outlives this visual (e.g. a legend copy in a plot cell that was removed)
