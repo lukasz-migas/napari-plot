@@ -8,9 +8,11 @@ from __future__ import annotations
 
 import typing as ty
 from collections.abc import Iterable, Mapping, Sequence
+from uuid import uuid4
 
 import numpy as np
 
+from napari_plot.layers._grouping import LAYER_GROUP_KEY
 from napari_plot.stats._data import CategoricalData, Orient
 
 if ty.TYPE_CHECKING:
@@ -18,6 +20,16 @@ if ty.TYPE_CHECKING:
 
     from napari_plot.components.viewer_model import ViewerModel
     from napari_plot.layers import MultiLine, Scatter
+
+
+def group_id(group: str | None) -> str:
+    """Use an explicit group ID or generate one for this plot."""
+    return str(uuid4()) if group is None else group
+
+
+def group_metadata(group: str | None) -> dict[str, str]:
+    """Build the metadata shared by a plot's layers at construction."""
+    return {LAYER_GROUP_KEY: group_id(group)}
 
 
 def dodge_offsets(n_hue: int, width: float, dodge: bool) -> tuple[np.ndarray, float]:

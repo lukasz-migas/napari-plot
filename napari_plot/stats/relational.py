@@ -185,6 +185,7 @@ def lineplot(
     err_alpha: float = 0.2,
     legend: bool = True,
     name: str = "lineplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw lines through ``y`` per ``x``, aggregating repeated ``x`` values with an error band.
 
@@ -212,6 +213,8 @@ def lineplot(
         Show a legend for hue levels.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -229,19 +232,20 @@ def lineplot(
     levels = list(categorical_order(frame["hue"], hue_order)) if has_hue else [None]
     colors = level_colors(levels, palette, color) if has_hue else {None: level_colors([0], palette, color)[0]}
 
+    metadata = cm.group_metadata(group)
     lines, line_colors, bands, band_colors = [], [], [], []
     error_layers: list[Layer | None] = []
     for level in levels:
-        group = frame if level is None else frame[frame["hue"] == level]
+        observations = frame if level is None else frame[frame["hue"] == level]
         if sort:
-            group = group.sort_values("x", kind="stable")
+            observations = observations.sort_values("x", kind="stable")
         if estimator is None:
-            xs, est = group["x"].to_numpy(dtype=float), group["y"].to_numpy(dtype=float)
+            xs, est = observations["x"].to_numpy(dtype=float), observations["y"].to_numpy(dtype=float)
             low = high = np.full_like(est, np.nan)
         else:
             rows = [
                 (value, *aggregate(sub["y"].to_numpy(), estimator, errorbar, n_boot, seed))
-                for value, sub in group.groupby("x", sort=sort)
+                for value, sub in observations.groupby("x", sort=sort)
             ]
             xs, est, low, high = (np.asarray(column, dtype=float) for column in zip(*rows, strict=True))
         if not len(xs):
@@ -260,16 +264,26 @@ def lineplot(
                     color=colors[level],
                     width=1.5,
                     name=name if level is None else f"{name} [{level}] errors",
+                    metadata=metadata,
                 )
             )
 
     layers: list[Layer | None] = []
     if bands:
         layers.append(
-            viewer.add_areas(bands, fill_color=band_colors, border_width=0, opacity=err_alpha, name=f"{name} errors")
+            viewer.add_areas(
+                bands,
+                fill_color=band_colors,
+                border_width=0,
+                opacity=err_alpha,
+                name=f"{name} errors",
+                metadata=metadata,
+            )
         )
     layers += error_layers
-    layers.append(cm.add_segments(viewer, lines, "v", color=line_colors, width=linewidth, name=f"{name} lines"))
+    layers.append(
+        cm.add_segments(viewer, lines, "v", color=line_colors, width=linewidth, name=f"{name} lines", metadata=metadata)
+    )
     cm.set_axis_labels(viewer, labels.get("x"), labels.get("y"))
     entries = cm.legend_entries(colors, marker="hbar") if has_hue else []
     return cm.finish(viewer, layers, entries, legend)

@@ -32,6 +32,7 @@ from napari_plot.layers import (
     Scatter,
     Text,
 )
+from napari_plot.layers._grouping import LAYER_GROUP_KEY
 from napari_plot.resources import get_stylesheet
 
 
@@ -132,6 +133,79 @@ def _right_click_menu(
     assert not exceptions
     assert actions, "The right click did not construct the context menu."
     return actions
+
+
+def test_group_actions_update_only_the_clicked_layer_list(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch) -> None:
+    existing = Points([[0, 0]], metadata={LAYER_GROUP_KEY: "original"})
+    line = Line([[0, 0], [1, 1]], metadata={LAYER_GROUP_KEY: "original", "keep": True})
+    points = Points([[1, 1]])
+    plot = LayerList([existing, line, points])
+    plot.selection.select_only(line)
+    plot.selection.add(points)
+    host_layer = Line([[0, 0], [1, 1]], metadata={LAYER_GROUP_KEY: "host only"})
+    host = LayerList([host_layer])
+    host.selection.select_only(host_layer)
+    view = QtLayerList(plot)
+    qtbot.addWidget(view)
+    qt_model = view.model()
+    index = qt_model.index(0, 0)
+    tooltip_role = Qt.ItemDataRole.ToolTipRole
+    base_tooltip = index.data(tooltip_role)
+    monkeypatch.setattr("napari_plot._qt.qt_layer_list.get_text", lambda *_, **_kwargs: "  new & group  ")
+
+    with get_app_model().injection_store.register(providers=[(lambda: host, LayerList, 0)]):
+        with qtbot.waitSignal(qt_model.dataChanged, timeout=1_000):
+            actions = _right_click_menu(qtbot, view, monkeypatch, "napari_plot.layer.group")
+        assert not any(action.objectName() == "napari_plot.layer.add_to_group.host only" for action in actions)
+        assert line.metadata == {LAYER_GROUP_KEY: "new & group", "keep": True}
+        assert points.metadata[LAYER_GROUP_KEY] == "new & group"
+        assert index.data(tooltip_role) == f"{base_tooltip}\nGroup: new & group"
+        assert existing.metadata[LAYER_GROUP_KEY] == "original"
+
+        plot.selection.select_only(points)
+        actions = _right_click_menu(qtbot, view, monkeypatch, "napari_plot.layer.add_to_group.original")
+        by_id = {action.objectName(): action for action in actions}
+        assert not by_id["napari_plot.layer.group"].isEnabled()
+        assert by_id["napari_plot.layer.add_to_group.new & group"].text() == "new && group"
+        assert points.metadata[LAYER_GROUP_KEY] == "original"
+        assert line.metadata[LAYER_GROUP_KEY] == "new & group"
+
+        plot.selection.add(line)
+        _right_click_menu(qtbot, view, monkeypatch, "napari_plot.layer.ungroup")
+        actions = _right_click_menu(qtbot, view, monkeypatch)
+        by_id = {action.objectName(): action for action in actions}
+        assert "napari_plot.layer.add_to_group.new & group" not in by_id
+        assert not by_id["napari_plot.layer.ungroup"].isEnabled()
+
+    assert line.metadata == {"keep": True}
+    assert LAYER_GROUP_KEY not in points.metadata
+    assert index.data(tooltip_role) == base_tooltip
+    assert existing.metadata[LAYER_GROUP_KEY] == "original"
+    assert host_layer.metadata[LAYER_GROUP_KEY] == "host only"
+
+
+@pytest.mark.parametrize("name", [None, "   ", "taken"])
+def test_group_action_ignores_invalid_names(qtbot: QtBot, monkeypatch: pytest.MonkeyPatch, name: str | None) -> None:
+    first = Points([[0, 0]], metadata={LAYER_GROUP_KEY: "taken"})
+    second = Points([[1, 1]])
+    plot = LayerList([first, second])
+    plot.selection.select_only(first)
+    plot.selection.add(second)
+    view = QtLayerList(plot)
+    qtbot.addWidget(view)
+    warnings: list[str] = []
+    monkeypatch.setattr("napari_plot._qt.qt_layer_list.get_text", lambda *_, **_kwargs: name)
+    monkeypatch.setattr("napari_plot._qt.qt_layer_list.warn", lambda _, message, **_kwargs: warnings.append(message))
+
+    _right_click_menu(qtbot, view, monkeypatch, "napari_plot.layer.group")
+
+    assert first.metadata[LAYER_GROUP_KEY] == "taken"
+    assert LAYER_GROUP_KEY not in second.metadata
+    if name == "taken":
+        assert len(warnings) == 1
+        assert "Add to Group" in warnings[0]
+    else:
+        assert warnings == []
 
 
 @pytest.mark.parametrize(

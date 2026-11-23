@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import typing as ty
-from uuid import uuid4
 
 import numpy as np
 
@@ -95,6 +94,7 @@ def boxplot(
     fliersize: float = 5,
     legend: bool = True,
     name: str = "boxplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw box-and-whisker plots of values grouped by category (and hue).
 
@@ -133,6 +133,8 @@ def boxplot(
         Show a legend for hue levels.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -141,6 +143,7 @@ def boxplot(
     """
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     line_rgba = to_rgba(linecolor)
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
@@ -169,13 +172,20 @@ def boxplot(
                     border_color=line_rgba,
                     border_width=linewidth,
                     name=_layer_name(name, level, "boxes"),
+                    metadata=metadata,
                 ),
                 groups,
             )
         )
         layers.append(
             cm.add_segments(
-                viewer, segments, cat.orient, color=line_rgba, width=linewidth, name=_layer_name(name, level, "lines")
+                viewer,
+                segments,
+                cat.orient,
+                color=line_rgba,
+                width=linewidth,
+                name=_layer_name(name, level, "lines"),
+                metadata=metadata,
             )
         )
         if showfliers and fliers:
@@ -190,6 +200,7 @@ def boxplot(
                     border_color=line_rgba,
                     size=fliersize,
                     name=_layer_name(name, level, "fliers"),
+                    metadata=metadata,
                 )
             )
     return cm.finish(viewer, layers, entries, legend)
@@ -220,6 +231,7 @@ def boxenplot(
     fliersize: float = 5,
     legend: bool = True,
     name: str = "boxenplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw letter-value (boxen) plots: nested boxes for successively finer quantiles.
 
@@ -236,6 +248,7 @@ def boxenplot(
 
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     line_rgba = to_rgba(linecolor)
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
@@ -275,6 +288,7 @@ def boxenplot(
                     border_color=line_rgba,
                     border_width=linewidth,
                     name=_layer_name(name, level, "boxes"),
+                    metadata=metadata,
                 ),
                 groups,
             )
@@ -287,6 +301,7 @@ def boxenplot(
                 color=line_rgba,
                 width=linewidth * 2,
                 name=_layer_name(name, level, "medians"),
+                metadata=metadata,
             )
         )
         if showfliers and fliers:
@@ -301,6 +316,7 @@ def boxenplot(
                     border_color=line_rgba,
                     size=fliersize,
                     name=_layer_name(name, level, "fliers"),
+                    metadata=metadata,
                 )
             )
     return cm.finish(viewer, layers, entries, legend)
@@ -362,7 +378,7 @@ def violinplot(
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color, saturation)
     split = split and cat.hue_levels is not None and len(cat.hue_levels) == 2
     line_rgba = to_rgba(linecolor)
-    metadata = {"napari_plot.group": group if group is not None else str(uuid4())}
+    metadata = cm.group_metadata(group)
 
     # Estimate all densities first so the normalization can be shared between violins.
     groups = []
@@ -489,6 +505,7 @@ def barplot(
     linewidth: float = 1.0,
     legend: bool = True,
     name: str = "barplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw (grouped) bars of a point estimate per category with error bars.
 
@@ -511,6 +528,7 @@ def barplot(
         Created layers in drawing order.
     """
     cat, color_fn, entries = _prepare(viewer, data, x, y, hue, order, hue_order, orient, palette, color)
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     errors = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
@@ -534,6 +552,7 @@ def barplot(
                     border_color=linecolor,
                     border_width=linewidth,
                     name=_layer_name(name, level, "bars"),
+                    metadata=metadata,
                 ),
                 groups,
             )
@@ -550,6 +569,7 @@ def barplot(
                 width=err_width,
                 cap_size=capsize,
                 name=f"{name} errors",
+                metadata=metadata,
             )
         )
     return cm.finish(viewer, layers, entries, legend)
@@ -569,11 +589,13 @@ def _scatter_categorical(
     linewidth: float,
     legend: bool,
     name: str,
+    group: str | None,
 ) -> list[Layer]:
     """Shared body of strip and swarm plots: one Scatter layer per hue level.
 
     Each layer has ``category`` and ``hue`` features naming the group of every point, for hover/click lookups.
     """
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     for level, cells, element in cm.iter_cells(cat, width, dodge):
         if not cells:
@@ -597,6 +619,7 @@ def _scatter_categorical(
                 size=size,
                 features={"category": categories, "hue": [level] * len(categories)},
                 name=name if level is None else f"{name} [{level}]",
+                metadata=metadata,
             )
         )
     return cm.finish(viewer, layers, entries, legend)
@@ -623,12 +646,14 @@ def stripplot(
     seed: ty.Any = None,
     legend: bool = True,
     name: str = "stripplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw every observation as a point, jittered along the categorical axis.
 
     Parameters are as for :func:`boxplot`, plus ``jitter`` (True for the default amount, or the half-width of the
     jitter in data units), ``size`` (marker size in screen pixels), ``linewidth`` (marker border width in screen
     pixels) and ``seed`` for reproducible jitter.
+    Use ``group`` to share a layer group ID. The default generates a fresh ID.
 
     Returns
     -------
@@ -655,6 +680,7 @@ def stripplot(
         linewidth=linewidth,
         legend=legend,
         name=name,
+        group=group,
     )
 
 
@@ -678,6 +704,7 @@ def swarmplot(
     warn_thresh: float = 0.05,
     legend: bool = True,
     name: str = "swarmplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw a beeswarm, spreading points along the categorical axis to avoid overlap.
 
@@ -734,4 +761,5 @@ def swarmplot(
         linewidth=linewidth,
         legend=legend,
         name=name,
+        group=group,
     )

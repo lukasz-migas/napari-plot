@@ -103,6 +103,7 @@ def kdeplot(
     alpha: float = 0.25,
     legend: bool = True,
     name: str = "kdeplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw univariate kernel density estimates, one curve per hue level.
 
@@ -135,6 +136,8 @@ def kdeplot(
         Show a legend for hue levels.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -162,6 +165,7 @@ def kdeplot(
         curve_colors.append(colors[level])
         areas.append(np.column_stack((support, np.zeros_like(density), density)))
 
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     if fill and areas:
         layers.append(
@@ -172,11 +176,20 @@ def kdeplot(
                 border_width=0,
                 opacity=alpha,
                 name=f"{name} fill",
+                metadata=metadata,
             )
         )
     if curves:
         layers.append(
-            cm.add_segments(viewer, curves, dist.orient, color=curve_colors, width=linewidth, name=f"{name} curves")
+            cm.add_segments(
+                viewer,
+                curves,
+                dist.orient,
+                color=curve_colors,
+                width=linewidth,
+                name=f"{name} curves",
+                metadata=metadata,
+            )
         )
     _label_axes(viewer, dist, "Cumulative" if cumulative else "Density")
     entries = cm.legend_entries(colors, marker="hbar") if dist.has_hue else []
@@ -222,6 +235,7 @@ def histplot(
     linewidth: float = 1.0,
     legend: bool = True,
     name: str = "histplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw histograms of univariate observations, optionally split and arranged by hue.
 
@@ -257,6 +271,8 @@ def histplot(
         Show a legend for hue levels.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -286,6 +302,7 @@ def histplot(
     n_levels = len(heights)
     baseline = np.zeros(len(shared) - 1)
     totals = np.sum([counts for _, counts in heights.values()], axis=0) if multiple == "fill" else None
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = []
     for hue_index, (level, (edges, counts)) in enumerate(heights.items()):
         widths = np.diff(edges) * shrink
@@ -309,6 +326,7 @@ def histplot(
                 border_width=linewidth,
                 opacity=opacity,
                 name=name if level is None else f"{name} [{level}]",
+                metadata=metadata,
             )
         )
 
@@ -326,7 +344,11 @@ def histplot(
             curves.append(np.column_stack((support, density * scale)))
             curve_colors.append(colors[level])
         if curves:
-            layers.append(cm.add_segments(viewer, curves, dist.orient, color=curve_colors, width=2, name=f"{name} kde"))
+            layers.append(
+                cm.add_segments(
+                    viewer, curves, dist.orient, color=curve_colors, width=2, name=f"{name} kde", metadata=metadata
+                )
+            )
 
     _label_axes(viewer, dist, stat.capitalize())
     entries = cm.legend_entries(colors) if dist.has_hue else []
@@ -356,6 +378,7 @@ def rugplot(
     alpha: float | None = None,
     legend: bool = True,
     name: str = "rugplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw one tick per observation along the bottom (``x``) or left (``y``) of the plot.
 
@@ -365,6 +388,7 @@ def rugplot(
     room between the ticks and existing data. ``linewidth`` is in screen pixels.
 
     Returns one MultiLine layer per plotted axis. Ticks use data coordinates after placement.
+    Use ``group`` to share a layer group ID. The default generates a fresh ID.
     """
     from matplotlib.category import UnitData
     from matplotlib.figure import Figure
@@ -410,6 +434,7 @@ def rugplot(
 
     xmin, xmax = ax.get_xlim()
     ymin, ymax = ax.get_ylim()
+    metadata = cm.group_metadata(group)
     layers: list[Layer] = []
     for collection in ax.collections:
         segments = np.asarray(collection.get_segments(), dtype=float)
@@ -429,6 +454,7 @@ def rugplot(
             color=collection.get_colors(),
             width=linewidth,
             name=name if len(ax.collections) == 1 else f"{name} {role}",
+            metadata=metadata,
         )
         if layer is not None:
             layers.append(layer)
@@ -474,6 +500,7 @@ def distplot(
     kde_kws: dict | None = None,
     legend: bool = True,
     name: str = "distplot",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw a density-normalized histogram with a KDE curve and optional rug (seaborn's classic ``distplot``).
 
@@ -497,6 +524,8 @@ def distplot(
         Show a legend for hue levels.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID for all components. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -505,12 +534,15 @@ def distplot(
     """
     source = a if a is not None else data
     common = {"x": x, "y": y, "hue": hue, "hue_order": hue_order, "palette": palette, "color": color}
+    group = cm.group_id(group)
     layers: list[Layer] = []
     if hist:
         hist_options = {"stat": "density", "bins": bins, "legend": legend, "name": f"{name} hist", **(hist_kws or {})}
+        hist_options["group"] = group
         layers += histplot(viewer, source, **common, **hist_options)
     if kde:
         kde_options = {"legend": legend and not hist, "name": f"{name} kde", **(kde_kws or {})}
+        kde_options["group"] = group
         layers += kdeplot(viewer, source, **common, **kde_options)
     if rug:
         dist = _distribution(source, x, y, hue, hue_order)
@@ -521,7 +553,15 @@ def distplot(
         for level, values in dist.groups.items():
             ticks += [((value, 0.0), (value, -length)) for value in values]
             tick_colors += [colors[level]] * len(values)
-        layer = cm.add_segments(viewer, ticks, dist.orient, color=tick_colors, width=1, name=f"{name} rug")
+        layer = cm.add_segments(
+            viewer,
+            ticks,
+            dist.orient,
+            color=tick_colors,
+            width=1,
+            name=f"{name} rug",
+            metadata=cm.group_metadata(group),
+        )
         if layer is not None:
             layers.append(layer)
         cm.fit_view(viewer)

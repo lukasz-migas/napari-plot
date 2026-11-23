@@ -189,6 +189,12 @@ layers or native napari layers. Layers with the same string ID belong to the
 same group. An absent key or `None` means the layer is ungrouped. Grouped
 grid placement is a future feature.
 
+Select two or more layers and choose **Group Layers** from the layer-list
+right-click menu to create a named group. Choose **Add to Group** to assign the
+selection to an existing group in this viewer, or **Ungroup Layers** to clear
+membership. These commands affect the selected layers. Hover over a grouped
+layer to see its group ID.
+
 ```python
 custom_layer.metadata["napari_plot.group"] = "my-group"
 native_layer.metadata["napari_plot.group"] = "my-group"
@@ -211,8 +217,11 @@ viewer = napari_plot.Viewer()
 viewer.boxplot(tips, x="day", y="total_bill", hue="smoker")
 ```
 
-By default, each `violinplot` call assigns a fresh group ID to its body and
-inner layers. Pass `group="my-group"` to share an ID with other calls or layers.
+Plot helpers that can create multiple layers assign a fresh group ID to all
+their layers, even when the chosen options produce only one layer. Pass
+`group="my-group"` to share an ID across calls or attach a rug to an existing
+plot. This applies to `relplot` when `kind="line"`. Standalone `scatterplot`
+layers can be grouped through metadata or the layer-list menu.
 
 | Plot | Function | Layers |
 | --- | --- | --- |

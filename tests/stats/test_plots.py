@@ -1,6 +1,8 @@
 """Each statistical plot builds the expected layers on a ViewerModel."""
 
 import inspect
+from typing import Any
+from uuid import UUID
 
 import numpy as np
 import pandas as pd
@@ -9,6 +11,7 @@ import pytest
 from napari_plot import stats
 from napari_plot.components.viewer_model import ViewerModel
 from napari_plot.layers import Areas, Bar, ErrorBar, MultiLine, Scatter, Text
+from napari_plot.layers._grouping import LAYER_GROUP_KEY
 
 
 @pytest.fixture
@@ -36,6 +39,59 @@ def test_viewer_methods_mirror_stats_functions() -> None:
         function = getattr(stats, name)
         assert method.__doc__ == function.__doc__
         assert list(inspect.signature(method).parameters)[1:] == list(inspect.signature(function).parameters)[1:]
+
+
+@pytest.mark.parametrize(
+    ("plot", "options"),
+    [
+        ("boxplot", {"x": "day", "y": "bill", "hue": "smoker"}),
+        ("boxenplot", {"x": "day", "y": "bill", "hue": "smoker"}),
+        ("barplot", {"x": "day", "y": "bill", "hue": "smoker", "errorbar": "sd"}),
+        ("stripplot", {"x": "day", "y": "bill", "hue": "smoker"}),
+        ("swarmplot", {"x": "day", "y": "bill", "hue": "smoker"}),
+        ("kdeplot", {"x": "bill", "hue": "smoker", "fill": True}),
+        ("histplot", {"x": "bill", "hue": "smoker", "kde": True}),
+        ("rugplot", {"x": "bill", "y": "tip"}),
+        ("distplot", {"rug": True, "hist_kws": {"group": "nested hist"}}),
+        ("heatmap", {"annot": True}),
+        ("clustermap", {"annot": True}),
+        ("lineplot", {"x": "size", "y": "bill", "errorbar": "sd", "err_style": "bars"}),
+        ("relplot", {"kind": "line", "x": "size", "y": "bill", "errorbar": "sd"}),
+    ],
+)
+def test_compound_plot_group_is_shared_at_insertion(tips: pd.DataFrame, plot: str, options: dict[str, Any]) -> None:
+    viewer = ViewerModel()
+    inserted_groups: list[str | None] = []
+    viewer.layers.events.inserted.connect(
+        lambda event: inserted_groups.append(event.value.metadata.get(LAYER_GROUP_KEY))
+    )
+    if plot == "distplot":
+        data = tips["bill"].to_numpy()
+    elif plot in {"heatmap", "clustermap"}:
+        data = tips[["bill", "tip"]].head(5)
+    else:
+        data = tips
+    draw = getattr(viewer, plot)
+
+    first = draw(data, name="same name", **options)
+    second = draw(data, name="same name", **options)
+    shared = draw(data, group="shared", **options)
+
+    assert len(first) == len(second) == len(shared) > 1
+    first_id = first[0].metadata[LAYER_GROUP_KEY]
+    second_id = second[0].metadata[LAYER_GROUP_KEY]
+    assert UUID(first_id).version == UUID(second_id).version == 4
+    assert first_id != second_id
+    assert inserted_groups == [first_id] * len(first) + [second_id] * len(second) + ["shared"] * len(shared)
+    assert [layer.metadata[LAYER_GROUP_KEY] for layer in [*first, *second, *shared]] == inserted_groups
+
+
+def test_grouping_with_only_one_layer(tips: pd.DataFrame) -> None:
+    viewer = ViewerModel()
+    (density,) = viewer.kdeplot(tips, x="bill", group=None)
+    (scatter,) = viewer.scatterplot(tips, x="bill", y="tip")
+    assert UUID(density.metadata[LAYER_GROUP_KEY]).version == 4
+    assert LAYER_GROUP_KEY not in scatter.metadata
 
 
 def test_boxplot_with_hue(tips: pd.DataFrame) -> None:

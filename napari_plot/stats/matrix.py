@@ -46,6 +46,7 @@ def heatmap(
     yticklabels: ty.Any = True,
     cbar: bool = False,
     name: str = "heatmap",
+    group: str | None = None,
 ) -> list[Layer]:
     """Draw a matrix as a color-encoded image, optionally annotating each cell with its value.
 
@@ -81,6 +82,8 @@ def heatmap(
         Show the viewer colorbar next to the plot, following the heatmap's colormap and limits.
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID. A fresh ID is generated when omitted or None.
 
     Returns
     -------
@@ -97,12 +100,14 @@ def heatmap(
     low, high = float(mapper.vmin), float(mapper.vmax)
     if high <= low:
         high = low + 1.0
+    metadata = cm.group_metadata(group)
     layers: list[Layer | None] = [
         viewer.add_image(
             values[::-1],  # plot y axis points up, seaborn draws the first row at the top
             colormap=colormap_from_mpl(mapper.cmap),
             contrast_limits=(low, high),
             name=name,
+            metadata=metadata,
         )
     ]
     if cbar:
@@ -133,7 +138,14 @@ def heatmap(
                 fit_px = min(0.6 * cell_h, cell_w / (0.65 * longest + 1.0))
                 annot_size = float(np.clip(0.4 * fit_px, 4, 12))
             layers.append(
-                viewer.add_text(np.asarray(positions), texts, color=colors, size=annot_size, name=f"{name} annotations")
+                viewer.add_text(
+                    np.asarray(positions),
+                    texts,
+                    color=colors,
+                    size=annot_size,
+                    name=f"{name} annotations",
+                    metadata=metadata,
+                )
             )
 
     x_labels = _tick_labels(mapper.xticks, mapper.xticklabels, n_cols)
@@ -169,6 +181,7 @@ def clustermap(
     tree_color: ty.Any = "lightgray",
     tree_width: float = 1.0,
     name: str = "clustermap",
+    group: str | None = None,
     **heatmap_kws: ty.Any,
 ) -> list[Layer]:
     """Draw a hierarchically clustered heatmap with row/column dendrograms in the canvas margins.
@@ -193,6 +206,8 @@ def clustermap(
         Dendrogram line style (width in screen pixels).
     name : str
         Prefix for created layer names.
+    group : str, optional
+        Shared layer group ID for the heatmap and dendrograms. A fresh ID is generated when omitted or None.
     **heatmap_kws
         Passed to :func:`heatmap`.
 
@@ -216,7 +231,8 @@ def clustermap(
     col_tree = _DendrogramPlotter(frame, col_linkage, metric, method, 1, False, False) if col_cluster else None
     row_order = row_tree.reordered_ind if row_tree is not None else list(range(n_rows))
     col_order = col_tree.reordered_ind if col_tree is not None else list(range(n_cols))
-    layers = heatmap(viewer, frame.iloc[row_order, col_order], name=name, **heatmap_kws)
+    group = cm.group_id(group)
+    layers = heatmap(viewer, frame.iloc[row_order, col_order], name=name, group=group, **heatmap_kws)
 
     links = []
     if col_tree is not None:  # above the heatmap
@@ -227,7 +243,15 @@ def clustermap(
         leaves, heights = _tree_lines(row_tree)
         depth = dendrogram_ratio * n_cols
         links += [np.column_stack((-0.5 - h * depth, n_rows - 1 - y)) for y, h in zip(leaves, heights, strict=True)]
-    tree = cm.add_segments(viewer, links, "v", color=to_rgba(tree_color), width=tree_width, name=f"{name} dendrograms")
+    tree = cm.add_segments(
+        viewer,
+        links,
+        "v",
+        color=to_rgba(tree_color),
+        width=tree_width,
+        name=f"{name} dendrograms",
+        metadata=cm.group_metadata(group),
+    )
     if tree is not None:
         layers.append(tree)
     cm.fit_view(viewer, include=(-0.5, n_cols - 0.5, -0.5, n_rows - 0.5), margin=0.02)
