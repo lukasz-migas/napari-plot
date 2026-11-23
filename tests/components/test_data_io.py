@@ -95,6 +95,7 @@ def test_joint_grid_session_round_trip(tmp_path: Path) -> None:
     viewer = ViewerModel()
     grid = JointGrid(viewer, right=False, ratio=3)
     grid.add_layer(viewer.add_line([[0, 1], [2, 3]]), panel="top")
+    grid.set_axis_labels(y_var="Count", panel="top", visible=False)
     path = tmp_path / "joint.napari-plot"
     viewer.save_session(path)
     restored = ViewerModel()
@@ -102,4 +103,6 @@ def test_joint_grid_session_round_trip(tmp_path: Path) -> None:
     assert restored.canvas.grid.joint
     assert not restored.canvas.grid.joint_right
     assert restored.canvas.grid.joint_ratio == 3
+    assert restored.canvas.grid.joint_top_label == "Count"
+    assert restored.canvas.grid.joint_hidden_labels == ("top",)
     assert dict(restored.canvas.grid.iter_viewboxes(restored.layers))[(0, 0)] == (0,)

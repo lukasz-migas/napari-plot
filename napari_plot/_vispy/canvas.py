@@ -373,14 +373,19 @@ class VispyCanvas:
                 cell.configure_axes(None, None, (True, True))
                 continue
             model = grid._find_cell(*cell.position)
+            labels_visible = True
             if grid.enabled and grid.joint:
                 model = None
+                panel = "joint"
                 if cell.position == (0, 0) and grid.joint_top:
                     model = self._joint_top_axis
                     model.y_label = grid.joint_top_label
+                    panel = "top"
                 elif cell.position[1] == 1:
                     model = self._joint_right_axis
                     model.x_label = grid.joint_right_label
+                    panel = "right"
+                labels_visible = panel not in grid.joint_hidden_labels
             field = getattr(event, "field", getattr(event, "type", ""))
             changed_model = getattr(event, "cell", None)
             reset = tuple(
@@ -391,7 +396,7 @@ class VispyCanvas:
             shared = (grid.sharex, grid.sharey)
             if grid.joint:
                 shared = (cell.position[1] == 0, cell.position[0] == int(grid.joint_top))
-            cell.configure_axes(model, self._cell_layers[index], shared, reset=reset)
+            cell.configure_axes(model, self._cell_layers[index], shared, reset=reset, labels_visible=labels_visible)
 
     def _reset_cell_axis(self, event: Event) -> None:
         name = "x" if event.type == "reset_x" else "y"

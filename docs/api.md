@@ -31,7 +31,9 @@ The following names are importable directly from `napari_plot`:
 
 The `stats` extra provides statistical functions under `napari_plot.stats`
 and on the viewer. Axes-level functions return a list of created layers.
-`displot`, `catplot`, `lmplot`, and `pairplot` return a `FacetGrid`.
+`displot`, `catplot`, and `lmplot` return a `FacetGrid`. `pairplot` returns a
+`PairGrid`, which is also a `FacetGrid`. Import `PairGrid` from
+`napari_plot.stats` to map functions to a matrix directly.
 `jointplot` returns a `JointGrid`, which can also be created directly without the stats extra.
 
 Keyword arguments are forwarded to the corresponding layer constructor. The

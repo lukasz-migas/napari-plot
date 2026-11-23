@@ -12,7 +12,7 @@ from napari.utils.events import Event, EventedModel
 from pydantic import Field, field_validator
 
 from napari_plot.components.axis import Axis, AxisScale
-from napari_plot.components.joint_grid import joint_panel
+from napari_plot.components.joint_grid import JointPanel, joint_panel
 from napari_plot.layers._grouping import get_layer_group
 
 if TYPE_CHECKING:
@@ -67,6 +67,7 @@ class PlotGridCanvas(GridCanvas):
     joint_ratio: float = Field(default=5, gt=0, allow_inf_nan=False)
     joint_top_label: str = ""
     joint_right_label: str = ""
+    joint_hidden_labels: tuple[JointPanel, ...] = ()
 
     def __init__(self, **data: object) -> None:
         super().__init__(**data)

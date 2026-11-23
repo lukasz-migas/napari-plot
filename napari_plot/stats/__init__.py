@@ -19,7 +19,7 @@ __all__ = sorted(_PLOTS)
 
 def __getattr__(name: str) -> Any:
     """Load a statistical plotting function on first access."""
-    module = "facets" if name == "FacetGrid" else _PLOTS.get(name)
+    module = "facets" if name in {"FacetGrid", "PairGrid"} else _PLOTS.get(name)
     if module is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     try:
@@ -34,4 +34,4 @@ def __getattr__(name: str) -> Any:
 
 def __dir__() -> list[str]:
     """List statistical plotting functions alongside loaded members."""
-    return sorted(set(globals()) | set(__all__) | {"FacetGrid"})
+    return sorted(set(globals()) | set(__all__) | {"FacetGrid", "PairGrid"})

@@ -859,3 +859,76 @@ def test_joint_grid_aligns_viewports_with_asymmetric_gutters(plot, qtbot, monkey
     viewer.clear_colorbar(cell=main.position)
     _settle(qtbot, canvas)
     assert main.view.size == pytest.approx((original_width, original_height))
+
+
+def test_joint_grid_updates_panels_independently(make_napari_plot_viewer, qtbot, monkeypatch) -> None:
+    from napari_plot import JointGrid
+
+    monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
+    viewer = make_napari_plot_viewer(show=True)
+    canvas = viewer.window._qt_viewer.canvas
+    canvas.native.setFixedSize(800, 600)
+    main_layer = viewer.plot([0, 10], [0, 1])
+    grid = JointGrid(viewer)
+    top_layer = grid.add_layer(viewer.plot([0, 10], [1, 2]), panel="top")
+    right_layer = grid.add_layer(viewer.plot([2, 3], [0, 10]), panel="right")
+    viewer.reset_view()
+    main, top, right = canvas._cells
+    main_rect, top_rect, right_rect = (cell.camera.rect for cell in canvas._cells)
+
+    top_layer.data = top_layer.data + [0, 100]
+    assert top.camera.rect[2:] == pytest.approx(np.asarray(top_rect[2:]) + 100)
+    assert main.camera.rect == pytest.approx(main_rect)
+    assert right.camera.rect == pytest.approx(right_rect)
+
+    right_layer.data = right_layer.data + [200, 0]
+    assert right.camera.rect[:2] == pytest.approx(np.asarray(right_rect[:2]) + 200)
+    assert main.camera.rect == pytest.approx(main_rect)
+    assert top.camera.rect[2:] == pytest.approx(np.asarray(top_rect[2:]) + 100)
+
+    main_layer.data = main_layer.data + [400, 300]
+    _settle(qtbot, canvas)
+    assert main.camera.rect[1] > 400
+    assert main.camera.rect[3] > 300
+    assert top.camera.rect[:2] == pytest.approx(main.camera.rect[:2])
+    assert right.camera.rect[2:] == pytest.approx(main.camera.rect[2:])
+    assert top.camera.rect[2:] == pytest.approx(np.asarray(top_rect[2:]) + 100)
+    assert right.camera.rect[:2] == pytest.approx(np.asarray(right_rect[:2]) + 200)
+    assert [canvas.layer_to_visual[layer].node.parent for layer in viewer.layers] == [
+        cell.data_scene for cell in canvas._cells
+    ]
+
+
+def test_joint_grid_toggles_titles_per_panel(plot, qtbot) -> None:
+    from napari_plot import JointGrid
+
+    viewer, canvas = plot
+    grid = JointGrid(viewer)
+    grid.set_axis_labels("Time", "Response")
+    grid.set_axis_labels(y_var="Count", panel="top", visible=False)
+    grid.set_axis_labels(x_var="Density", panel="right")
+    _settle(qtbot, canvas)
+    main, top, right = canvas._cells
+    top_axis = top.y_axis.node.axis
+    right_axis = right.x_axis.node.axis
+
+    assert top_axis.axis_label == "Count"
+    assert not top_axis._axis_label_vis.visible
+    assert top_axis._text.visible
+    assert len(top_axis._text.text)
+    assert right_axis.axis_label == "Density"
+    assert right_axis._axis_label_vis.visible
+    assert main.x_axis.node.axis._axis_label_vis.visible
+
+    grid.set_axis_labels(visible=False)
+    grid.set_axis_labels(panel="top", visible=True)
+    _settle(qtbot, canvas)
+    assert top_axis.axis_label == "Count"
+    assert top_axis._axis_label_vis.visible
+    assert not main.x_axis.node.axis._axis_label_vis.visible
+    assert not main.y_axis.node.axis._axis_label_vis.visible
+    assert right_axis._axis_label_vis.visible
+
+    viewer.canvas.grid.enabled = False
+    assert main.x_axis.node.axis._axis_label_vis.visible
+    assert main.x_axis.node.axis.axis_label == "Time"

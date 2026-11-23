@@ -72,11 +72,12 @@ class VispyAxisVisual:
         self.on_tick_formatter_change(None)
         self._on_tick_options_change()
 
-    def configure_cell(self, cell: PlotGridCell | None) -> None:
+    def configure_cell(self, cell: PlotGridCell | None, *, label_visible: bool = True) -> None:
         """Apply the grid cell's axis settings, using the viewer's defaults for unspecified fields."""
         self._cell_model = cell
         self._on_scale_change()
         self._on_label_change()
+        self.node.axis._axis_label_vis.visible = label_visible
 
     def _axis_setting(self, field: str) -> Any:
         if field == "scale" and self._cell_model is not None:

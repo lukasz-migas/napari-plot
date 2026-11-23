@@ -247,12 +247,25 @@ at call time. `heatmap` draws the first row at the top by flipping the image.
 
 `displot`, `catplot`, and `lmplot` split a table into grid cells using `row` and
 `col`. `pairplot` compares numeric variables across a matrix of plots. These
-functions return a `FacetGrid` whose `.layers` contains the created layers.
+functions return a grid whose `.layers` contains the created layers. `pairplot`
+returns a `PairGrid`, a `FacetGrid` subclass.
 
 ```python
 facets = viewer.catplot(tips, x="day", y="total_bill", col="smoker", kind="box")
 facets.set_axis_labels(y_var="Total bill")
 ```
+
+Use `PairGrid` to map different functions to each region.
+
+```python
+from napari_plot.stats import PairGrid, histplot, kdeplot, scatterplot
+
+grid = PairGrid(viewer, data, hue="species")
+grid.map_upper(scatterplot).map_lower(kdeplot).map_diag(histplot)
+```
+
+Callbacks receive a staging viewer and the table as `data`, with column names as
+`x` and `y`. Diagonal callbacks receive `x` only. Mapping methods can be chained.
 
 `jointplot` draws a bivariate plot with marginal distributions and returns a
 `JointGrid`. To build the layout manually, use `JointGrid(viewer, top=True,
@@ -260,6 +273,25 @@ right=True, ratio=5)`. Set either marginal to `False` to omit it. Use
 `grid.add_layer(layer, panel="top")` or `panel="right"` to place a new or
 existing layer in a marginal. All panels use the viewer's layer list. The top
 panel shares x limits with the main plot, and the right panel shares y limits.
+
+Keep the layer handles to update each plot after setup. The line layers
+created by `viewer.plot()` store `(x, y)` rows.
+
+```python
+import numpy as np
+from napari_plot import JointGrid
+
+main = viewer.plot(x, y)
+grid = JointGrid(viewer)
+top = grid.add_layer(viewer.plot(x, x_summary), panel="top")
+right = grid.add_layer(viewer.plot(y_summary, y), panel="right")
+
+top.data = np.column_stack((x, new_x_summary))
+grid.set_axis_labels(y_var="Count", panel="top", visible=False)
+```
+
+Pass `visible=True` to show a panel's labels again. Ticks and axis lines stay
+visible. `set_axis_labels()` targets the main plot by default.
 
 Use `viewer.rugplot(data, x="total_bill")` to mark observations along the bottom
 of a distribution plot. Supply `y` to mark observations along the left side as

@@ -725,7 +725,9 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         This covers categorical axes (incl. tick rotation and thinning), log scales, fixed ranges, legend, colorbar and
         text overlays.
         """
-        self.canvas.grid.update({"joint": False, "joint_top_label": "", "joint_right_label": ""})
+        self.canvas.grid.update(
+            {"joint": False, "joint_top_label": "", "joint_right_label": "", "joint_hidden_labels": ()}
+        )
         self.clear_canvas()
         self.camera.x_range = None
         self.camera.y_range = None

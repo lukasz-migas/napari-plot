@@ -33,3 +33,18 @@ def test_camera_widget_close_disconnects_camera_events(qtbot) -> None:
 
     widget.close()
     assert widget not in _listeners(viewer.camera.events)
+
+
+def test_camera_widgets_preserve_model_precision(qtbot) -> None:
+    viewer = ViewerModel()
+    widget = QtCameraWidget(viewer, None)
+    qtbot.addWidget(widget)
+    limits = (1 / 3, 2 / 3, 1 / 7, 2 / 7)
+
+    viewer.camera.rect = limits
+    viewer.camera.extent = limits
+
+    assert viewer.camera.rect == limits
+    assert viewer.camera.extent == limits
+    assert widget.x_min.value() == round(limits[0], 6)
+    assert widget.extent_x_min.value() == round(limits[0], 6)

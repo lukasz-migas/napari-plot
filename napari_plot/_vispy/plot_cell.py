@@ -172,6 +172,7 @@ class VispyPlotCell:
         shared: tuple[bool, bool],
         *,
         reset: tuple[bool, bool] = (False, False),
+        labels_visible: bool = True,
     ) -> None:
         """Apply the grid cell's overrides and synchronize its transforms."""
         self.camera.configure_cell(model, layers, shared, reset=reset)
@@ -181,5 +182,5 @@ class VispyPlotCell:
             self._axis_transform_key = key
             self.data_scene.transform = axis_transform(*key)
         for visual in (self.x_axis, self.y_axis):
-            visual.configure_cell(model)
+            visual.configure_cell(model, label_visible=labels_visible)
             visual.node._view_changed()

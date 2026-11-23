@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Iterator, Sequence
+from inspect import signature
 from itertools import product
 from math import ceil
 from typing import TYPE_CHECKING, Any
@@ -138,16 +139,25 @@ class FacetGrid:
 
         return self._map(plot_for)
 
-    def _map(self, method: Callable[[tuple[int, int]], tuple[Callable[..., Any], dict[str, Any]]]) -> FacetGrid:
+    def _map(
+        self,
+        method: Callable[[tuple[int, int]], tuple[Callable[..., Any], dict[str, Any]]],
+        positions: set[tuple[int, int]] | None = None,
+        *,
+        merge_legends: bool = False,
+    ) -> FacetGrid:
         from napari_plot.components.viewer_model import ViewerModel
 
         first_legend = []
         prepared = []
         for position, (data, title) in self._panels.items():
+            if positions is not None and position not in positions:
+                continue
             if isinstance(data, pd.DataFrame) and data.empty:
                 continue
             plot, options = method(position)
             stage = ViewerModel()
+            default_labels = (stage.axis.x_label, stage.axis.y_label)
             plot(stage, data=data, **options)
             axis_settings = {
                 "x_label": f"{stage.axis.x_label} ({title})" if title else stage.axis.x_label,
@@ -157,8 +167,10 @@ class FacetGrid:
                 "x_scale": stage.axis.x_scale,
                 "y_scale": stage.axis.y_scale,
             }
-            if stage.legend.entries and not first_legend:
-                first_legend = [entry.model_dump() for entry in stage.legend.entries]
+            self._adjust_axis_settings(position, axis_settings, default_labels)
+            if stage.legend.entries and (merge_legends or not first_legend):
+                labels = {entry["label"] for entry in first_legend}
+                first_legend.extend(entry.model_dump() for entry in stage.legend.entries if entry.label not in labels)
             layers = list(stage.layers)
             for layer in layers:
                 overlays = dict(layer._overlays)
@@ -176,6 +188,11 @@ class FacetGrid:
             self.viewer.set_legend(first_legend)
         self.viewer.reset_view()
         return self
+
+    def _adjust_axis_settings(
+        self, position: tuple[int, int], settings: dict[str, Any], default_labels: tuple[str, str]
+    ) -> None:
+        pass
 
     def set_axis_labels(self, x_var: str | None = None, y_var: str | None = None) -> FacetGrid:
         """Set the displayed x and/or y labels in every facet."""
@@ -298,6 +315,142 @@ def lmplot(
     return grid.map_dataframe(regression, x=x, y=y, hue=hue, **kwargs)
 
 
+class PairGrid(FacetGrid):
+    """Map callbacks across pairs of table columns using a staging viewer.
+
+    Callbacks receive ``data``, ``x`` and ``y``. Diagonal callbacks receive
+    ``data`` and ``x`` only. Variable names must be strings.
+    """
+
+    def __init__(
+        self,
+        viewer: ViewerModel,
+        data: Any,
+        *,
+        vars: Sequence[str] | None = None,  # noqa: A002
+        x_vars: Sequence[str] | None = None,
+        y_vars: Sequence[str] | None = None,
+        hue: Any = None,
+        corner: bool = False,
+    ) -> None:
+        frame = _as_frame(data)
+        if frame is None:
+            raise ValueError("PairGrid needs tabular data.")
+        columns = list(vars) if vars is not None else list(frame.select_dtypes("number").columns)
+        if vars is None and isinstance(hue, str):
+            columns = [column for column in columns if column != hue]
+        self.x_vars = list(x_vars) if x_vars is not None else columns.copy()
+        self.y_vars = list(y_vars) if y_vars is not None else columns.copy()
+        if not self.x_vars or not self.y_vars:
+            raise ValueError("PairGrid needs at least one x and one y variable.")
+        for column in [*self.x_vars, *self.y_vars]:
+            if not isinstance(column, str):
+                raise TypeError("PairGrid variable names must be strings.")
+            if column not in frame.columns:
+                raise ValueError(f"Unknown column {column!r}.")
+        if isinstance(hue, str) and hue not in frame.columns:
+            raise ValueError(f"Unknown column {hue!r}.")
+        self.hue = hue
+        super().__init__(viewer, frame, sharex=False, sharey=False)
+        self._shape = (len(self.y_vars), len(self.x_vars))
+        self._panels = {
+            (i, j): (frame, "")
+            for i, j in product(range(len(self.y_vars)), range(len(self.x_vars)))
+            if not corner or j <= i
+        }
+        self._active = False
+
+    def _configure(self) -> None:
+        grid = self.viewer.canvas.grid
+        if not self._active:
+            for cell in grid.cells:
+                if cell.group is not None:
+                    cell.group = None
+        super()._configure()
+        for i, j in self._panels:
+            cell = grid.cell(i, j)
+            if cell.x_label is None:
+                cell.x_label = str(self.x_vars[j])
+            if cell.y_label is None:
+                cell.y_label = str(self.y_vars[i])
+        self._active = True
+
+    def _adjust_axis_settings(
+        self, position: tuple[int, int], settings: dict[str, Any], default_labels: tuple[str, str]
+    ) -> None:
+        i, j = position
+        if not settings["x_label"] or settings["x_label"] == default_labels[0]:
+            settings["x_label"] = str(self.x_vars[j])
+        if not settings["y_label"] or settings["y_label"] == default_labels[1]:
+            settings["y_label"] = str(self.y_vars[i])
+
+    def _map_region(self, func: Callable[..., Any], region: str, kwargs: dict[str, Any]) -> PairGrid:
+        positions = set()
+        for i, j in self._panels:
+            diagonal = self.x_vars[j] == self.y_vars[i]
+            if (
+                region == "all"
+                or (region == "diag" and diagonal)
+                or (region == "offdiag" and not diagonal)
+                or (region == "upper" and not diagonal and j > i)
+                or (region == "lower" and not diagonal and i > j)
+            ):
+                positions.add((i, j))
+        if not positions:
+            return self
+        options = dict(kwargs)
+        if region == "diag":
+            options.pop("y", None)
+        hue = options.get("hue", self.hue)
+        if hue is not None or "hue" in options:
+            parameters = signature(func).parameters
+            accepts_hue = "hue" in parameters or any(p.kind == p.VAR_KEYWORD for p in parameters.values())
+            if accepts_hue:
+                options.setdefault("hue", hue)
+            elif hue is None:
+                options.pop("hue", None)
+        if hue is not None and any(
+            func is plot for plot in (*_BIVARIATE.values(), *_DISTRIBUTIONS.values(), *_CATEGORICAL.values())
+        ):
+            options = _hue_options(self._frame, hue, options, continuous=func is relational.scatterplot)
+            if (
+                options.get("hue_order") is not None
+                and options.get("hue_norm") is None
+                and not isinstance(options.get("palette"), dict)
+            ):
+                options["palette"] = level_colors(options["hue_order"], options.get("palette"), options.get("color"))
+
+        def plot_for(position: tuple[int, int]) -> tuple[Callable[..., Any], dict[str, Any]]:
+            i, j = position
+            arguments = {**options, "x": self.x_vars[j]}
+            if region != "diag":
+                arguments["y"] = self.y_vars[i]
+            return func, arguments
+
+        self._map(plot_for, positions, merge_legends=True)
+        return self
+
+    def map(self, func: Callable[..., Any], **kwargs: Any) -> PairGrid:
+        """Map a bivariate function to every available cell."""
+        return self._map_region(func, "all", kwargs)
+
+    def map_upper(self, func: Callable[..., Any], **kwargs: Any) -> PairGrid:
+        """Map a function above the diagonal."""
+        return self._map_region(func, "upper", kwargs)
+
+    def map_lower(self, func: Callable[..., Any], **kwargs: Any) -> PairGrid:
+        """Map a function below the diagonal."""
+        return self._map_region(func, "lower", kwargs)
+
+    def map_offdiag(self, func: Callable[..., Any], **kwargs: Any) -> PairGrid:
+        """Map a function to cells with different variables."""
+        return self._map_region(func, "offdiag", kwargs)
+
+    def map_diag(self, func: Callable[..., Any], **kwargs: Any) -> PairGrid:
+        """Map a univariate function to cells with matching variables."""
+        return self._map_region(func, "diag", kwargs)
+
+
 def pairplot(
     viewer: ViewerModel,
     data: Any,
@@ -311,18 +464,11 @@ def pairplot(
     corner: bool = False,
     plot_kws: dict[str, Any] | None = None,
     diag_kws: dict[str, Any] | None = None,
-) -> FacetGrid:
+) -> PairGrid:
     """Draw pairwise plots for numeric columns and distributions for matching columns."""
-    frame = _as_frame(data)
-    if frame is None:
-        raise ValueError("pairplot needs tabular data.")
-    columns = list(vars) if vars is not None else list(frame.select_dtypes("number").columns)
-    if vars is None and isinstance(hue, str):
-        columns = [column for column in columns if column != hue]
-    x_columns = list(x_vars) if x_vars is not None else columns
-    y_columns = list(y_vars) if y_vars is not None else columns
-    if not x_columns or not y_columns:
-        raise ValueError("pairplot needs at least one x and one y variable.")
+    grid = PairGrid(viewer, data, vars=vars, x_vars=x_vars, y_vars=y_vars, hue=hue, corner=corner)
+    frame = grid._frame
+    x_columns, y_columns = grid.x_vars, grid.y_vars
     off_diagonal = _select_kind(_BIVARIATE, kind)
     diagonal = _select_kind(
         _DISTRIBUTIONS, ("kde" if hue is not None else "hist") if diag_kind == "auto" else diag_kind
@@ -333,11 +479,15 @@ def pairplot(
     if hue is not None:
         plot_kws = {**_hue_options(frame, hue, plot_kws, continuous=kind == "scatter"), "hue": hue}
     diag_kws = {**_hue_options(frame, hue, diag_kws or {}), "hue": hue}
-    grid = FacetGrid(viewer, frame, sharex=False, sharey=False)
-    grid._shape = (len(y_columns), len(x_columns))
-    grid._panels = {
-        (i, j): (frame, "") for i, j in product(range(len(y_columns)), range(len(x_columns))) if not corner or j <= i
-    }
+    diag_kws.pop("y", None)
+    for options in (plot_kws, diag_kws):
+        if (
+            hue is not None
+            and options.get("hue_order") is not None
+            and options.get("hue_norm") is None
+            and not isinstance(options.get("palette"), dict)
+        ):
+            options["palette"] = level_colors(options["hue_order"], options.get("palette"), options.get("color"))
 
     def plot_for(position: tuple[int, int]) -> tuple[Callable[..., Any], dict[str, Any]]:
         row, column = position
@@ -346,7 +496,8 @@ def pairplot(
             return diagonal, {**diag_kws, "x": x}
         return off_diagonal, {**plot_kws, "x": x, "y": y}
 
-    return grid._map(plot_for)
+    grid._map(plot_for)
+    return grid
 
 
 def jointplot(

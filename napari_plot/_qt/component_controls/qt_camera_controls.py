@@ -305,12 +305,10 @@ class QtCameraWidget(QWidget):
 
     def _on_extent_changed(self, _event=None):
         """Update min/max controls."""
-        with self.ref_viewer().camera.events.extent.blocker():
-            x0, x1, y0, y1 = self.ref_viewer().camera.extent
-            self.extent_x_min.setValue(x0)
-            self.extent_x_max.setValue(x1)
-            self.extent_y_min.setValue(y0)
-            self.extent_y_max.setValue(y1)
+        widgets = self.extent_x_min, self.extent_x_max, self.extent_y_min, self.extent_y_max
+        for widget, value in zip(widgets, self.ref_viewer().camera.extent, strict=True):
+            with hp.qt_signals_blocked(widget):
+                widget.setValue(value)
 
     def on_change_extent(self):
         """Update min/max."""
@@ -323,12 +321,10 @@ class QtCameraWidget(QWidget):
 
     def _on_rect_changed(self, _event=None):
         """Update min/max controls."""
-        with self.ref_viewer().camera.events.rect.blocker():
-            x0, x1, y0, y1 = self.ref_viewer().camera.rect
-            self.x_min.setValue(x0)
-            self.x_max.setValue(x1)
-            self.y_min.setValue(y0)
-            self.y_max.setValue(y1)
+        widgets = self.x_min, self.x_max, self.y_min, self.y_max
+        for widget, value in zip(widgets, self.ref_viewer().camera.rect, strict=True):
+            with hp.qt_signals_blocked(widget):
+                widget.setValue(value)
 
     def on_change_x_range(self):
         """Update x-range"""

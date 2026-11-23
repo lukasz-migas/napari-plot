@@ -34,6 +34,7 @@ uv run --extra pyqt6 python examples/export_and_restore.py ./profile-exports --r
 | --- | --- |
 | Grouped line styles and widths, a step histogram, normalized KDE, and ECDF | [stats_styled_lines.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/stats_styled_lines.py) |
 | Regression by batch, categorical comparisons, and joint or pairwise views | [stats_facets.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/stats_facets.py) |
+| Cycling rides on a PairGrid with scatter plots, density estimates, and histograms | [stats_pairgrid.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/stats_pairgrid.py) |
 
 The statistical examples require the `stats` extra. The faceting example defaults
 to regression. Use `--kind` to try `ecdf`, `point`, `count`, `pair`, `joint-hist`,
