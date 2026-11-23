@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import typing as ty
+from functools import partial
 
+import numpy as np
 from napari.utils.events import disconnect_events
 from vispy.scene import Node
 from vispy.scene.widgets import Grid
@@ -13,6 +15,7 @@ from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 
 if ty.TYPE_CHECKING:
     from vispy.scene import ViewBox, Widget
+    from vispy.scene.events import SceneMouseEvent
 
     from napari_plot.components.viewer_model import ViewerModel
 
@@ -39,6 +42,48 @@ def link_axis(axis: VispyXAxisVisual | VispyYAxisVisual, view: ViewBox) -> None:
     for node in (axis.node, view):
         node.transform.changed.connect(axis.node._view_changed)
     axis._on_max_size_change()
+    # the whole axis area accepts the mouse, so it can be dragged to pan, or scrolled to zoom, along the axis
+    axis.node.interactive = True
+    handler = partial(_on_axis_mouse, axis, view)
+    for event_name in ("mouse_press", "mouse_move", "mouse_release", "mouse_wheel"):
+        getattr(axis.node.events, event_name).connect(handler)
+
+
+def _on_axis_mouse(axis: VispyXAxisVisual | VispyYAxisVisual, view: ViewBox, event: SceneMouseEvent) -> None:
+    """Pan or zoom `view` along `axis` only.
+
+    Dragging the axis with the right mouse button pans; the mouse wheel zooms about the value under the mouse.
+    Modified clicks are ignored; the canvas already drops modified wheel events.
+    """
+    index = 0 if isinstance(axis, VispyXAxisVisual) else 1
+    if event.type == "mouse_wheel":
+        if not (axis._viewer.camera.mouse_zoom and view.interactive):
+            return
+        camera = view.camera
+        # the same zoom step as scrolling in the plot area, applied to one axis
+        factor = [1.0, 1.0]
+        factor[index] = (1 + camera.zoom_factor) ** (-event.mouse_event.delta[1] * 30)
+        center = view.scene.node_transform(view.canvas.central_widget).imap(event.mouse_event.pos[:2])
+        camera.zoom(factor, center[:2])
+        event.handled = True
+        return
+    if event.type == "mouse_press":
+        # accepting the press makes vispy send the rest of the drag to this axis only, so the plot camera does not
+        # pan both axes when the mouse leaves the axis area
+        event.handled = (
+            event.button == 2 and not event.mouse_event.modifiers and axis._viewer.camera.mouse_pan and view.interactive
+        )
+        return
+    if event.type != "mouse_move" or event.press_event is None or 2 not in event.buttons:
+        return
+    # canvas pixels to scene units; the offset of the view cancels out in the difference
+    transform = view.camera.transform
+    previous = transform.imap(np.asarray(event.mouse_event.last_event.pos[:2], dtype=float))
+    current = transform.imap(np.asarray(event.mouse_event.pos[:2], dtype=float))
+    delta = np.zeros(2)
+    delta[index] = previous[index] - current[index]
+    view.camera.pan(delta)
+    event.handled = True
 
 
 class VispyPlotCell:

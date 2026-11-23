@@ -11,6 +11,7 @@
 
 - Added grid mode (`viewer.canvas.grid.enabled = True`): layers are shown side by side in plot cells with their own axes and a shared camera; gridded overlays (grid lines by default) are drawn in every cell.
   - A gridded legend (`viewer.legend.gridded = True`) lists only the layers of its cell.
+- Right-dragging the x- or y-axis (of any plot cell in grid mode) pans the view along that axis only, and scrolling over it zooms that axis only, about the value under the mouse.
 
 # napari-plot v0.3.1
 

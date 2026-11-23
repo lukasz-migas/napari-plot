@@ -122,13 +122,20 @@ class NapariSceneCanvas(SceneCanvas_):
         """
         if event.button != 1 or event.pos is None:
             return
+        axis = self._axis_at(event.pos)
+        if axis == "x":
+            self.events.reset_x()
+        elif axis == "y":
+            self.events.reset_y()
+
+    def _axis_at(self, pos: ty.Sequence[float]) -> str | None:
+        """Return "x" or "y" when the canvas position `pos` is on the x- or y-axis of any plot cell."""
         for x_axis, y_axis in self.view_axes.values():
-            if self._widget_contains(x_axis.node, event.pos):
-                self.events.reset_x()
-                return
-            if self._widget_contains(y_axis.node, event.pos):
-                self.events.reset_y()
-                return
+            if self._widget_contains(x_axis.node, pos):
+                return "x"
+            if self._widget_contains(y_axis.node, pos):
+                return "y"
+        return None
 
     def _widget_contains(self, widget: Widget, pos: ty.Sequence[float]) -> bool:
         """Whether the canvas position `pos` falls inside `widget`."""
@@ -224,13 +231,11 @@ class VispyCanvas:
         self.x_axis = VispyXAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
         self.grid.add_widget(self.x_axis.node, row=2, col=1)
         link_axis(self.x_axis, self.view)
-        self.x_axis.interactive = True
 
         # add y-axis widget
         self.y_axis = VispyYAxisVisual(self.viewer, parent=self.view, order=1e6 + 1)
         self.grid.add_widget(self.y_axis.node, row=1, col=0)
         link_axis(self.y_axis, self.view)
-        self.y_axis.interactive = True
 
         # colorbar right of the plot, in the column of the right padding
         padding = self._scene_canvas.padding_x
@@ -825,6 +830,15 @@ class VispyCanvas:
         event : vispy.event.Event
             The vispy event that triggered this method.
         """
+        # a right-drag on an axis pans along it (see `plot_cell._on_axis_mouse`); the drag tools must not start
+        if (
+            event.button == 2
+            and not event.modifiers
+            and self.viewer.camera.mouse_pan
+            and event.pos is not None
+            and self._scene_canvas._axis_at(event.pos) is not None
+        ):
+            return
         if event.pos is not None:
             self._set_active_cell(self._cell_at(event.pos))
         self._process_mouse_event(mouse_press_callbacks, event)

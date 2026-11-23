@@ -57,6 +57,9 @@ please modify the list below or create a [new issue](https://github.com/lukasz-m
   - [x] Rectangle select - rectangle tool allowing sub-selection of data in the canvas. Similar to the `Box-zoom` but without the zooming part.
   - [x] Polygon select - polygon tool allowing sub-selection of data in the canvas.
   - [x] Lasso select - lasso tool allowing sub-selection of data in the canvas.
+  - [x] Pan - `right-mouse + drag` in the canvas moves the view; on the x- or y-axis it moves only that axis.
+  - [x] Zoom - `mouse wheel` in the canvas zooms about the mouse; on the x- or y-axis it zooms only that axis.
+  - [x] Reset axis - `double-click` the x- or y-axis to reset that range.
 - [x] Interactive plot legend
 - [x] Customizable axis visuals.
   - [x] Plot axis enabling customization of tick/label size and color

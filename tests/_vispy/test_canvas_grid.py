@@ -353,3 +353,92 @@ def test_double_click_on_an_axis_resets_its_range(plot, qtbot, grid: bool) -> No
         _double_click(canvas, _widget_center(canvas, cell.view))
         _double_click(canvas, _widget_center(canvas, cell.x_axis.node), button=2)
         assert viewer.camera.rect == pytest.approx(zoomed)
+
+
+def _drag(canvas: VispyCanvas, start: np.ndarray, *moves: np.ndarray, button: int = 2) -> None:
+    """Press at `start`, move through `moves` and release, like vispy does for a real drag."""
+    events = canvas._scene_canvas.events
+    press = events.mouse_press(pos=tuple(start), button=button, buttons=[button], modifiers=())
+    last = press
+    for pos in moves:
+        last = events.mouse_move(
+            pos=tuple(pos), button=button, buttons=[button], modifiers=(), press_event=press, last_event=last
+        )
+    events.mouse_release(pos=tuple(moves[-1]), button=button, modifiers=(), press_event=press, last_event=last)
+
+
+@pytest.mark.parametrize("grid", [False, True])
+def test_right_drag_on_an_axis_pans_along_it(plot, qtbot, grid: bool) -> None:
+    """Right-dragging an axis of any cell moves only that axis range, and does not start the drag tools."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = grid
+    _settle(qtbot, canvas)
+    spans = []
+    viewer.events.span.connect(spans.append)
+    rect = (2.0, 6.0, 0.5, 2.5)
+
+    for cell in canvas._cells:
+        width, height = cell.view.size
+        viewer.camera.rect = rect
+        start = _widget_center(canvas, cell.x_axis.node)
+        # dragging right moves the data right, so the range moves left; leaving the axis does not pan y
+        _drag(canvas, start, start + (30, 0), start + (50, -height / 2))
+        assert viewer.camera.rect == pytest.approx((2.0 - 200 / width, 6.0 - 200 / width, 0.5, 2.5), abs=1e-4)
+
+        viewer.camera.rect = rect
+        start = _widget_center(canvas, cell.y_axis.node)
+        # dragging down moves the data down, so the range moves up
+        _drag(canvas, start, start + (0, 40))
+        assert viewer.camera.rect == pytest.approx((2.0, 6.0, 0.5 + 80 / height, 2.5 + 80 / height), abs=1e-4)
+        for other in canvas._cells:
+            assert other.camera.rect == pytest.approx(viewer.camera.rect, abs=1e-4)
+        assert not spans
+
+        # a left-drag on an axis keeps its usual meaning (the drag tool) and does not pan
+        viewer.camera.rect = rect
+        _drag(canvas, start, start + (0, 40), button=1)
+        assert viewer.camera.rect == pytest.approx(rect)
+        spans.clear()
+
+
+@pytest.mark.parametrize("grid", [False, True])
+def test_wheel_on_an_axis_zooms_along_it(plot, qtbot, grid: bool) -> None:
+    """Scrolling over an axis of any cell zooms only that axis, keeping the value under the mouse in place."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = grid
+    _settle(qtbot, canvas)
+    rect = (2.0, 6.0, 0.5, 2.5)
+
+    def wheel(pos: np.ndarray, delta: float, modifiers: tuple = ()) -> None:
+        canvas._scene_canvas.events.mouse_wheel(pos=tuple(pos), delta=(0, delta), modifiers=modifiers)
+
+    for cell in canvas._cells:
+        offset = canvas._view_offset(cell.view)
+        width, height = cell.view.size
+        # a quarter along the x-axis and a quarter down the y-axis, so zooming about the mouse is not the center
+        x_pos = _widget_center(canvas, cell.x_axis.node) - (width / 4, 0)
+        y_pos = _widget_center(canvas, cell.y_axis.node) - (0, height / 4)
+        x_value = 2.0 + (x_pos[0] - offset[0]) / width * 4.0
+        y_value = 2.5 - (y_pos[1] - offset[1]) / height * 2.0
+
+        for delta, zoom_in in ((1, True), (-1, False)):
+            viewer.camera.rect = rect
+            wheel(x_pos, delta)
+            left, right, bottom, top = viewer.camera.rect
+            assert (right - left < 4.0) is zoom_in
+            assert (x_value - left) / (right - left) == pytest.approx((x_value - 2.0) / 4.0, abs=1e-4)
+            assert (bottom, top) == pytest.approx((0.5, 2.5))
+
+            viewer.camera.rect = rect
+            wheel(y_pos, delta)
+            left, right, bottom, top = viewer.camera.rect
+            assert (top - bottom < 2.0) is zoom_in
+            assert (top - y_value) / (top - bottom) == pytest.approx((2.5 - y_value) / 2.0, abs=1e-4)
+            assert (left, right) == pytest.approx((2.0, 6.0))
+        for other in canvas._cells:
+            assert other.camera.rect == pytest.approx(viewer.camera.rect, abs=1e-4)
+
+        # wheel events with modifiers are ignored by the canvas, as in the plot area
+        viewer.camera.rect = rect
+        wheel(x_pos, 1, modifiers=("Control",))
+        assert viewer.camera.rect == pytest.approx(rect)
