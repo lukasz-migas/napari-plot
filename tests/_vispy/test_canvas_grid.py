@@ -144,7 +144,6 @@ def test_spacing_and_resize_keep_cells_and_legends(plot, qtbot, monkeypatch: pyt
     """Spacing changes preserve the attached cells and do not redraw or reassign layers."""
     viewer, canvas = plot
     viewer.legend.visible = True
-    viewer.legend.gridded = True
     viewer.canvas.grid.enabled = True
     _settle(qtbot, canvas)
     grid = canvas._cells_grid
@@ -309,7 +308,11 @@ def test_restored_grid_layers_are_drawn(plot, qtbot, mode: str) -> None:
     def click_legend(layer: Layer) -> None:
         _settle(qtbot, canvas)
         canvas._update_overlay_canvas_positions()
-        visual = canvas._overlay_to_visual[viewer.legend][0]
+        visual = next(
+            visual
+            for visual in canvas._overlay_to_visual[viewer.legend]
+            if any(entry.layer_name == layer.name for entry in visual._entries)
+        )
         row = next(i for i, entry in enumerate(visual._entries) if entry.layer_name == layer.name)
         origin = visual.node.node_transform(canvas._scene_canvas.central_widget).map([0, 0])[:2]
         row_height = max(viewer.legend.effective_font_size, viewer.legend.marker_size) + viewer.legend.row_spacing
@@ -439,7 +442,7 @@ def test_legend_click_in_grid_cell(plot, qtbot) -> None:
     origin = visual.node.node_transform(canvas._scene_canvas.central_widget).map([0, 0])[:2]
     first_row = viewer.legend.padding + 2
     event = SimpleNamespace(pos=(origin[0] + 5, origin[1] + first_row), button=1, handled=False)
-    label = viewer.legend.entries[0].layer_name
+    label = visual._entries[0].layer_name
     visual._on_mouse_press(event)
     assert event.handled
     assert not viewer.layers[label].visible
@@ -449,12 +452,16 @@ def test_gridded_legend_lists_only_the_layers_of_its_cell(plot, qtbot) -> None:
     """Each cell's legend shows its own layers; manual and unassigned rows stay visible."""
     viewer, canvas = plot
     viewer.legend.visible = True
-    viewer.legend.gridded = True
+    assert viewer.legend.gridded
     viewer.canvas.grid.enabled = True
 
     def labels() -> list[list[str]]:
         return [[entry.label for entry in visual._entries] for visual in canvas._overlay_to_visual[viewer.legend]]
 
+    assert labels() == [["line 0"], ["line 1"], ["line 2"]]
+    viewer.canvas.grid.stride = 2
+    assert labels() == [["line 0", "line 1"], ["line 2"]]
+    viewer.canvas.grid.stride = 1
     assert labels() == [["line 0"], ["line 1"], ["line 2"]]
     visuals = canvas._overlay_to_visual[viewer.legend]
     assert visuals[1].x_size < visuals[1].y_size * 10
@@ -465,18 +472,40 @@ def test_gridded_legend_lists_only_the_layers_of_its_cell(plot, qtbot) -> None:
 
     # rows without a layer, or for a layer not shown in any cell, are listed in the first cell
     viewer.set_legend([{"label": "note"}, {"label": "gone", "layer_name": "missing"}, *viewer.legend.entries])
-    viewer.legend.gridded = True
     assert labels() == [["note", "gone", "line 0"], ["note", "line 1"], ["note", "renamed"]]
 
     viewer.legend.gridded = False
     assert labels() == [["note", "gone", "line 0", "line 1", "renamed"]]
+    viewer.legend.gridded = True
+    assert labels() == [["note", "gone", "line 0"], ["note", "line 1"], ["note", "renamed"]]
+    viewer.canvas.grid.enabled = False
+    assert labels() == [["note", "gone", "line 0", "line 1", "renamed"]]
+
+
+def test_gridded_legend_redraws_when_entry_layer_changes(plot) -> None:
+    """Changing a row's layer redraws both the old and new cell."""
+    viewer, canvas = plot
+    viewer.set_legend([{"label": "moving row", "layer_name": "line 0"}])
+    viewer.canvas.grid.enabled = True
+    visuals = canvas._overlay_to_visual[viewer.legend]
+    assert visuals[0].y_size > 0
+    assert visuals[1].y_size == 0
+
+    viewer.legend.entries[0].layer_name = "line 1"
+    assert visuals[0].y_size == 0
+    assert visuals[1].y_size > 0
+    assert list(visuals[1]._text.text) == ["moving row"]
+
+    viewer.layers[1].name = "renamed"
+    assert visuals[0].y_size > 0
+    assert list(visuals[0]._text.text) == ["moving row"]
+    assert visuals[1].y_size == 0
 
 
 def test_gridded_legend_click_toggles_the_layer_of_its_cell(plot, qtbot) -> None:
     """Clicking a row of a cell's legend toggles the layer listed in that cell."""
     viewer, canvas = plot
     viewer.legend.visible = True
-    viewer.legend.gridded = True
     viewer.canvas.grid.enabled = True
     visual = canvas._overlay_to_visual[viewer.legend][2]
     _settle(qtbot, canvas)

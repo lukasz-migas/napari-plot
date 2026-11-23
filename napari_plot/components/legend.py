@@ -259,9 +259,14 @@ def legend_entries_from_layers(layers: ty.Iterable[Layer]) -> tuple[LegendEntry,
 
 
 class LegendOverlay(CanvasOverlay):
-    """Canvas-space legend rendered above plot layers."""
+    """Canvas-space legend with one model sharing settings across cells.
+
+    In grid mode, each cell renders its own layer rows. Set ``gridded`` to
+    False to show one combined legend instead.
+    """
 
     box: bool = False
+    gridded: bool = True
     position: CanvasPosition = CanvasPosition.TOP_RIGHT
     entries: tuple[LegendEntry, ...] = ()
     text_color: Array[float, (4,)] = DEFAULT_LEGEND_TEXT_COLOR

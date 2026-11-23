@@ -460,11 +460,10 @@ class VispyCanvas:
                 visuals.append(self._create_overlay_visual(overlay, self._cells[index], layer_filter))
         self._update_legend_filters()
 
-    def _update_legend_filters(self) -> None:
+    def _update_legend_filters(self, _event: Event | None = None) -> None:
         """List in each cell's copy of a gridded legend only the layers drawn in that cell.
 
-        The first cell also lists rows of layers that are in no cell, so they stay visible and clickable. Names are
-        looked up when the legend is drawn, so renamed layers keep their cell.
+        The first cell also lists rows of layers that are in no cell, so they stay visible and clickable.
         """
         for overlay, visuals in self._overlay_to_visual.items():
             if not isinstance(overlay, LegendOverlay):
@@ -474,12 +473,12 @@ class VispyCanvas:
                     self._legend_filter(index) if self._cells_grid is not None and overlay.gridded else None
                 )
 
-    def _legend_filter(self, index: int) -> tuple[frozenset[Layer], bool] | None:
+    def _legend_filter(self, index: int) -> tuple[frozenset[str], bool] | None:
         if not self._cell_layers:
             return None
         if index == 0:
-            return (frozenset(layer for layers in self._cell_layers[1:] for layer in layers), False)
-        return (frozenset(self._cell_layers[index]), True)
+            return (frozenset(layer.name for layers in self._cell_layers[1:] for layer in layers), False)
+        return (frozenset(layer.name for layer in self._cell_layers[index]), True)
 
     @property
     def events(self):
@@ -726,6 +725,8 @@ class VispyCanvas:
     def delete(self) -> None:
         """Schedules the native widget for deletion"""
         self._disconnect_theme()
+        for layer in self.layer_to_visual:
+            layer.events.name.disconnect(self._update_legend_filters)
         while len(self._cells) > 1:
             self._close_cell(self._cells.pop())
         for visuals in self._overlay_to_visual.values():
@@ -989,6 +990,7 @@ class VispyCanvas:
         label.set_default_font_size(font_size)
         napari_layer.events.visible.connect(self._reorder_layers)
         napari_layer.events.visible.connect(self._update_scenegraph)
+        napari_layer.events.name.connect(self._update_legend_filters)
         # self.viewer.camera.events.angles.connect(vispy_layer._on_camera_move)
         self._reorder_layers()
         self._update_scenegraph()
@@ -998,6 +1000,7 @@ class VispyCanvas:
         layer = event.value
         layer.events.visible.disconnect(self._reorder_layers)
         layer.events.visible.disconnect(self._update_scenegraph)
+        layer.events.name.disconnect(self._update_legend_filters)
         self._layer_name_visuals.pop(layer).close()
         vispy_layer = self.layer_to_visual[layer]
         vispy_layer.close()
@@ -1025,7 +1028,7 @@ class VispyCanvas:
         self._scene_canvas.update()
 
     def _create_overlay_visual(
-        self, overlay: Overlay, cell: VispyPlotCell, layer_filter: tuple[frozenset[Layer], bool] | None = None
+        self, overlay: Overlay, cell: VispyPlotCell, layer_filter: tuple[frozenset[str], bool] | None = None
     ) -> VispyBaseOverlay:
         """Create the visual of `overlay` in plot `cell`."""
         parent = cell.view if isinstance(overlay, CanvasOverlay) else cell.data_scene

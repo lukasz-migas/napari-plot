@@ -281,6 +281,11 @@ hide its source layer; use the layer list to show it again. Left-click the
 legend toolbar button to show or hide the overlay and right-click it to change
 placement, colors, spacing, and source synchronization.
 
+In grid mode, each cell shows legend rows for its layers by default. Rows
+without a layer name appear in every cell, and explicit rows without a matching
+grid cell appear in the first cell. Set `viewer.legend.gridded = False` to keep
+one combined legend. Outside grid mode there is always one combined legend.
+
 ```python
 viewer.legend.visible = True
 viewer.legend.position = "top_right"

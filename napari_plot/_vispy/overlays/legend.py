@@ -14,9 +14,6 @@ from vispy.scene.visuals import Compound, Line, Markers, Rectangle, Text
 
 from napari_plot.components.legend import LegendEntry, LegendOverlay
 
-if ty.TYPE_CHECKING:
-    from napari.layers import Layer
-
 FALLBACK_MARKER = "square"
 TEXT_WIDTH_FACTOR = 1.05
 TEXT_EXTRA_PADDING_FACTOR = 1.5
@@ -90,7 +87,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         overlay: LegendOverlay,
         font_info: FontInfo,
         parent=None,
-        layer_filter: tuple[frozenset[Layer], bool] | None = None,
+        layer_filter: tuple[frozenset[str], bool] | None = None,
     ) -> None:
         self._layer_filter = layer_filter
         self._background = Rectangle(center=(0, 0), width=1, height=1, color=(0, 0, 0, 0))
@@ -129,6 +126,7 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
             entry.events.marker.connect(self._on_data_change)
             entry.events.color.connect(self._on_data_change)
             entry.events.colormap.connect(self._on_data_change)
+            entry.events.layer_name.connect(self._on_data_change)
         self._connected_entries = tuple(self.overlay.entries)
 
     def _disconnect_entry_events(self) -> None:
@@ -142,11 +140,10 @@ class VispyLegendOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         entries = tuple(self.overlay.entries)
         if self._layer_filter is None:
             return entries
-        layers, include = self._layer_filter
-        names = {layer.name for layer in layers}
+        names, include = self._layer_filter
         return tuple(entry for entry in entries if entry.layer_name is None or (entry.layer_name in names) == include)
 
-    def set_layer_filter(self, layer_filter: tuple[frozenset[Layer], bool] | None) -> None:
+    def set_layer_filter(self, layer_filter: tuple[frozenset[str], bool] | None) -> None:
         """Show rows for the given layer membership, preserving manual rows."""
         if self._layer_filter == layer_filter:
             return
