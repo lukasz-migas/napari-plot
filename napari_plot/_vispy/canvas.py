@@ -36,6 +36,7 @@ from napari_plot._vispy.overlays.axis import VispyXAxisVisual, VispyYAxisVisual
 from napari_plot._vispy.overlays.colorbar import VispyColorBarVisual
 from napari_plot._vispy.plot_cell import VispyPlotCell, detach_widget, link_axis
 from napari_plot._vispy.tools.drag import VispyDragTool
+from napari_plot.components.canvas import PlotGridCell
 from napari_plot.components.dragtool import SELECT_TOOLS
 from napari_plot.components.legend import LegendOverlay
 
@@ -149,6 +150,43 @@ class NapariSceneCanvas(SceneCanvas_):
         return 0 <= x <= width and 0 <= y <= height
 
 
+class _PlotCellsGrid(Grid):
+    """Keep the data areas aligned when joint panels have different gutters."""
+
+    joint_pairs: tuple[tuple[VispyPlotCell, VispyPlotCell, str], ...] = ()
+
+    def _update_child_widget_dim(self) -> None:
+        super()._update_child_widget_dim()
+        for main, marginal, dimension in self.joint_pairs:
+            horizontal = dimension == "width"
+            if horizontal:
+                main_width = main.y_axis.node.width_max
+                if marginal.y_axis.node.width_max != main_width:
+                    marginal.y_axis.node.width_max = main_width
+                    marginal.layout._need_solver_recreate = True
+
+            limit = f"{dimension}_max"
+            sizes = []
+            for cell in (main, marginal):
+                gutters: dict[int, float] = {}
+                for row, col, rows, cols, widget in cell.layout._grid_widgets.values():
+                    track, span = (col, cols) if horizontal else (row, rows)
+                    if track == (1 if horizontal else 0) or span != 1:
+                        continue
+                    cap = getattr(widget, limit)
+                    if cap is not None:
+                        gutters[track] = min(gutters.get(track, cap), cap)
+                sizes.append(cell.layout.size[0 if horizontal else 1] - sum(gutters.values()))
+
+            # A narrow window can give the gutters less space than their maximum size.
+            available = min(sizes)
+            for cell in (main, marginal):
+                cap = available if available > 0 else None
+                if getattr(cell.view, limit) != cap:
+                    setattr(cell.view, limit, cap)
+                    cell.layout._need_solver_recreate = True
+
+
 def _tile_axis(side: str, lengths: list[float], extent: float, padding: float, stacked: bool) -> list[float]:
     """Return the start coordinate of each overlay footprint along one axis of a view.
 
@@ -208,7 +246,9 @@ class VispyCanvas:
         self.camera = VispyCamera(self.view, self.viewer.camera, self.viewer)
         # plot cells; the first is the main view and axes, grid mode adds one per layer group
         self._cells: list[VispyPlotCell] = []
-        self._cells_grid: Grid | None = None
+        self._joint_top_axis = PlotGridCell(row=0, column=0, y_scale="linear", x_label="", y_label="")
+        self._joint_right_axis = PlotGridCell(row=0, column=1, x_scale="linear", x_label="", y_label="")
+        self._cells_grid: _PlotCellsGrid | None = None
         self._cells_key: tuple | None = None
         # layers drawn in each plot cell in grid mode; empty outside grid mode
         self._cell_layers: list[list[Layer]] = []
@@ -328,10 +368,19 @@ class VispyCanvas:
         """Refresh limits, transforms and axis labels for the layers assigned to each cell."""
         grid = self.viewer.canvas.grid
         for index, cell in enumerate(self._cells):
+            cell.camera._on_aspect_change()
             if index >= len(self._cell_layers):
                 cell.configure_axes(None, None, (True, True))
                 continue
             model = grid._find_cell(*cell.position)
+            if grid.enabled and grid.joint:
+                model = None
+                if cell.position == (0, 0) and grid.joint_top:
+                    model = self._joint_top_axis
+                    model.y_label = grid.joint_top_label
+                elif cell.position[1] == 1:
+                    model = self._joint_right_axis
+                    model.x_label = grid.joint_right_label
             field = getattr(event, "field", getattr(event, "type", ""))
             changed_model = getattr(event, "cell", None)
             reset = tuple(
@@ -339,7 +388,10 @@ class VispyCanvas:
                 and (changed_model is None or changed_model is model)
                 for name in ("x", "y")
             )
-            cell.configure_axes(model, self._cell_layers[index], (grid.sharex, grid.sharey), reset=reset)
+            shared = (grid.sharex, grid.sharey)
+            if grid.joint:
+                shared = (cell.position[1] == 0, cell.position[0] == int(grid.joint_top))
+            cell.configure_axes(model, self._cell_layers[index], shared, reset=reset)
 
     def _reset_cell_axis(self, event: Event) -> None:
         name = "x" if event.type == "reset_x" else "y"
@@ -355,7 +407,7 @@ class VispyCanvas:
 
     def _grid_active(self) -> bool:
         """Whether layers are shown in a grid of plot cells."""
-        return bool(self.viewer.canvas.grid.enabled and len(self.viewer.layers))
+        return bool(self.viewer.canvas.grid.enabled and (self.viewer.layers or self.viewer.canvas.grid.joint))
 
     def _update_scenegraph(self, _event: Event | None = None) -> None:
         """Lay out the plot cells and put each layer in the cell of its group (a single cell outside grid mode)."""
@@ -365,16 +417,23 @@ class VispyCanvas:
         viewboxes = []
         if self._grid_active():
             grid = self.viewer.canvas.grid
-            assigned = (
-                {(cell.row, cell.column) for cell in grid.cells if cell.group is not None}
-                if grid.group_by_metadata
-                else set()
-            )
-            viewboxes = [
-                (position, indices)
-                for position, indices in grid.iter_viewboxes(self.viewer.layers)
-                if indices or position in assigned
-            ]
+            contents = dict(grid.iter_viewboxes(self.viewer.layers))
+            if grid.joint:
+                positions = [(int(grid.joint_top), 0)]
+                if grid.joint_top:
+                    positions.append((0, 0))
+                if grid.joint_right:
+                    positions.append((int(grid.joint_top), 1))
+                viewboxes = [(position, contents[position]) for position in positions]
+            else:
+                assigned = (
+                    {(cell.row, cell.column) for cell in grid.cells if cell.group is not None}
+                    if grid.group_by_metadata
+                    else set()
+                )
+                viewboxes = [
+                    (position, indices) for position, indices in contents.items() if indices or position in assigned
+                ]
         if viewboxes:
             self._layout_cells([position for position, _ in viewboxes])
             self._cell_layers = [[self.viewer.layers[index] for index in indices] for _, indices in viewboxes]
@@ -409,15 +468,38 @@ class VispyCanvas:
             for widget in self._cells[0].widgets:
                 detach_widget(self.grid, widget)
             spacing = self.viewer.canvas.grid._compute_canvas_spacing(self._scene_canvas.size, self.viewer.layers)
-            self._cells_grid = Grid(spacing=spacing)
+            self._cells_grid = _PlotCellsGrid(spacing=spacing)
             self.grid.add_widget(self._cells_grid, row=1, col=0, col_span=2)
         else:
             self._update_grid_spacing()
-        if tuple(positions) == self._cells_key:
+        key = (tuple(positions), self.viewer.canvas.grid.joint, self.viewer.canvas.grid.joint_ratio)
+        if key == self._cells_key:
             return
         container = self._cells_grid
+        grid = self.viewer.canvas.grid
+        pairs = []
         for cell, (row, col) in zip(self._cells, positions, strict=True):
             layout = cell.ensure_layout()
+            cell.view.width_max = None
+            cell.view.height_max = None
+            layout._need_solver_recreate = True
+            joint = grid.joint
+            top = joint and row == 0 and grid.joint_top
+            right = joint and col == 1
+            cell.x_axis.suppress(bool(top))
+            cell.y_axis.suppress(bool(right))
+            if top:
+                pairs.append((self._cells[0], cell, "width"))
+            if right:
+                pairs.append((self._cells[0], cell, "height"))
+            if joint:
+                ratio = grid.joint_ratio
+                layout.stretch = (
+                    ratio if col == 0 else 1,
+                    ratio if row == int(grid.joint_top) else 1,
+                )
+            else:
+                layout.stretch = (1, 1)
             if layout.parent is not container:
                 container.add_widget(layout, row=row, col=col)
                 layout._need_solver_recreate = True
@@ -431,8 +513,9 @@ class VispyCanvas:
             container._cells.setdefault(row, {})[col] = cell.layout
         container._n_added = len(positions)
         container._next_cell = [positions[-1][0], positions[-1][1] + 1]
+        container.joint_pairs = tuple(pairs)
         container._need_solver_recreate = True
-        self._cells_key = tuple(positions)
+        self._cells_key = key
 
     def _update_grid_spacing(self) -> None:
         """Update the existing grid when the computed pixel spacing changes."""
@@ -450,6 +533,8 @@ class VispyCanvas:
         while len(self._cells) > 1:
             self._close_cell(self._cells.pop())
         main = self._cells[0]
+        main.view.width_max = None
+        main.view.height_max = None
         for widget in main.widgets:
             detach_widget(main.layout, widget)
         main.layout = None
@@ -1075,7 +1160,9 @@ class VispyCanvas:
         self._update_scenegraph()
 
     def _on_layer_metadata_change(self, _event: Event | None = None) -> None:
-        if self.viewer.canvas.grid.enabled and self.viewer.canvas.grid.group_by_metadata:
+        if self.viewer.canvas.grid.enabled and (
+            self.viewer.canvas.grid.group_by_metadata or self.viewer.canvas.grid.joint
+        ):
             self._update_scenegraph()
 
     def _remove_layer(self, event):

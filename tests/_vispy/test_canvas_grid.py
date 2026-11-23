@@ -739,3 +739,123 @@ def test_metadata_grid_updates_canvas_and_menu(make_napari_plot_viewer, monkeypa
     assert not controls.group_by_metadata_action.isChecked()
     viewer.canvas.grid.update({"group_by_metadata": True})
     assert controls.group_by_metadata_action.isChecked()
+
+
+def test_joint_grid_layout_and_cameras(plot, qtbot) -> None:
+    from napari_plot import JointGrid
+
+    viewer, canvas = plot
+    viewer.camera.aspect = 1
+    grid = JointGrid(viewer, ratio=4)
+    grid.add_layer(viewer.layers[1], panel="top")
+    grid.add_layer(viewer.layers[2], panel="right")
+    _settle(qtbot, canvas)
+    main, top, right = canvas._cells
+    assert all(cell.camera.camera.aspect is None for cell in (main, top, right))
+    assert [cell.position for cell in canvas._cells] == [(1, 0), (0, 0), (1, 1)]
+    assert main.view.size[0] == pytest.approx(top.view.size[0], abs=2)
+    assert main.view.size[1] == pytest.approx(right.view.size[1], abs=2)
+    assert main.view.size[0] > right.view.size[0] * 2
+    assert main.view.size[1] > top.view.size[1] * 2
+    viewer.axis.visible = False
+    viewer.axis.visible = True
+    viewer.axis.x_max_size += 5
+    assert not top.x_axis.node.visible
+    assert top.x_axis.node.height_max == 0
+    canvas.native.setFixedSize(900, 700)
+    _settle(qtbot, canvas)
+    assert main.view.size[0] == pytest.approx(top.view.size[0], abs=2)
+    assert main.view.size[1] == pytest.approx(right.view.size[1], abs=2)
+    main.camera.rect = (1, 8, 2, 6)
+    assert top.camera.rect[:2] == pytest.approx((1, 8))
+    top.camera.rect = (2, 7, 0, 4)
+    assert main.camera.rect[:2] == pytest.approx((2, 7))
+    right.camera.rect = (0, 3, 4, 9)
+    assert main.camera.rect[2:] == pytest.approx((4, 9))
+    top_y = top.camera.rect[2:]
+    right_x = right.camera.rect[:2]
+    before = main.camera.rect
+    focus_before = ((4 - before[0]) / (before[1] - before[0]), (6 - before[2]) / (before[3] - before[2]))
+    main.camera.camera.zoom((0.5, 0.5), (4, 6))
+    after = main.camera.rect
+    focus_after = ((4 - after[0]) / (after[1] - after[0]), (6 - after[2]) / (after[3] - after[2]))
+    assert focus_after == pytest.approx(focus_before)
+    assert top.camera.rect[:2] == pytest.approx(main.camera.rect[:2])
+    assert right.camera.rect[2:] == pytest.approx(main.camera.rect[2:])
+    assert top.camera.rect[2:] == pytest.approx(top_y)
+    assert right.camera.rect[:2] == pytest.approx(right_x)
+    top.camera.camera.pan((1, 2))
+    right.camera.camera.pan((3, 1))
+    top.camera.camera.zoom((0.8, 1), (4, 1))
+    right.camera.camera.zoom((1, 0.8), (1, 6))
+    assert top.camera.rect[:2] == pytest.approx(main.camera.rect[:2])
+    assert right.camera.rect[2:] == pytest.approx(main.camera.rect[2:])
+    assert top.camera.rect[2:] != pytest.approx(top_y)
+    assert right.camera.rect[:2] != pytest.approx(right_x)
+    for a, b, axis in ((main, top, 1), (main, right, 0)):
+        point_a = canvas._view_offset(a.view) + np.asarray(a.view.size) * 0.3
+        point_b = canvas._view_offset(b.view) + np.asarray(b.view.size) * 0.3
+        assert canvas._map_canvas2world(point_a, a.view)[axis] == pytest.approx(
+            canvas._map_canvas2world(point_b, b.view)[axis], abs=1e-5
+        )
+    viewer.axis.y_inverted = True
+    viewer.axis.x_inverted = True
+    assert not top.camera.camera.flip[1]
+    assert not right.camera.camera.flip[0]
+    assert top.camera.axis_scale("y") == "linear"
+    assert right.camera.axis_scale("x") == "linear"
+    viewer.reset_view()
+    assert main.camera.rect[:2] == pytest.approx(top.camera.rect[:2])
+    assert main.camera.rect[2:] == pytest.approx(right.camera.rect[2:])
+    viewer.canvas.grid.enabled = False
+    assert canvas.camera.camera.aspect == 1
+
+
+@pytest.mark.parametrize("panel", ["top", "right"])
+def test_joint_grid_single_marginal(plot, qtbot, panel: str) -> None:
+    from napari_plot import JointGrid
+
+    viewer, canvas = plot
+    grid = JointGrid(viewer, top=panel == "top", right=panel == "right")
+    grid.add_layer(viewer.layers[1], panel=panel)
+    _settle(qtbot, canvas)
+    main, marginal = canvas._cells
+    if panel == "top":
+        assert [cell.position for cell in canvas._cells] == [(1, 0), (0, 0)]
+        assert main.view.size[0] == pytest.approx(marginal.view.size[0], abs=2)
+        assert main.view.size[1] > marginal.view.size[1] * 2
+    else:
+        assert [cell.position for cell in canvas._cells] == [(0, 0), (0, 1)]
+        assert main.view.size[1] == pytest.approx(marginal.view.size[1], abs=2)
+        assert main.view.size[0] > marginal.view.size[0] * 2
+
+
+def test_joint_grid_aligns_viewports_with_asymmetric_gutters(plot, qtbot, monkeypatch) -> None:
+    from napari_plot import JointGrid
+
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    viewer, canvas = plot
+    JointGrid(viewer)
+    main, top, right = canvas._cells
+    assert main.position == (1, 0)
+    image = viewer.add_image(np.arange(9, dtype=float).reshape(3, 3))
+    _settle(qtbot, canvas)
+    original_width, original_height = main.view.size
+
+    viewer.set_legend([{"label": "Main plot line", "layer_name": "line 0", "color": "orange"}])
+    viewer.legend.gridded = False
+    viewer.legend.outside = True
+    viewer.set_colorbar_from_layer(image, cell=main.position, position="bottom")
+    _settle(qtbot, canvas)
+
+    assert main.view.width < original_width
+    assert main.view.height < original_height
+    assert main.view.width == pytest.approx(top.view.width)
+    assert main.view.height == pytest.approx(right.view.height)
+    assert canvas._view_offset(main.view)[0] == pytest.approx(canvas._view_offset(top.view)[0])
+    assert canvas._view_offset(main.view)[1] == pytest.approx(canvas._view_offset(right.view)[1])
+
+    viewer.legend.outside = False
+    viewer.clear_colorbar(cell=main.position)
+    _settle(qtbot, canvas)
+    assert main.view.size == pytest.approx((original_width, original_height))

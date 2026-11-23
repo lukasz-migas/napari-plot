@@ -12,6 +12,7 @@ from napari.utils.events import Event, EventedModel
 from pydantic import Field, field_validator
 
 from napari_plot.components.axis import Axis, AxisScale
+from napari_plot.components.joint_grid import joint_panel
 from napari_plot.layers._grouping import get_layer_group
 
 if TYPE_CHECKING:
@@ -60,6 +61,12 @@ class PlotGridCanvas(GridCanvas):
     sharex: bool = True
     sharey: bool = True
     cells: tuple[PlotGridCell, ...] = ()
+    joint: bool = False
+    joint_top: bool = True
+    joint_right: bool = True
+    joint_ratio: float = Field(default=5, gt=0, allow_inf_nan=False)
+    joint_top_label: str = ""
+    joint_right_label: str = ""
 
     def __init__(self, **data: object) -> None:
         super().__init__(**data)
@@ -105,6 +112,8 @@ class PlotGridCanvas(GridCanvas):
 
     def actual_shape(self, layers: Sequence[Layer]) -> tuple[int, int]:
         """Return the effective shape, using automatic dimensions for metadata groups."""
+        if self.enabled and self.joint:
+            return (2 if self.joint_top else 1, 2 if self.joint_right else 1)
         assigned = (
             [cell for cell in self.cells if cell.group is not None] if self.enabled and self.group_by_metadata else []
         )
@@ -128,6 +137,13 @@ class PlotGridCanvas(GridCanvas):
         return rows, cols
 
     def _positions(self, layers: Sequence[Layer]) -> list[tuple[int, int]]:
+        if self.enabled and self.joint:
+            main_row = int(self.joint_top)
+            positions = {"joint": (main_row, 0), "top": (0, 0), "right": (main_row, 1)}
+            return [
+                positions[joint_panel(layer, top=self.joint_top, right=self.joint_right)] if layer.visible else (-1, -1)
+                for layer in layers
+            ]
         assignments = (
             {cell.group: (cell.row, cell.column) for cell in self.cells if cell.group is not None}
             if self.enabled and self.group_by_metadata

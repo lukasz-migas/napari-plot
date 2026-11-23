@@ -53,6 +53,7 @@ class VispyAxisVisual:
         self.node.order = order
         parent.add(self.node)
 
+        self._suppressed = False
         self._viewer.axis.events.visible.connect(self._on_visible_change)
         self._viewer.axis.events.tick_color.connect(self._on_color_change)
         self._viewer.axis.events.label_color.connect(self._on_color_change)
@@ -94,7 +95,13 @@ class VispyAxisVisual:
 
     def _on_visible_change(self, _evt=None):
         """Change grid lines visibility"""
-        self.node.visible = self._viewer.axis.visible
+        self.node.visible = self._viewer.axis.visible and not self._suppressed
+
+    def suppress(self, suppressed: bool) -> None:
+        """Hide this axis and collapse its gutter while preserving global settings."""
+        self._suppressed = suppressed
+        self._on_visible_change()
+        self._on_max_size_change(None)
 
     def _on_color_change(self, _evt=None) -> None:
         """Update axis colors from explicit settings and the viewer theme."""
@@ -116,6 +123,8 @@ class VispyAxisVisual:
 
     def _set_size_limit(self, name: str, value: float) -> None:
         """Set the `height_max` or `width_max` of the axis widget and make the grid apply it."""
+        if self._suppressed:
+            value = 0
         if value != getattr(self.node, name):
             setattr(self.node, name, value)
             # the grid turns size limits into layout constraints only when it rebuilds its solver

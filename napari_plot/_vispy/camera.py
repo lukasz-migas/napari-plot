@@ -187,6 +187,8 @@ class VispyCamera:
         """Apply axis direction independently of the canonical camera limits."""
         axis = self._viewer.axis
         flips = [axis.x_inverted, axis.y_inverted]
+        if self._viewer.canvas.grid.enabled and self._viewer.canvas.grid.joint:
+            flips = [flip if shared else False for flip, shared in zip(flips, self._shared, strict=True)]
         for index, name in enumerate(("x", "y")):
             limits = getattr(self._cell, f"{name}lim", None)
             if not self._shared[index] and limits is not None:
@@ -303,7 +305,9 @@ class VispyCamera:
         self.camera.extent = self._transform_rect(extent, inverse=False)
 
     def _on_aspect_change(self):
-        self.camera.aspect = self._camera.aspect
+        self.camera.aspect = (
+            None if self._viewer.canvas.grid.enabled and self._viewer.canvas.grid.joint else self._camera.aspect
+        )
 
     def _on_mouse_toggles_change(self):
         self.mouse_pan = self._camera.mouse_pan
@@ -344,6 +348,8 @@ class VispyCamera:
         """Called whenever the canvas is drawn. Update camera model rect."""
         if self.rect != self._synced_rect:
             self._sync_to_model()
+        if self._viewer.canvas.grid.joint and not all(self._shared):
+            return
         self._publishing_zoom.add(id(self._camera))
         try:
             self._camera.zoom = self.zoom

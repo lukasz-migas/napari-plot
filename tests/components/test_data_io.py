@@ -87,3 +87,19 @@ def test_csv_layer_data(tmp_path: Path) -> None:
     viewer.export_csv(text, path)
     with path.open(newline="") as stream:
         assert list(csv.reader(stream)) == [["x", "y", "text"], ["1.0", "2.0", "caption, with comma"]]
+
+
+def test_joint_grid_session_round_trip(tmp_path: Path) -> None:
+    from napari_plot import JointGrid
+
+    viewer = ViewerModel()
+    grid = JointGrid(viewer, right=False, ratio=3)
+    grid.add_layer(viewer.add_line([[0, 1], [2, 3]]), panel="top")
+    path = tmp_path / "joint.napari-plot"
+    viewer.save_session(path)
+    restored = ViewerModel()
+    restored.open(path)
+    assert restored.canvas.grid.joint
+    assert not restored.canvas.grid.joint_right
+    assert restored.canvas.grid.joint_ratio == 3
+    assert dict(restored.canvas.grid.iter_viewboxes(restored.layers))[(0, 0)] == (0,)

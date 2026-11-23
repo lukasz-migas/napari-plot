@@ -246,14 +246,20 @@ with `hue` show a legend. `swarmplot` computes positions for the canvas size
 at call time. `heatmap` draws the first row at the top by flipping the image.
 
 `displot`, `catplot`, and `lmplot` split a table into grid cells using `row` and
-`col`. `pairplot` compares numeric variables across a matrix of plots, and
-`jointplot` adds marginal distributions alongside a bivariate plot. These
+`col`. `pairplot` compares numeric variables across a matrix of plots. These
 functions return a `FacetGrid` whose `.layers` contains the created layers.
 
 ```python
 facets = viewer.catplot(tips, x="day", y="total_bill", col="smoker", kind="box")
 facets.set_axis_labels(y_var="Total bill")
 ```
+
+`jointplot` draws a bivariate plot with marginal distributions and returns a
+`JointGrid`. To build the layout manually, use `JointGrid(viewer, top=True,
+right=True, ratio=5)`. Set either marginal to `False` to omit it. Use
+`grid.add_layer(layer, panel="top")` or `panel="right"` to place a new or
+existing layer in a marginal. All panels use the viewer's layer list. The top
+panel shares x limits with the main plot, and the right panel shares y limits.
 
 Use `viewer.rugplot(data, x="total_bill")` to mark observations along the bottom
 of a distribution plot. Supply `y` to mark observations along the left side as

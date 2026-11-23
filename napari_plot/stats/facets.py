@@ -11,6 +11,7 @@ from uuid import uuid4
 import numpy as np
 import pandas as pd
 
+from napari_plot.components.joint_grid import JointGrid
 from napari_plot.layers._grouping import LAYER_GROUP_KEY
 from napari_plot.stats import categorical, distributions, relational
 from napari_plot.stats._common import legend_entries, set_axis_labels
@@ -108,6 +109,7 @@ class FacetGrid:
 
     def _configure(self) -> None:
         grid = self.viewer.canvas.grid
+        grid.joint = False
         grid.shape = self._shape
         grid.sharex = self.sharex
         grid.sharey = self.sharey
@@ -357,7 +359,8 @@ def jointplot(
     kind: str = "scatter",
     joint_kws: dict[str, Any] | None = None,
     marginal_kws: dict[str, Any] | None = None,
-) -> FacetGrid:
+    ratio: float = 5,
+) -> JointGrid:
     """Draw a bivariate plot and its two marginal distributions."""
     joint = _select_kind(_BIVARIATE, kind)
     joint_kws = joint_kws or {}
@@ -366,22 +369,41 @@ def jointplot(
     if hue is not None:
         joint_kws = {**_hue_options(data, hue, joint_kws, continuous=kind == "scatter"), "hue": hue}
     marginal_kws = {**_hue_options(data, hue, marginal_kws or {}), "hue": hue}
-    grid = FacetGrid(viewer, data, sharex=False, sharey=False)
-    grid._shape = (2, 2)
-    grid._panels = {(0, 0): (data, ""), (1, 0): (data, ""), (1, 1): (data, "")}
+    if isinstance(data, pd.DataFrame) and data.empty:
+        return JointGrid(viewer, ratio=ratio)
+
+    from napari_plot.components.viewer_model import ViewerModel
+
     margin = distributions.kdeplot if kind == "kde" else distributions.histplot
-    plots = {
-        (0, 0): (margin, {**marginal_kws, "x": x}),
-        (1, 0): (joint, {**joint_kws, "x": x, "y": y}),
-        (1, 1): (margin, {**marginal_kws, "y": y}),
-    }
-    grid._map(plots.__getitem__)
-    for axis, positions in (("x", ((0, 0), (1, 0))), ("y", ((1, 0), (1, 1)))):
-        groups = {grid._group(position) for position in positions}
-        layers = [layer for layer in grid.layers if layer.metadata[LAYER_GROUP_KEY] in groups]
-        extent = viewer._get_rect_extent(layers=layers)
-        limits = extent[:2] if axis == "x" else extent[2:]
-        if limits[0] < limits[1]:
-            for position in positions:
-                setattr(viewer.canvas.grid.cell(*position), f"{axis}lim", limits)
+    prepared = []
+    for panel, plot, options in (
+        ("top", margin, {**marginal_kws, "x": x}),
+        ("joint", joint, {**joint_kws, "x": x, "y": y}),
+        ("right", margin, {**marginal_kws, "y": y}),
+    ):
+        stage = ViewerModel()
+        plot(stage, data=data, **options)
+        layers = list(stage.layers)
+        for layer in layers:
+            overlays = dict(layer._overlays)
+            stage.layers.remove(layer)
+            layer._overlays.update(overlays)
+        prepared.append((panel, stage, layers))
+    grid = JointGrid(viewer, ratio=ratio)
+    legend_set = False
+    for panel, stage, layers in prepared:
+        for layer in layers:
+            grid.add_layer(layer, panel=panel)
+        if panel == "joint":
+            grid.set_axis_labels(stage.axis.x_label, stage.axis.y_label)
+            for field in ("x_scale", "y_scale", "x_categories", "y_categories"):
+                setattr(viewer.axis, field, getattr(stage.axis, field))
+        elif panel == "top":
+            viewer.canvas.grid.joint_top_label = stage.axis.y_label
+        elif panel == "right":
+            viewer.canvas.grid.joint_right_label = stage.axis.x_label
+        if stage.legend.entries and not legend_set:
+            viewer.set_legend([entry.model_dump() for entry in stage.legend.entries])
+            legend_set = True
+    viewer.reset_view()
     return grid

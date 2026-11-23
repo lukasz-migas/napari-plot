@@ -54,6 +54,7 @@ from napari_plot.components.canvas import PlotCanvas, PlotGridCell
 from napari_plot.components.colorbar import ColorBar
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
+from napari_plot.components.joint_grid import joint_panel
 from napari_plot.components.layerlist import LayerList
 from napari_plot.components.legend import (
     ColorLike as LegendColorLike,
@@ -314,6 +315,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.events.inserted.connect(self._on_update_extent)
         self.layers.events.removed.connect(self._on_update_extent)
         self.layers.events.connect(self._on_update_extent)
+        for name in ("enabled", "joint", "joint_top", "joint_right"):
+            getattr(self.canvas.grid.events, name).connect(self._on_update_extent)
         self.layers.selection.events.active.connect(self._on_active_layer)
         # drag
         self.drag_tool.events.active.connect(self._on_update_tool)
@@ -722,6 +725,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         This covers categorical axes (incl. tick rotation and thinning), log scales, fixed ranges, legend, colorbar and
         text overlays.
         """
+        self.canvas.grid.update({"joint": False, "joint_top_label": "", "joint_right_label": ""})
         self.clear_canvas()
         self.camera.x_range = None
         self.camera.y_range = None
@@ -874,6 +878,18 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         use_camera_range: bool = True,
     ) -> tuple[float, float, float, float]:
         """Get data extent, including image pixel edges and room for line widths and marker sizes."""
+        grid = self.canvas.grid
+        if layers is None and grid.enabled and grid.joint:
+            visible = [
+                (layer, joint_panel(layer, top=grid.joint_top, right=grid.joint_right))
+                for layer in self.layers
+                if layer.visible
+            ]
+            x_layers = [layer for layer, panel in visible if panel != "right"]
+            y_layers = [layer for layer, panel in visible if panel != "top"]
+            x_extent = self._get_rect_extent(layers=x_layers, margin=margin, use_camera_range=use_camera_range)
+            y_extent = self._get_rect_extent(layers=y_layers, margin=margin, use_camera_range=use_camera_range)
+            return (*x_extent[:2], *y_extent[2:])
         if layers is None:
             extent = self._sliced_extent_world
         elif len(layers):
@@ -1004,7 +1020,13 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             _, _, real_ymin, real_ymax = self._get_rect_extent()
             return real_ymin, real_ymax * y_multiplier
 
-        region_min, region_max = get_layers_x_region_extent(xmin, xmax, self.layers)
+        layers = self.layers
+        grid = self.canvas.grid
+        if grid.enabled and grid.joint:
+            layers = [
+                layer for layer in layers if joint_panel(layer, top=grid.joint_top, right=grid.joint_right) == "joint"
+            ]
+        region_min, region_max = get_layers_x_region_extent(xmin, xmax, layers)
         if region_min is None:
             _, _, current_ymin, current_ymax = self.camera.rect
             return current_ymin, current_ymax
@@ -1222,6 +1244,11 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             selection[layer] = indices.copy()
         self.events.selection(value=selection, vertices=vertices.copy())
 
+    def _on_joint_metadata_change(self, _event: Event | None = None) -> None:
+        if self.canvas.grid.joint:
+            self._on_update_extent()
+            self.events.layers_change()
+
     def _on_layers_change(self, _event=None):
         self.cursor.position = (0,) * 2
         self._update_axis_labels()
@@ -1334,6 +1361,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         layer.events.name.connect(self.layers._update_name)
         layer.events.reload.connect(self._on_layer_reload)
         layer.events.visible.connect(self._on_update_extent)
+        layer.events.metadata.connect(self._on_joint_metadata_change)
         if hasattr(layer.events, "mode"):
             layer.events.mode.connect(self._on_layer_mode_change)
         self._layer_help_from_mode(layer)

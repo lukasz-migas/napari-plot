@@ -57,7 +57,11 @@ def make_plot(kind: str = "regression") -> napari_plot.Viewer:
                 diag_kws={"palette": PALETTE},
             )
         case "joint-hist":
-            viewer.jointplot(data, x="dose", y="response", kind="hist", joint_kws={"bins": 12})
+            grid = viewer.jointplot(data, x="dose", y="response", kind="hist", joint_kws={"bins": 12})
+            # Add a custom reference line to the top marginal.
+            from napari_plot.layers import Line
+
+            grid.add_layer(Line([[0, 0], [12, 10]], color="orange"), panel="top")
         case "joint-kde":
             viewer.jointplot(
                 data,

@@ -15,6 +15,7 @@ except ImportError:
 
 
 __all__ = (
+    "JointGrid",
     "NapariPlotWidget",
     "ScatterPlotWidget",
     "Viewer",
@@ -27,6 +28,7 @@ __all__ = (
 
 # Map exported names -> (module, attribute)
 _LAZY_IMPORTS = {
+    "JointGrid": ("napari_plot.components.joint_grid", "JointGrid"),
     "NapariPlotWidget": ("napari_plot._plot_widget", "NapariPlotWidget"),
     "run": ("napari_plot._qt.qt_event_loop", "run"),
     "ScatterPlotWidget": ("napari_plot._scatter_widget", "ScatterPlotWidget"),

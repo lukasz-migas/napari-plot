@@ -6,6 +6,7 @@ The following names are importable directly from `napari_plot`:
 
 - `Viewer`: standalone Qt viewer.
 - `ViewerModel`: viewer and layer state without constructing the main window.
+- `JointGrid(viewer, *, top=True, right=True, ratio=5)` adds linked marginal panels to a viewer.
 - `NapariPlotWidget`: plot viewer for embedding in napari.
 - `ScatterPlotWidget`: displayed-image-slice comparison widget for napari.
 - `run()`: start the Qt event loop.
@@ -30,8 +31,8 @@ The following names are importable directly from `napari_plot`:
 
 The `stats` extra provides statistical functions under `napari_plot.stats`
 and on the viewer. Axes-level functions return a list of created layers.
-`displot`, `catplot`, `lmplot`, `pairplot`, and `jointplot` return
-a `FacetGrid` with access to each cell's layers.
+`displot`, `catplot`, `lmplot`, and `pairplot` return a `FacetGrid`.
+`jointplot` returns a `JointGrid`, which can also be created directly without the stats extra.
 
 Keyword arguments are forwarded to the corresponding layer constructor. The
 lower-level methods `add_line`, `add_scatter`, `add_image`, `add_areas`, `add_band`, `add_bar`,

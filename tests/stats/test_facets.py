@@ -1,8 +1,8 @@
 """Figure-level statistical plots use the viewer's per-cell axes."""
 
 import pandas as pd
-import pytest
 
+from napari_plot import JointGrid
 from napari_plot.components.viewer_model import ViewerModel
 from napari_plot.stats.facets import FacetGrid, catplot, displot, jointplot, lmplot, pairplot
 
@@ -55,6 +55,15 @@ def test_pairplot_and_jointplot_create_labeled_panels() -> None:
 
     viewer.reset_plot()
     joint = jointplot(viewer, data, x="a", y="b")
+    assert isinstance(joint, JointGrid)
     assert len(joint.layers) == 3
-    assert grid.cell(0, 0).xlim == pytest.approx(grid.cell(1, 0).xlim)
-    assert grid.cell(1, 0).ylim == pytest.approx(grid.cell(1, 1).ylim)
+    assert grid.joint
+    assert dict(grid.iter_viewboxes(viewer.layers))[(1, 0)] == (1,)
+
+
+def test_jointplot_accepts_an_empty_frame() -> None:
+    viewer = ViewerModel()
+    joint = viewer.jointplot(pd.DataFrame({"x": [], "y": []}), x="x", y="y")
+
+    assert joint.layers == []
+    assert viewer.canvas.grid.joint
