@@ -5,6 +5,7 @@
 - Canvas overlays (text, annotations, legend) sharing a position are now tiled inside the plot area instead of overlapping, following napari's `viewer.canvas.overlay_tiling`.
 - Axis tick labels now follow their view when a layout change moves it without a resize (e.g. entering or leaving grid mode).
 - Closed legend visuals no longer react to legend changes.
+- Double-clicking the x- or y-axis (of any plot cell in grid mode) resets that range again.
 
 ## Added
 

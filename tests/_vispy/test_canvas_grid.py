@@ -318,3 +318,38 @@ def test_gridded_legend_click_toggles_the_layer_of_its_cell(plot, qtbot) -> None
     visual._on_mouse_press(event)
     assert event.handled
     assert [layer.visible for layer in viewer.layers] == [True, True, False]
+
+
+def _double_click(canvas: VispyCanvas, pos: np.ndarray, button: int = 1) -> None:
+    """Send a double-click through the scene canvas, like vispy does for a real click."""
+    canvas._scene_canvas.events.mouse_double_click(pos=tuple(pos), button=button, modifiers=())
+
+
+def _widget_center(canvas: VispyCanvas, widget) -> np.ndarray:
+    origin = widget.node_transform(canvas._scene_canvas.central_widget).map([0, 0])[:2]
+    return origin + np.asarray(widget.size) / 2
+
+
+@pytest.mark.parametrize("grid", [False, True])
+def test_double_click_on_an_axis_resets_its_range(plot, qtbot, grid: bool) -> None:
+    """Double-clicking the x- or y-axis of any cell resets that range; the plot area and other buttons do nothing."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = grid
+    _settle(qtbot, canvas)
+    xmin, xmax, ymin, ymax = viewer._get_rect_extent()
+    zoomed = (2.0, 6.0, 1.0, 1.5)
+    assert len(canvas._cells) == (3 if grid else 1)
+
+    for cell in canvas._cells:
+        viewer.camera.rect = zoomed
+        _double_click(canvas, _widget_center(canvas, cell.x_axis.node))
+        assert viewer.camera.rect == pytest.approx((xmin, xmax, 1.0, 1.5), abs=1e-5)
+
+        viewer.camera.rect = zoomed
+        _double_click(canvas, _widget_center(canvas, cell.y_axis.node))
+        assert viewer.camera.rect == pytest.approx((2.0, 6.0, ymin, ymax), abs=1e-5)
+
+        viewer.camera.rect = zoomed
+        _double_click(canvas, _widget_center(canvas, cell.view))
+        _double_click(canvas, _widget_center(canvas, cell.x_axis.node), button=2)
+        assert viewer.camera.rect == pytest.approx(zoomed)

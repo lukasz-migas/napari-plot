@@ -116,21 +116,27 @@ class NapariSceneCanvas(SceneCanvas_):
         super()._process_mouse_event(event)
 
     def _on_mouse_double_click(self, event: MouseEvent) -> None:
-        """Process mouse double click event"""
-        vis = self.visual_at(event.pos)
-        # if user double-clicked in the canvas, reset the entire view
-        if vis and event.button == 1:
-            self.events.reset_view()
-        else:
-            x, y = event.pos
-            x_x, x_y = self.x_axis.node.pos
-            y_x, _y_y = self.y_axis.node.pos
-            # if clicked on the x-axis, reset x-range
-            if x > y_x and y > x_y:
+        """Reset the x- or y-range when the x- or y-axis of any plot cell is double-clicked with the left button.
+
+        Double-clicks in the plot area are left to the viewer and layer callbacks (e.g. finishing a shape).
+        """
+        if event.button != 1 or event.pos is None:
+            return
+        for x_axis, y_axis in self.view_axes.values():
+            if self._widget_contains(x_axis.node, event.pos):
                 self.events.reset_x()
-            # if clicked on the y-axis, reset y-range
-            elif x < x_x:
+                return
+            if self._widget_contains(y_axis.node, event.pos):
                 self.events.reset_y()
+                return
+
+    def _widget_contains(self, widget: Widget, pos: ty.Sequence[float]) -> bool:
+        """Whether the canvas position `pos` falls inside `widget`."""
+        if widget.canvas is not self:
+            return False
+        x, y = np.asarray(pos[:2], dtype=float) - widget.node_transform(self.central_widget).map([0, 0])[:2]
+        width, height = widget.size
+        return 0 <= x <= width and 0 <= y <= height
 
 
 def _tile_axis(side: str, lengths: list[float], extent: float, padding: float, stacked: bool) -> list[float]:
@@ -256,6 +262,7 @@ class VispyCanvas:
         self._scene_canvas.events.reset_y.connect(self.viewer.reset_y_view)
 
         self._scene_canvas.events.mouse_double_click.connect(self._on_mouse_double_click)
+        self._scene_canvas.events.mouse_double_click.connect(self._scene_canvas._on_mouse_double_click)
         self._scene_canvas.events.mouse_move.connect(qthrottled(self._on_mouse_move, timeout=5))
         self._scene_canvas.events.mouse_press.connect(self._on_mouse_press)
         self._scene_canvas.events.mouse_release.connect(self._on_mouse_release)
