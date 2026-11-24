@@ -9,11 +9,13 @@ exclude napari_plot/resources/_qt_resources*.py
 
 # explicit excludes to keep check-manifest happy and remind us that
 # these things are not being included unless we ask
+recursive-exclude tests *
 recursive-exclude tools *
 recursive-exclude docs *
 recursive-exclude examples *
 recursive-exclude examples_with_napari *
 recursive-exclude misc *
+recursive-exclude TODO *
 recursive-exclude napari_plot __pycache__
 recursive-exclude napari_plot *.pyc
 exclude napari_plot/benchmarks/*
