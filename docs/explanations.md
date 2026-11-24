@@ -44,6 +44,7 @@ def report_selection(event):
     for layer, indices in event.value.items():
         print(layer.name, sorted(indices))
 
+
 viewer.events.selection.connect(report_selection)
 ```
 

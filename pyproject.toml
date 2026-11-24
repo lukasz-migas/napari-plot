@@ -316,6 +316,8 @@ ignore = [
 "examples/*.py" = ["INP001"]
 "examples_with_napari/*.py" = ["INP001"]
 "tools/minreq.py" = ["INP001"]
+"scripts/generate_docs_api.py" = ["INP001"]
+"scripts/generate_docs_gallery.py" = ["INP001"]
 "conftest.py" = ["PT013", "B008"]
 [tool.ruff.lint.pyupgrade]
 keep-runtime-typing = true

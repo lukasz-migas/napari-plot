@@ -1,20 +1,41 @@
+ci:
+  autoupdate_schedule: monthly
+  autofix_commit_msg: "style(pre-commit.ci): auto fixes [...]"
+  autoupdate_commit_msg: "ci(pre-commit.ci): autoupdate"
+
+default_install_hook_types: [pre-commit, commit-msg]
+
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v6.0.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0  # Use the ref you want to point at
     hooks:
-    - id: no-commit-to-branch
-      args: ['--branch', 'master', "--branch", "main"]
--   repo: https://github.com/hadialqattan/pycln
-    rev: v2.6.0
+  # -   id: ...
+      - id: check-yaml
+      - id: end-of-file-fixer
+      - id: no-commit-to-branch
+        args: [--branch=master --branch=main]
+
+  -   repo: https://github.com/hadialqattan/pycln
+      rev: v2.6.0
+      hooks:
+      - id: pycln
+
+  - repo: https://github.com/abravalheri/validate-pyproject
+    rev: v0.27
     hooks:
-    - id: pycln
--   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.16.1
+      - id: validate-pyproject
+
+  -   repo: https://github.com/charliermarsh/ruff-pre-commit
+      rev: v0.17.5
+      hooks:
+        - id: ruff
+          args: [--fix]
+        - id: ruff-format
+
+  - repo: local
     hooks:
-      - id: ruff
-        exclude: _vendor|vendored
--   repo: https://github.com/seddonym/import-linter
-    rev: v2.13
-    hooks:
-    - id: import-linter
-      stages: [manual]
+      - id: optimize-docs-images
+        name: optimize docs images
+        entry: bash tools/optimize-images.sh
+        language: system
+        files: ^docs/assets/.*\.(png|jpe?g|webp)$

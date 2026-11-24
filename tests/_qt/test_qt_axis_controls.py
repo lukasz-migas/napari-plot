@@ -46,7 +46,6 @@ def test_axis_controls_follow_model_changes(qtbot) -> None:
     assert controls.y_categories_edit.text() == "low, high"
 
 
-
 def test_axis_popup_disconnects_when_qt_closes_popup(qtbot) -> None:
     """A Qt-driven popup close unsubscribes the inner widget from axis events."""
     from napari_plot._qt.component_controls.qt_axis_controls import QtAxisControls

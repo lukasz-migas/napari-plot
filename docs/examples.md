@@ -68,4 +68,3 @@ uv run --extra pyqt6 --extra stats python examples/stats_facets.py --kind joint-
 | Heatmap with a colorbar | [stats_heatmap.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/stats_heatmap.py) |
 | Histograms and KDE | [stats_distributions.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/stats_distributions.py) |
 | Embedded viewer | [examples_with_napari](https://github.com/lukasz-migas/napari-plot/tree/main/examples_with_napari) |
-

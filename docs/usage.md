@@ -347,10 +347,12 @@ Positions are `top_left`, `top_center`, `top_right`, `bottom_left`,
 also supported:
 
 ```python
-viewer.set_legend([
-    {"label": "control", "marker": "disc", "color": "royalblue"},
-    {"label": "treated", "marker": "square", "color": "orange"},
-])
+viewer.set_legend(
+    [
+        {"label": "control", "marker": "disc", "color": "royalblue"},
+        {"label": "treated", "marker": "square", "color": "orange"},
+    ]
+)
 
 # Restore automatic entries from visible plot layers.
 viewer.set_legend_from_layers(sync=True)
@@ -405,6 +407,7 @@ identifies a whole line and a Line index identifies a vertex.
 def report_selection(event):
     for layer, indices in event.value.items():
         print(layer.name, sorted(indices))
+
 
 viewer.events.selection.connect(report_selection)
 ```

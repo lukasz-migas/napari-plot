@@ -706,9 +706,7 @@ class QtViewer(QSplitter):
             return
         shift_down = event.modifiers() & Qt.KeyboardModifier.ShiftModifier
         alt_down = event.modifiers() & Qt.KeyboardModifier.AltModifier
-        self._open_from_list_of_urls_data(
-            event.mimeData().urls(), stack=bool(shift_down), choose_plugin=bool(alt_down)
-        )
+        self._open_from_list_of_urls_data(event.mimeData().urls(), stack=bool(shift_down), choose_plugin=bool(alt_down))
         event.acceptProposedAction()
 
     def _open_from_list_of_urls_data(self, urls_list: list[QUrl], stack: bool, choose_plugin: bool) -> None:
@@ -764,7 +762,9 @@ class QtViewer(QSplitter):
             try:
                 self.viewer.open(filenames, stack=stack, plugin=plugin, layer_type=layer_type, **kwargs)
             except ReaderPluginError as error:
-                handle_gui_reading(error.paths, self, stack, error.reader_plugin, error, layer_type=layer_type, **kwargs)
+                handle_gui_reading(
+                    error.paths, self, stack, error.reader_plugin, error, layer_type=layer_type, **kwargs
+                )
             except MultipleReaderError as error:
                 handle_gui_reading(error.paths, self, stack, layer_type=layer_type, **kwargs)
         except (BadZipFile, KeyError, OSError, RuntimeError, TypeError, ValueError) as error:

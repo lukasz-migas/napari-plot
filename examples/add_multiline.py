@@ -3,6 +3,7 @@
 import numpy as np
 
 import napari_plot
+
 n_pts = 500
 n_lines = 4
 x = np.linspace(0, 10, n_pts)

@@ -1482,7 +1482,9 @@ class Window:
         """Ask where to save the current plot session."""
         from napari_plot._session import SESSION_SUFFIX
 
-        filename = hp.get_save_filename(self._qt_window, "Save Plot Session", file_filter="Plot sessions (*.napari-plot)")
+        filename = hp.get_save_filename(
+            self._qt_window, "Save Plot Session", file_filter="Plot sessions (*.napari-plot)"
+        )
         if filename:
             path = Path(filename)
             self._qt_viewer.viewer.save_session(path if path.suffix else path.with_suffix(SESSION_SUFFIX))

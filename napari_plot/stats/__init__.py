@@ -6,7 +6,16 @@ from importlib import import_module
 from typing import Any
 
 _PLOT_MODULES = {
-    "categorical": ("barplot", "boxenplot", "boxplot", "countplot", "pointplot", "stripplot", "swarmplot", "violinplot"),
+    "categorical": (
+        "barplot",
+        "boxenplot",
+        "boxplot",
+        "countplot",
+        "pointplot",
+        "stripplot",
+        "swarmplot",
+        "violinplot",
+    ),
     "distributions": ("distplot", "ecdfplot", "histplot", "kdeplot", "rugplot"),
     "facets": ("catplot", "displot", "jointplot", "lmplot", "pairplot"),
     "matrix": ("clustermap", "heatmap"),

@@ -6,6 +6,7 @@ import importlib.util
 import sys
 from pathlib import Path
 
+import numpy as np
 from qtpy.QtWidgets import QApplication
 
 import napari_plot
@@ -23,8 +24,18 @@ EXAMPLES = (
     ("add_rectangles", "Rectangles", "Mark regions of interest with rectangle layers."),
     ("add_categorical_axes", "Categorical axes", "Use named categories on both plot axes."),
     ("show_grid_mode", "Small multiples", "Compare several signals in synchronized plot cells."),
+    ("add_multiline", "Replicate signals", "Show several noisy measurements in one MultiLine layer."),
+    ("add_centroids", "Centroid markers", "Show histogram counts as vertical centroid marks."),
+    ("add_logarithmic_axes", "Logarithmic axes", "Compare positive signals on logarithmic x and y scales."),
+    ("add_text", "Text annotations", "Label peaks and troughs directly on a line plot."),
+    ("add_image", "Image layer", "Display a scalar image with square pixels and labeled axes."),
+    ("add_vectors", "Vectors over an image", "Show displacement arrows over image features."),
     ("stats_boxplot", "Grouped box plots", "Compare distributions by day and smoking status."),
+    ("stats_violinplot", "Split violins", "Compare response distributions by condition and group."),
     ("stats_distributions", "Distributions", "Compare stacked histograms with density curves."),
+    ("stats_facets", "Faceted regressions", "Compare trends across batches and treatment groups."),
+    ("stats_pairgrid", "Pair grid", "Compare several measurements with scatter, density, and histograms."),
+    ("stats_clustermap", "Clustered heatmap", "View clustered samples with a row dendrogram."),
     ("stats_heatmap", "Heatmap", "Read values from an annotated image layer."),
 )
 
@@ -50,14 +61,15 @@ def load_example(name: str) -> tuple[object, napari_plot.Viewer]:
 def render_gallery() -> None:
     """Render selected examples and write their linked gallery page."""
     OUTPUT.mkdir(parents=True, exist_ok=True)
-    for old_image in OUTPUT.glob("*.png"):
+    for old_image in OUTPUT.glob("*.jpg"):
         old_image.unlink()
     app = QApplication.instance() or QApplication([])
 
     cards = []
     for name, title, description in EXAMPLES:
+        np.random.seed(0)
         module, viewer = load_example(name)
-        image_name = f"{name}.png"
+        image_name = f"{name}.jpg"
         image_path = OUTPUT / image_name
         viewer.window.resize(1400, 720)
         viewer.reset_view()
@@ -78,9 +90,7 @@ def render_gallery() -> None:
         "# Example gallery\n\n"
         "Each tile shows a figure rendered from its runnable Python example. "
         "Select a tile to open the source code on GitHub.\n\n"
-        '<div class="gallery-grid">\n\n'
-        + "\n\n".join(cards)
-        + "\n\n</div>\n",
+        '<div class="gallery-grid">\n\n' + "\n\n".join(cards) + "\n\n</div>\n",
         encoding="utf-8",
     )
 

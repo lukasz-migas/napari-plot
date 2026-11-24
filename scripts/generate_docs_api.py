@@ -5,8 +5,7 @@ from __future__ import annotations
 import importlib
 from pathlib import Path
 
-from napari_plot import stats
-from napari_plot import layers
+from napari_plot import layers, stats
 
 ROOT = Path(__file__).resolve().parents[1]
 API_PAGE = ROOT / "docs" / "api.md"
@@ -36,12 +35,12 @@ def generate_api_page() -> None:
         "The layer and stats sections follow their modules' `__all__` exports, so new public "
         "classes and plotting functions appear here on the next docs build.\n",
         "## Viewer and layout classes\n",
-        "::: napari_plot.viewer.Viewer\n    options:\n      members: true\n      inherited_members: false\n      filters: [\"!^_\"]\n",
-        "::: napari_plot.components.viewer_model.ViewerModel\n    options:\n      members: true\n      filters: [\"!^_\"]\n",
-        "::: napari_plot.components.joint_grid.JointGrid\n    options:\n      members: true\n      filters: [\"!^_\"]\n",
+        '::: napari_plot.viewer.Viewer\n    options:\n      members: true\n      inherited_members: false\n      filters: ["!^_"]\n',
+        '::: napari_plot.components.viewer_model.ViewerModel\n    options:\n      members: true\n      filters: ["!^_"]\n',
+        '::: napari_plot.components.joint_grid.JointGrid\n    options:\n      members: true\n      filters: ["!^_"]\n',
         "## napari widgets\n",
-        "::: napari_plot._plot_widget.NapariPlotWidget\n    options:\n      members: true\n      inherited_members: false\n      filters: [\"!^_\"]\n",
-        "::: napari_plot._scatter_widget.ScatterPlotWidget\n    options:\n      members: true\n      inherited_members: false\n      filters: [\"!^_\"]\n",
+        '::: napari_plot._plot_widget.NapariPlotWidget\n    options:\n      members: true\n      inherited_members: false\n      filters: ["!^_"]\n',
+        '::: napari_plot._scatter_widget.ScatterPlotWidget\n    options:\n      members: true\n      inherited_members: false\n      filters: ["!^_"]\n',
         "## Plot layers\n",
         module_directive("napari_plot.layers", layers.__all__),
         "## Statistical plots\n",
