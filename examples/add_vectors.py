@@ -1,4 +1,10 @@
-"""Overlay registration residuals on a synthetic image."""
+"""Add Vectors
+===========
+
+Overlay registration residuals on a synthetic image.
+
+.. tags:: images
+"""
 
 import numpy as np
 

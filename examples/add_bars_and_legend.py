@@ -1,4 +1,10 @@
-"""Show vertical and horizontal bars with the canvas legend."""
+"""Add bars and a legend
+===================
+
+Show vertical and horizontal bars with the canvas legend.
+
+.. tags:: bars-and-histograms
+"""
 
 import napari_plot
 

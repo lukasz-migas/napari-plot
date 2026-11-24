@@ -98,3 +98,18 @@ div.article-style, div.pub-abstract, p {
   color: var(--md-default-fg-color--light);
   font-size: 0.85rem;
 }
+
+.gallery-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+}
+
+.gallery-card-copy .gallery-tag {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 999px;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.68rem;
+  padding: 0.1rem 0.45rem;
+}

@@ -1,4 +1,10 @@
-"""Share an inverted datetime axis across two cells with independent y axes and colorbars."""
+"""Grid axes and colorbars
+=======================
+
+Share an inverted datetime axis across two cells with independent y axes and colorbars.
+
+.. tags:: bars-and-histograms, layouts
+"""
 
 from datetime import UTC, datetime, timedelta
 

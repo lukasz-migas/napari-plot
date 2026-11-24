@@ -1,10 +1,15 @@
-"""Practice editing directly on a plot with the layer controls.
+"""Edit plot layers
+===========
+
+Practice editing directly on a plot with the layer controls.
 
 With Samples selected, click the canvas to add a point. Use Select to drag or
 select points, then use Delete to remove them. Select the Regions layer and use
 Add to draw a rectangle or Edit to move one. Hold Shift while dragging to resize.
 Use Move on the Labels layer to drag the text. To remove a bar, select Counts,
 Shift-click a bar, and click Delete in its layer controls.
+
+.. tags:: editing
 """
 
 import napari_plot

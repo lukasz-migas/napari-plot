@@ -1,4 +1,10 @@
-"""Show each line in its own plot cell, with synchronized x/y ranges."""
+"""Show Grid Mode
+==============
+
+Show each line in its own plot cell, with synchronized x/y ranges.
+
+.. tags:: layouts
+"""
 
 import numpy as np
 

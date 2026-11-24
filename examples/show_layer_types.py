@@ -1,4 +1,10 @@
-"""Display image and 1d plot."""
+"""Show Layer Types
+================
+
+Display image and 1d plot.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 

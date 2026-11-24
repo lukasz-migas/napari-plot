@@ -1,4 +1,10 @@
-"""Example shows a sine wave `moving` over time.."""
+"""Live line updates
+=================
+
+Example shows a sine wave `moving` over time..
+
+.. tags:: live-updates, lines
+"""
 
 import time
 

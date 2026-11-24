@@ -1,4 +1,10 @@
-"""Compare row profiles from two channels beside a napari image viewer."""
+"""Compare channel profiles in napari
+==============================
+
+Compare row profiles from two channels beside a napari image viewer.
+
+.. tags:: napari-integration
+"""
 
 import napari
 import numpy as np

@@ -1,4 +1,10 @@
-"""Example showing how to plot centroids."""
+"""Add Centroids
+=============
+
+Example showing how to plot centroids.
+
+.. tags:: bars-and-histograms
+"""
 
 import numpy as np
 

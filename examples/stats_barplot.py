@@ -1,4 +1,9 @@
-"""Grouped bar plot of means with bootstrapped 95% confidence intervals."""
+"""Grouped bar plots
+=============
+
+Estimate means and 95% confidence intervals with bootstrapping.
+
+.. tags:: statistical-plots, bar"""
 
 import numpy as np
 import pandas as pd

@@ -1,4 +1,10 @@
-"""Example showing how to plot multiple line sand adjust axis labels."""
+"""Many infinite lines
+=================
+
+Example showing how to plot multiple line sand adjust axis labels.
+
+.. tags:: lines
+"""
 
 import numpy as np
 from koyo.color import get_random_hex_color

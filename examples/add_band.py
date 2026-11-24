@@ -1,4 +1,10 @@
-"""Show a mean tissue profile and its variation across replicate profiles."""
+"""Add Band
+========
+
+Show a mean tissue profile and its variation across replicate profiles.
+
+.. tags:: lines
+"""
 
 import numpy as np
 

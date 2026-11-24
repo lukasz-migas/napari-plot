@@ -1,4 +1,10 @@
-"""Compare ride distance, climbing, and duration across two cycling route types."""
+"""Pair grid
+==============
+
+Compare ride distance, climbing, and duration across two cycling route types.
+
+.. tags:: statistical-plots, pair-grid
+"""
 
 import numpy as np
 import pandas as pd

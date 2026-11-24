@@ -1,4 +1,10 @@
-"""Use the lasso drag tool to select and highlight scatter points."""
+"""Add Scatter
+===========
+
+Use the lasso drag tool to select and highlight scatter points.
+
+.. tags:: scatter
+"""
 
 import numpy as np
 

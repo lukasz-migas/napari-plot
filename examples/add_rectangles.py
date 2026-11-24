@@ -1,4 +1,10 @@
-"""Display mass spectrometry peak windows with center markers and labels."""
+"""Add Rectangles
+==============
+
+Display mass spectrometry peak windows with center markers and labels.
+
+.. tags:: plotting
+"""
 
 import napari_plot
 

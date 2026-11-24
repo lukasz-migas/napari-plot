@@ -1,4 +1,10 @@
-"""Embed a 1D plot beneath napari and compare two profiles with uncertainty."""
+"""Embed a 1D plot in napari
+====================
+
+Embed a 1D plot beneath napari and compare two profiles with uncertainty.
+
+.. tags:: napari-integration
+"""
 
 import napari
 import numpy as np

@@ -1,10 +1,11 @@
-"""
-Add text annotations
-====================
+"""Add Text
+========
+
+Add text annotations ====================
 
 Display labels at xy plot coordinates with scalar and per-label styling.
 
-.. tags:: visualization-basic
+.. tags:: annotations
 """
 
 import numpy as np

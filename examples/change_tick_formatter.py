@@ -1,4 +1,10 @@
-"""Custom formatter."""
+"""Custom tick formatting
+=====================
+
+Custom formatter.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 

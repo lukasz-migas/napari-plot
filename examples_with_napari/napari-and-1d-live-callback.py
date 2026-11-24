@@ -1,4 +1,10 @@
-"""Update docked intensity profiles while moving selected image lines."""
+"""Update profiles from napari line shapes
+===========================
+
+Update docked intensity profiles while moving selected image lines.
+
+.. tags:: napari-integration, live-updates
+"""
 
 import napari
 import numpy as np

@@ -1,4 +1,10 @@
-"""Plot several related curves in one MultiLine layer."""
+"""Add Multiline
+=============
+
+Plot several related curves in one MultiLine layer.
+
+.. tags:: lines
+"""
 
 import numpy as np
 

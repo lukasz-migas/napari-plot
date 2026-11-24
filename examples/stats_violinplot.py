@@ -1,4 +1,9 @@
-"""Split violins compare two hue levels within each category."""
+"""Split violin plots
+================
+
+Compare two hue levels within each category.
+
+.. tags:: statistical-plots, violin"""
 
 import numpy as np
 import pandas as pd

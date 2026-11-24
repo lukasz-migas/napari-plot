@@ -1,4 +1,10 @@
-"""Compare stacked sensor output, an uneven-bin histogram, and horizontal bars."""
+"""Summary plots
+=================
+
+Compare stacked sensor output, an uneven-bin histogram, and horizontal bars.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 

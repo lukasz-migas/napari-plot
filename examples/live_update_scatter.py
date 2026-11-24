@@ -1,4 +1,10 @@
-"""Example shows a sin and cos scatter points moving over time."""
+"""Live scatter updates
+===================
+
+Example shows a sin and cos scatter points moving over time.
+
+.. tags:: live-updates, scatter
+"""
 
 import time
 

@@ -1,4 +1,10 @@
-"""Export a synthetic profile as PNG, SVG, PDF, CSV, ROI, and a plot session."""
+"""Export and restore a plot
+==================
+
+Export a synthetic profile as PNG, SVG, PDF, CSV, ROI, and a plot session.
+
+.. tags:: export
+"""
 
 from argparse import ArgumentParser
 from pathlib import Path

@@ -1,4 +1,10 @@
-"""Compare two phase-shifted signals on a labeled 1D plot."""
+"""Simple line plots
+================
+
+Compare two phase-shifted signals on a labeled 1D plot.
+
+.. tags:: lines
+"""
 
 import numpy as np
 

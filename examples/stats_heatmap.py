@@ -1,4 +1,9 @@
-"""Annotated heatmap from a pivoted DataFrame."""
+"""Annotated heatmap
+=============
+
+Display values from a pivoted DataFrame.
+
+.. tags:: statistical-plots, heatmap"""
 
 import numpy as np
 import pandas as pd

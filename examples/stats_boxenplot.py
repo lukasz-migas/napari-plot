@@ -1,4 +1,10 @@
-"""Letter-value (boxen) plots show more quantiles than a box plot for large samples."""
+"""Letter-value plots
+===============
+
+Letter-value (boxen) plots show more quantiles than a box plot for large samples.
+
+.. tags:: statistical-plots, box
+"""
 
 import numpy as np
 

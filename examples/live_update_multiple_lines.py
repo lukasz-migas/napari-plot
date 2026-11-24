@@ -1,9 +1,14 @@
-"""Example showing how to use the MultiLine layer type.
+"""Live updates for multiple lines
+==========================
+
+Example showing how to use the MultiLine layer type.
 
 This example shows how one could update the MultiLine layer without changes to e.g. colors. The layer implements
 a `stream` method which rapidly replaces existing data with new data and triggers an canvas update.
 This method does not do many checks so you must make sure that whatever data you replace, it has the same
 characteristics as the original or at least it's valid.
+
+.. tags:: live-updates, lines
 """
 
 import time

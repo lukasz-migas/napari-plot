@@ -1,4 +1,10 @@
-"""Stacked histogram with KDE overlays, split by group."""
+"""Distributions
+===================
+
+Stacked histogram with KDE overlays, split by group.
+
+.. tags:: statistical-plots, distribution
+"""
 
 import numpy as np
 import pandas as pd

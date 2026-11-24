@@ -1,4 +1,10 @@
-"""Multiple infinite lines in a single layer."""
+"""Multiple infinite lines
+===========================
+
+Multiple infinite lines in a single layer.
+
+.. tags:: lines
+"""
 
 import numpy as np
 

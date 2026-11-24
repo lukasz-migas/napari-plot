@@ -1,4 +1,10 @@
-"""Swarm plot over a violin: every observation without overlap."""
+"""Swarm plots
+===============
+
+Swarm plot over a violin: every observation without overlap.
+
+.. tags:: statistical-plots, swarm
+"""
 
 import numpy as np
 import pandas as pd

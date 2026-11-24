@@ -1,4 +1,9 @@
-"""Grouped box plots from a long-form table, seaborn style."""
+"""Grouped box plots
+=============
+
+Compare categories in long-form data using a seaborn-style layout.
+
+.. tags:: statistical-plots, box"""
 
 import numpy as np
 import pandas as pd

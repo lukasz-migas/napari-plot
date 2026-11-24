@@ -1,4 +1,10 @@
-"""Filled kernel density estimates and a classic distplot-style rug."""
+"""Kernel density plots
+=============
+
+Filled kernel density estimates and a classic distplot-style rug.
+
+.. tags:: statistical-plots, kde
+"""
 
 import numpy as np
 import pandas as pd

@@ -1,4 +1,10 @@
-"""Example showing how to plot multiple line sand adjust axis labels."""
+"""Add Lines And Span
+==================
+
+Example showing how to plot multiple line sand adjust axis labels.
+
+.. tags:: lines
+"""
 
 import numpy as np
 

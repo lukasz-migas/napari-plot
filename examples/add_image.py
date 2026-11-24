@@ -1,4 +1,10 @@
-"""Display a scalar image with physical axis labels and square pixels."""
+"""Add Image
+=========
+
+Display a scalar image with physical axis labels and square pixels.
+
+.. tags:: images
+"""
 
 import numpy as np
 

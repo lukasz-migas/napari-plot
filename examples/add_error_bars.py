@@ -1,4 +1,10 @@
-"""Show asymmetric measurement intervals on calibration standards."""
+"""Error bars
+==============
+
+Show asymmetric measurement intervals on calibration standards.
+
+.. tags:: bars-and-histograms
+"""
 
 import napari_plot
 

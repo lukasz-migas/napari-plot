@@ -1,4 +1,10 @@
-"""Compare average response curves, a step histogram, and a normalized KDE."""
+"""Styled distributions
+==================
+
+Compare average response curves, a step histogram, and a normalized KDE.
+
+.. tags:: statistical-plots
+"""
 
 import numpy as np
 import pandas as pd

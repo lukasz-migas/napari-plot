@@ -1,4 +1,10 @@
-"""Example showing simple line and 'infinite' line to show the apex"""
+"""Add Line With Apex
+==================
+
+Example showing simple line and 'infinite' line to show the apex
+
+.. tags:: lines
+"""
 
 import numpy as np
 

@@ -1,4 +1,10 @@
-"""Compare measurements across batches with regression, distributions, or categories."""
+"""Faceted plots
+============
+
+Compare measurements across batches with regression, distributions, or categories.
+
+.. tags:: statistical-plots, facet
+"""
 
 from argparse import ArgumentParser
 from itertools import product

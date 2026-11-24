@@ -1,4 +1,10 @@
-"""Relational plots: a scatter with hue/size/style semantics and an aggregated line with CI band."""
+"""Relational plots
+=============
+
+Relational plots: a scatter with hue/size/style semantics and an aggregated line with CI band.
+
+.. tags:: statistical-plots, relational
+"""
 
 import numpy as np
 import pandas as pd

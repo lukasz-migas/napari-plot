@@ -1,4 +1,10 @@
-"""Mark the baseline, peak, and integration window of a synthetic signal."""
+"""Plot annotations
+====================
+
+Mark the baseline, peak, and integration window of a synthetic signal.
+
+.. tags:: annotations
+"""
 
 import numpy as np
 

@@ -1,0 +1,53 @@
+# Live line updates
+
+Example shows a sine wave `moving` over time..
+
+**Tags:** `live-updates`, `lines`
+
+![Live line updates example screenshot](../assets/gallery/examples-live_update_lines.jpg)
+
+[View the source file on GitHub](https://github.com/lukasz-migas/napari-plot/blob/main/examples/live_update_lines.py)
+
+## Python example
+
+```python
+"""Live line updates
+=================
+
+Example shows a sine wave `moving` over time..
+
+.. tags:: live-updates, lines
+"""
+
+import time
+
+import numpy as np
+from napari.qt import thread_worker
+
+import napari_plot
+
+
+def update_layer(res):
+    """Update layer data."""
+    y1, y2 = res
+    layer_sin.y = y1
+    layer_cos.y = y2
+
+
+@thread_worker(connect={"yielded": update_layer})
+def run_update(*_):
+    """Function that will run for fair amount of time and try to update the canvas every 10ms."""
+    for i in range(100_000):
+        yield np.sin(2 * np.pi * (x - 0.01 * i)), np.cos(2 * np.pi * (x - 0.01 * i))
+        time.sleep(0.01)
+
+
+viewer1d = napari_plot.Viewer()
+x = np.arange(0.0, 10.0, 0.01)
+window = 0.2
+layer_sin = viewer1d.add_line(np.c_[x, np.sin(2 * np.pi * x)], name="Sin", color="magenta")
+layer_cos = viewer1d.add_line(np.c_[x, np.cos(2 * np.pi * x)], name="Cos", color="springgreen")
+run_update()
+if __name__ == "__main__":
+    napari_plot.run()
+```

@@ -10,10 +10,8 @@ copyright = "Copyright &copy; 2021 - present Lukasz Migas"
 extra_css = ["assets/css/extra.css"]
 nav = [
     { Quickstart = "index.md" },
-    { Examples = [
-        { "Examples overview" = "examples.md" },
-        { "Screenshot gallery" = "gallery.md" },
-    ] },
+    { Examples = "examples.md" },
+    { Gallery = "gallery.md" },
     { "Layers guide" = "layers.md" },
     { "In-depth explanations" = [
         { "Concepts and workflows" = "explanations.md" },

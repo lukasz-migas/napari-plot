@@ -1,4 +1,10 @@
-"""Plot positive data using true logarithmic x and y axes."""
+"""Logarithmic axes
+====================
+
+Plot positive data using true logarithmic x and y axes.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 

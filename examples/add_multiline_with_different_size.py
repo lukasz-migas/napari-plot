@@ -1,7 +1,12 @@
-"""Example showing how to use the MultiLine layer type.
+"""Add Multiline With Different Size
+=================================
+
+Example showing how to use the MultiLine layer type.
 
 The MultiLine layer accepts data of different sizes. You can provide dict of `xs` and `ys` of arbitrary lengths
 as long as the number of lines arrays is the same and the corresponding arrays have identical size.
+
+.. tags:: lines
 """
 
 import numpy as np

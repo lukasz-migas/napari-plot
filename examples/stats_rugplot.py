@@ -1,4 +1,10 @@
-"""Overlay hue-colored rug ticks along both axes of a scatter plot."""
+"""Rug plots
+=============
+
+Overlay hue-colored rug ticks along both axes of a scatter plot.
+
+.. tags:: statistical-plots, rug
+"""
 
 import numpy as np
 import pandas as pd

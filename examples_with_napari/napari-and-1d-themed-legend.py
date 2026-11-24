@@ -1,4 +1,10 @@
-"""Embed a plot and switch the napari theme to see its axes and legend update."""
+"""Match plot colors to the napari theme
+===========================
+
+Embed a plot and switch the napari theme to see its axes and legend update.
+
+.. tags:: napari-integration
+"""
 
 import napari
 import numpy as np

@@ -1,7 +1,12 @@
-"""Drag a box over the plot to collect indices from both selected layers.
+"""Select Data
+===========
+
+Drag a box over the plot to collect indices from both selected layers.
 
 Try the Lasso and Polygon tools in the toolbar to select the same data with
 different shapes. The label shows the size of the selection on each layer.
+
+.. tags:: selection
 """
 
 import numpy as np

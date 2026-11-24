@@ -1,4 +1,10 @@
-"""Multiple infinite regions in a single layer."""
+"""Multiple regions
+====================
+
+Multiple infinite regions in a single layer.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 

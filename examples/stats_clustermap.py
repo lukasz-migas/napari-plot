@@ -1,4 +1,10 @@
-"""Hierarchically clustered heatmap with dendrograms drawn in the canvas margins."""
+"""Clustered heatmap
+================
+
+Hierarchically clustered heatmap with dendrograms drawn in the canvas margins.
+
+.. tags:: statistical-plots, clustermap
+"""
 
 import numpy as np
 import pandas as pd

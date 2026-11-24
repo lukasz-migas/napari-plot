@@ -1,4 +1,10 @@
-"""Plot numeric data with categorical labels on both axes."""
+"""Categorical axes
+====================
+
+Plot numeric data with categorical labels on both axes.
+
+.. tags:: plotting
+"""
 
 import numpy as np
 
