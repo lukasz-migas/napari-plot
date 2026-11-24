@@ -38,6 +38,29 @@ viewer.window.add_dock_widget(NapariPlotWidget(viewer))
 napari.run()
 ```
 
+### Analysis widgets
+
+These widgets plot data from the napari viewer and update as it changes. They
+are listed under `Plugins > Napari-Plot`, and also under `Layers > Measure` or
+`Layers > Visualize`.
+
+- **Line profile** (`LineProfileWidget`): image values along each line or path
+  shape of the selected Shapes layer, on the displayed plane.
+- **Z/T profile** (`CursorProfileWidget`): image values along a non-displayed
+  axis (for example z or time) at the pixel under the cursor. A vertical line
+  marks the current step.
+- **Histogram** (`HistogramWidget`): histogram of the displayed plane of the
+  active image. The shaded span follows the contrast limits. Moving or editing
+  the span in the plot sets the contrast limits.
+- **Features plot** (`FeaturesPlotWidget`): scatter of two `features` columns of
+  a Points, Shapes or Labels layer. Box, lasso or polygon selections in the plot
+  select the matching points or shapes, or the first matching label. Selections
+  made in napari are highlighted in the plot.
+
+Profiles use the selected image layers, or all visible images when none are
+selected. To try them, use `File > Open Sample > Napari-Plot`, which has a spot
+time-lapse and a labeled blobs sample.
+
 ## Layer API
 
 Use the Add Layer menu in the viewer or call the matching method:

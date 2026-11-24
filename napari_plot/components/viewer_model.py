@@ -1386,7 +1386,6 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         from napari.layers.points._points_key_bindings import points_fun_to_mode
         from napari.layers.shapes._shapes_key_bindings import shapes_fun_to_mode
         from napari.layers.vectors._vectors_key_bindings import vectors_fun_to_mode
-        from napari.settings import get_settings
 
         from napari_plot.layers.centroids._centroids_key_bindings import centroids_fun_to_mode
         from napari_plot.layers.infline._infline_key_bindings import infline_fun_to_mode
@@ -1416,7 +1415,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         }
 
         help_li = []
-        shortcuts = get_settings().shortcuts.shortcuts
+        # napari-plot actions keep their shortcuts in their own manager, not in napari's settings
+        shortcuts = action_manager._shortcuts
 
         for fun, mode_ in layer_to_func_and_mode.get(layer.__class__, []):
             if mode_ == layer.mode:

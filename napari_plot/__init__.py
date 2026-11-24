@@ -15,7 +15,11 @@ except ImportError:
 
 
 __all__ = (
+    "CursorProfileWidget",
+    "FeaturesPlotWidget",
+    "HistogramWidget",
     "JointGrid",
+    "LineProfileWidget",
     "NapariPlotWidget",
     "ScatterPlotWidget",
     "Viewer",
@@ -28,6 +32,10 @@ __all__ = (
 
 # Map exported names -> (module, attribute)
 _LAZY_IMPORTS = {
+    "CursorProfileWidget": ("napari_plot._profile_widget", "CursorProfileWidget"),
+    "FeaturesPlotWidget": ("napari_plot._features_widget", "FeaturesPlotWidget"),
+    "HistogramWidget": ("napari_plot._histogram_widget", "HistogramWidget"),
+    "LineProfileWidget": ("napari_plot._profile_widget", "LineProfileWidget"),
     "JointGrid": ("napari_plot.components.joint_grid", "JointGrid"),
     "NapariPlotWidget": ("napari_plot._plot_widget", "NapariPlotWidget"),
     "run": ("napari_plot._qt.qt_event_loop", "run"),

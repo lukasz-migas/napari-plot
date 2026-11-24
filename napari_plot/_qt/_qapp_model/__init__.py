@@ -63,13 +63,3 @@ def init_qactions() -> None:
     # register menubar actions
     app.register_actions(chain(LAYERS_ACTIONS))
 
-
-def reset_default_keymap() -> None:
-    """Reset default keymap."""
-    from napari.settings import get_settings
-    from napari.utils.shortcuts import default_shortcuts
-
-    default_shortcuts.clear()
-
-    settings = get_settings()
-    settings.shortcuts.shortcuts = default_shortcuts

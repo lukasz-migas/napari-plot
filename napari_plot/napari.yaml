@@ -11,6 +11,30 @@ contributions:
     python_name: napari_plot._scatter_widget:ScatterPlotWidget
     title: Scatter plot of two layers
 
+  - id: napari_plot.LineProfileWidget
+    python_name: napari_plot._profile_widget:LineProfileWidget
+    title: Line profile along Shapes lines
+
+  - id: napari_plot.CursorProfileWidget
+    python_name: napari_plot._profile_widget:CursorProfileWidget
+    title: Z/T profile under the cursor
+
+  - id: napari_plot.HistogramWidget
+    python_name: napari_plot._histogram_widget:HistogramWidget
+    title: Image histogram with contrast limits
+
+  - id: napari_plot.FeaturesPlotWidget
+    python_name: napari_plot._features_widget:FeaturesPlotWidget
+    title: Plot layer features
+
+  - id: napari_plot.make_spot_time_lapse
+    python_name: napari_plot._sample_data:make_spot_time_lapse
+    title: Load spot time-lapse sample
+
+  - id: napari_plot.make_labeled_blobs
+    python_name: napari_plot._sample_data:make_labeled_blobs
+    title: Load labeled blobs sample
+
   widgets:
   - command: napari_plot.NapariPlotWidget
     display_name: Napari-Plot (2D Plot)
@@ -21,3 +45,41 @@ contributions:
     display_name: Napari-Plot (Scatter)
     default_dock_area: bottom
     tabify: true
+
+  - command: napari_plot.LineProfileWidget
+    display_name: Line profile
+    default_dock_area: bottom
+    tabify: true
+
+  - command: napari_plot.CursorProfileWidget
+    display_name: Z/T profile
+    default_dock_area: bottom
+    tabify: true
+
+  - command: napari_plot.HistogramWidget
+    display_name: Histogram
+    default_dock_area: bottom
+    tabify: true
+
+  - command: napari_plot.FeaturesPlotWidget
+    display_name: Features plot
+    default_dock_area: bottom
+    tabify: true
+
+  sample_data:
+  - command: napari_plot.make_spot_time_lapse
+    key: spot_time_lapse
+    display_name: Spot time-lapse
+
+  - command: napari_plot.make_labeled_blobs
+    key: labeled_blobs
+    display_name: Labeled blobs
+
+  menus:
+    napari/layers/visualize:
+    - command: napari_plot.HistogramWidget
+    - command: napari_plot.FeaturesPlotWidget
+    - command: napari_plot.ScatterPlotWidget
+    napari/layers/measure:
+    - command: napari_plot.LineProfileWidget
+    - command: napari_plot.CursorProfileWidget

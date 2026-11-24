@@ -30,7 +30,7 @@ from qtpy.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFocusEvent
 from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
-from napari_plot._qt._qapp_model import init_qactions, reset_default_keymap
+from napari_plot._qt._qapp_model import init_qactions
 from napari_plot._qt.layer_controls.qt_layer_controls_container import QtLayerControlsContainer
 from napari_plot._qt.qt_layer_buttons import QtLayerButtons, QtViewerButtons
 from napari_plot._qt.qt_layer_list import QtLayerList
@@ -48,7 +48,6 @@ if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
 
 
-reset_default_keymap()
 register_vispy_overlays()
 
 

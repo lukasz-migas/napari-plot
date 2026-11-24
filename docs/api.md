@@ -34,6 +34,30 @@ Class signatures, methods, and docstrings are rendered from the Python source. T
       inherited_members: false
       filters: ["!^_"]
 
+::: napari_plot._profile_widget.LineProfileWidget
+    options:
+      members: true
+      inherited_members: false
+      filters: ["!^_"]
+
+::: napari_plot._profile_widget.CursorProfileWidget
+    options:
+      members: true
+      inherited_members: false
+      filters: ["!^_"]
+
+::: napari_plot._histogram_widget.HistogramWidget
+    options:
+      members: true
+      inherited_members: false
+      filters: ["!^_"]
+
+::: napari_plot._features_widget.FeaturesPlotWidget
+    options:
+      members: true
+      inherited_members: false
+      filters: ["!^_"]
+
 ## Plot layers
 
 ::: napari_plot.layers

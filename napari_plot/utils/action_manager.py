@@ -35,7 +35,26 @@ class Action:
         return get_app_model().injection_store.inject(self.command)
 
 
-napari.utils.action_manager.Action = Action
+class ActionManager(napari.utils.action_manager.ActionManager):
+    """Action manager whose actions inject napari-plot objects.
+
+    napari's manager builds its own ``Action`` class, which injects from napari's app-model. This subclass
+    keeps napari-plot actions on napari-plot's app-model without patching napari's module.
+    """
+
+    def register_action(
+        self,
+        name: str,
+        command: Callable,
+        description: str,
+        keymapprovider: KeymapProvider | None,
+        repeatable: bool = False,
+    ) -> None:
+        """Register an action and bind any shortcuts that were declared before it."""
+        self._validate_action_name(name)
+        self._actions[name] = Action(command, description, keymapprovider, repeatable)
+        if keymapprovider:
+            self._update_shortcut_bindings(name)
 
 
-action_manager = napari.utils.action_manager.ActionManager()
+action_manager = ActionManager()
