@@ -227,6 +227,8 @@ ignore = [
     "*.pyi",
     "napari_plot/_version.py",  # added during build by setuptools_scm
     "scripts/*.bat",  # scripts
+    "scripts/*.sh",  # scripts
+    "zensical.toml",
     "conftest.py",
     "CHANGELOG.md"
 ]
