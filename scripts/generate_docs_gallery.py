@@ -86,10 +86,16 @@ def load_example(example: Example) -> tuple[object, object]:
     if len(viewers) == 1:
         return module, viewers[0]
 
-    napari_viewers = [value for value in vars(module).values() if value.__class__.__module__.startswith("napari.") and value.__class__.__name__ == "Viewer"]
+    napari_viewers = [
+        value
+        for value in vars(module).values()
+        if value.__class__.__module__.startswith("napari.") and value.__class__.__name__ == "Viewer"
+    ]
     if len(napari_viewers) == 1:
         return module, napari_viewers[0]
-    raise RuntimeError(f"Expected one napari-plot or napari Viewer in {example.path}, found {len(viewers) + len(napari_viewers)}")
+    raise RuntimeError(
+        f"Expected one napari-plot or napari Viewer in {example.path}, found {len(viewers) + len(napari_viewers)}"
+    )
 
 
 def render_example(example: Example, app: QApplication) -> Path:
@@ -140,7 +146,7 @@ def write_gallery_pages(examples: list[Example]) -> None:
             f'<a class="gallery-card" href="gallery/{example.slug}.md">'
             f'<img src="assets/gallery/{image_name}" alt="{example.title} example screenshot">'
             f'<span class="gallery-card-copy"><strong>{example.title}</strong>'
-            f"<span>{example.subtitle}</span><span class=\"gallery-tags\">{tag_chips}</span></span></a>"
+            f'<span>{example.subtitle}</span><span class="gallery-tags">{tag_chips}</span></span></a>'
         )
 
     GALLERY_PAGE.write_text(
