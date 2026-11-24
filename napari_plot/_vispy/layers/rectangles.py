@@ -41,6 +41,7 @@ class VispyRectanglesLayer(VispyBaseLayer["Rectangles"]):
         layer.events.text_offset.connect(self._on_labels_change)
         layer.events.text_size.connect(self._on_font_size_change)
         layer.events.text_color.connect(self._on_text_color_change)
+        layer.events.adding.connect(self._on_adding_change)
         self.reset()
         self._on_outline_width_change()
         self._on_font_size_change()
@@ -74,6 +75,19 @@ class VispyRectanglesLayer(VispyBaseLayer["Rectangles"]):
 
     def _on_outline_width_change(self, _event: Event | None = None) -> None:
         self.node.outlines.set_width(self.layer.outline_width)
+        self.node.preview.set_width(self.layer.outline_width)
+
+    def _on_adding_change(self, _event: Event | None = None) -> None:
+        """Show the rectangle being drawn in ADD mode."""
+        preview = self.node.preview
+        row = self.layer._creating_box
+        preview.visible = row is not None
+        if row is not None:
+            colors = self.layer.outline_color.reshape(-1, 4)
+            preview.set_geometry(np.asarray(row, dtype=float).reshape(1, 4))
+            preview.set_color(colors[-1] if len(colors) else np.ones(4, dtype=np.float32))
+        # subvisuals have no parent, so the canvas must be asked to redraw explicitly
+        self.node.update()
 
     def _sync_outlines(self, _event: Event | None = None) -> None:
         outline = self.node.outlines

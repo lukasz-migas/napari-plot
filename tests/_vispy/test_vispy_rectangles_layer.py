@@ -69,3 +69,19 @@ def test_vispy_rectangles_uploads_only_changed_enabled_components(monkeypatch: p
 
         layer.set_data([[4, 5], [8, 10]], 5, 10)
         upload_geometry.assert_called_once()
+
+
+def test_vispy_rectangles_preview_while_adding(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The rectangle being drawn is shown with the outline color and hidden once finished."""
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    layer = Rectangles(outline_color="red")
+    adapter = VispyRectanglesLayer(layer, font_info=FontInfo())
+    preview = adapter.node.preview
+    assert not preview.visible
+    with patch.object(adapter.node, "update") as update:
+        layer._set_creating_box(np.array([3.0, 4.0, 4.0, 2.0]))
+    update.assert_called()
+    assert preview.visible
+    assert preview._count == 1
+    layer._set_creating_box(None)
+    assert not preview.visible

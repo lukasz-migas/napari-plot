@@ -48,6 +48,8 @@ class VispyRegionLayer(VispyBaseLayer):
         else:
             self.node.vertical_visual.set_data(color=(0, 0, 0, 0))
             self.node.horizontal_visual.set_data(color=(0, 0, 0, 0))
+        # subvisuals have no parent, so the canvas must be asked to redraw explicitly
+        self.node.update()
 
     def _on_remove_change(self, event) -> None:
         """Remove regions."""

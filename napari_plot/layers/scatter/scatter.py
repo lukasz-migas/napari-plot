@@ -46,8 +46,9 @@ class Scatter(Points, LayerMixin):
         Symbol to be used for the point markers. Must be one of the following: arrow, clobber, cross, diamond, disc,
         hbar, ring, square, star, tailed_arrow, triangle_down, triangle_up, vbar, x.
     size : float, array
-        Size of the point marker in data pixels. If given as a scalar, all points are made the same size. If given as an
-        array, size must be the same or broadcastable to the same shape as the data.
+        Size of the point marker in screen pixels (or data units when ``scaling`` is True). If given as a scalar, all
+        points are made the same size. If given as an array, size must be the same or broadcastable to the same shape
+        as the data.
     border_width : float, array
         Width of the symbol edge in pixels.
     border_width_is_relative : bool
@@ -120,7 +121,7 @@ class Scatter(Points, LayerMixin):
     shown : 1-D array of bool
         Whether to show each point.
     scaling : bool
-        Whether to scale the points with the zoom level.
+        Whether to scale the points with the zoom level. When False (default), marker sizes are in screen pixels.
     """
 
     _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
@@ -191,7 +192,7 @@ class Scatter(Points, LayerMixin):
         projection_mode="all",
         shading="none",
         shown=True,
-        scaling=True,
+        scaling=False,
         canvas_size_limits=(2, 10000),
         antialiasing=1,
         units=None,

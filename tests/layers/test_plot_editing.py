@@ -135,3 +135,28 @@ def test_text_drag_uses_screen_offset_and_preserves_labels() -> None:
     np.testing.assert_allclose(layer.data, [[7, 6], [8, 8]])
     np.testing.assert_equal(layer.text, ["A", "B"])
     np.testing.assert_allclose(layer.pixel_offset, [[20, 0], [20, 0]])
+
+
+def test_default_scatter_drag_from_empty_space_selects_with_box() -> None:
+    """Default (pixel-sized) markers only hit near their center, so a drag elsewhere draws a box instead."""
+    layer = Scatter([[0.5, 0.5], [0.6, 1.5]])
+    assert not layer.scaling
+    # 400 x 400 px canvas showing x and y in 0..2
+    layer._update_draw(1.0, np.array([[0.0, 0.0], [2.0, 2.0]]), (400, 400))
+    layer.mode = "select"
+    _drag(layer, (0.0, 0.0), (1.0, 1.0))
+    assert set(layer.selected_data) == {0}
+    np.testing.assert_array_equal(layer.data, [[0.5, 0.5], [0.6, 1.5]])
+
+
+def test_rectangle_add_shows_preview_while_dragging() -> None:
+    """The rectangle being drawn is exposed during the drag and cleared on release."""
+    layer = Rectangles()
+    previews = []
+    layer.events.adding.connect(lambda event: previews.append(event.value))
+    layer.mode = "add"
+    _drag(layer, (2, 1), (6, 5))
+    np.testing.assert_allclose(previews[0], [3, 4, 4, 4])
+    assert previews[-1] is None
+    assert layer._creating_box is None
+    np.testing.assert_allclose(layer.data, [[3, 4, 4, 4]])

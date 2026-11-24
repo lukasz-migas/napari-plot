@@ -11,105 +11,104 @@
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-plot)](https://www.napari-hub.org/plugins/napari-plot)
 [![Documentation](https://github.com/lukasz-migas/napari-plot/actions/workflows/docs.yml/badge.svg)](https://lukasz-migas.github.io/napari-plot/)
 
-## Interactive plotting in napari or a standalone Qt viewer
+## Interactive plotting in napari and Qt
 
-napari-plot provides GPU-accelerated Line, Scatter, MultiLine, Centroids, Text,
-Region, InfLine, and Bar layers. It supports linear, logarithmic, and categorical
-axes, an interactive legend, data selection tools, and image display.
+napari-plot is a GPU-accelerated plotting library for interactive one-dimensional data visualization. Use it as a dock
+widget in napari or open its standalone Qt viewer. Build plots from familiar layers, update them as data changes, and
+inspect values with selection tools.
 
-## Usage
+![Standalone napari-plot viewer](https://github.com/lukasz-migas/napari-plot/raw/main/misc/standalone.png)
 
-You can use `napari-plot` alongside `napari` where it is embedded as a dock widget. If using this option, controls are relegated to a toolbar
-where you can adjust layer properties like you would do in `napari`.
+## See it in action
 
-![embedded](https://github.com/lukasz-migas/napari-plot/raw/main/misc/embedded.png)
+The same plot viewer can be embedded in napari alongside image and annotation layers:
 
-Or as a standalone app where only one-dimensional plotting is enabled. In this mode, controls take central stage and reflect `napari's` own
-behaviour where layer controls are embedded in the main application.
+![napari-plot embedded in napari](https://github.com/lukasz-migas/napari-plot/raw/main/misc/embedded.png)
 
-![live-view](https://github.com/lukasz-migas/napari-plot/raw/main/misc/napariplot-live-line.gif)
+Compare channels or measurements with grid layouts, independently configurable axes, and colorbars:
 
-Data selection is also permitted by enabling one of the available selection tools.
+![Grid plots with independent panels](https://github.com/lukasz-migas/napari-plot/raw/main/docs/assets/gallery/examples-show_grid_mode.jpg)
 
-![scatter-select](https://github.com/lukasz-migas/napari-plot/raw/main/misc/napariplot-scatter-select.gif)
+Statistical plots include categorical distributions and relational plots. Install the `stats` extra to use them:
 
-## Roadmap
+![Statistical violin plots](https://github.com/lukasz-migas/napari-plot/raw/main/docs/assets/gallery/examples-stats_violinplot.jpg)
 
-The plotting core includes grid cells with independently configurable axes,
-data selection by box, lasso or polygon, and layer-linked legends and colorbars.
-The [feature roadmap](TODO/feature-complete-roadmap.md) tracks remaining work,
-including per-vertex line colormaps, secondary axes, navigation history, and
-deeper links to napari layers.
+Selection tools can report the data points and layer indices inside a box, lasso, or polygon selection:
 
-## Installation
+![Selecting data in a napari-plot scatter plot](https://github.com/lukasz-migas/napari-plot/raw/main/docs/assets/gallery/examples-select_data.jpg)
 
-napari-plot requires napari 0.10.x and Python 3.11 or later. Use a Qt6 backend
-with `pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
-Install `napari-plot[stats]` for seaborn-style statistical plotting.
+Browse the [example gallery](https://lukasz-migas.github.io/napari-plot/gallery/) for more screenshots and runnable code.
 
-You can install `napari-plot` directly from PyPI via:
+## Current capabilities
 
-```shell
-pip install napari-plot
-```
+- **Plot layers:** Line, Scatter, MultiLine, Centroids, Bar, Band, ErrorBar, Region, InfLine, Rectangles, Text, and Image.
+- **Axes and layout:** linear, logarithmic, categorical, and datetime axes; grid views; plot annotations; legends and colorbars.
+- **Interaction:** box, lasso, and polygon selection; editable layers; live updates; and shared layer controls in napari.
+- **Statistics:** seaborn-style relational, categorical, distribution, matrix, and faceted plots through the optional `stats` extra.
+- **Files:** export figures as PNG, SVG, or PDF; export layer data; and save or restore plot sessions.
 
-or from the git repo:
+## Quick start
+
+Install napari-plot with one Qt6 backend. Python 3.11 or later and napari 0.10.x are required.
 
 ```shell
-git clone https://github.com/lukasz-migas/napari-plot.git
-cd napari-plot
-pip install -e '.[all]'
+pip install "napari-plot[pyqt6]"
 ```
 
-The plot widgets open in a tabified bottom dock in napari. Custom layers retain
-their individual controls; selecting several layers exposes shared opacity and
-blending controls. Built-in-only selections use napari's dynamic controls.
+For PySide6, use `napari-plot[pyside6]`. Add `,stats` to either extra to install statistical plotting support.
 
-`viewer.scene.camera` and `viewer.canvas.overlays` expose the new model layout.
-Existing `viewer.camera`, `viewer.text_overlay`, `viewer.legend`, and
-`viewer.grid_lines` accessors refer to the same objects. The custom camera,
-log axes, and plot grid remain available.
+Create a plot in the standalone viewer:
 
-Layer axis labels automatically populate the plot labels until those labels
-are edited explicitly. Unspecified text and legend font sizes follow the
-application's appearance font size; pass a number to fix the size.
+```python
+import numpy as np
+import napari_plot
 
-Python 3.11 or later is required. See the
-[documentation](https://lukasz-migas.github.io/napari-plot/) for quickstarts,
-examples, layer guides, axis controls, interactions, and the public API.
+viewer = napari_plot.Viewer(title="Signal")
+x = np.linspace(0, 2 * np.pi, 500)
+y = np.sin(x)
+
+viewer.plot(x, y, name="signal", color="cyan")
+viewer.scatter(x[::25], y[::25], name="samples", size=8)
+viewer.axis.x_label = "Time (s)"
+viewer.axis.y_label = "Amplitude"
+viewer.legend.visible = True
+
+napari_plot.run()
+```
+
+To open it inside napari, add the Plot Widget from **Plugins > napari-plot: Plot Widget**, or create it in Python:
+
+```python
+import napari
+from napari_plot import NapariPlotWidget
+
+viewer = napari.Viewer()
+viewer.window.add_dock_widget(NapariPlotWidget(viewer))
+napari.run()
+```
+
+## Documentation
+
+See the [quickstart](https://lukasz-migas.github.io/napari-plot/), [layer guide](https://lukasz-migas.github.io/napari-plot/layers/),
+[examples](https://lukasz-migas.github.io/napari-plot/examples/), and [API reference](https://lukasz-migas.github.io/napari-plot/api/).
 
 ## Contributing
 
-Contributions are very welcome. Install the test environment and run the tests with [uv]:
+Contributions are welcome. Install the test environment and run the tests with [uv]:
 
 ```shell
 uv sync --no-dev --group test --extra pyqt6 --extra optional
 uv run --no-sync pytest
 ```
 
-Please ensure the coverage at least stays the same before you submit a pull request.
-
 ## License
 
-Distributed under the terms of the [BSD-3] license,
-"napari-plot" is free and open source software
+Distributed under the terms of the [BSD-3] license, napari-plot is free and open source software.
 
-## Issues
+## Issues and support
 
-If you encounter any problems, please [file an issue] along with a detailed description.
-
-## Support
-
+If you encounter a problem, [file an issue](https://github.com/lukasz-migas/napari-plot/issues) with a detailed description.
 This project is supported by a Chan-Zuckerberg Initiative [napari](https://chanzuckerberg.com/science/programs-resources/imaging/napari/maintain-1d-visualization-plugin/) grant.
 
-[napari]: https://github.com/napari/napari
-[Cookiecutter]: https://github.com/audreyr/cookiecutter
-[@napari]: https://github.com/napari
 [BSD-3]: http://opensource.org/licenses/BSD-3-Clause
-[Apache Software License 2.0]: http://www.apache.org/licenses/LICENSE-2.0
-[cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
-[file an issue]: https://github.com/lukasz-migas/napari-plot/issues
-[napari]: https://github.com/napari/napari
 [uv]: https://docs.astral.sh/uv/
-[pip]: https://pypi.org/project/pip/
-[PyPI]: https://pypi.org/

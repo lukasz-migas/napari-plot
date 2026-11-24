@@ -5,7 +5,7 @@ from itertools import chain
 
 from napari._qt._qapp_model.injection._qprocessors import QPROCESSORS
 
-from napari_plot._qt._qapp_model._qproviders import QPROVIDERS
+from napari_plot._qt._qapp_model._qproviders import QPROVIDERS, _provide_active_layer, _provide_active_layer_list
 
 # Submodules should be able to import from most modules, so to
 # avoid circular imports, don't import submodules at the top level here,
@@ -46,6 +46,19 @@ def init_qactions() -> None:
     # Qt-specific providers/processors
     app.injection_store.register(providers=QPROVIDERS)
     app.injection_store.register(processors=QPROCESSORS)
+
+    # napari's built-in layer controls (e.g. Points) trigger actions through napari's own app-model, which
+    # otherwise has no current layer in a napari-plot window. A low weight keeps napari's providers first
+    # whenever a napari viewer is also open.
+    from napari import components, layers
+    from napari._app_model import get_app_model as get_napari_app_model
+
+    get_napari_app_model().injection_store.register(
+        providers=[
+            (_provide_active_layer, layers.Layer, -1),
+            (_provide_active_layer_list, components.LayerList, -1),
+        ]
+    )
 
     # register menubar actions
     app.register_actions(chain(LAYERS_ACTIONS))

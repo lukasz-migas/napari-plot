@@ -117,10 +117,12 @@ class RectangleOutlineVisual(Visual):
 
 
 class RectanglesVisual(Compound):
-    """Draw outlines, center markers, and labels in that order."""
+    """Draw outlines, center markers, labels, and the rectangle being drawn in that order."""
 
     def __init__(self, font_info: FontInfo) -> None:
         self.outlines = RectangleOutlineVisual()
         self.markers = Markers(scaling="fixed")
         self.text = Text(anchor_x="left", anchor_y="bottom", face=font_info.face, font_manager=font_info.font_manager)
-        super().__init__([self.outlines, self.markers, self.text])
+        self.preview = RectangleOutlineVisual()
+        self.preview.visible = False
+        super().__init__([self.outlines, self.markers, self.text, self.preview])

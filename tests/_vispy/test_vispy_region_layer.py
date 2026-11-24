@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import numpy as np
 import pytest
 from napari._vispy.utils.qt_font import FontInfo
@@ -100,3 +102,12 @@ def test_vispy_region_layer_opacity_propagates(layer: Region) -> None:
     assert visual.node.regions_visual.opacity == 0.25
     assert visual.node.horizontal_visual.opacity == 0.25
     assert visual.node.vertical_visual.opacity == 0.25
+
+
+def test_vispy_region_layer_redraws_preview_while_adding(layer: Region) -> None:
+    """The temporary region requests a canvas redraw on every drag step."""
+    visual = VispyRegionLayer(layer, font_info=FontInfo())
+    with patch.object(visual.node, "update") as update:
+        layer._add_move([4.0, 5.0], orientation="vertical")
+    update.assert_called()
+    np.testing.assert_allclose(visual.node.vertical_visual._pos[:, 0], [4.0, 4.0, 5.0, 5.0])

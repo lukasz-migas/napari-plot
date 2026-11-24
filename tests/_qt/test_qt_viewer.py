@@ -231,3 +231,14 @@ def test_injection_uses_focused_embedded_qt_viewer(qtbot, monkeypatch):
     qt_viewer2._enter_canvas()
     assert _provide_qt_viewer() is qt_viewer2
     assert _provide_viewer(public_proxy=False) is viewer2
+
+
+def test_napari_layer_control_actions_use_plot_layer(make_napari_plot_viewer):
+    """napari's own layer-control actions (e.g. Points add) find the active napari-plot layer."""
+    from napari.layers import Points
+    from napari.utils.action_manager import action_manager
+
+    viewer = make_napari_plot_viewer()
+    layer = viewer.add_layer(Points(np.zeros((1, 2))))
+    action_manager.trigger("napari:activate_points_add_mode")
+    assert layer.mode == "add"

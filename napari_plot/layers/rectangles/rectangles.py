@@ -41,13 +41,20 @@ def _add_rectangle(layer: Rectangles, event: Event) -> Generator[None, None, Non
     start = layer.world_to_data(event.position)[::-1]
     event.handled = True
     yield
-    while event.type == "mouse_move":
-        yield
-    end = layer.world_to_data(event.position)[::-1]
-    size = abs(end - start)
-    if layer.mode == RectangleMode.ADD and layer.editable and np.all(size > 0):
-        row = np.concatenate(((start + end) / 2, size[::-1]))
+    try:
+        while event.type == "mouse_move":
+            layer._set_creating_box(_rectangle_row(start, layer.world_to_data(event.position)[::-1]))
+            yield
+    finally:
+        layer._set_creating_box(None)
+    row = _rectangle_row(start, layer.world_to_data(event.position)[::-1])
+    if layer.mode == RectangleMode.ADD and layer.editable and np.all(row[2:] > 0):
         layer.data = np.vstack((layer.data, row))
+
+
+def _rectangle_row(start: np.ndarray, end: np.ndarray) -> np.ndarray:
+    """Return the [x, y, height, width] row spanned by two [x, y] corners."""
+    return np.concatenate(((start + end) / 2, abs(end - start)[::-1]))
 
 
 def _edit_rectangle(layer: Rectangles, event: Event) -> Generator[None, None, None]:
@@ -257,7 +264,10 @@ class Rectangles(BaseLayer):
             text_size=Event,
             text_color=Event,
             text_offset=Event,
+            adding=Event,
         )
+        # [x, y, height, width] row of the rectangle being drawn in ADD mode
+        self._creating_box: np.ndarray | None = None
         self.show_rectangles = show_rectangles
         self.show_markers = show_markers
         self.show_text = show_text
@@ -307,6 +317,11 @@ class Rectangles(BaseLayer):
         if not self.visible:
             self._clear_extent()
         self._emit_new_data(action_type=ActionType.CHANGED)
+
+    def _set_creating_box(self, row: np.ndarray | None) -> None:
+        """Set the preview rectangle shown while dragging in ADD mode."""
+        self._creating_box = row
+        self.events.adding(value=row)
 
     @property
     def show_rectangles(self) -> bool:

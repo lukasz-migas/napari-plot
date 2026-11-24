@@ -30,7 +30,7 @@ class VispyScatterLayer(VispyBaseLayer):
         super().__init__(layer, node, font_info=font_info)
 
         self.layer.events.size.connect(self._on_data_change)
-        self.layer.events.scaling.connect(self._on_data_change)
+        self.layer.events.scaling.connect(self._on_scaling_change)
         self.layer.events.symbol.connect(self._on_symbol_change)
         self.layer.events.border_width.connect(self._on_data_change)
         self.layer.events.border_width_is_relative.connect(self._on_data_change)
@@ -46,8 +46,7 @@ class VispyScatterLayer(VispyBaseLayer):
         self.layer.events.antialiasing.connect(self._on_antialiasing_change)
         self.layer.events.canvas_size_limits.connect(self._on_canvas_size_limits_change)
 
-        self.reset()
-        self._on_data_change()
+        self._on_scaling_change()
 
     def _on_data_change(self):
         if len(self.layer._view_indices) > 0:
@@ -86,9 +85,10 @@ class VispyScatterLayer(VispyBaseLayer):
         )
         self.reset()
 
-    def _on_scaling_change(self, event=None):
-        """Set data"""
+    def _on_scaling_change(self, event=None) -> None:
+        """Render markers in data units when the layer scales with zoom, otherwise in screen pixels."""
         self.node.scaling = self.layer.scaling
+        self._on_data_change()
 
     def _on_symbol_change(self):
         symbol = ["o"] if len(self.layer._view_indices) == 0 else [str(x) for x in self.layer._view_symbol]
