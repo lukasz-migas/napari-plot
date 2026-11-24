@@ -1,5 +1,6 @@
 """X/Y-axis controls"""
 
+from functools import partial
 from typing import TYPE_CHECKING
 from weakref import ref
 
@@ -14,6 +15,8 @@ from qtpy.QtWidgets import QFormLayout, QWidget
 from napari_plot.components.axis import AxisScale
 
 if TYPE_CHECKING:
+    from weakref import ReferenceType
+
     from napari_plot.components.viewer_model import ViewerModel
 
 
@@ -43,7 +46,7 @@ class QtAxisWidget(QWidget):
         viewer.axis.events.x_categories.connect(self._on_categories_change)
         viewer.axis.events.y_categories.connect(self._on_categories_change)
 
-        self.visible_checkbox = hp.make_checkbox(self, "", val=viewer.axis.visible, tooltip="Show/hide x/y-axes")
+        self.visible_checkbox = hp.make_checkbox(self, "", value=viewer.axis.visible, tooltip="Show/hide x/y-axes")
         self.visible_checkbox.stateChanged.connect(self.on_change_visible)
 
         self.x_axis_edit = hp.make_line_edit(self, viewer.axis.x_label, placeholder="X-axis label...")
@@ -319,6 +322,14 @@ class QtAxisWidget(QWidget):
             self.label_color_swatch.setColor(viewer.axis.colors_for_theme(viewer.theme)[1])
 
 
+def _disconnect_axis_events(viewer_ref: "ReferenceType[ViewerModel]", widget: QtAxisWidget, *_args: object) -> None:
+    """Disconnect the axis widget from the viewer's axis and theme events."""
+    viewer = viewer_ref()
+    if viewer is not None:
+        disconnect_events(viewer.axis.events, widget)
+        viewer.events.theme.disconnect(widget)
+
+
 class QtAxisControls(QtFramelessPopup):
     """Popup to control x/y-axis visual"""
 
@@ -329,6 +340,7 @@ class QtAxisControls(QtFramelessPopup):
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
         self.setObjectName("axis")
         self.setMouseTracking(True)
+        self.destroyed.connect(partial(_disconnect_axis_events, self.ref_viewer, self.axis_widget))
 
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
@@ -342,10 +354,5 @@ class QtAxisControls(QtFramelessPopup):
         return layout
 
     def _on_teardown(self) -> None:
-        """Disconnect axis events from the inner widget.
-
-        Called from ``closeEvent``, which also runs when the popup auto-closes on an outside click.
-        """
-        viewer = self.ref_viewer()
-        if viewer is not None:
-            disconnect_events(viewer.axis.events, self.axis_widget)
+        """Disconnect the inner widget's listeners when the popup closes."""
+        _disconnect_axis_events(self.ref_viewer, self.axis_widget)
