@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import typing as ty
+from contextlib import ExitStack
 
 import numpy as np
 import qtextra.helpers as hp
@@ -10,10 +11,9 @@ from napari._qt.utils import qt_signals_blocked
 from napari._qt.widgets.qt_color_swatch import QColorSwatchEdit
 from napari.components._viewer_constants import CanvasPosition
 from napari.settings import get_settings
-from napari.utils.events import disconnect_events
 from qtextra.widgets.qt_dialog import QtFramelessPopup
 from qtpy.QtCore import Qt
-from qtpy.QtWidgets import QFormLayout
+from qtpy.QtWidgets import QFormLayout, QWidget
 
 if ty.TYPE_CHECKING:
     from napari_plot.components.viewer_model import ViewerModel
@@ -31,7 +31,7 @@ POSITION_TRANSLATIONS = {
 class QtLegendControls(QtFramelessPopup):
     """Popup for legend visibility, placement, synchronization, and style."""
 
-    def __init__(self, viewer: ViewerModel, parent=None) -> None:
+    def __init__(self, viewer: ViewerModel, parent: QWidget | None = None) -> None:
         self.viewer = viewer
         super().__init__(parent=parent)
         self.setAttribute(Qt.WidgetAttribute.WA_DeleteOnClose)
@@ -39,7 +39,8 @@ class QtLegendControls(QtFramelessPopup):
         self.setMouseTracking(True)
 
         overlay = viewer.legend
-        self._overlay_connections = (
+        connections = self._overlay_connections = ExitStack()
+        for signal, callback in (
             (overlay.events.visible, self._on_visible_change),
             (overlay.events.position, self._on_position_change),
             (overlay.events.sync_with_source, self._on_auto_sync_change),
@@ -55,10 +56,11 @@ class QtLegendControls(QtFramelessPopup):
             (overlay.events.ncols, self._on_layout_change),
             (overlay.events.outside, self._on_layout_change),
             (viewer.events.theme, self._on_color_theme_change),
-        )
-        for signal, callback in self._overlay_connections:
+            (get_settings().appearance.events.font_size, self._on_font_size_change),
+        ):
             signal.connect(callback)
-        get_settings().appearance.events.font_size.connect(self._on_font_size_change)
+            connections.callback(signal.disconnect, callback)
+        self.destroyed.connect(lambda *_args: connections.close())
 
     # noinspection PyAttributeOutsideInit
     def make_panel(self) -> QFormLayout:
@@ -271,16 +273,8 @@ class QtLegendControls(QtFramelessPopup):
             self.border_width_spinbox.setValue(self.viewer.legend.border_width)
 
     def _on_teardown(self) -> None:
-        """Disconnect overlay events.
-
-        Called from ``closeEvent``, which runs on every close path, including the
-        popup auto-closing when the user clicks outside of it (``close()`` is not
-        called in that case).
-        """
-        for signal, callback in self._overlay_connections:
-            signal.disconnect(callback)
-        self._overlay_connections = ()
-        disconnect_events(get_settings().appearance.events, self)
+        """Disconnect overlay and appearance events when the popup closes."""
+        self._overlay_connections.close()
 
 
 __all__ = ["QtLegendControls"]

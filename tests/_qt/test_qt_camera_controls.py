@@ -1,5 +1,8 @@
 """Tests for the camera controls popup."""
 
+import pytest
+from pytestqt.qtbot import QtBot
+from qtpy.QtCore import QCoreApplication, QEvent, Qt
 from qtpy.QtWidgets import QWidget
 
 from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls, QtCameraWidget
@@ -11,16 +14,23 @@ def _listeners(events) -> set:
     return {cb[0]() for emitter in events.emitters.values() for cb in emitter.callbacks if isinstance(cb, tuple)}
 
 
-def test_camera_popup_disconnects_when_qt_closes_popup(qtbot) -> None:
-    """A Qt-driven popup close unsubscribes the inner widget from camera events."""
+@pytest.mark.parametrize("dismissal", ["qt-close", "escape", "parent"])
+def test_camera_popup_disconnects_on_dismissal(qtbot: QtBot, dismissal: str) -> None:
+    """Dismissing the popup unsubscribes its widget from camera events."""
     viewer = ViewerModel()
-    popup = QtCameraControls(viewer)
+    parent = QWidget()
+    popup = QtCameraControls(viewer, parent)
     popup.show()
     inner = popup.findChild(QtCameraWidget)
     assert inner in _listeners(viewer.camera.events)
 
-    # popups closed by clicking outside go through closeEvent, not the Python ``close`` override
-    QWidget.close(popup)
+    if dismissal == "qt-close":
+        QWidget.close(popup)
+    elif dismissal == "escape":
+        qtbot.keyClick(popup, Qt.Key.Key_Escape)
+    else:
+        parent.deleteLater()
+    QCoreApplication.sendPostedEvents(parent if dismissal == "parent" else popup, QEvent.Type.DeferredDelete)
     assert inner not in _listeners(viewer.camera.events)
 
 

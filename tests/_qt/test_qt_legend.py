@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+from weakref import ref
 
 import numpy as np
 import pytest
@@ -204,23 +205,36 @@ def test_legend_controls_use_current_visibility(qtbot) -> None:
     assert viewer.legend.visible
 
 
-def test_legend_controls_disconnect_when_qt_closes_popup(qtbot) -> None:
-    """Reopening controls after a Qt-driven close does not call into the deleted popup."""
-    from qtpy.QtCore import QCoreApplication, QEvent
+@pytest.mark.parametrize("dismissal", ["qt-close", "escape", "parent"])
+def test_legend_controls_disconnect_on_dismissal(qtbot, dismissal: str) -> None:
+    """Reopening controls after dismissal does not call into the deleted popup."""
+    from napari.settings import get_settings
+    from qtpy.QtCore import QCoreApplication, QEvent, Qt
     from qtpy.QtWidgets import QWidget
 
     viewer = ViewerModel()
-    controls = QtLegendControls(viewer)
+    parent = QWidget()
+    controls = QtLegendControls(viewer, parent)
+    font_size_event = get_settings().appearance.events.font_size
+    callback = controls._on_font_size_change
+    assert (ref(controls), callback.__name__) in font_size_event.callbacks
     controls.show()
-    # popups closed by clicking outside go through closeEvent, not the Python ``close`` override
-    QWidget.close(controls)
-    QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    if dismissal == "qt-close":
+        QWidget.close(controls)
+    elif dismissal == "escape":
+        qtbot.keyClick(controls, Qt.Key.Key_Escape)
+    else:
+        parent.deleteLater()
+    QCoreApplication.sendPostedEvents(parent if dismissal == "parent" else controls, QEvent.Type.DeferredDelete)
 
     second = QtLegendControls(viewer)
-    qtbot.addWidget(second)
-    second.row_spacing_spinbox.setValue(7)
-    second.on_change_row_spacing()
-    assert viewer.legend.row_spacing == 7
+    try:
+        viewer.legend.row_spacing = 7
+        assert second.row_spacing_spinbox.value() == 7
+        assert (ref(controls), callback.__name__) not in font_size_event.callbacks
+    finally:
+        second.close()
+        QCoreApplication.sendPostedEvents(second, QEvent.Type.DeferredDelete)
 
 
 def test_theme_colors_and_outside_legend(make_napari_plot_viewer) -> None:
