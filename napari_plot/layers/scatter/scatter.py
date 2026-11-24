@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import typing as ty
-from collections.abc import Generator
 
 import numpy as np
 from napari.layers import Points
 from napari.layers.points._points_constants import Mode
-from napari.layers.points._points_mouse_bindings import add, select
 from napari.layers.points._points_utils import fix_data_points
 from napari.utils.events import Event
 from napari.utils.migrations import add_deprecated_property, rename_argument
@@ -17,24 +15,15 @@ from numpy.typing import ArrayLike
 from napari_plot.layers._selection import points_in_polygon
 from napari_plot.layers._thumbnail import SCATTER, WHITE
 from napari_plot.layers.base import LayerMixin
-
-
-def _edit_points(
-    callback: ty.Callable[[Scatter, Event], Generator[None, None, None]],
-) -> ty.Callable[[Scatter, Event], Generator[None, None, None]]:
-    def edit(layer: Scatter, event: Event) -> Generator[None, None, None]:
-        if event.button == 1 and not getattr(event, "plot_selection_tool", False):
-            event.handled = True
-            yield from callback(layer, event)
-
-    return edit
+from napari_plot.layers.scatter._scatter_mouse_bindings import add, select
 
 
 class Scatter(Points, LayerMixin):
     """Scatter layer based on napari Points layer.
 
     Set ``mode`` to ``"add"`` to add points by clicking, or to ``"select"``
-    to select and drag points. Use ``remove_selected`` to delete them.
+    to select and drag points. Drag boxes select fixed-size markers by their
+    centers. Use ``remove_selected`` to delete selected points.
 
     Parameters
     ----------
@@ -136,8 +125,8 @@ class Scatter(Points, LayerMixin):
 
     _drag_modes: ty.ClassVar[dict[Mode, ty.Callable[[Scatter, Event], ty.Any]]] = {
         **Points._drag_modes,
-        Mode.ADD: _edit_points(add),
-        Mode.SELECT: _edit_points(select),
+        Mode.ADD: add,
+        Mode.SELECT: select,
     }
 
     _default_face_color = np.array((1.0, 1.0, 1.0, 1.0), dtype=np.float32)
@@ -326,22 +315,35 @@ class Scatter(Points, LayerMixin):
             self._data_per_px = np.abs(corners[1] - corners[0]) / np.maximum((height, width), 1)
         super()._update_draw(scale_factor, corner_pixels_displayed, shape_threshold)
 
-    def _get_value(self, position) -> int | None:
+    def _get_value(self, position: ArrayLike) -> int | None:
         """Return the index of the point under a data-space ``(y, x)`` position.
 
         When ``scaling`` is off, marker sizes are in screen pixels, so the hit radius is converted to data units
         separately along each axis (the plot camera can zoom x and y independently).
         """
-        if self.scaling or self._data_per_px is None:
+        data_per_px = self._data_per_px
+        if self.scaling or data_per_px is None:
             return super()._get_value(position)
-        view_data = self._view_data
-        if len(view_data) == 0:
+        # The background status read can overlap a point edit. Index both arrays
+        # with the same visible indices and discard a hit if the arrays changed.
+        view_indices = self._view_indices
+        data, sizes, shown = self.data, self.size, self.shown
+        if not len(view_indices) or not len(data) == len(sizes) == len(shown) or np.any(view_indices >= len(data)):
             return None
-        radius = np.expand_dims(self._view_size, axis=1) / 2 * self._data_per_px
-        offset = (view_data - np.asarray(position[-2:], dtype=float)) / np.maximum(radius, np.finfo(float).tiny)
+        view_data = data[np.ix_(view_indices, self._slice_input.displayed)]
+        radius = sizes[view_indices, None] / 2 * data_per_px
+        offset = (view_data - np.asarray(position, dtype=float)[-2:]) / np.maximum(radius, np.finfo(float).tiny)
         distance = np.hypot(offset[:, 0], offset[:, 1])
+        distance[~shown[view_indices]] = np.inf
         index = int(np.argmin(distance))
-        return int(self._view_indices[index]) if distance[index] <= 1 else None
+        if (
+            view_indices is not self._view_indices
+            or data is not self.data
+            or sizes is not self.size
+            or shown is not self.shown
+        ):
+            return None
+        return int(view_indices[index]) if distance[index] <= 1 else None
 
     def _get_state(self) -> dict[str, ty.Any]:
         """Get the serializable layer state."""

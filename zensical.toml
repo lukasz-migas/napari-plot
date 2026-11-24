@@ -1,0 +1,64 @@
+[project]
+site_name = "napari-plot"
+site_url = "https://lukasz-migas.github.io/napari-plot/"
+site_author = "Lukasz Migas"
+site_description = "Vispy-based plotting library alongside napari."
+repo_name = "lukasz-migas/napari-plot"
+repo_url = "https://github.com/lukasz-migas/napari-plot"
+copyright = "Copyright &copy; 2021 - present Lukasz Migas"
+extra_css = ["assets/css/extra.css"]
+nav = [
+    { Quickstart = "index.md" },
+    { Examples = "examples.md" },
+    { "Layers guide" = "layers.md" },
+    { "In-depth explanations" = [
+        { "Concepts and workflows" = "explanations.md" },
+        { "Advanced workflows" = "usage.md" },
+        { "Public API" = "api.md" },
+    ] },
+]
+
+[project.theme]
+variant = "classic"
+features = [
+    "navigation.instant",
+    "navigation.top",
+    "navigation.tabs",
+    "search.highlight",
+    "search.suggest",
+]
+
+[project.theme.icon]
+logo = "material/chart-scatter-plot"
+
+[[project.theme.palette]]
+scheme = "default"
+primary = "black"
+accent = "green"
+toggle.icon = "material/weather-night"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+scheme = "slate"
+primary = "amber"
+accent = "yellow"
+toggle.icon = "material/weather-sunny"
+toggle.name = "Switch to light mode"
+
+[project.markdown_extensions]
+admonition = {}
+pymdownx.details = {}
+pymdownx.superfences = {}
+
+[project.plugins.autorefs]
+
+[project.plugins.minify]
+minify_html = true
+
+[project.plugins.mkdocstrings.handlers.python.options]
+docstring_style = "numpy"
+filters = ["!^_"]
+show_root_heading = true
+show_root_full_path = false
+show_signature_annotations = true
+show_source = false

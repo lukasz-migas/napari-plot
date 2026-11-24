@@ -13,8 +13,8 @@ from napari_plot.components.tools import BaseTool, BoxTool, PolygonTool
 class DragMode(StrEnum):
     """Interaction mode.
 
-    No interaction tools:
-        NONE : No interaction is possible
+    Canvas navigation:
+        NONE : Pan with either mouse button and zoom with the mouse wheel
 
     Zoom-in tools:
         AUTO : swap between box and span depending on the modifier keys

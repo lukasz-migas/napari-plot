@@ -30,6 +30,7 @@ class _CameraHarness:
     interactive = True
     extent = None
     extent_mode = "unrestricted"
+    _left_drag_pans = False
     _check_range = LimitedPanZoomCamera._check_range
     _make_zoom_rect = LimitedPanZoomCamera._make_zoom_rect
     _is_zoom_drag = LimitedPanZoomCamera._is_zoom_drag
@@ -94,6 +95,90 @@ def test_left_mouse_release_zooms_vertical_drag_for_horizontal_span() -> None:
     assert camera.rect.right == 10.0
     assert camera.rect.bottom == 2.0
     assert camera.rect.top == 8.0
+
+
+def test_pan_zoom_with_drag_tool_disabled() -> None:
+    """With no drag tool, either mouse button pans and the wheel zooms."""
+    viewer = ViewerModel()
+    viewer.drag_tool.active = DragMode.NONE
+    layer = viewer.add_scatter([[1.0, 1.0]], scaling=False)
+    vispy = VispyCamera(ViewBox(size=(100, 100)), viewer.camera, viewer)
+    camera = vispy.camera
+    viewer.camera.rect = (0.0, 10.0, 0.0, 10.0)
+    layer.mode = "add"
+    assert not camera.mouse_pan
+    layer.mode = "pan_zoom"
+    assert camera.mouse_pan
+
+    press = SimpleNamespace(
+        type="mouse_press",
+        button=1,
+        buttons=[1],
+        pos=(30, 40),
+        handled=False,
+        mouse_event=SimpleNamespace(modifiers=("Shift",)),
+    )
+    move = SimpleNamespace(
+        type="mouse_move",
+        button=1,
+        buttons=[1],
+        pos=(60, 70),
+        handled=False,
+        press_event=press,
+        last_event=press,
+        mouse_event=press.mouse_event,
+    )
+    camera.viewbox_mouse_event(press)
+    camera.viewbox_mouse_event(move)
+    assert not press.handled
+    assert not move.handled
+    assert vispy.rect == pytest.approx((0.0, 10.0, 0.0, 10.0))
+
+    press.mouse_event.modifiers = ()
+    for button in (1, 2):
+        viewer.camera.rect = (0.0, 10.0, 0.0, 10.0)
+        press.button = move.button = button
+        press.buttons = move.buttons = [button]
+        press.handled = move.handled = False
+        camera.viewbox_mouse_event(press)
+        camera.viewbox_mouse_event(move)
+        assert press.handled
+        assert move.handled
+        camera.viewbox_mouse_event(SimpleNamespace(type="mouse_release", button=button, handled=False))
+        assert vispy.rect == pytest.approx((-3.0, 7.0, 3.0, 13.0))
+
+    wheel = SimpleNamespace(type="mouse_wheel", pos=(50, 50), delta=(0, 1), handled=False)
+    camera.viewbox_mouse_event(wheel)
+    assert wheel.handled
+    assert camera.rect.width < 10.0
+    assert camera.rect.height < 10.0
+
+
+def test_disabling_drag_tool_mid_gesture_cancels_left_drag() -> None:
+    """A camera that already accepted a press can receive events after the tool is removed."""
+    viewer = ViewerModel()
+    viewer.drag_tool.active = DragMode.BOX
+    vispy = VispyCamera(ViewBox(size=(100, 100)), viewer.camera, viewer)
+    camera = vispy.camera
+    before = vispy.rect
+    press = SimpleNamespace(type="mouse_press", button=1, pos=(20, 30), handled=False)
+    camera.viewbox_mouse_event(press)
+    assert press.handled
+    viewer.drag_tool.active = DragMode.NONE
+
+    for event_type in ("mouse_move", "mouse_release"):
+        event = SimpleNamespace(
+            type=event_type,
+            button=1,
+            buttons=[1],
+            pos=(60, 70),
+            handled=False,
+            press_event=press,
+            mouse_event=SimpleNamespace(modifiers=()),
+        )
+        camera.viewbox_mouse_event(event)
+        assert not event.handled
+    assert vispy.rect == before
 
 
 def test_box_zoom_emits_position_before_reset() -> None:

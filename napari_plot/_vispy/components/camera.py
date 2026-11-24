@@ -16,6 +16,8 @@ from napari_plot.components.tools import Shape
 if ty.TYPE_CHECKING:
     from collections.abc import Callable
 
+    from vispy.scene.events import SceneMouseEvent
+
     from napari_plot.components.viewer_model import ViewerModel
 
 MIN_ZOOM_PIXELS: int = 2
@@ -34,6 +36,7 @@ class LimitedPanZoomCamera(PanZoomCamera):
     _extent = None
     _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
+    _left_drag_pans: bool = False
 
     def __init__(
         self,
@@ -91,21 +94,13 @@ class LimitedPanZoomCamera(PanZoomCamera):
         """Reset view."""
         self.rect = self.extent
 
-    def viewbox_mouse_event(self, event):
-        """
-        The SubScene received a mouse event; update transform
-        accordingly.
-
-        Parameters
-        ----------
-        event : instance of Event
-            The event.
-        """
+    def viewbox_mouse_event(self, event: SceneMouseEvent) -> None:
+        """Handle plot navigation and update the active drag tool."""
         if event.handled or not self.interactive:
             return
 
-        # Scrolling
         BaseCamera.viewbox_mouse_event(self, event)
+        tool = self.viewer.drag_tool.tool
 
         if event.type == "mouse_wheel":
             center = self._scene_transform.imap(event.pos)
@@ -117,18 +112,16 @@ class LimitedPanZoomCamera(PanZoomCamera):
                 return
 
             modifiers = event.mouse_event.modifiers
-            # the left-button click on the mouse performs boxzoom (or whatever active tool is being used)
-            if 1 in event.buttons:  # and not modifiers:
+            left_drag = 1 in event.buttons
+            if left_drag and tool is not None and not self._left_drag_pans:
                 x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
                 x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
                 x0, x1, y0, y1 = self._check_range(x0, x1, y0, y1)
                 data_x0, data_y0 = self._to_data_coordinates(x0, y0)
                 data_x1, data_y1 = self._to_data_coordinates(x1, y1)
-                self.viewer.drag_tool.tool.position = data_x0, data_x1, data_y0, data_y1
+                tool.position = data_x0, data_x1, data_y0, data_y1
                 event.handled = True
-            # the right-button click moves the canvas in x/y direction
-            elif 2 in event.buttons and not modifiers:  # right-button click
-                # Translate
+            elif not modifiers and (2 in event.buttons or (left_drag and self._left_drag_pans)):
                 p1 = np.array(event.last_event.pos)[:2]
                 p2 = np.array(event.pos)[:2]
                 p1s = self._transform.imap(p1)
@@ -138,13 +131,17 @@ class LimitedPanZoomCamera(PanZoomCamera):
             else:
                 event.handled = False
         elif event.type == "mouse_press":
-            # accept the event if it is button 1 or 2.
-            x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
-            data_x, data_y = self._to_data_coordinates(x1, y1)
-            self.viewer.drag_tool.tool.position = data_x, data_x, data_y, data_y
-            # This is required in order to receive future events
-            event.handled = event.button in [1, 2]
+            self._left_drag_pans = event.button == 1 and tool is None and not event.mouse_event.modifiers
+            if tool is not None and event.button in (1, 2):
+                x, y, _, _ = self._transform.imap(np.asarray(event.pos[:2]))
+                data_x, data_y = self._to_data_coordinates(x, y)
+                tool.position = data_x, data_x, data_y, data_y
+            # Accept the press to receive future events for this gesture.
+            event.handled = self._left_drag_pans or event.button == 2 or (event.button == 1 and tool is not None)
         elif event.type == "mouse_release" and event.button == 1:
+            left_drag_pans, self._left_drag_pans = self._left_drag_pans, False
+            if left_drag_pans or tool is None or event.press_event is None:
+                return
             modifiers = event.mouse_event.modifiers
             x0, y0, _, _ = self._transform.imap(np.asarray(event.press_event.pos[:2]))
             x1, y1, _, _ = self._transform.imap(np.asarray(event.pos[:2]))

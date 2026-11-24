@@ -849,9 +849,15 @@ class Window:
         """Add 'View' menu to app menubar."""
         # add DragMode
         self.view_tools = self.main_menu.addMenu("&Interaction")
+        self._menu_tool_none = QAction("No drag tool", self._qt_window)
+        self._menu_tool_none.setCheckable(True)
+        self._menu_tool_none.triggered.connect(
+            lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.NONE)
+        )
+        self.view_tools.addAction(self._menu_tool_none)
+
         self._menu_tool_auto = QAction("Tool: Auto (zoom)", self._qt_window)
         self._menu_tool_auto.setCheckable(True)
-        self._menu_tool_auto.setChecked(True)
         self._menu_tool_auto.triggered.connect(
             lambda: setattr(self._qt_viewer.viewer.drag_tool, "active", DragMode.AUTO)
         )
@@ -901,6 +907,7 @@ class Window:
         # ensures that only single tool can be selected at at ime
         hp.make_menu_group(
             self._qt_window,
+            self._menu_tool_none,
             self._menu_tool_auto,
             self._menu_tool_box,
             self._menu_tool_v_span,
@@ -961,6 +968,7 @@ class Window:
         )
 
         self._qt_viewer.viewer.drag_tool.events.active.connect(self._on_tool_change)
+        self._on_tool_change()
         self._qt_viewer.viewer.camera.events.extent_mode.connect(self._on_extent_change)
         self._qt_viewer.viewer.camera.events.axis_mode.connect(self._on_axis_mode_change)
 
@@ -1029,23 +1037,20 @@ class Window:
         ]:
             wdg.setDisabled(state == ExtentMode.UNRESTRICTED)
 
-    def _on_tool_change(self, event=None):
-        """Update menu appropriately."""
+    def _on_tool_change(self, event: Event | None = None) -> None:
+        """Show the active drag tool in the Interaction menu."""
         state = self._qt_viewer.viewer.drag_tool.active
-        if state == DragMode.AUTO:
-            self._menu_tool_auto.setChecked(True)
-        elif state == DragMode.BOX:
-            self._menu_tool_box.setChecked(True)
-        elif state == DragMode.VERTICAL_SPAN:
-            self._menu_tool_v_span.setChecked(True)
-        elif state == DragMode.LASSO:
-            self._menu_tool_lasso.setChecked(True)
-        elif state == DragMode.BOX_SELECT:
-            self._menu_tool_box_select.setChecked(True)
-        elif state == DragMode.POLYGON:
-            self._menu_tool_polygon.setChecked(True)
-        else:
-            self._menu_tool_h_span.setChecked(True)
+        for mode, action in (
+            (DragMode.NONE, self._menu_tool_none),
+            (DragMode.AUTO, self._menu_tool_auto),
+            (DragMode.BOX, self._menu_tool_box),
+            (DragMode.VERTICAL_SPAN, self._menu_tool_v_span),
+            (DragMode.HORIZONTAL_SPAN, self._menu_tool_h_span),
+            (DragMode.LASSO, self._menu_tool_lasso),
+            (DragMode.BOX_SELECT, self._menu_tool_box_select),
+            (DragMode.POLYGON, self._menu_tool_polygon),
+        ):
+            action.setChecked(state == mode)
 
     def _on_axis_mode_change(self, event=None):
         """Update camera menu."""

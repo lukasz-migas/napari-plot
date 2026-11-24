@@ -146,6 +146,13 @@ def create_tools_menu(parent: "QtViewToolbar") -> QMenu:
 
     menu = QMenu(parent)
     actions = []
+    toggle_tool = QAction("No drag tool", parent)
+    toggle_tool.setCheckable(True)
+    toggle_tool.setChecked(parent.ref_qt_viewer().viewer.drag_tool.active == DragMode.NONE)
+    toggle_tool.triggered.connect(lambda: setattr(parent.ref_qt_viewer().viewer.drag_tool, "active", DragMode.NONE))
+    menu.addAction(toggle_tool)
+    actions.append(toggle_tool)
+
     toggle_tool = QAction("Tool: Auto (zoom)", parent)
     toggle_tool.setCheckable(True)
     toggle_tool.setChecked(parent.ref_qt_viewer().viewer.drag_tool.active == DragMode.AUTO)
