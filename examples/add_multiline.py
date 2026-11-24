@@ -1,32 +1,19 @@
-"""Example showing how to use the MultiLine layer type.
-
-The MultiLine layer is implemented to enable better performance when plotting multiple lines of long length.
-In the example below we are plotting several long lines with no noticeable performance drop.
-"""
+"""Plot several related curves in one MultiLine layer."""
 
 import numpy as np
 
 import napari_plot
-
-
-def update_fps(fps):
-    """Update fps."""
-    viewer1d.text_overlay.text = f"{fps:1.1f} FPS"
-
-
-n_pts = 250
-n_lines = 3
-xs = [np.linspace(0, 1000, n_pts)]
-ys = []
-for i in range(n_lines):
-    ys.append(np.random.uniform(0, 1, size=n_pts) + i)
+n_pts = 500
+n_lines = 4
+x = np.linspace(0, 10, n_pts)
+xs = [x for _ in range(n_lines)]
+rng = np.random.default_rng(21)
+ys = [np.sin(x + phase) + 0.35 * rng.normal(size=n_pts) + 2 * phase for phase in (0, 0.5, 1, 1.5)]
 
 viewer1d = napari_plot.Viewer()
-viewer1d.text_overlay.visible = True
-# note: this is using a private attribute, so it might break
-# without warning in future versions!
-viewer1d.window._qt_viewer.canvas._scene_canvas.measure_fps(callback=update_fps)
-viewer1d.add_multi_line({"xs": xs, "ys": ys})
+viewer1d.add_multi_line({"xs": xs, "ys": ys}, name="Replicate signals", color="steelblue", width=1.5)
+viewer1d.axis.x_label = "Time (s)"
+viewer1d.axis.y_label = "Signal (offset a.u.)"
 
 if __name__ == "__main__":
     napari_plot.run()

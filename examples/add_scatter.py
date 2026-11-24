@@ -1,8 +1,4 @@
-"""Example showing how to use the MultiLine layer type.
-
-The MultiLine layer is implemented to enable better performance when plotting multiple lines of long length.
-In the example below we are plotting several long lines with no noticeable performance drop.
-"""
+"""Use the lasso drag tool to select and highlight scatter points."""
 
 import numpy as np
 
@@ -16,14 +12,16 @@ def select_data(event):
     sel_layer.data = data
 
 
-n = 150000
-yx = np.random.random((n, 2))
+n = 2500
+rng = np.random.default_rng(12)
+yx = np.concatenate((rng.normal((0.3, 0.35), 0.08, (n // 2, 2)), rng.normal((0.7, 0.65), 0.08, (n // 2, 2))))
 viewer1d = napari_plot.Viewer()
 viewer1d.drag_tool.active = "lasso"
 viewer1d.drag_tool.events.vertices.connect(select_data)
 layer = viewer1d.add_scatter(
     yx,
-    face_color=np.random.random((n, 4)),
+    face_color=np.where(np.arange(n)[:, None] < n // 2, [0.2, 0.55, 0.9, 0.8], [0.95, 0.45, 0.2, 0.8]),
+    size=5,
     scaling=False,
     name="Your data",
 )
@@ -35,5 +33,9 @@ sel_layer = viewer1d.add_scatter(
     size=10,
     name="Selected points",
 )
+viewer1d.axis.x_label = "Feature 1"
+viewer1d.axis.y_label = "Feature 2"
+viewer1d.text_overlay.text = "Drag to lasso points"
+viewer1d.text_overlay.visible = True
 if __name__ == "__main__":
     napari_plot.run()

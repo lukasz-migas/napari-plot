@@ -1,4 +1,4 @@
-"""Display image and 1d plot."""
+"""Embed a 1D plot beneath napari and compare two profiles with uncertainty."""
 
 import napari
 import numpy as np
@@ -9,6 +9,7 @@ from napari_plot._qt.qt_viewer import QtViewer
 
 # create the viewer with an image
 viewer, _ = napari.imshow(data.astronaut(), rgb=True)
+viewer.title = "Image with measured profiles"
 
 
 viewer1d = napari_plot.ViewerModel()
@@ -44,6 +45,7 @@ viewer1d.add_centroids(
 viewer1d.camera.extent = (-0.1, 4.1, 1.0, -0.3)
 viewer1d.axis.x_label = ""
 viewer1d.axis.y_label = ""
+viewer1d.legend.visible = True
 viewer1d.reset_view()
 if __name__ == "__main__":
     napari.run()

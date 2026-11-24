@@ -15,14 +15,23 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    env:
+      QT_API: pyqt6
     steps:
       - uses: actions/configure-pages@v6
       - uses: actions/checkout@v7
+      - uses: pyvista/setup-headless-display-action@v4
+        with:
+          qt: true
       - uses: astral-sh/setup-uv@v9.0.0
         with:
           python-version: "3.11"
       - name: Install documentation dependencies
         run: uv sync --no-dev --extra docs --extra pyqt6
+      - name: Generate API reference
+        run: uv run python scripts/generate_docs_api.py
+      - name: Generate gallery screenshots
+        run: uv run python scripts/generate_docs_gallery.py
       - name: Build site
         run: uv run zensical build --strict --clean
       - uses: actions/upload-pages-artifact@v5

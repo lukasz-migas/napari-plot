@@ -66,6 +66,11 @@ cell.y_label = "Intensity"
 cell.ylim = (0, 1000)
 ```
 
+![Four synchronized plot cells](assets/gallery/show_grid_mode.png)
+
+Each line gets its own cell in this example. Grid cells can use independent axis
+settings while still sharing limits where direct comparison helps.
+
 To overlay related layers in one cell, set `group_by_metadata` and use a shared
 string metadata value. The metadata key is `napari_plot.group`:
 
@@ -114,6 +119,12 @@ viewer.boxplot(data, x="day", y="total_bill", hue="smoker")
 facets = viewer.catplot(data, x="day", y="total_bill", col="smoker", kind="box")
 facets.set_axis_labels(y_var="Total bill")
 ```
+
+![Box plots split by day and smoking status](assets/gallery/stats_boxplot.png)
+
+The plotting function creates Bar, MultiLine, and Scatter layers for the box,
+whiskers, and outliers. You can restyle or edit those layers through the usual
+layer controls.
 
 Functions that create several layers assign a group ID so grid mode can keep the
 parts together. Pass `group="study-a"` to share a group across calls. `PairGrid`

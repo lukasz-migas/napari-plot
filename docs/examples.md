@@ -2,6 +2,10 @@
 
 ![Standalone plot viewer](https://raw.githubusercontent.com/lukasz-migas/napari-plot/main/misc/standalone.png)
 
+Browse the [screenshot gallery](gallery.md) to see the output and open each
+example's source code. Gallery screenshots are rendered from the same scripts
+listed below.
+
 Run any script with the corresponding Qt backend installed. For example:
 
 ```shell
@@ -19,6 +23,7 @@ uv run --extra pyqt6 python examples/add_bars_and_legend.py
 | Add and move points, edit rectangles, move labels, and delete bars | [edit_layers.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/edit_layers.py) |
 | Export a figure, its data, and an ROI, then reopen a session | [export_and_restore.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/export_and_restore.py) |
 | Theme-aware axes and an outside legend in an embedded plot | [napari-and-1d-themed-legend.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples_with_napari/napari-and-1d-themed-legend.py) |
+| Compare profiles from two image channels in a docked plot | [napari-and-1d-channel-profiles.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples_with_napari/napari-and-1d-channel-profiles.py) |
 
 The export example writes PNG, SVG, PDF, CSV, an ROI image, and a
 `.napari-plot` session into a new directory. Use `--reopen` to inspect the restored
@@ -53,6 +58,8 @@ uv run --extra pyqt6 --extra stats python examples/stats_facets.py --kind joint-
 | Centroids | [add_centroids.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_centroids.py) |
 | Bars with an interactive legend | [add_bars_and_legend.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_bars_and_legend.py) |
 | Scatter with labels | [add_scatter_with_text.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_scatter_with_text.py) |
+| Lasso-select and highlight scatter points | [add_scatter.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_scatter.py) |
+| Several curves in one MultiLine layer | [add_multiline.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_multiline.py) |
 | Text annotations | [add_text.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_text.py) |
 | Rectangle outlines | [add_rectangles.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_rectangles.py) |
 | Filled bands and error bars | [add_band.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_band.py), [add_error_bars.py](https://github.com/lukasz-migas/napari-plot/blob/main/examples/add_error_bars.py) |

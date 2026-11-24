@@ -46,6 +46,11 @@ all markers or mapped from values with the layer's colormap options.
 points = viewer.scatter(time, intensity, name="peaks", size=7, face_color="orange")
 ```
 
+![Scatter points with per-point labels](assets/gallery/add_scatter_with_text.png)
+
+The screenshot shows a points layer over an image. Its face colors and labels
+come from point feature values, while the border color maps a confidence value.
+
 Use MultiLine when a set of series should share one layer entry. Use separate
 Line layers when each series needs its own legend row or visibility control.
 
@@ -80,6 +85,11 @@ errors = viewer.errorbar(
 )
 ```
 
+![Measurement intervals around data points](assets/gallery/add_error_bars.png)
+
+Use symmetric errors for a fixed tolerance. Use separate lower and upper rows
+when the uncertainty is asymmetric, as in the example above.
+
 Use `axvline`, `axhline`, `axvspan`, and `axhspan` for common reference marks.
 `Region` and `InfLine` layers can also be added directly when you need a
 collection of spans or lines in one layer.
@@ -98,6 +108,11 @@ bars = viewer.vbar(
 )
 viewer.axis.x_categories = ("control", "treated", "recovery")
 ```
+
+![Vertical and horizontal bars with a legend](assets/gallery/add_bars_and_legend.png)
+
+Bar position and height stay in data units. The layer controls set fill, border,
+opacity, baseline, and per-bar widths.
 
 Areas stores multiple filled ranges in one layer. In vertical orientation, each
 array contains `(x, lower, upper)` values. Horizontal orientation treats the
@@ -131,6 +146,12 @@ rectangles = viewer.add_rectangles(
     text=["Peak A"],
 )
 ```
+
+![Peak annotations and integration regions](assets/gallery/add_plot_annotations.png)
+
+The annotation example combines spans, reference lines, stems, a rectangle, and
+text. Each object remains a separate layer, so you can hide or restyle it from
+the layer list.
 
 ## Images and vectors
 

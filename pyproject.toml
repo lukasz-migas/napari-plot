@@ -148,6 +148,7 @@ build = [
 docs = [
     "zensical>=0.1.3",
     "mkdocstrings-python",
+    "napari_plot[stats]",
 ]
 
 [dependency-groups]

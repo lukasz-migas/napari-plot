@@ -1,4 +1,4 @@
-"""Example showing how to plot multiple line sand adjust axis labels."""
+"""Compare two phase-shifted signals on a labeled 1D plot."""
 
 import numpy as np
 
@@ -6,10 +6,11 @@ import napari_plot
 
 viewer1d = napari_plot.Viewer()
 viewer1d.camera.extent_mode = "restricted"
-x = np.arange(0.0, 2.0, 0.01)
-viewer1d.add_line(np.c_[x + 0.25, 1 + np.sin(2 * np.pi * x)], name="Sin", color="#FF0000")
-viewer1d.add_line(np.c_[x + 0.25, 1 + np.cos(2 * np.pi * x)], name="Cos", color="#0000FF")
-viewer1d.axis.x_label = "time (s)"
-viewer1d.axis.y_label = "voltage (mV)"
+x = np.linspace(0, 2, 401)
+viewer1d.plot(x, np.sin(2 * np.pi * x), name="Sine", color="royalblue")
+viewer1d.plot(x, np.sin(2 * np.pi * x + np.pi / 2), name="Cosine", color="darkorange")
+viewer1d.axis.x_label = "Time (s)"
+viewer1d.axis.y_label = "Amplitude (a.u.)"
+viewer1d.legend.visible = True
 if __name__ == "__main__":
     napari_plot.run()
