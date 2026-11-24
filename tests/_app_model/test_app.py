@@ -3,11 +3,10 @@ from napari_plot.layers import Points
 
 
 def test_app(mock_app_model):
-    """just make sure our app model is registering menus and commands"""
+    """The plot app-model is a singleton of its own, separate from napari's."""
     app = get_app_model()
     assert app.name == "napari_plot"
-    assert list(app.menus)
-    assert list(app.commands)
+    assert get_app_model() is app
 
 
 def test_app_injection(mock_app_model):

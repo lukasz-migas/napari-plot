@@ -4,11 +4,6 @@ from functools import lru_cache
 
 from app_model import Application
 
-from napari_plot._app_model.actions._layerlist_context_actions import (
-    LAYERLIST_CONTEXT_ACTIONS,
-    LAYERLIST_CONTEXT_SUBMENUS,
-)
-
 APP_NAME = "napari_plot"
 
 
@@ -24,9 +19,6 @@ class NapariPlotApplication(Application):
         super().__init__(app_name, raise_synchronous_exceptions=True)
 
         self.injection_store.namespace = _napari_names  # type: ignore [assignment]
-
-        self.register_actions(LAYERLIST_CONTEXT_ACTIONS)
-        self.menus.append_menu_items(LAYERLIST_CONTEXT_SUBMENUS)
 
     @classmethod
     def get_app_model(cls, app_name: str = APP_NAME) -> NapariPlotApplication:

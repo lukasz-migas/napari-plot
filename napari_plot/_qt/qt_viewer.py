@@ -25,9 +25,17 @@ from napari._vispy.utils.qt_font import QtFontManager
 from napari.errors import MultipleReaderError, ReaderPluginError
 from napari.utils.key_bindings import KeymapHandler
 from napari.utils.notifications import show_error, show_info
-from qtpy.QtCore import QCoreApplication, Qt, QUrl
-from qtpy.QtGui import QDragEnterEvent, QDragLeaveEvent, QDropEvent, QFocusEvent, QGuiApplication, QImage
-from qtpy.QtWidgets import QHBoxLayout, QSplitter, QVBoxLayout, QWidget
+from qtpy.QtCore import QCoreApplication, QPoint, Qt, QUrl, Signal
+from qtpy.QtGui import (
+    QDragEnterEvent,
+    QDragLeaveEvent,
+    QDropEvent,
+    QFocusEvent,
+    QGuiApplication,
+    QImage,
+    QKeySequence,
+)
+from qtpy.QtWidgets import QHBoxLayout, QMenu, QShortcut, QSplitter, QVBoxLayout, QWidget
 from superqt import ensure_main_thread
 
 from napari_plot._qt._qapp_model import init_qactions
@@ -67,7 +75,14 @@ class QtViewer(QSplitter):
         View displayed by vispy canvas. Adds a vispy ViewBox as a child widget.
     viewer : napari.components.ViewerModel
         Napari viewer containing the rendered scene, layers, and controls.
+
+    Signals
+    -------
+    evt_canvas_menu : QMenu
+        Emitted with the canvas context menu right before it opens, so hosts can add their own actions.
     """
+
+    evt_canvas_menu = Signal(QMenu)
 
     # To track window instances and facilitate getting the "active" viewer...
     # We use this instead of QApplication.activeWindow for compatibility with
@@ -141,6 +156,8 @@ class QtViewer(QSplitter):
 
         # bind shortcuts stored in settings last.
         self._bind_shortcuts()
+        self._export_shortcuts = self._make_export_shortcuts()
+        self.canvas._scene_canvas.events.context_menu.connect(self._on_canvas_context_menu)
 
         for layer in self.viewer.layers:
             self._add_layer(layer)
@@ -325,6 +342,32 @@ class QtViewer(QSplitter):
         #     action_manager.unbind_shortcut(action)
         #     for shortcut in shortcuts:
         #         action_manager.bind_shortcut(action, shortcut)
+
+    def _on_canvas_context_menu(self, event) -> None:
+        """Open the canvas context menu where the canvas was right-clicked."""
+        from napari_plot._qt.qt_canvas_menu import build_canvas_menu
+
+        menu = build_canvas_menu(self)
+        try:
+            self.evt_canvas_menu.emit(menu)
+            x, y = event.pos
+            menu.exec(self.canvas.native.mapToGlobal(QPoint(int(x), int(y))))
+        finally:
+            menu.deleteLater()
+
+    def _make_export_shortcuts(self) -> tuple[QShortcut, ...]:
+        """Copy (Alt+C) and save (Alt+S) screenshots while focus is in this viewer.
+
+        The shortcuts only apply to this widget and its children, so a host window (e.g. napari) keeps its own;
+        ``Window`` disables them because its menu provides the same keys.
+        """
+        shortcuts = []
+        for key, slot in (("Alt+C", self.clipboard), ("Alt+S", self._screenshot_dialog)):
+            shortcut = QShortcut(QKeySequence(key), self)
+            shortcut.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
+            shortcut.activated.connect(slot)
+            shortcuts.append(shortcut)
+        return tuple(shortcuts)
 
     @property
     def console(self):

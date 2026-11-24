@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from napari.layers.utils.color_transformations import normalize_and_broadcast_colors, transform_color_with_defaults
@@ -14,6 +14,9 @@ from napari_plot.layers._thumbnail import CENTROIDS, WHITE
 from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.centroids._centroids_constants import Method, Orientation
 from napari_plot.layers.centroids._centroids_utils import get_extents, parse_centroids_data
+
+if TYPE_CHECKING:
+    from napari_plot.utils.hover import HoverPoint, PixelMapper
 
 
 class Centroids(_SelectableLayer):
@@ -257,9 +260,33 @@ class Centroids(_SelectableLayer):
     def _set_view_slice(self) -> None:
         self.events.set_data()
 
-    def _get_value(self, position):
-        """Value of the data at a position in data coordinates"""
-        return position[1]
+    def _get_value(self, position) -> float | None:
+        """Return the upper value of the centroid whose position is nearest to the cursor."""
+        if not len(self.data):
+            return None
+        cursor = position[1] if self.orientation == Orientation.VERTICAL else position[0]
+        return float(self.data[int(np.argmin(np.abs(self.data[:, 0] - cursor))), 2])
+
+    def _get_hover_point(self, x: float, y: float, mapper: PixelMapper) -> HoverPoint | None:
+        """Return the tallest centroid within a few pixels of the cursor, else the nearest one when close enough."""
+        from napari_plot.utils.hover import POINT_PIXELS, SNAP_PIXELS, HoverPoint
+
+        if not len(self.data):
+            return None
+        positions, upper = self.data[:, 0], self.data[:, 2]
+        vertical = self.orientation == Orientation.VERTICAL
+        cursor = x if vertical else y
+        low, high = mapper.x_window(x, SNAP_PIXELS) if vertical else mapper.y_window(y, SNAP_PIXELS)
+        inside = np.flatnonzero((positions >= low) & (positions <= high))
+        if len(inside):
+            index = int(inside[np.argmax(upper[inside])])
+        else:
+            index = int(np.argmin(np.abs(positions - cursor)))
+            near = mapper.x_window(x, POINT_PIXELS) if vertical else mapper.y_window(y, POINT_PIXELS)
+            if not near[0] <= positions[index] <= near[1]:
+                return None
+        point = (positions[index], upper[index]) if vertical else (upper[index], positions[index])
+        return HoverPoint(float(point[0]), float(point[1]), index, self.name)
 
     def _get_state(self) -> dict[str, Any]:
         """Get dictionary of layer state"""

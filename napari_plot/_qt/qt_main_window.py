@@ -498,6 +498,10 @@ class Window:
 
         self._add_menubar()
         self._add_file_menu()
+        # the File menu provides the viewer's own screenshot shortcuts, which would otherwise be ambiguous
+        for shortcut in self._qt_viewer._export_shortcuts:
+            shortcut.setEnabled(False)
+        self._qt_viewer.evt_canvas_menu.connect(self._add_canvas_menu_actions)
         self._add_view_menu()
         self._add_interaction_menu()
         self._add_window_menu()
@@ -778,6 +782,7 @@ class Window:
         screenshot_wv.triggered.connect(self._screenshot_dialog)
 
         clipboard = QAction("Copy Screenshot to Clipboard", self._qt_window)
+        clipboard.setShortcut("Alt+C")
         clipboard.setStatusTip("Copy screenshot of current display to the clipboard")
         clipboard.triggered.connect(lambda: self._qt_viewer.clipboard())
 
@@ -805,7 +810,7 @@ class Window:
         self.file_menu.addAction(clipboard)
         self.file_menu.addAction(clipboard_wv)
         self.file_menu.addSeparator()
-        self.file_menu.addAction("Export Figure...", self._export_figure_dialog)
+        self.file_menu.addAction("Export Figure...", self._export_figure_dialog).setShortcut("Ctrl+E")
         self.file_menu.addAction("Export Active Layer as CSV...", self._export_csv_dialog)
         self.file_menu.addSeparator()
         self.file_menu.addAction("Save Plot Session...", self._save_session_dialog)
@@ -1449,6 +1454,12 @@ class Window:
 
         if dial.exec():
             pass
+
+    def _add_canvas_menu_actions(self, menu: QMenu) -> None:
+        """Add the window's export commands to the canvas context menu."""
+        menu.addAction("Export Figure...\tCtrl+E", self._export_figure_dialog).setObjectName(
+            "napari_plot.canvas.export_figure"
+        )
 
     def _export_figure_dialog(self) -> None:
         """Ask where to write the full figure."""

@@ -6,6 +6,7 @@ from weakref import ref
 import qtextra.helpers as hp
 from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
 from qtpy.QtCore import Qt
+from qtpy.QtGui import QKeySequence
 from qtpy.QtWidgets import QAction, QMenu, QWidget
 
 from napari_plot._qt.component_controls.qt_plot_display_controls import QtPlotDisplayControls
@@ -169,14 +170,14 @@ def create_tools_menu(parent: "QtViewToolbar") -> QMenu:
     menu.addAction(toggle_tool)
     actions.append(toggle_tool)
 
-    toggle_tool = QAction("Tool: Box (zoom + trigger)", parent)
+    toggle_tool = QAction("Tool: Box (zoom)", parent)
     toggle_tool.setCheckable(True)
     toggle_tool.setChecked(parent.ref_qt_viewer().viewer.drag_tool.active == DragMode.BOX)
     toggle_tool.triggered.connect(lambda: setattr(parent.ref_qt_viewer().viewer.drag_tool, "active", DragMode.BOX))
     menu.addAction(toggle_tool)
     actions.append(toggle_tool)
 
-    toggle_tool = QAction("Tool: Horizontal span (zoom + trigger)", parent)
+    toggle_tool = QAction("Tool: Horizontal span (zoom)", parent)
     toggle_tool.setCheckable(True)
     toggle_tool.setChecked(parent.ref_qt_viewer().viewer.drag_tool.active == DragMode.HORIZONTAL_SPAN)
     toggle_tool.triggered.connect(
@@ -220,6 +221,12 @@ def create_tools_menu(parent: "QtViewToolbar") -> QMenu:
     toggle_tool.triggered.connect(lambda: setattr(parent.ref_qt_viewer().viewer.drag_tool, "active", DragMode.LASSO))
     menu.addAction(toggle_tool)
     actions.append(toggle_tool)
+
+    # show the viewer's tool shortcuts next to the tools; the menu-scoped context binds nothing outside the open menu
+    for action, key in zip(actions, (None, "A", None, "Z", "Y", "X", "S", "P", "L"), strict=True):
+        if key:
+            action.setShortcut(QKeySequence(key))
+            action.setShortcutContext(Qt.ShortcutContext.WidgetShortcut)
 
     # ensures that only single tool can be selected at at ime
     hp.make_menu_group(parent, *actions)

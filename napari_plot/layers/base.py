@@ -10,6 +10,9 @@ from napari.types import LayerDataType
 from napari.utils.events import EmitterGroup
 from numpy.typing import ArrayLike, NDArray
 
+if ty.TYPE_CHECKING:
+    from napari_plot.utils.hover import HoverPoint, PixelMapper
+
 
 def update_layer_attributes(layer: Layer, throw_exception: bool = True, **kwargs: ty.Any) -> None:
     """Update attributes on the layer."""
@@ -66,6 +69,13 @@ class LayerMixin:
 
     def _get_value(self, position):
         raise NotImplementedError("Must implement method")
+
+    def _get_hover_point(self, x: float, y: float, mapper: "PixelMapper") -> "HoverPoint | None":
+        """Return the data point under the cursor at data position (``x``, ``y``), or None.
+
+        Used by the hover readout and the snapping crosshair; layers without a meaningful point return None.
+        """
+        return None
 
     def _get_ndim(self):
         return 2

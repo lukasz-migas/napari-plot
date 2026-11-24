@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 from napari.utils.colormaps.standardize_color import transform_color
@@ -14,6 +14,9 @@ from napari_plot.layers._selection import points_in_polygon
 from napari_plot.layers._thumbnail import LINE
 from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.line._line_constants import Method
+
+if TYPE_CHECKING:
+    from napari_plot.utils.hover import HoverPoint, PixelMapper
 
 
 class Line(_SelectableLayer):
@@ -229,9 +232,23 @@ class Line(_SelectableLayer):
     def _set_view_slice(self):
         self.events.set_data()
 
-    def _get_value(self, position):
-        """Value of the data at a position in data coordinates"""
-        return position[1]
+    def _get_value(self, position) -> float | None:
+        """Return the y value of the data point nearest to the x of a data-space ``(y, x)`` position."""
+        from napari_plot.utils.hover import nearest_index
+
+        index = nearest_index(self.x, position[1]) if len(self.data) else None
+        return None if index is None else float(self.y[index])
+
+    def _get_hover_point(self, x: float, y: float, mapper: PixelMapper) -> HoverPoint | None:
+        """Return the highest point within a few pixels of the cursor x (assumes monotonic x)."""
+        from napari_plot.utils.hover import SNAP_PIXELS, HoverPoint, snap_index
+
+        if not len(self.data):
+            return None
+        index = snap_index(self.x, self.y, x, *mapper.x_window(x, SNAP_PIXELS))
+        if index is None:
+            return None
+        return HoverPoint(float(self.x[index]), float(self.y[index]), index, self.name)
 
     @property
     def _extent_data(self) -> np.ndarray:

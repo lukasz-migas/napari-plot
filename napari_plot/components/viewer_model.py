@@ -52,8 +52,10 @@ from napari_plot.components.axis import Axis, AxisScale, transform_axis_values
 from napari_plot.components.camera import Camera
 from napari_plot.components.canvas import PlotCanvas, PlotGridCell
 from napari_plot.components.colorbar import ColorBar
+from napari_plot.components.crosshair import CrosshairOverlay
 from napari_plot.components.dragtool import DragMode, DragTool
 from napari_plot.components.grid_lines import GridLinesOverlay
+from napari_plot.components.hover import HoverOverlay
 from napari_plot.components.joint_grid import joint_panel
 from napari_plot.components.layerlist import LayerList
 from napari_plot.components.legend import (
@@ -65,6 +67,7 @@ from napari_plot.components.legend import (
 )
 from napari_plot.components.scene import Scene
 from napari_plot.components.tools import BoxTool, PolygonTool
+from napari_plot.utils.hover import HoverInfo, PixelMapper, format_coordinates
 from napari_plot.utils.utilities import get_min_max
 
 EXCLUDE_DICT = {
@@ -83,6 +86,8 @@ DEFAULT_OVERLAYS = {
     "grid_lines": GridLinesOverlay,
     "brush_circle": BrushCircleOverlay,
     "legend": LegendOverlay,
+    "crosshair": CrosshairOverlay,
+    "hover": HoverOverlay,
 }
 
 LEGEND_LAYER_EVENTS = (
@@ -328,6 +333,13 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.events.removed.connect(self._on_legend_layers_change)
         self.layers.events.reordered.connect(self._on_legend_layers_change)
         self._refresh_legend_source_connections()
+        # crosshair and hover readout
+        self.cursor.events.position.connect(self._update_hover)
+        self.events.mouse_over_canvas.connect(self._update_hover)
+        for events in (self.crosshair.events, self.hover.events):
+            events.visible.connect(self._update_hover)
+        self.crosshair.events.snap_to_data.connect(self._update_hover)
+        self.hover.events.formatter.connect(self._update_hover)
 
     @property
     def camera(self) -> Camera:
@@ -364,6 +376,69 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     def legend(self) -> LegendOverlay:
         """Canvas legend overlay."""
         return self._overlays["legend"]
+
+    @property
+    def crosshair(self) -> CrosshairOverlay:
+        """Crosshair overlay (hidden by default)."""
+        return self._overlays["crosshair"]
+
+    @property
+    def hover(self) -> HoverOverlay:
+        """Hover readout overlay (hidden by default)."""
+        return self._overlays["hover"]
+
+    def _pixel_mapper(self) -> PixelMapper | None:
+        """Map data coordinates to canvas pixels, or None before the canvas has a size."""
+        height, width = self.canvas.size
+        xmin, xmax, ymin, ymax = self.camera.rect
+        if width <= 0 or height <= 0 or xmax <= xmin or ymax <= ymin:
+            return None
+        axis = self.axis
+        return PixelMapper(
+            (xmin, xmax, ymin, ymax), (width, height), axis.x_scale, axis.y_scale, axis.x_power, axis.y_power
+        )
+
+    def hover_info(self, x: float, y: float) -> HoverInfo | None:
+        """Describe the data point under the data position (``x``, ``y``), or None when no layer has one.
+
+        Every visible plot layer reports its point under the cursor; the one vertically closest to the cursor on
+        screen is the primary point, and the others are listed as rows.
+        """
+        mapper = self._pixel_mapper()
+        if mapper is None:
+            return None
+        hits = [
+            point
+            for layer in self.layers
+            if layer.visible
+            and isinstance(layer, np_layers.base.LayerMixin)
+            and (point := layer._get_hover_point(x, y, mapper)) is not None
+        ]
+        if not hits:
+            return None
+        _, cursor_y = mapper.to_pixels(x, y)
+        _, hit_ys = mapper.to_pixels([hit.x for hit in hits], [hit.y for hit in hits])
+        distance = np.abs(np.asarray(hit_ys) - cursor_y)
+        distance[~np.isfinite(distance)] = np.inf
+        primary = hits[int(np.argmin(distance))]
+        rows = tuple((hit.label, hit.y) for hit in hits if hit is not primary)
+        return HoverInfo(
+            primary.x, primary.y, primary.index, primary.label, str(self.axis.x_label), str(self.axis.y_label), rows
+        )
+
+    def _update_hover(self, _event: Any = None) -> None:
+        """Move the crosshair and update the hover readout for the cursor position."""
+        crosshair, hover = self.crosshair, self.hover
+        if not self.mouse_over_canvas or not (crosshair.visible or hover.visible):
+            crosshair.point, hover.text = None, ""
+            return
+        y, x = (float(value) for value in self.cursor.position[-2:])
+        snap = hover.visible or crosshair.snap_to_data
+        info = self.hover_info(x, y) if snap else None
+        if hover.visible:
+            hover.text = "" if info is None else (hover.formatter or HoverInfo.format)(info)
+        # without data under the cursor, the crosshair follows the cursor freely
+        crosshair.point = (info.x, info.y) if info is not None else (x, y)
 
     @property
     def _brush_circle_overlay(self):
@@ -1327,7 +1402,12 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             else:
                 tooltip_text = ""
 
+            # plot coordinates read as x/y rather than napari's world-order [y x]
+            status["coords"] = coords = format_coordinates(*self.cursor.position[-2:][::-1])
+            status["coordinates"] = f"{coords}: {status['value']}" if status.get("value") else coords
             return status, tooltip_text
+        if active is None:
+            return format_coordinates(*self.cursor.position[-2:][::-1]), ""
         return "Ready", ""
 
     def update_status_from_cursor(self):

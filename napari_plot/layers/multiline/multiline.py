@@ -1,5 +1,7 @@
 """MultiLine layer."""
 
+import typing as ty
+
 import numpy as np
 from napari.layers.utils.color_transformations import (
     ColorType,
@@ -15,6 +17,9 @@ from napari_plot.layers.base import _SelectableLayer
 from napari_plot.layers.multiline._multiline_constants import Method
 from napari_plot.layers.multiline._multiline_list import MultiLineList
 from napari_plot.layers.multiline._multiline_utils import parse_multiline_data
+
+if ty.TYPE_CHECKING:
+    from napari_plot.utils.hover import HoverPoint, PixelMapper
 
 
 class MultiLine(_SelectableLayer):
@@ -332,9 +337,41 @@ class MultiLine(_SelectableLayer):
     def _set_view_slice(self):
         self.events.set_data()
 
-    def _get_value(self, position):
-        """Value of the data at a position in data coordinates"""
-        return position[1]
+    def _lines(self) -> list[tuple[np.ndarray, np.ndarray]]:
+        """Return the (x, y) arrays of every line; lines share the first x array when only one was given."""
+        view = self._data_view
+        xs, ys = view.xs, view.ys
+        if not ys or not xs:
+            return []
+        return [(np.asarray(xs[i] if view.xs_equal_ys else xs[0]), np.asarray(y)) for i, y in enumerate(ys)]
+
+    def _get_value(self, position) -> tuple[int, float] | None:
+        """Return ``(line index, y)`` of the line whose point nearest to the cursor x is vertically closest."""
+        from napari_plot.utils.hover import nearest_index
+
+        best = None
+        for line, (x, y) in enumerate(self._lines()):
+            index = nearest_index(x, position[1])
+            if index is not None and (best is None or abs(y[index] - position[0]) < best[0]):
+                best = (abs(y[index] - position[0]), line, float(y[index]))
+        return None if best is None else (best[1], best[2])
+
+    def _get_hover_point(self, x: float, y: float, mapper: "PixelMapper") -> "HoverPoint | None":
+        """Return the snapped point of the line that is vertically closest to the cursor on screen."""
+        from napari_plot.utils.hover import SNAP_PIXELS, HoverPoint, snap_index
+
+        low, high = mapper.x_window(x, SNAP_PIXELS)
+        best = None
+        for line, (xs, ys) in enumerate(self._lines()):
+            index = snap_index(xs, ys, x, low, high)
+            if index is None:
+                continue
+            _, (point_y, cursor_y) = mapper.to_pixels([xs[index]] * 2, [ys[index], y])
+            distance = abs(point_y - cursor_y)
+            distance = distance if np.isfinite(distance) else np.inf
+            if best is None or distance < best[0]:
+                best = (distance, HoverPoint(float(xs[index]), float(ys[index]), index, f"{self.name} [{line}]"))
+        return None if best is None else best[1]
 
     @property
     def _extent_data(self) -> np.ndarray:

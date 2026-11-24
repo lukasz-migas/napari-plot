@@ -60,12 +60,18 @@ if ty.TYPE_CHECKING:
     from napari_plot.viewer import ViewerModel
 
 
+# largest mouse movement, in pixels, between a right press and release that still opens the context menu
+_CONTEXT_MENU_MAX_MOVE = 4.0
+
+
 class NapariSceneCanvas(SceneCanvas_):
     """Vispy scene canvas for plot interaction."""
 
     view, grid, x_axis, y_axis = None, None, None, None
     # x/y axes of each plot view box, so overlays (e.g. grid lines) can find the axes of the cell they are in
     view_axes: ty.ClassVar[dict[ViewBox, tuple[VispyXAxisVisual, VispyYAxisVisual]]] = {}
+    # data node of each plot view box; its transform includes the axis scale, so overlays can map data coordinates
+    view_data_scenes: ty.ClassVar[dict[ViewBox, Node]] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -87,9 +93,10 @@ class NapariSceneCanvas(SceneCanvas_):
             self.padding_y = self.grid.add_widget(row=0, col=0, col_span=2)
             self.padding_y.height_max = 20
             self.view_axes = {}
+            self.view_data_scenes = {}
 
         # connect events
-        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event, background_color=Event)
+        self.events.add(reset_view=Event, reset_x=Event, reset_y=Event, background_color=Event, context_menu=Event)
 
     @SceneCanvas_.bgcolor.setter
     def bgcolor(self, color: str | npt.ArrayLike) -> None:
@@ -276,6 +283,8 @@ class VispyCanvas:
         # layers drawn in each plot cell in grid mode; empty outside grid mode
         self._cell_layers: list[list[Layer]] = []
         self._active_cell: VispyPlotCell | None = None
+        # canvas position of a right press that may open the context menu on release
+        self._context_press: np.ndarray | None = None
         self.viewer.axis.events.x_scale.connect(self._on_axis_scale_change)
         self.viewer.axis.events.y_scale.connect(self._on_axis_scale_change)
         self.viewer.axis.events.x_power.connect(self._on_axis_scale_change)
@@ -315,6 +324,7 @@ class VispyCanvas:
             self._scene_canvas.x_axis = self.x_axis
             self._scene_canvas.y_axis = self.y_axis
         self._scene_canvas.view_axes[self.view] = (self.x_axis, self.y_axis)
+        self._scene_canvas.view_data_scenes[self.view] = self._data_scene
         self._cells.append(
             VispyPlotCell(self.viewer, self.view, self._data_scene, self.camera, self.x_axis, self.y_axis)
         )
@@ -588,6 +598,7 @@ class VispyCanvas:
         self._scene_canvas.events.draw.connect(cell.camera.on_draw)
         cell.view.events.resize.connect(self._update_overlay_canvas_positions)
         self._scene_canvas.view_axes[cell.view] = (cell.x_axis, cell.y_axis)
+        self._scene_canvas.view_data_scenes[cell.view] = cell.data_scene
         return cell
 
     def _close_cell(self, cell: VispyPlotCell) -> None:
@@ -595,6 +606,7 @@ class VispyCanvas:
         self._scene_canvas.events.draw.disconnect(cell.camera.on_draw)
         cell.view.events.resize.disconnect(self._update_overlay_canvas_positions)
         self._scene_canvas.view_axes.pop(cell.view, None)
+        self._scene_canvas.view_data_scenes.pop(cell.view, None)
         if self._active_cell is cell:
             self._set_active_cell(self._cells[0])
         cell.close()
@@ -1056,6 +1068,8 @@ class VispyCanvas:
         event : vispy.event.Event
             The vispy event that triggered this method.
         """
+        if self._context_press is not None and self._moved_from(self._context_press, event):
+            self._context_press = None
         self._process_mouse_event(mouse_move_callbacks, event)
 
     def _on_mouse_press(self, event):
@@ -1066,6 +1080,7 @@ class VispyCanvas:
         event : vispy.event.Event
             The vispy event that triggered this method.
         """
+        self._context_press = self._context_press_position(event)
         # a right-drag on an axis pans along it (see `plot_cell._on_axis_mouse`); the drag tools must not start
         if (
             event.button == 2
@@ -1088,6 +1103,28 @@ class VispyCanvas:
             The vispy event that triggered this method.
         """
         self._process_mouse_event(mouse_release_callbacks, event)
+        press, self._context_press = self._context_press, None
+        if press is not None and event.button == 2 and not self._moved_from(press, event):
+            self._scene_canvas.events.context_menu(pos=tuple(press))
+
+    @staticmethod
+    def _moved_from(press: np.ndarray, event) -> bool:
+        """Whether the mouse moved far enough from the press to count as a drag (e.g. a right-drag pan)."""
+        return (
+            event.pos is None or np.hypot(*(np.asarray(event.pos[:2], dtype=float) - press)) >= _CONTEXT_MENU_MAX_MOVE
+        )
+
+    def _context_press_position(self, event) -> np.ndarray | None:
+        """Return the position of a right press that can open the context menu, or None.
+
+        A right click cancels an unfinished selection (polygon, lasso or box), so it does not open the menu then.
+        """
+        if event.button != 2 or event.modifiers or event.pos is None:
+            return None
+        drag_tool = self.viewer.drag_tool
+        if drag_tool.active in SELECT_TOOLS and drag_tool.tool is not None and drag_tool.tool.visible:
+            return None
+        return np.asarray(event.pos[:2], dtype=float)
 
     def _on_mouse_wheel(self, event):
         """Called whenever mouse wheel activated in canvas.

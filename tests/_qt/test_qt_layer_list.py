@@ -232,8 +232,13 @@ def test_right_click_opens_layer_context_menu(
     viewer.add_layer(layer_type(data))
     actions = _right_click_menu(qtbot, viewer.window._qt_viewer.layers, monkeypatch)
 
-    assert any(action.objectName() == "napari.layer.duplicate" for action in actions)
-    assert any(action.objectName() == "napari.layer.bounding_box" for action in actions)
+    names = {action.objectName() for action in actions}
+    assert "napari.layer.duplicate" in names
+    assert "napari.layer.bounding_box" in names
+    # image-only conversions, splits and projections only appear for image layers
+    image_only = {"napari.layer.convert_to_labels", "napari.layer.split_stack", "napari.layer.convert_to_uint8"}
+    assert (image_only <= names) == (layer_type is Image)
+    assert not any(name.startswith("napari.layer.project_") for name in names) or layer_type is Image
 
 
 def test_context_menu_targets_clicked_plot(

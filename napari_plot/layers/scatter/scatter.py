@@ -17,6 +17,9 @@ from napari_plot.layers._thumbnail import SCATTER, WHITE
 from napari_plot.layers.base import LayerMixin
 from napari_plot.layers.scatter._scatter_mouse_bindings import add, select
 
+if ty.TYPE_CHECKING:
+    from napari_plot.utils.hover import HoverPoint, PixelMapper
+
 
 class Scatter(Points, LayerMixin):
     """Scatter layer based on napari Points layer.
@@ -345,6 +348,22 @@ class Scatter(Points, LayerMixin):
         ):
             return None
         return int(view_indices[index]) if distance[index] <= 1 else None
+
+    def _get_hover_point(self, x: float, y: float, mapper: PixelMapper) -> HoverPoint | None:
+        """Return the shown point nearest to the cursor on screen, within a few pixels."""
+        from napari_plot.utils.hover import POINT_PIXELS, HoverPoint
+
+        data, shown = np.asarray(self.data, dtype=float), np.asarray(self.shown)
+        if not len(data) or len(shown) != len(data):
+            return None
+        point_x, point_y = mapper.to_pixels(data[:, -1], data[:, -2])  # points are stored as (y, x)
+        cursor_x, cursor_y = mapper.to_pixels(x, y)
+        distance = np.hypot(point_x - cursor_x, point_y - cursor_y)
+        distance[~np.isfinite(distance) | ~shown] = np.inf
+        index = int(np.argmin(distance))
+        if distance[index] > POINT_PIXELS:
+            return None
+        return HoverPoint(float(data[index, -1]), float(data[index, -2]), index, self.name)
 
     def _get_state(self) -> dict[str, ty.Any]:
         """Get the serializable layer state."""

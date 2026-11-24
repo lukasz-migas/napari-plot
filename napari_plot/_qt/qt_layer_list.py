@@ -16,12 +16,12 @@ from napari._qt.containers._layer_delegate import LayerDelegate
 from napari._qt.containers.qt_layer_model import ThumbnailRole
 from napari._qt.qt_resources import QColoredSVGIcon
 from napari.components import LayerList
-from napari.layers import Layer
+from napari.layers import Image, Labels, Layer
 from napari.utils.theme import get_theme
 from qtextra.helpers import get_text, make_menu, make_menu_item, make_qta_icon, warn
 from qtpy.QtCore import QModelIndex, QPersistentModelIndex, QPoint, QSize, QSortFilterProxyModel, Qt
 from qtpy.QtGui import QPalette
-from qtpy.QtWidgets import QStyleOptionViewItem, QWidget
+from qtpy.QtWidgets import QAction, QMenu, QStyleOptionViewItem, QWidget
 
 from napari_plot.layers._grouping import LAYER_GROUP_KEY, get_layer_group
 from napari_plot.resources import ICONS
@@ -94,6 +94,42 @@ def _add_group_actions(menu: QModelMenu, layer_list: LayerList, parent: QWidget)
     ).setObjectName("napari_plot.layer.ungroup")
 
 
+# napari commands that only apply to image and labels layers; hidden unless one is selected
+_IMAGE_ONLY_COMMANDS = frozenset(
+    {
+        "napari.layer.split_stack",
+        "napari.layer.split_rgb",
+        "napari.layer.merge_rgb",
+        "napari.layer.merge_stack",
+        "napari.layer.extract_multiscale_level",
+    }
+)
+# conversions (to labels, image or a data type) and projections
+_IMAGE_ONLY_PREFIXES = ("napari.layer.convert_to_", "napari.layer.project_")
+
+
+def _is_image_only(action: QAction) -> bool:
+    name = action.objectName()
+    return name in _IMAGE_ONLY_COMMANDS or name.startswith(_IMAGE_ONLY_PREFIXES)
+
+
+def _remove_image_actions(menu: QMenu, layer_list: LayerList) -> None:
+    """Remove napari's image and labels commands from the menu unless the selection has such a layer.
+
+    The actions are removed from this menu rather than hidden, because app-model shares them between menus.
+    """
+    if any(isinstance(layer, Image | Labels) for layer in layer_list.selection):
+        return
+    for action in menu.actions():
+        submenu = action.menu()
+        if submenu is not None:
+            commands = [sub for sub in submenu.actions() if not sub.isSeparator()]
+            if commands and all(_is_image_only(sub) for sub in commands):
+                menu.removeAction(action)
+        elif _is_image_only(action):
+            menu.removeAction(action)
+
+
 class _LayerListModel(QtLayerListModel):
     """Expose group membership and thumbnails with Qt-owned pixel storage."""
 
@@ -152,6 +188,7 @@ class _LayerDelegate(LayerDelegate):
             menu = build_qmodel_menu(MenuId.LAYERLIST_CONTEXT, parent=parent)
             try:
                 menu.update_from_context(get_context(layer_list))
+                _remove_image_actions(menu, layer_list)
                 _add_group_actions(menu, layer_list, parent)
                 menu.exec(pos)
             finally:
