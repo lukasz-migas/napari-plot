@@ -10,7 +10,6 @@ Shift-click a bar, and click Delete in its layer controls.
 import napari_plot
 
 viewer = napari_plot.Viewer(title="Editing plot layers")
-viewer.drag_tool.active = "none"
 viewer.vbar([6, 7, 8], [1.4, 2.2, 1.1], color="steelblue", width=0.55, name="Counts")
 viewer.rectangle((0.7, 0.7), 3.8, 2, color="cyan", name="Regions")
 viewer.text([1.1, 6], [3.0, 3.0], ["Sampling area", "Counts"], alignment="left", name="Labels")

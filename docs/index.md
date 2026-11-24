@@ -1,63 +1,78 @@
-# napari-plot
+# Quickstart
 
-napari-plot is an interactive, GPU-accelerated plotting viewer built with Qt,
-VisPy, and napari's layer model. It can run as a standalone plotting application
-or as a dock widget inside napari.
+napari-plot uses napari layers to build interactive one dimensional plots. Use
+the standalone viewer for a focused plotting window, or dock the same viewer in
+napari.
 
-## Installation
+## Install
 
-napari-plot requires napari 0.10.x, Python 3.11 or later, and Qt6 (PyQt6 or
-PySide6). Install a specific backend with
-`pip install "napari-plot[pyqt6]"` or `pip install "napari-plot[pyside6]"`.
-Install `napari-plot[stats]` for statistical plots.
+Use Python 3.11 or later and choose one Qt6 backend. Install the package and
+backend together:
 
 ```shell
-pip install "napari-plot[all]"
+pip install "napari-plot[pyqt6]"
 ```
 
-For a local development checkout:
+For PySide6, install `napari-plot[pyside6]` instead. The `stats` extra adds
+seaborn-style statistical plots:
 
 ```shell
-git clone https://github.com/lukasz-migas/napari-plot.git
-cd napari-plot
-pip install -e ".[all]"
+pip install "napari-plot[pyqt6,stats]"
 ```
 
-## Quick start
+## Make a plot
+
+Create a viewer, add layers, then start the Qt event loop. Keep the viewer in a
+variable while the window is open.
 
 ```python
 import numpy as np
 import napari_plot
 
-viewer = napari_plot.Viewer()
+viewer = napari_plot.Viewer(title="Signal")
 x = np.linspace(0, 2 * np.pi, 500)
-viewer.plot(x, np.sin(x), name="signal", color="cyan")
-viewer.scatter(x[::25], np.sin(x[::25]), name="samples")
+y = np.sin(x)
+
+viewer.plot(x, y, name="signal", color="cyan")
+viewer.scatter(x[::25], y[::25], name="samples", size=8)
+viewer.axis.x_label = "Time (s)"
+viewer.axis.y_label = "Amplitude"
 viewer.legend.visible = True
+
 napari_plot.run()
 ```
 
-The lower-level layer API remains available when detailed control is needed:
+`plot(y)` and `scatter(y)` use integer sample positions for x. The returned
+objects are layer handles, so you can update data and properties later:
 
 ```python
-viewer.add_region([[1.0, 2.0]], orientation="vertical", name="interval")
-viewer.add_text([[3.0, 0.5]], ["peak"], color="yellow")
+line = viewer.plot(y, name="live signal")
+line.data = np.column_stack((np.arange(len(y)), y * 0.5))
+line.visible = False
 ```
 
-See the [usage guide](usage.md) for standalone and embedded examples,
-interactions, axis scales, and all supported layer types. The [API reference](api.md)
-summarizes the stable public entry points.
+## Use napari
 
-## Highlights
+Open napari and choose **Plugins > napari-plot: Plot Widget**. You can also add
+the plot viewer from Python:
 
-- Line, Scatter, MultiLine, Centroids, Text, Region, InfLine, and Bar layers
-- Linear, logarithmic, power, datetime, and categorical axes
-- Interactive selection, zoom, layer controls, legend, and colorbar
-- Grid cells with shared or independent axes
-- Native plot sessions, CSV, and PNG, SVG, and PDF export
-- Image display and a scatter-from-image dock widget
-- Concise `plot`, `scatter`, `imshow`, `hbar`, and `vbar` helpers
-- Full access to the lower-level `add_*` layer methods
+```python
+import napari
+from napari_plot import NapariPlotWidget
 
-Contributions and bug reports are welcome in the
-[GitHub repository](https://github.com/lukasz-migas/napari-plot).
+viewer = napari.Viewer()
+viewer.window.add_dock_widget(NapariPlotWidget(viewer))
+napari.run()
+```
+
+The Scatter Widget compares displayed slices from two napari Image layers. The
+two slices need matching displayed shapes.
+
+## Next steps
+
+- Use the [layers guide](layers.md) to choose a layer and understand its data.
+- Run an [example](examples.md) with `uv run --extra pyqt6 python examples/add_scatter.py`.
+- Read [in-depth explanations](explanations.md) for axes, selection, grids, and files.
+
+For development, clone the repository and install the selected extras with
+`uv sync --extra pyqt6 --extra docs`.

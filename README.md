@@ -9,7 +9,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 [![PyPI - Downloads](https://img.shields.io/pypi/dm/napari-plot.svg)](https://pypistats.org/packages/napari-plot)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-plot)](https://www.napari-hub.org/plugins/napari-plot)
-[![Documentation Status](https://readthedocs.org/projects/napari-plot/badge/?version=latest)](https://napari-plot.readthedocs.io/en/latest/?badge=latest)
+[![Documentation](https://github.com/lukasz-migas/napari-plot/actions/workflows/docs.yml/badge.svg)](https://lukasz-migas.github.io/napari-plot/)
 
 ## Interactive plotting in napari or a standalone Qt viewer
 
@@ -75,8 +75,8 @@ are edited explicitly. Unspecified text and legend font sizes follow the
 application's appearance font size; pass a number to fix the size.
 
 Python 3.11 or later is required. See the
-[documentation](https://napari-plot.readthedocs.io/) for standalone and embedded
-quick starts, layer examples, axis controls, interactions, and the public API.
+[documentation](https://lukasz-migas.github.io/napari-plot/) for quickstarts,
+examples, layer guides, axis controls, interactions, and the public API.
 
 ## Contributing
 
