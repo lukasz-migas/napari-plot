@@ -5,11 +5,13 @@ from __future__ import annotations
 import gc
 from types import SimpleNamespace
 from typing import TYPE_CHECKING
+from unittest.mock import create_autospec
 
 import numpy as np
 import pytest
 from qtextra.widgets.qt_toolbar_mini import QtMiniToolbar
 from qtpy.QtCore import QPoint, Qt
+from vispy.scene import ViewBox, Widget
 
 from napari_plot._qt.component_controls.qt_plot_display_controls import QtPlotDisplayControls
 from napari_plot._vispy.components.camera import make_rect
@@ -671,6 +673,68 @@ def test_wheel_on_an_axis_zooms_along_it(plot, qtbot, grid: bool) -> None:
         viewer.camera.rect = rect
         wheel(x_pos, 1, modifiers=("Control",))
         assert viewer.camera.rect == pytest.approx(rect)
+
+
+def test_grid_mouse_events_pick_widgets_without_rendering(plot, qtbot, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Wheel and hover find the plot and axes using the layout, without a picking render."""
+    viewer, canvas = plot
+    grid = viewer.canvas.grid
+    grid.sharex = grid.sharey = False
+    grid.enabled = True
+    _settle(qtbot, canvas)
+    scene = canvas._scene_canvas
+    cell = canvas._cells[1]
+    render_picking = type(scene)._render_picking
+    pick = create_autospec(render_picking, side_effect=render_picking)
+    monkeypatch.setattr(type(scene), "_render_picking", pick)
+    other_rects = [other.camera.rect for other in canvas._cells if other is not cell]
+
+    for widget, changed_axes in (
+        (cell.view, (True, True)),
+        (cell.x_axis.node, (True, False)),
+        (cell.y_axis.node, (False, True)),
+    ):
+        before = cell.camera.rect
+        event = scene.events.mouse_wheel(pos=tuple(_widget_center(canvas, widget)), delta=(0, 1), modifiers=())
+        assert event.handled
+        after = cell.camera.rect
+        for index, changed in zip((0, 2), changed_axes, strict=True):
+            if changed:
+                assert after[index + 1] - after[index] < before[index + 1] - before[index]
+            else:
+                assert after[index : index + 2] == pytest.approx(before[index : index + 2])
+
+    assert [other.camera.rect for other in canvas._cells if other is not cell] == other_rects
+
+    hovered = []
+    cell.view.events.mouse_move.connect(hovered.append)
+    scene.events.mouse_move(pos=tuple(_widget_center(canvas, cell.view)), buttons=[], modifiers=())
+    assert len(hovered) == 1
+    assert scene.visual_at((1, 1)) is None
+    pick.assert_not_called()
+
+
+def test_grid_mouse_picking_falls_back_for_other_interactive_visuals(
+    plot, qtbot, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Extra interactive visuals use Vispy picking when their branch is visible."""
+    viewer, canvas = plot
+    viewer.canvas.grid.enabled = True
+    _settle(qtbot, canvas)
+    scene = canvas._scene_canvas
+    parent = Widget(parent=scene.central_widget, size=(10, 10))
+    extra = ViewBox(parent=parent, size=(10, 10))
+    extra.interactive = True
+    render_picking = type(scene)._render_picking
+    pick = create_autospec(render_picking, side_effect=render_picking)
+    monkeypatch.setattr(type(scene), "_render_picking", pick)
+    parent.visible = False
+    assert scene.visual_at((5, 5)) is None
+    pick.assert_not_called()
+
+    parent.visible = True
+    assert scene.visual_at((5, 5)) is extra
+    pick.assert_called_once()
 
 
 def test_one_axis_zoom_survives_drawing_in_grid_mode(plot, qtbot) -> None:

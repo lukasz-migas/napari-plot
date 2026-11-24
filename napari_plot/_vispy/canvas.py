@@ -28,6 +28,7 @@ from napari.utils.interactions import (
 from qtpy.QtCore import QSize
 from superqt.utils import qthrottled
 from vispy.scene import Node, SceneCanvas as SceneCanvas_, Widget
+from vispy.scene.visuals import VisualNode
 from vispy.scene.widgets import Grid
 from vispy.util.event import Event
 
@@ -60,11 +61,11 @@ if ty.TYPE_CHECKING:
 
 
 class NapariSceneCanvas(SceneCanvas_):
-    """Vispy SceneCanvas used to allow for ignoring mouse wheel events with modifiers."""
+    """Vispy scene canvas for plot interaction."""
 
     view, grid, x_axis, y_axis = None, None, None, None
     # x/y axes of each plot view box, so overlays (e.g. grid lines) can find the axes of the cell they are in
-    view_axes: ty.ClassVar[dict] = {}
+    view_axes: ty.ClassVar[dict[ViewBox, tuple[VispyXAxisVisual, VispyYAxisVisual]]] = {}
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -114,6 +115,28 @@ class NapariSceneCanvas(SceneCanvas_):
         if not hasattr(event, "scale"):
             event.scale = 1.0
         super()._process_mouse_event(event)
+
+    def visual_at(self, pos: ty.Sequence[float]) -> VisualNode | None:
+        """Find the interactive visual at a canvas position using the plot layout when possible."""
+        widgets = {
+            widget for view, (x_axis, y_axis) in self.view_axes.items() for widget in (view, x_axis.node, y_axis.node)
+        }
+        hit = None
+        pending = [self.scene]
+        while pending:
+            node = pending.pop()
+            if not node.visible:
+                continue
+            if isinstance(node, VisualNode) and node.interactive:
+                # Vispy renders the whole scene to pick a pixel. The standard plot targets are rectangular widgets.
+                if not isinstance(node, Widget) or node not in widgets or node.margin:
+                    return super().visual_at(pos)
+                if min(node.size) > 0 and self._widget_contains(node, pos):
+                    if hit is not None:
+                        return super().visual_at(pos)
+                    hit = node
+            pending.extend(node.children)
+        return hit
 
     def _on_mouse_double_click(self, event: MouseEvent) -> None:
         """Reset the x- or y-range when the x- or y-axis of any plot cell is double-clicked with the left button.
