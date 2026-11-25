@@ -107,8 +107,13 @@ def test_line_dashes_are_visible_at_unit_data_scale(rendered_plot) -> None:
     viewer.camera.rect = (0, 1, 0, 1)
     image, _ = _render(canvas)
     dashed_columns = np.any(_color_mask(image, (255, 0, 0)), axis=0)
+    red_excess = image[..., 0].astype(np.int16) - np.maximum(image[..., 1], image[..., 2])
+    max_red_excess = int(red_excess.max())
     line.dashes = None
     image, _ = _render(canvas)
     solid_columns = np.any(_color_mask(image, (255, 0, 0)), axis=0)
     assert solid_columns.sum() > 100
-    assert 0.3 < dashed_columns.sum() / solid_columns.sum() < 0.9
+    assert 0.3 < dashed_columns.sum() / solid_columns.sum() < 0.9, (
+        f"dashed columns: {dashed_columns.sum()}, solid columns: {solid_columns.sum()}, "
+        f"maximum red excess: {max_red_excess}"
+    )

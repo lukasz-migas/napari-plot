@@ -17,17 +17,20 @@ if ty.TYPE_CHECKING:
 @pytest.fixture
 def opened_menus(monkeypatch: pytest.MonkeyPatch) -> list[dict[str, QAction]]:
     """Record the actions of every canvas menu instead of showing it."""
+    from napari_plot._qt import qt_canvas_menu
+
     menus: list[dict[str, QAction]] = []
 
-    def record(menu: QMenu, *_args: ty.Any) -> None:
-        actions: dict[str, QAction] = {}
-        for action in menu.actions():
-            actions[action.objectName()] = action
-            if submenu := action.menu():
-                actions.update({sub.objectName(): sub for sub in submenu.actions()})
-        menus.append(actions)
+    class RecordingMenu(QMenu):
+        def exec(self, *_args: ty.Any) -> None:
+            actions: dict[str, QAction] = {}
+            for action in self.actions():
+                actions[action.objectName()] = action
+                if submenu := action.menu():
+                    actions.update({sub.objectName(): sub for sub in submenu.actions()})
+            menus.append(actions)
 
-    monkeypatch.setattr(QMenu, "exec", record)
+    monkeypatch.setattr(qt_canvas_menu, "QMenu", RecordingMenu)
     return menus
 
 
