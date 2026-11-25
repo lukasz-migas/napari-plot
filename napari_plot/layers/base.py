@@ -85,6 +85,15 @@ class LayerMixin:
         self.events.data(value=self.data, action=action_type)
         self._on_editable_changed()
 
+    def _clear_extent_cache(self) -> None:
+        """Drop the cached extent without emitting events, so streamed data is used when the extent is next read.
+
+        napari's `_clear_extent` also emits `_extent_augmented`, which makes the viewer recompute the extent of every
+        layer; streaming skips that on purpose.
+        """
+        self.__dict__.pop("extent", None)
+        self.__dict__.pop("_extent_augmented", None)
+
     @contextmanager
     def block_thumbnail_update(self) -> ty.Iterator[None]:
         """Temporarily block thumbnail updates."""

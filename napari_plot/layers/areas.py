@@ -155,6 +155,7 @@ class Areas(BaseLayer):
                 self._border_color[0] if len(self._data) else "dimgray", len(areas), "border_color"
             )
         self._data = areas
+        self._clear_extent_cache()
         self.events.stream()
 
     @property

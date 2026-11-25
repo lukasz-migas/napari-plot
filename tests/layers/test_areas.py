@@ -92,3 +92,11 @@ def test_areas_stream_keeps_colors_and_skips_data_events() -> None:
     # a new number of areas reuses the first color
     layer.stream([[[0, 0, 3], [2, 0, 4]]])
     np.testing.assert_array_equal(layer.fill_color, [[1, 0, 0, 1]])
+
+
+def test_areas_stream_refreshes_the_cached_extent() -> None:
+    """The extent read after a stream follows the streamed areas."""
+    layer = Areas([[[0, 0, 1], [1, 0, 2]]])
+    assert layer.extent.data[1, 0] == 2  # cached
+    layer.stream([[[0, 0, 5], [3, 0, 9]]])
+    np.testing.assert_array_equal(layer.extent.data, [[0, 0], [9, 3]])

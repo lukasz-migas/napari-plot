@@ -164,6 +164,8 @@ class VispyCamera:
             if layers is not None and not all(shared)
             else None
         )
+        if self._local_extent is not None and self._joint_autoscale:
+            self._local_extent = self._with_value_headroom(self._local_extent)
         self._local_rect = self._local_extent
         if (
             self._local_extent is not None
@@ -209,6 +211,21 @@ class VispyCamera:
             and self._layers is not None
             and self._value_axis() is not None
         )
+
+    def _with_value_headroom(self, extent: RectLimits) -> RectLimits:
+        """Widen the value axis of an autoscaled marginal's extent to its fit of all the data.
+
+        The fit pads the data away from zero; without this the extent would clip that padding when the visible data
+        holds the largest value.
+        """
+        value_axis = self._value_axis()
+        fit = self._viewer._get_value_range_in_region(self._layers, 1 - value_axis, -np.inf, np.inf)
+        if fit is None:
+            return extent
+        values = list(extent)
+        start = value_axis * 2
+        values[start : start + 2] = min(values[start], fit[0]), max(values[start + 1], fit[1])
+        return tuple(values)
 
     def _autoscale_rect(self, rect: RectLimits) -> RectLimits:
         """Fit the value axis of a joint marginal to its data inside the shared range of ``rect``."""

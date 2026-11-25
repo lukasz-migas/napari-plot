@@ -301,7 +301,11 @@ class MultiLine(_SelectableLayer):
         xs, ys = parse_multiline_data(data)
         self._data_view.xs = xs
         self._data_view.ys = ys
-        self.events.stream() if not full_update else self._emit_new_data()
+        if full_update:
+            self._emit_new_data()
+        else:
+            self._clear_extent_cache()
+            self.events.stream()
 
     @property
     def width(self) -> float:

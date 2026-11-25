@@ -11,6 +11,9 @@
 - The value-axis ticks of joint marginals no longer use the main plot's tick formatters.
 - Streaming a `MultiLine` with lines of a different length now redraws their connections correctly.
 - In grid mode, streaming data into a layer refits the bounds of the plot cell that draws it (e.g. an autoscaled joint marginal).
+- Streaming data into a `MultiLine` or `Areas` layer refreshes its cached extent, so fits and resets use the new data.
+- In grid mode, every plot cell has its own bottom layer for blending, so e.g. additive images in the main cell no longer wash out against a light background when a marginal layer is lower in the layer list.
+- Autoscaled joint marginals keep their headroom above the largest value when all the data is in view.
 
 ## Added
 

@@ -1224,3 +1224,26 @@ def test_joint_autoscale_follows_streamed_marginal_data(joint) -> None:
     assert top.camera.rect[2:] == pytest.approx((0, 4.2))
     assert top.camera.rect[:2] == pytest.approx((0, 5))
     assert viewer.camera.rect == pytest.approx(main_rect)
+
+    # values beyond the data the panel had before (the cached layer extent must not limit the fit)
+    joint.top.stream({"xs": [positions], "ys": [np.full(51, 400.0), np.full(51, 2.0)]})
+    assert top.camera.rect[2:] == pytest.approx((0, 420))
+
+    # with all the data in view the fit keeps its headroom above the largest value
+    viewer.camera.rect = (0, 10, 0, 10)
+    assert top.camera.rect[2:] == pytest.approx((0, 420))
+
+
+def test_grid_blends_the_bottom_layer_of_each_cell_with_its_background(joint) -> None:
+    """Each plot cell has its own bottom layer, which napari blends with the background (e.g. additive stays visible)."""
+    viewer, canvas = joint.viewer, joint.canvas
+    main_layer = viewer.layers["main"]
+    # a marginal layer at the bottom of the layer list must not take that role in the main cell
+    viewer.layers.move(viewer.layers.index(joint.top), 0)
+    first = {layer.name: canvas.layer_to_visual[layer].first_visible for layer in viewer.layers}
+    assert first == {joint.top.name: True, "main": True, joint.right.name: True}
+
+    viewer.add_line(np.c_[[0, 10], [5, 5]], name="second")  # drawn above "main" in the main cell
+    assert not canvas.layer_to_visual[viewer.layers["second"]].first_visible
+    main_layer.visible = False
+    assert canvas.layer_to_visual[viewer.layers["second"]].first_visible

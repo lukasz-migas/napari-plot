@@ -105,3 +105,14 @@ def test_multiline_stream():
     new_data = {"xs": [np.random.random(10)] * 3, "ys": [np.random.random(10)] * 3}
     layer.stream(new_data)
     assert layer._data_view.n_lines == 3
+
+
+def test_multiline_stream_refreshes_the_cached_extent():
+    """The extent read after a stream follows the streamed data, without an extent event."""
+    layer = MultiLine({"xs": [np.arange(2.0)], "ys": [np.zeros(2)]})
+    assert layer.extent.data[1, 0] == 0  # cached
+    events = []
+    layer.events._extent_augmented.connect(events.append)
+    layer.stream({"xs": [np.arange(5.0)], "ys": [np.full(5, 7.0)]})
+    np.testing.assert_array_equal(layer.extent.data, [[7, 0], [7, 4]])
+    assert not events

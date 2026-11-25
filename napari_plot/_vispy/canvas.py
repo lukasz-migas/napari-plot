@@ -566,6 +566,7 @@ class VispyCanvas:
             for layer, vispy_layer in self.layer_to_visual.items():
                 vispy_layer.node.parent = self._data_scene
                 self._layer_name_visuals[layer].node.parent = self.view
+        self._update_first_visible()
         self._refresh_cell_views(_event)
         self._update_gridded_overlays()
         self._update_colorbars()
@@ -1374,23 +1375,36 @@ class VispyCanvas:
 
     def _reorder_layers(self):
         """When the list is reordered, propagate changes to draw order."""
-        first_visible_found = False
         for i, layer in enumerate(self.viewer.layers):
             vispy_layer = self.layer_to_visual.get(layer)
             if vispy_layer is None:
                 continue  # added to the layer list, its visual is made next (a callback can run in between)
             vispy_layer.order = i
-
-            # the bottommost visible layer needs special treatment for blending
-            if layer.visible and not first_visible_found:
-                vispy_layer.first_visible = True
-                first_visible_found = True
-            else:
-                vispy_layer.first_visible = False
-            vispy_layer._on_blending_change()
+        self._update_first_visible()
 
         self._scene_canvas._draw_order.clear()
         self._scene_canvas.update()
+
+    def _update_first_visible(self) -> None:
+        """Mark the bottommost visible layer of each plot cell.
+
+        napari blends that layer with the background differently (e.g. additive blending does not add to the
+        background colour). Every plot cell draws on its own background, so in grid mode each cell has one; a layer in
+        another cell must not take that role from the bottom layer of a cell.
+        """
+        cell_of = {id(layer): index for index, layers in enumerate(self._cell_layers) for layer in layers}
+        found = set()
+        for layer in self.viewer.layers:
+            vispy_layer = self.layer_to_visual.get(layer)
+            if vispy_layer is None:
+                continue
+            cell = cell_of.get(id(layer))
+            first = bool(layer.visible) and cell not in found
+            if first:
+                found.add(cell)
+            if vispy_layer.first_visible != first:
+                vispy_layer.first_visible = first
+                vispy_layer._on_blending_change()
 
     def _create_overlay_visual(
         self, overlay: Overlay, cell: VispyPlotCell, layer_filter: tuple[frozenset[str], bool] | None = None
