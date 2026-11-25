@@ -46,6 +46,7 @@ dependencies = [
 	"vispy",
 	"koyo",
     "qtextra",
+    "fonttools<=4.68.0"
 ]
 dynamic = [
   "version"
