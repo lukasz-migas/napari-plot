@@ -86,3 +86,4 @@ _version.py
 .settings/
 *.pkg
 /TODO/
+uv.lock
