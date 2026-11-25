@@ -173,14 +173,19 @@ class VispyPlotCell:
         *,
         reset: tuple[bool, bool] = (False, False),
         labels_visible: bool = True,
+        own_formatters: tuple[bool, bool] = (False, False),
     ) -> None:
-        """Apply the grid cell's overrides and synchronize its transforms."""
+        """Apply the grid cell's overrides and synchronize its transforms.
+
+        ``own_formatters`` marks the (x, y) axes whose tick formatter comes only from the cell model (``None`` is the
+        default format), e.g. the value axes of joint marginals, instead of falling back to the viewer's axis.
+        """
         self.camera.configure_cell(model, layers, shared, reset=reset)
         axis = self.viewer.axis
         key = (self.camera.axis_scale("x"), self.camera.axis_scale("y"), axis.x_power, axis.y_power)
         if key != self._axis_transform_key:
             self._axis_transform_key = key
             self.data_scene.transform = axis_transform(*key)
-        for visual in (self.x_axis, self.y_axis):
-            visual.configure_cell(model, label_visible=labels_visible)
+        for visual, own_formatter in zip((self.x_axis, self.y_axis), own_formatters, strict=True):
+            visual.configure_cell(model, label_visible=labels_visible, own_formatter=own_formatter)
             visual.node._view_changed()

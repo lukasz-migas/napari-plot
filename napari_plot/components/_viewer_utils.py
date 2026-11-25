@@ -73,6 +73,38 @@ def get_layers_y_region_extent(y_min: float, y_max: float, layer_list) -> tuple[
     return None, None
 
 
+def get_region_extent(axis: int, lo: float, hi: float, layer: Layer) -> tuple[float | None, float | None]:
+    """Extent along the other axis of a layer's data whose ``axis`` (0 = x, 1 = y) coordinate is in ``[lo, hi]``."""
+    if not layer.visible or layer.ndim != 2:
+        return None, None
+    if hasattr(layer, "_get_region_extent"):
+        return layer._get_region_extent(axis, lo, hi)
+    if axis == 0 and hasattr(layer, "_get_x_region_extent"):
+        return layer._get_x_region_extent(lo, hi)
+    return None, None
+
+
+def get_layers_region_extent(axis: int, lo: float, hi: float, layer_list) -> tuple[float | None, float | None]:
+    """Extent along the other axis of the data of every layer whose ``axis`` coordinate is in ``[lo, hi]``."""
+    extents = []
+    for layer in layer_list:
+        vmin, vmax = get_region_extent(axis, lo, hi, layer)
+        if vmin is not None and vmax is not None:
+            extents.extend([vmin, vmax])
+    return (float(min(extents)), float(max(extents))) if extents else (None, None)
+
+
+def points_region_extent(
+    positions: np.ndarray, values: np.ndarray, lo: float, hi: float
+) -> tuple[float | None, float | None]:
+    """Range of the finite ``values`` whose ``positions`` are in ``[lo, hi]`` (in any order)."""
+    mask = (positions >= lo) & (positions <= hi) & np.isfinite(values)
+    if not mask.any():
+        return None, None
+    selected = values[mask]
+    return float(selected.min()), float(selected.max())
+
+
 def get_range_extent(full_min, full_max, range_min, range_max, min_val: float | None = None) -> tuple[float, float]:
     """Get tuple of specified range"""
     if range_min is None:

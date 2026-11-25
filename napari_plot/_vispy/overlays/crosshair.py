@@ -24,11 +24,16 @@ _LABEL_OFFSET = 6.0
 
 
 class _Crosshair(Line):
-    """Draw the crosshair in the plot view's local coordinates, mapping the data point through the cell's axes."""
+    """Draw the crosshair in the plot view's local coordinates, mapping the data point through the cell's axes.
+
+    ``lines`` selects the vertical (through x) and horizontal (through y) line; a joint marginal only draws the line
+    of the axis it shares with the main panel. A NaN coordinate in ``point`` hides its line.
+    """
 
     def __init__(self) -> None:
         self.point: tuple[float, float] | None = None
         self.show_coordinates = True
+        self.lines: tuple[bool, bool] = (True, True)
         super().__init__(connect="segments", width=1.0)
         self.unfreeze()
         self.label = Text("", anchor_x="left", anchor_y="bottom", font_size=8, parent=self)
@@ -45,19 +50,29 @@ class _Crosshair(Line):
         if scene is None or min(bounds.size) <= 0:
             self.label.visible = False
             return False
+        point = np.array([self.point], dtype=float)
+        missing = ~np.isfinite(point[0])
+        # a NaN coordinate hides its line; map a valid stand-in (also on log axes) so it cannot spoil the other one
+        point[0, missing] = 1.0
         with np.errstate(invalid="ignore", divide="ignore"):
-            x, y = scene.node_transform(plot).map(np.array([self.point], dtype=float))[0, :2]
-        if not (np.isfinite(x) and np.isfinite(y)):
+            x, y = scene.node_transform(plot).map(point)[0, :2]
+        x, y = (np.nan if missing[0] else x), (np.nan if missing[1] else y)
+        vertical = self.lines[0] and bool(np.isfinite(x))
+        horizontal = self.lines[1] and bool(np.isfinite(y))
+        if not (vertical or horizontal):
             self.label.visible = False
             return False
-        positions = np.array(
-            [[x, bounds.bottom], [x, bounds.top], [bounds.left, y], [bounds.right, y]],
-            dtype=np.float32,
-        )
-        if not np.array_equal(positions, self.pos):
+        segments = []
+        if vertical:
+            segments += [[x, bounds.bottom], [x, bounds.top]]
+        if horizontal:
+            segments += [[bounds.left, y], [bounds.right, y]]
+        positions = np.array(segments, dtype=np.float32)
+        if self.pos is None or not np.array_equal(positions, self.pos):
             self.set_data(pos=positions)
-        self.label.visible = self.show_coordinates
-        if self.show_coordinates:
+        show_label = self.show_coordinates and vertical and horizontal
+        self.label.visible = show_label
+        if show_label:
             text = format_coordinates(*self.point)
             if self.label.text != text:
                 self.label.text = text

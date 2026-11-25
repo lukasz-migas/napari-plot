@@ -6,6 +6,8 @@ from math import isfinite
 from typing import TYPE_CHECKING, Literal
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from napari.layers import Layer
 
     from napari_plot.components.viewer_model import ViewerModel
@@ -30,11 +32,22 @@ def joint_panel(layer: Layer, *, top: bool, right: bool) -> str:
 class JointGrid:
     """Arrange a main plot and optional top and right marginals on one viewer.
 
-    ``ratio`` controls the size of the main panel relative to the marginals.
-    The top shares the main x axis and the right shares the main y axis.
+    ``ratio`` controls the size of the main panel relative to the marginals, unless ``size`` sets the thickness of
+    the marginals in screen pixels. The top shares the main x axis and the right shares the main y axis. With
+    ``autoscale``, the value axis of each marginal follows the data visible in the shared range and interaction in a
+    marginal only changes its shared axis (see `PlotGridCanvas`).
     """
 
-    def __init__(self, viewer: ViewerModel, *, top: bool = True, right: bool = True, ratio: float = 5) -> None:
+    def __init__(
+        self,
+        viewer: ViewerModel,
+        *,
+        top: bool = True,
+        right: bool = True,
+        ratio: float = 5,
+        size: int | None = None,
+        autoscale: bool = False,
+    ) -> None:
         if not top and not right:
             raise ValueError("At least one marginal panel is required.")
         if not isfinite(ratio) or ratio <= 0:
@@ -43,6 +56,7 @@ class JointGrid:
         self.layers: list[Layer] = []
         grid = viewer.canvas.grid
         grid.joint_top, grid.joint_right, grid.joint_ratio = top, right, ratio
+        grid.joint_size, grid.joint_autoscale = size, autoscale
         grid.joint = True
         grid.enabled = True
         if not viewer.layers:
@@ -103,4 +117,19 @@ class JointGrid:
             grid.joint_hidden_labels = (*hidden, panel)
         elif visible is True and panel in hidden:
             grid.joint_hidden_labels = tuple(name for name in hidden if name != panel)
+        return self
+
+    def set_tick_formatter(self, formatter: Callable[..., str] | None, *, panel: Literal["top", "right"]) -> JointGrid:
+        """Format the value-axis ticks of a marginal (y in the top panel, x in the right panel).
+
+        ``None`` restores the default format. The shared axes use the viewer's ``axis`` formatters.
+        """
+        self._validate_panel(panel)
+        if panel == "joint":
+            raise ValueError("Set the main panel formatters on the viewer axis.")
+        grid = self.viewer.canvas.grid
+        if panel == "top":
+            grid.joint_top_tick_formatter = formatter
+        else:
+            grid.joint_right_tick_formatter = formatter
         return self

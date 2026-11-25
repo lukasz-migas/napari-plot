@@ -11,7 +11,7 @@ from vispy.scene import BaseCamera, PanZoomCamera
 from napari_plot.components.axis import transform_axis_values
 from napari_plot.components.camera import CameraMode, ExtentMode
 from napari_plot.components.dragtool import BOX_ZOOM_TOOLS
-from napari_plot.components.tools import Shape
+from napari_plot.components.tools import BoxTool, Shape
 
 if ty.TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,9 +31,15 @@ def make_rect(xmin: float, xmax: float, ymin: float, ymax: float) -> Rect:
 
 
 class LimitedPanZoomCamera(PanZoomCamera):
-    """Slightly customized pan zoom camera that prevents zooming outside of specified region"""
+    """Slightly customized pan zoom camera that prevents zooming outside of specified region.
+
+    ``locked_axis`` (0 = x, 1 = y, or None) is an axis the mouse must not change, e.g. the value axis of a joint
+    marginal that follows its data: the wheel and panning then act on the other axis only, and any left-drag zooms the
+    other axis (a span), whatever the drag tool.
+    """
 
     _extent = None
+    locked_axis: int | None = None
     _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     _left_drag_pans: bool = False
@@ -102,6 +108,9 @@ class LimitedPanZoomCamera(PanZoomCamera):
         BaseCamera.viewbox_mouse_event(self, event)
         tool = self.viewer.drag_tool.tool
 
+        if getattr(self, "locked_axis", None) is not None and self._locked_mouse_event(event, tool):
+            return
+
         if event.type == "mouse_wheel":
             center = self._scene_transform.imap(event.pos)
             self.zoom((1 + self.zoom_factor) ** (-event.delta[1] * 30), center)
@@ -156,6 +165,67 @@ class LimitedPanZoomCamera(PanZoomCamera):
                     self.rect = rect
         else:
             event.handled = False
+
+    def _locked_mouse_event(self, event: SceneMouseEvent, tool: ty.Any) -> bool:
+        """Zoom and pan along the free axis only; return whether the event was handled."""
+        free = 1 - self.locked_axis
+        if event.type == "mouse_wheel":
+            factor = [1.0, 1.0]
+            factor[free] = (1 + self.zoom_factor) ** (-event.delta[1] * 30)
+            self.zoom(factor, self._scene_transform.imap(event.pos))
+            event.handled = True
+            return True
+        if event.type == "mouse_press":
+            self._left_drag_pans = False
+            if event.button == 1 and isinstance(tool, BoxTool):
+                tool.position = self._span_position(event.pos, event.pos)
+                tool.visible = True
+            event.handled = event.button in (1, 2)
+            return True
+        if event.type == "mouse_move":
+            if event.press_event is None:
+                return False
+            if 1 in event.buttons:
+                if isinstance(tool, BoxTool):
+                    tool.position = self._span_position(event.press_event.pos, event.pos)
+                event.handled = True
+            elif 2 in event.buttons and not event.mouse_event.modifiers:
+                delta = self._transform.imap(np.array(event.last_event.pos)[:2]) - self._transform.imap(
+                    np.array(event.pos)[:2]
+                )
+                delta[self.locked_axis] = 0
+                self.pan(delta)
+                event.handled = True
+            return True
+        if event.type == "mouse_release" and event.button == 1:
+            if isinstance(tool, BoxTool):
+                tool.visible = False
+                tool.position = (0, 0, 0, 0)
+            if event.press_event is None:
+                return True
+            start = self._transform.imap(np.asarray(event.press_event.pos[:2]))
+            stop = self._transform.imap(np.asarray(event.pos[:2]))
+            moved = abs(event.pos[free] - event.press_event.pos[free]) > MIN_ZOOM_PIXELS
+            if moved:
+                lo, hi = sorted((float(start[free]), float(stop[free])))
+                rect = self.rect
+                bounds = [rect.left, rect.right, rect.bottom, rect.top]
+                bounds[free * 2 : free * 2 + 2] = lo, hi
+                self.rect = make_rect(*self._check_range(*bounds))
+            return True
+        return False
+
+    def _span_position(self, press_pos, pos) -> tuple[float, float, float, float]:
+        """Data position of a span along the free axis between two canvas positions, across the locked axis."""
+        free = 1 - self.locked_axis
+        start = self._transform.imap(np.asarray(press_pos[:2]))
+        stop = self._transform.imap(np.asarray(pos[:2]))
+        rect = self.rect
+        bounds = [rect.left, rect.right, rect.bottom, rect.top]
+        bounds[free * 2 : free * 2 + 2] = sorted((float(start[free]), float(stop[free])))
+        x0, y0 = self._to_data_coordinates(bounds[0], bounds[2])
+        x1, y1 = self._to_data_coordinates(bounds[1], bounds[3])
+        return x0, x1, y0, y1
 
     def _is_zoom_drag(self, press_pos, pos) -> bool:
         """Check whether the drag is large enough (in pixels) along the axis zoomed by the current tool shape."""

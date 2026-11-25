@@ -113,7 +113,7 @@ class Areas(BaseLayer):
             units=units,
             visible=visible,
         )
-        self.events.add(orientation=Event, fill_color=Event, border_color=Event, border_width=Event)
+        self.events.add(orientation=Event, fill_color=Event, border_color=Event, border_width=Event, stream=Event)
         self._data = areas
         self._orientation = AreasOrientation(orientation)
         self.fill_color = fill_color
@@ -139,6 +139,23 @@ class Areas(BaseLayer):
             self._fill_color = _coerce_colors(fill, len(areas), "fill_color")
             self._border_color = _coerce_colors(border, len(areas), "border_color")
         self._emit_new_data(ActionType.CHANGED)
+
+    def stream(self, data: Sequence[ArrayLike]) -> None:
+        """Rapidly replace the areas, e.g. for live updates.
+
+        Only the ``stream`` event is emitted: the areas are redrawn, but the viewer's data extent and the thumbnail are
+        not updated. The colors are kept when the number of areas is unchanged.
+        """
+        areas = _area_data(data)
+        if len(areas) != len(self._data):
+            self._fill_color = _coerce_colors(
+                self._fill_color[0] if len(self._data) else "white", len(areas), "fill_color"
+            )
+            self._border_color = _coerce_colors(
+                self._border_color[0] if len(self._data) else "dimgray", len(areas), "border_color"
+            )
+        self._data = areas
+        self.events.stream()
 
     @property
     def orientation(self) -> AreasOrientation:
@@ -257,6 +274,31 @@ class Areas(BaseLayer):
         if not mask.any():
             return None, None
         return float(y_bounds[mask, 0].min()), float(y_bounds[mask, 1].max())
+
+    def _get_region_extent(self, axis: int, lo: float, hi: float) -> tuple[float | None, float | None]:
+        """Extent along the other axis of the area rows whose ``axis`` (0 = x, 1 = y) coordinate is in ``[lo, hi]``.
+
+        Along ``t`` only the rows inside the range count, so the result follows the visible part of each area.
+        """
+        if not self.data:
+            return None, None
+        t_axis = 0 if self.orientation is AreasOrientation.VERTICAL else 1
+        lows, highs = [], []
+        for area in self.data:
+            if axis == t_axis:
+                rows = area[(area[:, 0] >= lo) & (area[:, 0] <= hi)]
+                if len(rows):
+                    lows.append(rows[:, 1:].min())
+                    highs.append(rows[:, 1:].max())
+            else:
+                bottom, top = np.minimum(area[:, 1], area[:, 2]), np.maximum(area[:, 1], area[:, 2])
+                rows = area[(top >= lo) & (bottom <= hi)]
+                if len(rows):
+                    lows.append(rows[:, 0].min())
+                    highs.append(rows[:, 0].max())
+        if not lows:
+            return None, None
+        return float(min(lows)), float(max(highs))
 
     def _set_view_slice(self) -> None:
         self.events.set_data()

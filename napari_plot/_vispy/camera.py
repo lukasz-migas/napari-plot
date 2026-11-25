@@ -59,6 +59,7 @@ class VispyCamera:
         self._shared = (True, True)
         self._local_extent: RectLimits | None = None
         self._local_rect: RectLimits | None = None
+        self._autoscaling = False
 
         # Create camera
         self._view.camera = MouseToggledLimitedPanZoomCamera(
@@ -179,9 +180,49 @@ class VispyCamera:
                 if not shared[i] and not previous_shared[i] and not reset[i] and not was_fitted:
                     values[part] = previous_rect[part]
             self._local_rect = tuple(values)
+        self.camera.locked_axis = self._value_axis() if self._joint_autoscale else None
         self._on_extent_change(None)
         self._on_force_rect_change(None)
         self._update_flip()
+
+    def refresh_bounds(self) -> None:
+        """Recompute the cell's local data bounds after its layers' data changed, keeping its other settings."""
+        if self._layers is not None:
+            self.configure_cell(self._cell, self._layers, self._shared)
+
+    def _value_axis(self) -> int | None:
+        """Index (0 = x, 1 = y) of the only independent axis of a joint marginal, or None."""
+        if self._shared == (True, False):
+            return 1
+        if self._shared == (False, True):
+            return 0
+        return None
+
+    @property
+    def _joint_autoscale(self) -> bool:
+        """Whether this is a joint marginal whose value axis follows the data visible in its shared range."""
+        grid = self._viewer.canvas.grid
+        return bool(
+            grid.enabled
+            and grid.joint
+            and grid.joint_autoscale
+            and self._layers is not None
+            and self._value_axis() is not None
+        )
+
+    def _autoscale_rect(self, rect: RectLimits) -> RectLimits:
+        """Fit the value axis of a joint marginal to its data inside the shared range of ``rect``."""
+        value_axis = self._value_axis()
+        if not self._joint_autoscale or value_axis is None:
+            return rect
+        shared = 1 - value_axis
+        lo, hi = sorted(rect[shared * 2 : shared * 2 + 2])
+        fit = self._viewer._get_value_range_in_region(self._layers, shared, lo, hi)
+        if fit is None:
+            return rect
+        values = list(rect)
+        values[value_axis * 2 : value_axis * 2 + 2] = fit
+        return tuple(values)
 
     def _update_flip(self) -> None:
         """Apply axis direction independently of the canonical camera limits."""
@@ -266,6 +307,13 @@ class VispyCamera:
             ylim = self._synced_rect[2:]
         with self._camera.events.rect.blocker(self._on_rect_change):
             self._camera.rect = (*xlim, *ylim)
+        # the shared range of a marginal changed (e.g. it was panned), so its value axis follows the visible data
+        if self._joint_autoscale and not self._autoscaling:
+            self._autoscaling = True
+            try:
+                self._on_rect_change(None)
+            finally:
+                self._autoscaling = False
 
     def _update_rect(self, rect: Rect | ty.Iterable[float]) -> None:
         display_rect = self._transform_rect(rect, inverse=False)
@@ -321,12 +369,12 @@ class VispyCamera:
         self.zoom = self._camera.zoom
 
     def _on_rect_change(self, event):
-        rect = self._effective_rect(self._camera.rect, self._local_rect)
+        rect = self._autoscale_rect(self._effective_rect(self._camera.rect, self._local_rect))
         if self.rect != rect:
             self._update_rect(rect)
 
     def _on_force_rect_change(self, event):
-        self._update_rect(self._effective_rect(self._camera.rect, self._local_rect))
+        self._update_rect(self._autoscale_rect(self._effective_rect(self._camera.rect, self._local_rect)))
 
     def _on_extent_change(self, event):
         self.extent = self._effective_rect(self._camera.get_effective_extent(), self._local_extent)

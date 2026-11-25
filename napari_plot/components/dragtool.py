@@ -71,6 +71,9 @@ class DragTool(EventedModel):
         Tuple containing last x/y-axis range while `alt` key was held down.
     ctrl: ty.Tuple
         Tuple containing last x/y-axis range while `ctrl` key was held down.
+    panel : str, optional
+        Joint-grid panel (``"joint"``, ``"top"`` or ``"right"``) of the last mouse press, so consumers of the tool's
+        ``finished`` events can tell where a shape was drawn; None outside joint mode.
 
     The `shift`, `alt` and `ctrl` attributes hold values in order: `xmin, xmax, ymin, ymax`.
 
@@ -79,6 +82,7 @@ class DragTool(EventedModel):
     active: DragMode = DragMode.NONE
     tool: BaseTool | None = None
     selection_active: bool = False
+    panel: str | None = None
 
     vertices: Array[float, (-1, 2)] = np.zeros((0, 2), dtype=float)
     shift: Array[float, (4,)] = (0, 0, 0, 0)

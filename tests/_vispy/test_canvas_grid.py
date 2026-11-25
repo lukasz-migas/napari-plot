@@ -902,7 +902,8 @@ def test_joint_grid_aligns_viewports_with_asymmetric_gutters(plot, qtbot, monkey
     JointGrid(viewer)
     main, top, right = canvas._cells
     assert main.position == (1, 0)
-    image = viewer.add_image(np.arange(9, dtype=float).reshape(3, 3))
+    # only the colorbar source: hidden, so no texture is uploaded (the macOS GL driver sometimes blocks on that upload)
+    image = viewer.add_image(np.arange(9, dtype=float).reshape(3, 3), visible=False)
     _settle(qtbot, canvas)
     original_width, original_height = main.view.size
 
@@ -996,3 +997,230 @@ def test_joint_grid_toggles_titles_per_panel(plot, qtbot) -> None:
     viewer.canvas.grid.enabled = False
     assert main.x_axis.node.axis._axis_label_vis.visible
     assert main.x_axis.node.axis.axis_label == "Time"
+
+
+@pytest.fixture
+def joint(make_napari_plot_viewer, qtbot, monkeypatch: pytest.MonkeyPatch):
+    """Joint grid with autoscaled marginals: a main line, a peaked spectrum on top and a peaked profile on the right."""
+    from napari_plot import JointGrid
+
+    monkeypatch.setattr("napari_plot._vispy.canvas.get_max_texture_sizes", lambda: (2048, 2048))
+    viewer = make_napari_plot_viewer(show=True)
+    canvas = viewer.window._qt_viewer.canvas
+    canvas.native.setFixedSize(800, 600)
+    viewer.add_line(np.c_[[0, 10], [0, 10]], name="main")
+    positions = np.linspace(0, 10, 101)
+    peaked = np.where(positions >= 8, 50.0, 1.0)
+    grid = JointGrid(viewer, autoscale=True)
+    top = grid.add_layer(viewer.add_multi_line({"xs": [positions], "ys": [peaked, peaked / 2]}), panel="top")
+    right = grid.add_layer(viewer.add_line(np.c_[2 * peaked, positions]), panel="right")
+    viewer.reset_view()
+    qtbot.waitUntil(lambda: canvas._cells[0].view.size[0] > 300)
+    _settle(qtbot, canvas)
+    return SimpleNamespace(viewer=viewer, canvas=canvas, grid=grid, top=top, right=right)
+
+
+def test_joint_autoscale_fits_marginals_to_the_visible_range(joint, qtbot) -> None:
+    viewer, canvas = joint.viewer, joint.canvas
+    main, top, right = canvas._cells
+    assert top.camera.rect[2:] == pytest.approx((0, 52.5))
+    assert right.camera.rect[:2] == pytest.approx((0, 105))
+    assert top.camera.camera.locked_axis == 1
+    assert right.camera.camera.locked_axis == 0
+    assert main.camera.camera.locked_axis is None
+
+    viewer.camera.rect = (0, 5, 0, 5)
+    assert top.camera.rect[2:] == pytest.approx((0, 1.05))
+    assert right.camera.rect[:2] == pytest.approx((0, 2.1))
+    assert top.camera.rect[:2] == pytest.approx((0, 5))
+    assert right.camera.rect[2:] == pytest.approx((0, 5))
+
+    # new data in view refits at once
+    joint.top.data = {"xs": [np.linspace(0, 10, 101)], "ys": [np.full(101, 4.0)]}
+    assert top.camera.rect[2:] == pytest.approx((0, 4.2))
+    assert viewer.camera.rect == pytest.approx((0, 5, 0, 5))
+
+    # panning the marginal moves the shared axis and refits its value axis
+    start = _widget_center(canvas, top.view)
+    _drag(canvas, start, start + (top.view.size[0] / 2, 0))
+    assert viewer.camera.rect[:2] == pytest.approx((-2.5, 2.5), abs=0.05)
+    assert top.camera.rect[2:] == pytest.approx((0, 4.2))
+
+    viewer.canvas.grid.joint_autoscale = False
+    assert top.camera.camera.locked_axis is None
+
+
+def test_joint_autoscale_locks_interaction_in_marginals_to_the_shared_axis(joint, qtbot) -> None:
+    from napari_plot.components.dragtool import DragMode
+
+    viewer, canvas = joint.viewer, joint.canvas
+    _main, top, right = canvas._cells
+    viewer.camera.rect = (2, 6, 2, 6)
+
+    # the wheel zooms only the shared axis, about the mouse
+    canvas._scene_canvas.events.mouse_wheel(pos=tuple(_widget_center(canvas, top.view)), delta=(0, 1), modifiers=())
+    x0, x1, y0, y1 = viewer.camera.rect
+    assert x1 - x0 < 4
+    assert (x0 + x1) / 2 == pytest.approx(4, abs=0.01)
+    assert (y0, y1) == pytest.approx((2, 6))
+
+    # a left drag zooms the shared axis, even with a selection tool
+    selected = []
+    viewer.events.selection.connect(selected.append)
+    for mode in (DragMode.AUTO, DragMode.LASSO):
+        viewer.drag_tool.active = mode
+        viewer.camera.rect = (2, 6, 2, 6)
+        offset, (width, height) = canvas._view_offset(right.view), right.view.size
+        _drag(canvas, offset + (width / 2, height * 0.25), offset + (width * 0.6, height * 0.75), button=1)
+        x0, x1, y0, y1 = viewer.camera.rect
+        assert (x0, x1) == pytest.approx((2, 6))
+        assert (y0, y1) == pytest.approx((3, 5), abs=0.05)
+        assert viewer.drag_tool.panel == "right"
+    assert not selected
+    assert not viewer.drag_tool._box.visible
+
+    # a double-click in the plot area shows the whole shared axis and keeps the other
+    viewer.drag_tool.active = DragMode.AUTO
+    viewer.camera.rect = (2, 6, 2, 6)
+    _double_click(canvas, _widget_center(canvas, top.view))
+    assert viewer.camera.rect[:2] == pytest.approx(viewer._get_rect_extent()[:2])
+    assert viewer.camera.rect[2:] == pytest.approx((2, 6))
+
+
+def _hover(canvas: VispyCanvas, pos: np.ndarray) -> None:
+    """Move the mouse to the canvas position `pos`, without the throttling of the canvas."""
+    from napari.utils.interactions import mouse_move_callbacks
+    from vispy.app.canvas import MouseEvent
+
+    canvas._process_mouse_event(mouse_move_callbacks, MouseEvent("mouse_move", pos=tuple(pos), modifiers=()))
+
+
+def test_joint_events_report_their_panel(joint, qtbot) -> None:
+    viewer, canvas = joint.viewer, joint.canvas
+    panels = []
+    viewer.mouse_move_callbacks.append(lambda _viewer, event: panels.append((event.joint_panel, event.joint_locked)))
+    for cell in canvas._cells:
+        _hover(canvas, _widget_center(canvas, cell.view))
+    assert panels == [("joint", False), ("top", True), ("right", True)]
+    viewer.canvas.grid.enabled = False
+    assert canvas._joint_panel(canvas._cells[0]) is None
+
+
+def test_joint_crosshair_draws_the_shared_line_in_marginals(joint, qtbot) -> None:
+    viewer, canvas = joint.viewer, joint.canvas
+    main, top, right = canvas._cells
+    # gridded overlays get one visual per cell once they are shown
+    viewer.crosshair.visible = True
+    viewer.crosshair.show_coordinates = True
+    viewer.mouse_over_canvas = True
+    visuals = canvas._overlay_to_visual[viewer.crosshair]
+    assert [visual.node.lines for visual in visuals] == [(True, True), (True, False), (False, True)]
+
+    def hover(cell) -> None:
+        _hover(canvas, _widget_center(canvas, cell.view))
+
+    hover(main)
+    x, y = viewer.crosshair.point
+    assert np.isfinite([x, y]).all()
+    # updating a layer keeps the crosshair where it is
+    joint.top.data = {"xs": [np.linspace(0, 10, 11)], "ys": [np.ones(11)]}
+    assert viewer.crosshair.point == pytest.approx((x, y))
+    _settle(qtbot, canvas)
+    assert len(visuals[0].node.pos) == 4
+    assert len(visuals[1].node.pos) == 2
+    assert visuals[1].node.pos[0][0] == pytest.approx(visuals[1].node.pos[1][0])  # vertical
+    assert not visuals[1].node.label.visible
+
+    # in a marginal only the shared coordinate is known
+    hover(top)
+    assert viewer.crosshair.point[0] == pytest.approx(x, abs=0.05)
+    assert np.isnan(viewer.crosshair.point[1])
+    hover(right)
+    assert np.isnan(viewer.crosshair.point[0])
+
+    viewer.canvas.grid.enabled = False
+    assert canvas._overlay_to_visual[viewer.crosshair][0].node.lines == (True, True)
+
+
+def test_joint_size_and_marginal_tick_formatters(joint, qtbot) -> None:
+    viewer, canvas, grid = joint.viewer, joint.canvas, joint.grid
+    main, top, right = canvas._cells
+
+    def main_format(value: float) -> str:
+        return f"main {value}"
+
+    def top_format(value: float) -> str:
+        return f"top {value}"
+
+    viewer.axis.y_tick_formatter = main_format
+    viewer.axis.x_tick_formatter = main_format
+    _settle(qtbot, canvas)
+    # the value axes of the marginals do not use the formatters of the main axes
+    assert top.y_axis.node.axis.ticker.tick_format_func is None
+    assert right.x_axis.node.axis.ticker.tick_format_func is None
+    assert main.y_axis.node.axis.ticker.tick_format_func is main_format
+    grid.set_tick_formatter(top_format, panel="top")
+    assert top.y_axis.node.axis.ticker.tick_format_func is top_format
+    assert right.x_axis.node.axis.ticker.tick_format_func is None
+
+    viewer.canvas.grid.joint_size = 60
+    _settle(qtbot, canvas)
+    assert top.view.size[1] == pytest.approx(60, abs=1)
+    assert right.view.size[0] == pytest.approx(60, abs=1)
+    assert main.view.size[0] == pytest.approx(top.view.size[0], abs=2)
+    assert main.view.size[1] == pytest.approx(right.view.size[1], abs=2)
+    viewer.canvas.grid.joint_size = None
+    _settle(qtbot, canvas)
+    assert top.view.size[1] > 60
+
+
+def _scene_rect(widget, root) -> tuple[float, float, float, float]:
+    """(left, top, right, bottom) of a widget in the coordinates of its ancestor ``root``."""
+    x, y = 0.0, 0.0
+    node = widget
+    while node is not root:
+        x, y = x + node.pos[0], y + node.pos[1]
+        node = node.parent
+    return x, y, x + widget.size[0], y + widget.size[1]
+
+
+def test_joint_size_keeps_marginals_flush_when_resizing(joint, qtbot) -> None:
+    """With a fixed marginal size the main panel absorbs every resize; no blank space opens beside the marginals."""
+    canvas = joint.canvas
+    joint.viewer.canvas.grid.joint_size = 60
+    main, top, right = canvas._cells
+    cells_grid = canvas._cells_grid
+    widths = []
+    for size in ((800, 600), (1200, 900), (700, 500)):
+        canvas.native.setFixedSize(*size)
+        qtbot.waitUntil(lambda size=size: canvas._scene_canvas.size == size)
+        _settle(qtbot, canvas)
+        cells_grid._prepare_draw(cells_grid)
+        for cell in (main, top, right):
+            cell.layout._prepare_draw(cell.layout)
+        assert top.view.size[1] == pytest.approx(60, abs=1)
+        assert right.view.size[0] == pytest.approx(60, abs=1)
+        spacing = cells_grid.spacing[1] if isinstance(cells_grid.spacing, tuple) else cells_grid.spacing
+        top_rect, main_rect, right_rect = (_scene_rect(cell.view, cells_grid) for cell in (top, main, right))
+        # the top marginal sits right above the heatmap and the right marginal ends at the edge of the plot area
+        assert main_rect[1] - top_rect[3] == pytest.approx(spacing, abs=1)
+        assert right_rect[2] == pytest.approx(cells_grid.size[0], abs=1)
+        assert main_rect[0] == pytest.approx(top_rect[0], abs=1)
+        assert main_rect[2] == pytest.approx(top_rect[2], abs=1)
+        widths.append(main.view.size[0])
+    assert widths[1] > widths[0] > widths[2]
+
+
+def test_joint_autoscale_follows_streamed_marginal_data(joint) -> None:
+    """Streaming new data into a marginal refits its value axis without touching the main view."""
+    viewer, canvas = joint.viewer, joint.canvas
+    _, top, _ = canvas._cells
+    viewer.camera.rect = (0, 5, 0, 5)
+    main_rect = viewer.camera.rect
+    assert top.camera.rect[2:] == pytest.approx((0, 1.05))
+
+    positions = np.linspace(0, 10, 51)
+    joint.top.stream({"xs": [positions], "ys": [np.full(51, 4.0), np.full(51, 2.0)]})
+    assert top.camera.rect[2:] == pytest.approx((0, 4.2))
+    assert top.camera.rect[:2] == pytest.approx((0, 5))
+    assert viewer.camera.rect == pytest.approx(main_rect)

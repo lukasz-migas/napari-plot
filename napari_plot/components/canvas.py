@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from itertools import product
 from math import ceil, isfinite, sqrt
 from typing import TYPE_CHECKING, Literal
@@ -25,7 +26,8 @@ class PlotGridCell(EventedModel):
     """Optional axis settings for one (row, column) in the plot grid.
 
     ``None`` inherits the viewer setting. Limits apply when the corresponding axis is independent. A ``group``
-    reserves this position for layers with that metadata group.
+    reserves this position for layers with that metadata group. ``x_tick_formatter``/``y_tick_formatter`` format the
+    tick labels of this cell's axes.
     """
 
     row: int = Field(ge=0, frozen=True)
@@ -39,6 +41,8 @@ class PlotGridCell(EventedModel):
     y_categories: tuple[str, ...] | None = None
     xlim: tuple[float, float] | None = None
     ylim: tuple[float, float] | None = None
+    x_tick_formatter: Callable[..., str] | None = None
+    y_tick_formatter: Callable[..., str] | None = None
 
     @field_validator("xlim", "ylim")
     @classmethod
@@ -55,7 +59,15 @@ class PlotGridCell(EventedModel):
 
 
 class PlotGridCanvas(GridCanvas):
-    """Grid model with optional placement by layer metadata."""
+    """Grid model with optional placement by layer metadata.
+
+    Joint mode (``joint``) shows a main panel with optional ``top`` and ``right`` marginals that share its x and y
+    axis. ``joint_ratio`` sets the size of the main panel relative to the marginals, unless ``joint_size`` gives the
+    thickness of the marginals in screen pixels. With ``joint_autoscale``, the value axis of each marginal (y in the
+    top panel, x in the right panel) follows the data visible in the shared range, and dragging, scrolling or
+    double-clicking in a marginal only changes its shared axis. ``joint_top_tick_formatter`` and
+    ``joint_right_tick_formatter`` format the value-axis ticks of the marginals (``None`` uses the default format).
+    """
 
     group_by_metadata: bool = False
     sharex: bool = True
@@ -68,6 +80,10 @@ class PlotGridCanvas(GridCanvas):
     joint_top_label: str = ""
     joint_right_label: str = ""
     joint_hidden_labels: tuple[JointPanel, ...] = ()
+    joint_autoscale: bool = False
+    joint_size: int | None = Field(default=None, gt=0)
+    joint_top_tick_formatter: Callable[..., str] | None = None
+    joint_right_tick_formatter: Callable[..., str] | None = None
 
     def __init__(self, **data: object) -> None:
         super().__init__(**data)

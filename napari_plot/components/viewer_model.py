@@ -44,6 +44,7 @@ from napari_plot.components._viewer_mouse_bindings import (
     polygon_select,
 )
 from napari_plot.components._viewer_utils import (
+    get_layers_region_extent,
     get_layers_x_region_extent,
     get_layers_y_region_extent,
     get_range_extent,
@@ -222,6 +223,19 @@ def _band_rows(t: ArrayLike, lower: ArrayLike, upper: ArrayLike) -> np.ndarray:
     return np.column_stack((coordinates, *bounds))
 
 
+# layer events that change where a layer's data is drawn
+_LAYER_GEOMETRY_EVENTS = frozenset({"data", "scale", "translate", "rotate", "shear", "affine"})
+# layer events (re-emitted by the layer list) that never change the data extent; the geometry events are handled by
+# `ViewerModel._on_layers_change`
+_EXTENT_NEUTRAL_EVENTS = _LAYER_GEOMETRY_EVENTS | frozenset(
+    {
+        "thumbnail", "color", "highlight", "set_data", "loaded", "name", "opacity", "blending", "status", "help",
+        "cursor", "cursor_size", "interactive", "mouse_pan", "mouse_zoom", "editable", "fill_color", "border_color",
+        "border_width", "method", "stream", "selected", "reordered", "moving", "moved", "inserting", "removing",
+    }
+)  # fmt: skip
+
+
 class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     """Viewer containing the rendered scene, layers, and controlling elements
     including dimension sliders, and control bars for color limits.
@@ -272,6 +286,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     _colorbar_sources: dict[tuple[int, int] | None, n_layers.Layer] = PrivateAttr(default_factory=dict)
     _cell_colorbars: dict[tuple[int, int], ColorBar] = PrivateAttr(default_factory=dict)
     _text_overlay_names: list[str] = PrivateAttr(default_factory=list)
+    # joint-grid panel under the cursor ("joint", "top" or "right"; None outside joint mode)
+    _cursor_panel: str | None = PrivateAttr(None)
 
     def __init__(self, title="napari_plot"):
         # max_depth=0 means don't look for parent contexts.
@@ -319,7 +335,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
         self.layers.events.reordered.connect(self._on_layers_change)
         self.layers.events.inserted.connect(self._on_update_extent)
         self.layers.events.removed.connect(self._on_update_extent)
-        self.layers.events.connect(self._on_update_extent)
+        self.layers.events.connect(self._on_layer_list_event)
         for name in ("enabled", "joint", "joint_top", "joint_right"):
             getattr(self.canvas.grid.events, name).connect(self._on_update_extent)
         self.layers.selection.events.active.connect(self._on_active_layer)
@@ -433,6 +449,11 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             crosshair.point, hover.text = None, ""
             return
         y, x = (float(value) for value in self.cursor.position[-2:])
+        if self._cursor_panel in ("top", "right"):
+            # a marginal shares only one axis with the main panel; its other coordinate is in its own units
+            hover.text = ""
+            crosshair.point = (x, np.nan) if self._cursor_panel == "top" else (np.nan, y)
+            return
         snap = hover.visible or crosshair.snap_to_data
         info = self.hover_info(x, y) if snap else None
         if hover.visible:
@@ -720,6 +741,15 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     def __str__(self):
         """Simple string representation"""
         return f"napari_plot.Viewer: {self.title}"
+
+    def _on_layer_list_event(self, event: Event) -> None:
+        """Update the data extent for layer-list events, and layer events re-emitted by it, that can change it.
+
+        Data and transform changes are handled by `_on_layers_change`; appearance changes (thumbnail, colour, ...)
+        never move the data, and recomputing the extent for each of them made frequent data updates slow.
+        """
+        if event.type not in _EXTENT_NEUTRAL_EVENTS:
+            self._on_update_extent(event)
 
     def _on_update_extent(self, _event=None):
         """Update data extent when there has been a change to the list of layers"""
@@ -1116,6 +1146,24 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             upper += padding
         return lower, upper
 
+    def _get_value_range_in_region(
+        self, layers: Sequence[n_layers.Layer], axis: int, lo: float, hi: float, multiplier: float = 1.05
+    ) -> tuple[float, float] | None:
+        """Value range of ``layers`` over the data whose ``axis`` (0 = x, 1 = y) coordinate is in ``[lo, hi]``.
+
+        Used to fit the value axis of a joint marginal to what is visible along its shared axis. Zero is always
+        included as a baseline and the data end(s) away from it are padded by ``multiplier - 1`` of the range.
+        Returns None when no layer has data in the range (or the data is flat at zero).
+        """
+        region_min, region_max = get_layers_region_extent(axis, lo, hi, layers)
+        if region_min is None:
+            return None
+        lower, upper = min(region_min, 0.0), max(region_max, 0.0)
+        if upper <= lower:
+            return None
+        padding = (upper - lower) * (multiplier - 1)
+        return (lower - padding if lower < 0 else lower), (upper + padding if upper > 0 else upper)
+
     def _get_x_range_extent_for_y(self, ymin: float, ymax: float, auto_scale: bool = True):
         """Calculate range for specified x-axis range."""
         _, _, real_ymin, real_ymax = self._get_rect_extent()
@@ -1327,10 +1375,16 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             self.events.layers_change()
 
     def _on_layers_change(self, _event=None):
+        if getattr(_event, "type", None) in _LAYER_GEOMETRY_EVENTS:
+            # keep the cursor (and crosshair) where it is, e.g. while a layer is updated during a pan
+            self._update_hover()
+            self._update_axis_labels()
+            self._on_update_extent()
+            # only the plot cell of this layer has new data limits
+            self.events.layers_change(layer=_event.source)
+            return
         self.cursor.position = (0,) * 2
         self._update_axis_labels()
-        if getattr(_event, "type", None) in {"data", "scale", "translate", "rotate", "shear", "affine"}:
-            self._on_update_extent()
         self.events.layers_change()  # TODO: remove
 
     def _on_axis_label_changed(self, event: Event) -> None:

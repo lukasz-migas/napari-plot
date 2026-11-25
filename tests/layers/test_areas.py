@@ -76,3 +76,19 @@ def test_areas_get_value_returns_area_under_position() -> None:
     layer.orientation = "horizontal"  # t is y, lo/hi are x
     assert layer.get_value((5, 0.5)) == 0
     assert Areas().get_value((0, 0)) is None
+
+
+def test_areas_stream_keeps_colors_and_skips_data_events() -> None:
+    """Streaming replaces the areas, keeps the colors and emits only the stream event."""
+    layer = Areas([[[0, 0, 1], [1, 0, 2]], [[0, 0, 1], [1, 0, 2]]], fill_color=["red", "blue"])
+    events = []
+    layer.events.data.connect(lambda _event: events.append("data"))
+    layer.events.stream.connect(lambda _event: events.append("stream"))
+    layer.stream([[[0, 0, 3], [2, 0, 4]], [[0, 0, 5], [2, 0, 6], [3, 0, 1]]])
+    assert events == ["stream"]
+    assert layer.data[1].shape == (3, 3)
+    np.testing.assert_array_equal(layer.fill_color[:, :3], [[1, 0, 0], [0, 0, 1]])
+
+    # a new number of areas reuses the first color
+    layer.stream([[[0, 0, 3], [2, 0, 4]]])
+    np.testing.assert_array_equal(layer.fill_color, [[1, 0, 0, 1]])

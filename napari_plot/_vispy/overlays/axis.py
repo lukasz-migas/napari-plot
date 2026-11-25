@@ -42,6 +42,7 @@ class VispyAxisVisual:
     def __init__(self, viewer, parent=None, order=1e6):
         self._viewer = viewer
         self._cell_model: PlotGridCell | None = None
+        self._own_formatter = False
 
         self.node = AxisWidget(
             axis_font_size=10,
@@ -72,11 +73,18 @@ class VispyAxisVisual:
         self.on_tick_formatter_change(None)
         self._on_tick_options_change()
 
-    def configure_cell(self, cell: PlotGridCell | None, *, label_visible: bool = True) -> None:
-        """Apply the grid cell's axis settings, using the viewer's defaults for unspecified fields."""
+    def configure_cell(
+        self, cell: PlotGridCell | None, *, label_visible: bool = True, own_formatter: bool = False
+    ) -> None:
+        """Apply the grid cell's axis settings, using the viewer's defaults for unspecified fields.
+
+        With ``own_formatter``, the tick formatter comes only from the cell (``None`` is the default format).
+        """
         self._cell_model = cell
+        self._own_formatter = own_formatter and cell is not None
         self._on_scale_change()
         self._on_label_change()
+        self.on_tick_formatter_change()
         self.node.axis._axis_label_vis.visible = label_visible
 
     def _axis_setting(self, field: str) -> Any:
@@ -84,6 +92,8 @@ class VispyAxisVisual:
             return self._cell_model.axis_scale(self.dimension, self._viewer.axis)
         name = f"{self.dimension}_{field}"
         value = getattr(self._cell_model, name, None)
+        if field == "tick_formatter" and getattr(self, "_own_formatter", False):
+            return value
         return getattr(self._viewer.axis, name) if value is None else value
 
     def _on_tick_options_change(self, _evt: Event | None = None) -> None:

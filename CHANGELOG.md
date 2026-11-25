@@ -7,12 +7,23 @@
 - Closed legend visuals no longer react to legend changes.
 - In grid mode, zooming one axis (axis wheel, box zoom) no longer rescales the other axis when the canvas redraws.
 - Double-clicking the x- or y-axis (of any plot cell in grid mode) resets that range again.
+- Changing a layer's data no longer moves the cursor (and the crosshair) to the origin.
+- The value-axis ticks of joint marginals no longer use the main plot's tick formatters.
+- Streaming a `MultiLine` with lines of a different length now redraws their connections correctly.
+- In grid mode, streaming data into a layer refits the bounds of the plot cell that draws it (e.g. an autoscaled joint marginal).
 
 ## Added
 
 - Added grid mode (`viewer.canvas.grid.enabled = True`): layers are shown side by side in plot cells with their own axes and a shared camera; gridded overlays (grid lines by default) are drawn in every cell.
   - A gridded legend (`viewer.legend.gridded = True`) lists only the layers of its cell.
 - Right-dragging the x- or y-axis (of any plot cell in grid mode) pans the view along that axis only, and scrolling over it zooms that axis only, about the value under the mouse.
+- Joint grids: `JointGrid(..., size=, autoscale=)` and `set_tick_formatter()`.
+  - `size` (`grid.joint_size`) gives the marginals a fixed thickness in pixels; the main panel takes all the remaining space when the canvas is resized.
+  - `autoscale` (`grid.joint_autoscale`) fits each marginal's value axis to the data visible in its shared range, and makes scrolling, dragging and double-clicking in a marginal act on its shared axis only.
+  - Mouse events carry `event.joint_panel`, and `viewer.drag_tool.panel` holds the panel of the last press.
+  - The crosshair draws only the shared line in each marginal.
+- `Areas.stream()` replaces the areas quickly, keeping their colors and skipping the extent update.
+- `Line`, `MultiLine` and `Areas` report their value range inside a range of either axis (`_get_region_extent`); `PlotGridCell` takes `x_tick_formatter`/`y_tick_formatter`.
 
 # napari-plot v0.3.1
 

@@ -377,6 +377,22 @@ class MultiLine(_SelectableLayer):
     def _extent_data(self) -> np.ndarray:
         return self._data_view.extent_data
 
+    def _get_region_extent(self, axis: int, lo: float, hi: float) -> tuple[float | None, float | None]:
+        """Extent along the other axis of the points whose ``axis`` (0 = x, 1 = y) coordinate is in ``[lo, hi]``."""
+        from napari_plot.components._viewer_utils import points_region_extent
+
+        xs, ys = self._data_view.xs, self._data_view.ys
+        extents = []
+        for index, y in enumerate(ys):
+            # a single x array is shared by every line
+            x = xs[index] if len(xs) == len(ys) else xs[0]
+            x, y = np.asarray(x, dtype=float), np.asarray(y, dtype=float)
+            positions, values = (x, y) if axis == 0 else (y, x)
+            vmin, vmax = points_region_extent(positions, values, lo, hi)
+            if vmin is not None:
+                extents.extend([vmin, vmax])
+        return (float(min(extents)), float(max(extents))) if extents else (None, None)
+
     def _get_state(self):
         """Get dictionary of layer state"""
         state = self._get_base_state()

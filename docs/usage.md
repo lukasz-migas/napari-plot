@@ -316,6 +316,32 @@ grid.set_axis_labels(y_var="Count", panel="top", visible=False)
 Pass `visible=True` to show a panel's labels again. Ticks and axis lines stay
 visible. `set_axis_labels()` targets the main plot by default.
 
+Marginals that summarise what the main plot shows (e.g. the sum of an image
+along each axis) can follow the view:
+
+```python
+grid = JointGrid(viewer, size=90, autoscale=True)
+grid.set_tick_formatter(lambda value: f"{value:.3g}", panel="top")
+```
+
+- `size` gives the marginals a fixed thickness in screen pixels instead of the
+  `ratio`.
+- With `autoscale`, each marginal's value axis (y in the top panel, x in the
+  right panel) fits the data visible in the shared range, starting at zero, and
+  refits whenever the view or the data changes. Scrolling, dragging and
+  right-dragging in a marginal then only zoom or pan its shared axis, whatever
+  drag tool is active, and double-clicking its plot area shows the whole shared
+  axis.
+- `set_tick_formatter()` formats a marginal's value-axis ticks; `None` restores
+  the default format. The viewer's `axis` formatters only format the main
+  plot's axes and the shared axes.
+
+Mouse events carry `event.joint_panel` (`"joint"`, `"top"` or `"right"`, `None`
+outside joint mode), and `viewer.drag_tool.panel` holds the panel of the last
+press, so callbacks can tell where a click or a selection happened. The
+crosshair draws only the shared line in each marginal (the vertical line in the
+top panel, the horizontal line in the right panel).
+
 Use `viewer.rugplot(data, x="total_bill")` to mark observations along the bottom
 of a distribution plot. Supply `y` to mark observations along the left side as
 well. `height` sets tick length as a fraction of the perpendicular axis span

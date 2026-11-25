@@ -20,7 +20,7 @@ class VispyAreasLayer(VispyBaseLayer):
 
     def __init__(self, layer: Areas, font_info) -> None:
         super().__init__(layer, BarVisual(), font_info=font_info)
-        for event_name in ("orientation", "fill_color", "border_color", "border_width"):
+        for event_name in ("orientation", "fill_color", "border_color", "border_width", "stream"):
             getattr(layer.events, event_name).connect(self._on_data_change)
         self.reset()
         self._on_data_change()

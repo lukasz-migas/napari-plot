@@ -15,6 +15,11 @@ AUTO_SPAN_PIXEL_THRESHOLD: int = 20
 LASSO_VERTEX_DISTANCE: int = 10
 
 
+def _locked(event) -> bool:
+    """Whether the event is in a joint marginal whose camera handles every drag itself (see `joint_autoscale`)."""
+    return bool(getattr(event, "joint_locked", False))
+
+
 def polygon_select(viewer: "Viewer", event):
     """Enable polygon tool.
 
@@ -27,6 +32,8 @@ def polygon_select(viewer: "Viewer", event):
         3. Left mouse click + SHIFT removes the nearest point
         4. Right mouse click cancels polygon
     """
+    if _locked(event):
+        return
     # on press
     cell = getattr(event, "viewbox", None)
     viewer.drag_tool.tool.finished = False
@@ -65,6 +72,8 @@ def lasso_select(viewer: "Viewer", event):
         2. Left mouse drag keeps on adding points
         3. Right mouse click cancels lasso.
     """
+    if _locked(event):
+        return
     # on press
     cell = getattr(event, "viewbox", None)
     viewer.drag_tool.tool.finished = False
@@ -94,6 +103,8 @@ def lasso_select(viewer: "Viewer", event):
 
 def box_select(viewer: "Viewer", event):
     """Select data with the drag box."""
+    if _locked(event):
+        return
     # on press
     cell = getattr(event, "viewbox", None)
     if event.button == 1:  # left-click
@@ -174,6 +185,8 @@ def _set_modifier_range(viewer: "Viewer", modifiers, position: tuple[float, floa
 
 def box_zoom_auto(viewer: "Viewer", event):
     """Enable box zoom."""
+    if _locked(event):
+        return
 
     def _get_shape():
         # handle modifiers first
@@ -215,6 +228,8 @@ def box_zoom_auto(viewer: "Viewer", event):
 
 def box_zoom_auto_trigger(viewer: "Viewer", event):
     """Enable box zoom."""
+    if _locked(event):
+        return
     # make sure box is visible
     if not viewer.camera.mouse_zoom or not viewer.camera.mouse_pan:
         return
@@ -246,6 +261,8 @@ def box_zoom_auto_trigger(viewer: "Viewer", event):
 
 def box_zoom_shape(shape: Shape, viewer: "Viewer", event):
     """Enable box zoom."""
+    if _locked(event):
+        return
     # on press
     view_rect = getattr(event, "plot_rect", viewer.camera.rect)
     color = viewer.drag_tool.tool.color

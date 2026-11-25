@@ -260,6 +260,14 @@ class Line(_SelectableLayer):
             extrema = np.vstack([mins, maxs])
         return extrema
 
+    def _get_region_extent(self, axis: int, lo: float, hi: float) -> tuple[float | None, float | None]:
+        """Extent along the other axis of the points whose ``axis`` (0 = x, 1 = y) coordinate is in ``[lo, hi]``."""
+        from napari_plot.components._viewer_utils import points_region_extent
+
+        if not len(self.data):
+            return None, None
+        return points_region_extent(self.data[:, axis], self.data[:, 1 - axis], lo, hi)
+
     def _get_x_region_extent(self, x_min: float, x_max: float) -> None:
         """Return data extents in the (xmin, xmax, ymin, ymax) format."""
         from napari_plot.utils.utilities import find_nearest_index, get_min_max

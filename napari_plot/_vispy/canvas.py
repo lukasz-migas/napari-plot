@@ -38,6 +38,7 @@ from napari_plot._vispy.overlays.colorbar import VispyColorBarVisual
 from napari_plot._vispy.plot_cell import VispyPlotCell, detach_widget, link_axis
 from napari_plot._vispy.tools.drag import VispyDragTool
 from napari_plot.components.canvas import PlotGridCell
+from napari_plot.components.crosshair import CrosshairOverlay
 from napari_plot.components.dragtool import SELECT_TOOLS
 from napari_plot.components.legend import LegendOverlay
 
@@ -184,8 +185,11 @@ class _PlotCellsGrid(Grid):
     """Keep the data areas aligned when joint panels have different gutters."""
 
     joint_pairs: tuple[tuple[VispyPlotCell, VispyPlotCell, str], ...] = ()
+    joint_size: int | None = None
 
     def _update_child_widget_dim(self) -> None:
+        if self.joint_size is not None:
+            self._fix_marginal_thickness(self.joint_size)
         super()._update_child_widget_dim()
         for main, marginal, dimension in self.joint_pairs:
             horizontal = dimension == "width"
@@ -196,17 +200,9 @@ class _PlotCellsGrid(Grid):
                     marginal.layout._need_solver_recreate = True
 
             limit = f"{dimension}_max"
-            sizes = []
-            for cell in (main, marginal):
-                gutters: dict[int, float] = {}
-                for row, col, rows, cols, widget in cell.layout._grid_widgets.values():
-                    track, span = (col, cols) if horizontal else (row, rows)
-                    if track == (1 if horizontal else 0) or span != 1:
-                        continue
-                    cap = getattr(widget, limit)
-                    if cap is not None:
-                        gutters[track] = min(gutters.get(track, cap), cap)
-                sizes.append(cell.layout.size[0 if horizontal else 1] - sum(gutters.values()))
+            sizes = [
+                cell.layout.size[0 if horizontal else 1] - _gutter_size(cell, horizontal) for cell in (main, marginal)
+            ]
 
             # A narrow window can give the gutters less space than their maximum size.
             available = min(sizes)
@@ -215,6 +211,38 @@ class _PlotCellsGrid(Grid):
                 if getattr(cell.view, limit) != cap:
                     setattr(cell.view, limit, cap)
                     cell.layout._need_solver_recreate = True
+
+    def _fix_marginal_thickness(self, size: int) -> None:
+        """Give each marginal layout exactly ``size`` pixels of data area plus its gutters across the shared axis.
+
+        Capping only the view would leave the layout its stretch share of the space, shown as blank space beside the
+        marginal; with the layout fixed, the main panel takes all the remaining space.
+        """
+        for _, marginal, dimension in self.joint_pairs:
+            # the top marginal (aligned in width) is `size` tall, the right one (aligned in height) is `size` wide
+            horizontal = dimension == "height"
+            thickness = size + _gutter_size(marginal, horizontal)
+            name = "width" if horizontal else "height"
+            layout = marginal.layout
+            if getattr(layout, f"{name}_min") != thickness or getattr(layout, f"{name}_max") != thickness:
+                setattr(layout, f"{name}_min", thickness)
+                setattr(layout, f"{name}_max", thickness)
+                self._need_solver_recreate = True
+
+
+def _gutter_size(cell: VispyPlotCell, horizontal: bool) -> float:
+    """Total maximum size of the cell layout's axis and padding tracks (all but the view's) along one dimension."""
+    limit = "width_max" if horizontal else "height_max"
+    view_track = 1 if horizontal else 0
+    gutters: dict[int, float] = {}
+    for row, col, rows, cols, widget in cell.layout._grid_widgets.values():
+        track, span = (col, cols) if horizontal else (row, rows)
+        if track == view_track or span != 1:
+            continue
+        cap = getattr(widget, limit)
+        if cap is not None:
+            gutters[track] = min(gutters.get(track, cap), cap)
+    return sum(gutters.values())
 
 
 def _tile_axis(side: str, lengths: list[float], extent: float, padding: float, stacked: bool) -> list[float]:
@@ -366,6 +394,7 @@ class VispyCanvas:
         self.viewer.layers.events.reordered.connect(self._reorder_layers)
         self.viewer.layers.events.reordered.connect(self._update_scenegraph)
         self.viewer.layers.events.removed.connect(self._remove_layer)
+        self.viewer.layers.events.connect(self._on_layer_stream)
         self.viewer.canvas.grid.events.connect(self._update_scenegraph)
         self.viewer.canvas.grid.events.cell_changed.connect(self._update_scenegraph)
         self.viewer.events.layers_change.connect(self._refresh_cell_views)
@@ -397,10 +426,35 @@ class VispyCanvas:
         for cell in self._cells:
             cell.camera._update_flip()
 
+    def _on_layer_stream(self, event: Event) -> None:
+        """Refit the bounds of the grid cell that draws a layer whose data was streamed.
+
+        Streaming skips the viewer's extent update to stay fast; in grid mode the cell drawing the layer still has to
+        follow its data (e.g. the value axis of an autoscaled joint marginal), which only needs that cell's layers.
+        """
+        if event.type != "stream" or self._cells_grid is None:
+            return
+        # the layer list re-emits the event with itself as the current source; the layer is the first one
+        streamed = event.sources[0]
+        for cell, layers in zip(self._cells, self._cell_layers, strict=False):
+            if any(layer is streamed for layer in layers):
+                cell.camera.refresh_bounds()
+                return
+
     def _refresh_cell_views(self, event: Event | None = None) -> None:
-        """Refresh limits, transforms and axis labels for the layers assigned to each cell."""
+        """Refresh limits, transforms and axis labels for the layers assigned to each cell.
+
+        When only one layer's data changed (``event.layer``), only the cell that draws it is refreshed.
+        """
         grid = self.viewer.canvas.grid
+        changed_layer = getattr(event, "layer", None)
         for index, cell in enumerate(self._cells):
+            if (
+                changed_layer is not None
+                and self._cell_layers
+                and (index >= len(self._cell_layers) or changed_layer not in self._cell_layers[index])
+            ):
+                continue
             cell.camera._on_aspect_change()
             if index >= len(self._cell_layers):
                 cell.configure_axes(None, None, (True, True))
@@ -413,10 +467,12 @@ class VispyCanvas:
                 if cell.position == (0, 0) and grid.joint_top:
                     model = self._joint_top_axis
                     model.y_label = grid.joint_top_label
+                    model.y_tick_formatter = grid.joint_top_tick_formatter
                     panel = "top"
                 elif cell.position[1] == 1:
                     model = self._joint_right_axis
                     model.x_label = grid.joint_right_label
+                    model.x_tick_formatter = grid.joint_right_tick_formatter
                     panel = "right"
                 labels_visible = panel not in grid.joint_hidden_labels
             field = getattr(event, "field", getattr(event, "type", ""))
@@ -429,7 +485,28 @@ class VispyCanvas:
             shared = (grid.sharex, grid.sharey)
             if grid.joint:
                 shared = (cell.position[1] == 0, cell.position[0] == int(grid.joint_top))
-            cell.configure_axes(model, self._cell_layers[index], shared, reset=reset, labels_visible=labels_visible)
+            cell.configure_axes(
+                model,
+                self._cell_layers[index],
+                shared,
+                reset=reset,
+                labels_visible=labels_visible,
+                own_formatters=(not shared[0], not shared[1]) if grid.enabled and grid.joint else (False, False),
+            )
+        self._update_crosshair_lines()
+
+    def _update_crosshair_lines(self) -> None:
+        """Draw only the shared-axis line of the crosshair in joint marginals (both lines everywhere else)."""
+        grid = self.viewer.canvas.grid
+        joint = grid.enabled and grid.joint and self._cells_grid is not None
+        for overlay, visuals in self._overlay_to_visual.items():
+            if not isinstance(overlay, CrosshairOverlay):
+                continue
+            for index, visual in enumerate(visuals):
+                lines = self._cells[index].camera._shared if joint and index < len(self._cells) else (True, True)
+                if visual.node.lines != lines:
+                    visual.node.lines = lines
+                    visual.node.update()
 
     def _reset_cell_axis(self, event: Event) -> None:
         name = "x" if event.type == "reset_x" else "y"
@@ -510,7 +587,12 @@ class VispyCanvas:
             self.grid.add_widget(self._cells_grid, row=1, col=0, col_span=2)
         else:
             self._update_grid_spacing()
-        key = (tuple(positions), self.viewer.canvas.grid.joint, self.viewer.canvas.grid.joint_ratio)
+        key = (
+            tuple(positions),
+            self.viewer.canvas.grid.joint,
+            self.viewer.canvas.grid.joint_ratio,
+            self.viewer.canvas.grid.joint_size,
+        )
         if key == self._cells_key:
             return
         container = self._cells_grid
@@ -520,6 +602,11 @@ class VispyCanvas:
             layout = cell.ensure_layout()
             cell.view.width_max = None
             cell.view.height_max = None
+            cell.view.width_min = 0
+            cell.view.height_min = 0
+            # `_PlotCellsGrid` fixes the marginal layouts again when `joint_size` is set
+            layout.width_min = layout.height_min = 0
+            layout.width_max = layout.height_max = None
             layout._need_solver_recreate = True
             joint = grid.joint
             top = joint and row == 0 and grid.joint_top
@@ -536,6 +623,12 @@ class VispyCanvas:
                     ratio if col == 0 else 1,
                     ratio if row == int(grid.joint_top) else 1,
                 )
+                if grid.joint_size is not None:
+                    # the marginals keep a fixed thickness and the main panel takes the rest
+                    if top:
+                        cell.view.height_min = cell.view.height_max = grid.joint_size
+                    if right:
+                        cell.view.width_min = cell.view.width_max = grid.joint_size
             else:
                 layout.stretch = (1, 1)
             if layout.parent is not container:
@@ -552,6 +645,7 @@ class VispyCanvas:
         container._n_added = len(positions)
         container._next_cell = [positions[-1][0], positions[-1][1] + 1]
         container.joint_pairs = tuple(pairs)
+        container.joint_size = grid.joint_size if grid.joint else None
         container._need_solver_recreate = True
         self._cells_key = key
 
@@ -655,6 +749,7 @@ class VispyCanvas:
                 layer_filter = self._legend_filter(index) if isinstance(overlay, LegendOverlay) else None
                 visuals.append(self._create_overlay_visual(overlay, self._cells[index], layer_filter))
         self._update_legend_filters()
+        self._update_crosshair_lines()
 
     def _update_legend_filters(self, _event: Event | None = None) -> None:
         """List in each cell's copy of a gridded legend only the layers drawn in that cell.
@@ -842,6 +937,7 @@ class VispyCanvas:
         disconnect_events(self.viewer.canvas.grid.events, self)
         disconnect_events(get_settings().appearance.events, self)
         disconnect_events(self.viewer._overlays.events, self)
+        self.viewer.layers.events.disconnect(self._on_layer_stream)
         for layer in self.layer_to_visual:
             layer.events.metadata.disconnect(self._on_layer_metadata_change)
         for overlay in self._overlay_to_visual:
@@ -1002,7 +1098,7 @@ class VispyCanvas:
             The vispy event that triggered this method.
         """
         if event.pos is None:
-            return
+            return None
 
         cell = self._cell_at(event.pos)
         if getattr(event, "press_event", None) is not None and event.type in ("mouse_move", "mouse_release"):
@@ -1020,6 +1116,9 @@ class VispyCanvas:
         )
         napari_event.plot_rect = cell.camera.rect
         napari_event.plot_selection_tool = self.viewer.drag_tool.active in SELECT_TOOLS
+        napari_event.joint_panel = self._joint_panel(cell)
+        napari_event.joint_locked = cell.camera.camera.locked_axis is not None
+        self.viewer._cursor_panel = napari_event.joint_panel
 
         # Add the view ray to the event
         event.view_direction = None  # always None because we will display 2d data
@@ -1038,6 +1137,19 @@ class VispyCanvas:
             mouse_callbacks(layer, read_only_event)
 
         event.handled = napari_event.handled
+        return napari_event
+
+    def _joint_panel(self, cell: VispyPlotCell) -> str | None:
+        """Joint-grid panel (``"joint"``, ``"top"`` or ``"right"``) shown by `cell`, or None outside joint mode."""
+        grid = self.viewer.canvas.grid
+        if not (grid.enabled and grid.joint and self._cells_grid is not None):
+            return None
+        row, column = cell.position
+        if column == 1:
+            return "right"
+        if grid.joint_top and row == 0:
+            return "top"
+        return "joint"
 
     def _on_mouse_double_click(self, event):
         """Called whenever a mouse double-click happen on the canvas
@@ -1058,7 +1170,20 @@ class VispyCanvas:
              - mouse_double_click
              - mouse_release
         """
-        self._process_mouse_event(mouse_double_click_callbacks, event)
+        napari_event = self._process_mouse_event(mouse_double_click_callbacks, event)
+        # a double-click in the plot area of an autoscaled joint marginal shows the whole range of its shared axis
+        if (
+            napari_event is not None
+            and not napari_event.handled
+            and event.button == 1
+            and napari_event.joint_locked
+            and self._scene_canvas._axis_at(event.pos) is None
+        ):
+            if napari_event.joint_panel == "top":
+                self.viewer.reset_x_view()
+            else:
+                self.viewer.reset_y_view()
+            event.handled = True
 
     def _on_mouse_move(self, event):
         """Called whenever mouse moves over canvas.
@@ -1091,7 +1216,9 @@ class VispyCanvas:
         ):
             return
         if event.pos is not None:
-            self._set_active_cell(self._cell_at(event.pos))
+            cell = self._cell_at(event.pos)
+            self._set_active_cell(cell)
+            self.viewer.drag_tool.panel = self._joint_panel(cell)
         self._process_mouse_event(mouse_press_callbacks, event)
 
     def _on_mouse_release(self, event):
@@ -1249,7 +1376,9 @@ class VispyCanvas:
         """When the list is reordered, propagate changes to draw order."""
         first_visible_found = False
         for i, layer in enumerate(self.viewer.layers):
-            vispy_layer = self.layer_to_visual[layer]
+            vispy_layer = self.layer_to_visual.get(layer)
+            if vispy_layer is None:
+                continue  # added to the layer list, its visual is made next (a callback can run in between)
             vispy_layer.order = i
 
             # the bottommost visible layer needs special treatment for blending

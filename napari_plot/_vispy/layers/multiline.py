@@ -43,9 +43,17 @@ class VispyMultiLineLayer(VispyBaseLayer):
         self.node.update()
 
     def _on_pos_change(self, _event=None):
-        """Set data"""
-        pos = self.layer._data_view.get_display_data()
-        self.node._subvisuals[LINE_MAIN].set_data(pos=pos)
+        """Set streamed data; the connections and per-vertex colors follow, as the line lengths can change."""
+        view = self.layer._data_view
+        if len(view.color) != len(view.ys):
+            # the stream changed the number of lines without new colors: only the positions can be updated
+            self.node._subvisuals[LINE_MAIN].set_data(pos=view.get_display_data())
+            self.node.update()
+            return
+        pos, connect, color = view.get_display_lines()
+        if len(pos) == 0:
+            color = (0, 0, 0, 0)
+        self.node._subvisuals[LINE_MAIN].set_data(pos=pos, connect=connect, color=color)
         self.node.update()
 
     def _on_data_change(self, _event=None):

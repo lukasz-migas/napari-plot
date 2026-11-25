@@ -45,3 +45,37 @@ def test_multiline_visual_keeps_disconnected_series_when_streaming(monkeypatch: 
         assert node.width == 3
     finally:
         visual.close()
+
+
+def test_multiline_visual_follows_line_lengths_when_streaming(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Streaming lines of a different length updates the connections and keeps the line colors."""
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    layer = MultiLine({"xs": [np.arange(3), np.arange(3)], "ys": [np.ones(3), -np.ones(3)]}, color=["red", "blue"])
+    visual = VispyMultiLineLayer(layer, font_info=FontInfo())
+    try:
+        node = visual.node._subvisuals[LINE_MAIN]
+        layer.stream({"xs": [np.arange(2), np.arange(4)], "ys": [np.ones(2), -np.ones(4)]})
+        np.testing.assert_array_equal(node._connect, [[0, 1], [2, 3], [3, 4], [4, 5]])
+        np.testing.assert_array_equal(node.color, [[1, 0, 0, 1]] * 2 + [[0, 0, 1, 1]] * 4)
+    finally:
+        visual.close()
+
+
+def test_areas_visual_redraws_streamed_areas(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Streamed areas are drawn without a data event and keep their fill colors."""
+    from napari_plot._vispy.layers.areas import VispyAreasLayer
+    from napari_plot.layers import Areas
+
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    layer = Areas([[[0, 0, 1], [1, 0, 2]]], fill_color="red")
+    visual = VispyAreasLayer(layer, font_info=FontInfo())
+    data_events = []
+    layer.events.data.connect(data_events.append)
+    try:
+        layer.stream([[[0, 0, 5], [1, 0, 6], [2, 0, 7]]])
+        assert not data_events
+        assert layer.data[0].shape == (3, 3)
+        np.testing.assert_array_equal(layer.fill_color, [[1, 0, 0, 1]])
+        assert visual.node.mesh.mesh_data.get_vertices()[:, 1].max() == 7
+    finally:
+        visual.close()
