@@ -62,4 +62,3 @@ def init_qactions() -> None:
 
     # register menubar actions
     app.register_actions(chain(LAYERS_ACTIONS))
-
