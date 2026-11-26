@@ -79,3 +79,23 @@ def test_areas_visual_redraws_streamed_areas(monkeypatch: pytest.MonkeyPatch) ->
         assert visual.node.mesh.mesh_data.get_vertices()[:, 1].max() == 7
     finally:
         visual.close()
+
+
+def test_areas_visual_keeps_its_shader_when_the_data_changes(monkeypatch: pytest.MonkeyPatch) -> None:
+    """New areas or colors only upload buffers; the mesh's color function stays, so its program is not recompiled."""
+    from napari_plot._vispy.layers.areas import VispyAreasLayer
+    from napari_plot.layers import Areas
+
+    monkeypatch.setattr("napari._vispy.layers.base.get_max_texture_sizes", lambda: (2048, 2048))
+    layer = Areas([[[0, 0, 1], [1, 0, 2]]], fill_color="red")
+    visual = VispyAreasLayer(layer, font_info=FontInfo())
+    mesh = visual.node.mesh
+    try:
+        mesh._update_data()
+        color_function = mesh.shared_program.vert["color_transform"]
+        layer.stream([[[0, 0, 5], [1, 0, 6], [2, 0, 7]]])
+        layer.fill_color = "blue"
+        mesh._update_data()
+        assert mesh.shared_program.vert["color_transform"] is color_function
+    finally:
+        visual.close()

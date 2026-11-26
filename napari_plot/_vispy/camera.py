@@ -251,7 +251,10 @@ class VispyCamera:
             limits = getattr(self._cell, f"{name}lim", None)
             if not self._shared[index] and limits is not None:
                 flips[index] = limits[0] > limits[1]
-        self.camera.flip = (*flips, False)
+        flip = (bool(flips[0]), bool(flips[1]), False)
+        # vispy redraws the view (transforms, axes) on every assignment, also when the flip did not change
+        if tuple(self.camera.flip) != flip:
+            self.camera.flip = flip
 
     def reset_cell_axis(self, name: ty.Literal["x", "y"]) -> bool:
         """Restore one independent axis to its fit limits, or return False if it is shared."""

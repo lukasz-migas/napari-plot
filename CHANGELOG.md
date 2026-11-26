@@ -16,6 +16,8 @@
 - Autoscaled joint marginals keep their headroom above the largest value when all the data is in view.
 - Dragging in an autoscaled joint marginal draws the zoom span across the marginal (a horizontal band in the right panel), whatever shape the active drag mode uses in the main panel.
 - Image appearance changes (contrast limits, colormap, gamma, ...) and zoom-level (`scale_factor`) events no longer recompute the data extent of every layer.
+- Updating the data or colors of `Bar` and `Areas` layers no longer recompiles their shader program.
+- Plot cells no longer redraw their view when their axis direction is set to the value it already has.
 
 ## Added
 
