@@ -232,6 +232,11 @@ _EXTENT_NEUTRAL_EVENTS = _LAYER_GEOMETRY_EVENTS | frozenset(
         "thumbnail", "color", "highlight", "set_data", "loaded", "name", "opacity", "blending", "status", "help",
         "cursor", "cursor_size", "interactive", "mouse_pan", "mouse_zoom", "editable", "fill_color", "border_color",
         "border_width", "method", "stream", "selected", "reordered", "moving", "moved", "inserting", "removing",
+        # the zoom level of the canvas (changes with every zoom of an autoscaled joint marginal)
+        "scale_factor",
+        # image appearance
+        "contrast_limits", "contrast_limits_range", "colormap", "gamma", "interpolation2d", "interpolation3d",
+        "rendering", "attenuation", "iso_threshold", "depiction",
     }
 )  # fmt: skip
 

@@ -1079,6 +1079,26 @@ def test_joint_autoscale_locks_interaction_in_marginals_to_the_shared_axis(joint
     assert not selected
     assert not viewer.drag_tool._box.visible
 
+    # the drawn span runs across the locked axis of each marginal; the tool gets its own shape back afterwards
+    from napari_plot.components.tools import Shape
+
+    viewer.drag_tool.active = DragMode.AUTO
+    box = viewer.drag_tool._box
+    box.shape = Shape.BOX
+    for cell, expected in ((right, Shape.HORIZONTAL), (top, Shape.VERTICAL)):
+        shapes = []
+
+        def record(_event, shapes=shapes) -> None:
+            shapes.append(box.shape)
+
+        box.events.position.connect(record)
+        offset, (width, height) = canvas._view_offset(cell.view), cell.view.size
+        _drag(canvas, offset + (width * 0.3, height * 0.3), offset + (width * 0.7, height * 0.7), button=1)
+        box.events.position.disconnect(record)
+        assert shapes
+        assert set(shapes) == {expected}
+        assert box.shape == Shape.BOX
+
     # a double-click in the plot area shows the whole shared axis and keeps the other
     viewer.drag_tool.active = DragMode.AUTO
     viewer.camera.rect = (2, 6, 2, 6)

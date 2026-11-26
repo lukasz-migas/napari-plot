@@ -14,6 +14,8 @@
 - Streaming data into a `MultiLine` or `Areas` layer refreshes its cached extent, so fits and resets use the new data.
 - In grid mode, every plot cell has its own bottom layer for blending, so e.g. additive images in the main cell no longer wash out against a light background when a marginal layer is lower in the layer list.
 - Autoscaled joint marginals keep their headroom above the largest value when all the data is in view.
+- Dragging in an autoscaled joint marginal draws the zoom span across the marginal (a horizontal band in the right panel), whatever shape the active drag mode uses in the main panel.
+- Image appearance changes (contrast limits, colormap, gamma, ...) and zoom-level (`scale_factor`) events no longer recompute the data extent of every layer.
 
 ## Added
 

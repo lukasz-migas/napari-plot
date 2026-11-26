@@ -375,3 +375,21 @@ def test_extent_padding_keeps_positive_data_positive() -> None:
     viewer.add_line(np.asarray([[0.001, 0.001], [10.0, 10.0]]), width=20)
     xmin, _, ymin, _ = viewer._get_rect_extent()
     assert xmin == ymin == 0.001
+
+
+def test_appearance_and_zoom_events_do_not_recompute_the_extent(monkeypatch: pytest.MonkeyPatch):
+    """Layer events that never move data (image appearance, zoom level) skip the extent update; data changes do not."""
+    viewer = ViewerModel()
+    image = viewer.add_image(np.random.random((10, 10)))
+    calls = []
+    original = ViewerModel._get_rect_extent
+    monkeypatch.setattr(
+        ViewerModel, "_get_rect_extent", lambda self, **kwargs: calls.append(1) or original(self, **kwargs)
+    )
+    image.contrast_limits = (0.1, 0.9)
+    image.colormap = "magma"
+    image.gamma = 0.5
+    image.events.scale_factor()
+    assert calls == []
+    image.data = np.random.random((20, 20))
+    assert calls

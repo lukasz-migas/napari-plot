@@ -40,6 +40,8 @@ class LimitedPanZoomCamera(PanZoomCamera):
 
     _extent = None
     locked_axis: int | None = None
+    # shape of the drag tool, restored after a span drawn in a marginal with a locked axis
+    _unlocked_tool_shape: Shape | None = None
     _axis_mode: tuple[CameraMode, ...] = (CameraMode.ALL,)
     _extent_mode: ExtentMode = ExtentMode.UNRESTRICTED
     _left_drag_pans: bool = False
@@ -178,6 +180,9 @@ class LimitedPanZoomCamera(PanZoomCamera):
         if event.type == "mouse_press":
             self._left_drag_pans = False
             if event.button == 1 and isinstance(tool, BoxTool):
+                # draw a span across the locked axis, whatever shape the active drag mode uses elsewhere
+                self._unlocked_tool_shape = tool.shape
+                tool.shape = Shape.VERTICAL if free == 0 else Shape.HORIZONTAL
                 tool.position = self._span_position(event.pos, event.pos)
                 tool.visible = True
             event.handled = event.button in (1, 2)
@@ -201,6 +206,9 @@ class LimitedPanZoomCamera(PanZoomCamera):
             if isinstance(tool, BoxTool):
                 tool.visible = False
                 tool.position = (0, 0, 0, 0)
+                if self._unlocked_tool_shape is not None:
+                    tool.shape = self._unlocked_tool_shape
+                    self._unlocked_tool_shape = None
             if event.press_event is None:
                 return True
             start = self._transform.imap(np.asarray(event.press_event.pos[:2]))
