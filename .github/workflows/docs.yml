@@ -23,7 +23,7 @@ jobs:
       - uses: pyvista/setup-headless-display-action@v4
         with:
           qt: true
-      - uses: astral-sh/setup-uv@v9.0.0
+      - uses: astral-sh/setup-uv@v10.4.0
         with:
           python-version: "3.11"
       - name: Install documentation dependencies
