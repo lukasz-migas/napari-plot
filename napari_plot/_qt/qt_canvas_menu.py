@@ -86,6 +86,9 @@ def build_canvas_menu(qt_viewer: QtViewer, cell: tuple[int, int] | None = None) 
             func=lambda checked, overlay=overlay: setattr(overlay, "visible", checked),
         )
         action.setObjectName(f"napari_plot.canvas.{name}")
+    hp.make_menu_item(
+        menu, "Grid line settings...", menu=menu, func=lambda: _open_grid_lines_controls(qt_viewer)
+    ).setObjectName("napari_plot.canvas.grid_lines_settings")
     menu.addSeparator()
 
     hp.make_menu_item(
@@ -95,6 +98,13 @@ def build_canvas_menu(qt_viewer: QtViewer, cell: tuple[int, int] | None = None) 
         menu, _label("Save screenshot...", "Alt+S"), menu=menu, func=lambda: qt_viewer._screenshot_dialog()
     ).setObjectName("napari_plot.canvas.screenshot")
     return menu
+
+
+def _open_grid_lines_controls(qt_viewer: QtViewer) -> None:
+    """Open the grid line controls next to the mouse."""
+    from napari_plot._qt.component_controls.qt_grid_lines_controls import QtGridLinesControls
+
+    QtGridLinesControls(qt_viewer.viewer, qt_viewer).show_right_of_mouse()
 
 
 def _open_cell_axis_controls(qt_viewer: QtViewer, cell: tuple[int, int]) -> None:

@@ -23,6 +23,11 @@ _BLACK = ColorValue("black")
 _WHITE = ColorValue("white")
 
 
+def auto_grid_color(background: ty.Any) -> ColorValue:
+    """Return black or white, whichever has the higher contrast against ``background``."""
+    return max((_BLACK, _WHITE), key=lambda candidate: _contrast_ratio(candidate, background))
+
+
 class _GridLines(Line):
     """Draw grid lines in the plot view's local coordinates."""
 
@@ -113,6 +118,7 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
 
         self.overlay.events.color.connect(self._on_color_change)
         self.overlay.events.minor.connect(self._on_minor_change)
+        self.overlay.events.width.connect(self._on_width_change)
         self._scene_canvas: NapariSceneCanvas | None = self.node.canvas
         if self._scene_canvas is None:
             self.viewer.canvas.events.background_color.connect(self._on_color_change)
@@ -121,10 +127,15 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         self.reset()
         self._on_color_change()
         self._on_minor_change()
+        self._on_width_change()
 
     def _on_minor_change(self, _event: Event | None = None) -> None:
         self.node.minor = self.overlay.minor
         self.node.update()
+
+    def _on_width_change(self, _event: Event | None = None) -> None:
+        if self.node.width != self.overlay.width:
+            self.node.set_data(width=self.overlay.width)
 
     def _on_color_change(self, _event: VispyEvent | None = None) -> None:
         color = self.overlay.color
@@ -134,7 +145,7 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
                 if self._scene_canvas is not None
                 else self.viewer.canvas.background_color
             )
-            color = max((_BLACK, _WHITE), key=lambda candidate: _contrast_ratio(candidate, background))
+            color = auto_grid_color(background)
         if not np.array_equal(color, self.node.color):
             self.node.set_data(color=color)
 
@@ -146,6 +157,7 @@ class VispyGridLinesOverlay(ViewerOverlayMixin, VispyCanvasOverlay):
         """Disconnect the color override and close the visual."""
         self.overlay.events.color.disconnect(self._on_color_change)
         self.overlay.events.minor.disconnect(self._on_minor_change)
+        self.overlay.events.width.disconnect(self._on_width_change)
         if self._scene_canvas is not None:
             self._scene_canvas.events.background_color.disconnect(self._on_color_change)
         super().close()

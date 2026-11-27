@@ -59,10 +59,11 @@ class QtViewToolbar(QWidget):
         )
         self.tools_grid_btn = toolbar_right.insert_qta_tool(
             "mdi6.grid-large",
-            tooltip="Show/hide plot grid lines",
+            tooltip="Show/hide plot grid lines. Right-click to change grid line settings.",
             checkable=True,
             check=viewer.grid_lines.visible,
             func=self._toggle_grid_lines_visible,
+            func_menu=self._open_grid_lines_controls,
         )
         viewer.grid_lines.events.visible.connect(self._sync_grid_lines_button)
         self.tools_legend_btn = toolbar_right.insert_qta_tool(
@@ -100,6 +101,13 @@ class QtViewToolbar(QWidget):
     def _sync_grid_lines_button(self, _event: object = None) -> None:
         # napari 0.10 overlays emit plain values (psygnal), so read the state from the model
         self.tools_grid_btn.setChecked(self.ref_viewer().grid_lines.visible)
+
+    def _open_grid_lines_controls(self) -> None:
+        """Open grid line overlay controls beside the toolbar button."""
+        from napari_plot._qt.component_controls.qt_grid_lines_controls import QtGridLinesControls
+
+        dlg = QtGridLinesControls(self.ref_viewer(), self.ref_qt_viewer())
+        dlg.show_left_of_widget(self.tools_grid_btn, x_offset=dlg.width() * 2)
 
     def _toggle_text_visible(self, state):
         self.ref_qt_viewer().viewer.text_overlay.visible = state

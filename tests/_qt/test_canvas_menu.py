@@ -66,6 +66,7 @@ def test_right_click_opens_menu_and_toggles(
         "napari_plot.canvas.crosshair",
         "napari_plot.canvas.hover",
         "napari_plot.canvas.grid_lines",
+        "napari_plot.canvas.grid_lines_settings",
         "napari_plot.canvas.clipboard",
         "napari_plot.canvas.export_figure",
         "napari_plot.canvas.tool.lasso",

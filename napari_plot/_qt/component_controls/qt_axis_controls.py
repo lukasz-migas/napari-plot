@@ -221,7 +221,7 @@ class QtAxisWidget(QWidget):
                 "mdi6.restore",
                 tooltip="Use the setting of all cells",
                 func=partial(self.on_reset_field, field),
-                small=True,
+                size_preset="small",
                 retain_size=True,
             )
             self._reset_buttons[field] = button

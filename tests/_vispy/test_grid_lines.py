@@ -51,8 +51,19 @@ def test_grid_color_tracks_canvas_background(theme: str, channel: int) -> None:
         np.testing.assert_allclose(visual.node.color, [channel, channel, channel, 1])
         overlay.opacity = 0.5
         assert visual.node.opacity == pytest.approx(0.5)
+        overlay.width = 2.0
+        assert visual.node.width == 2.0
     finally:
         visual.close()
+    overlay.width = 3.0
+    assert visual.node.width == 2.0
+
+
+def test_grid_width_must_be_positive() -> None:
+    """Zero or negative line widths are rejected."""
+    viewer = ViewerModel()
+    with pytest.raises(ValueError, match="greater than 0"):
+        viewer.grid_lines.width = 0
 
 
 def _assert_grid_matches_ticks(canvas: VispyCanvas, viewer: Viewer) -> tuple[int, int]:
