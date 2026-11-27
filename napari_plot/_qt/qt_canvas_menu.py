@@ -30,8 +30,12 @@ def _label(text: str, shortcut: str | None) -> str:
     return f"{text}\t{shortcut}" if shortcut else text
 
 
-def build_canvas_menu(qt_viewer: QtViewer) -> QMenu:
-    """Return the canvas context menu: view resets, drag tools, overlay toggles and export."""
+def build_canvas_menu(qt_viewer: QtViewer, cell: tuple[int, int] | None = None) -> QMenu:
+    """Return the canvas context menu: view resets, drag tools, overlay toggles and export.
+
+    ``cell`` is the (row, column) of the regular-grid cell that was clicked; it adds entries that open the axis and
+    camera settings of that cell.
+    """
     viewer = qt_viewer.viewer
     menu = QMenu(qt_viewer)
 
@@ -39,6 +43,18 @@ def build_canvas_menu(qt_viewer: QtViewer) -> QMenu:
     hp.make_menu_item(menu, "Reset x-axis", menu=menu, func=lambda: viewer.reset_x_view())
     hp.make_menu_item(menu, "Reset y-axis", menu=menu, func=lambda: viewer.reset_y_view())
     menu.addSeparator()
+
+    if cell is not None:
+        hp.make_menu_item(
+            menu, "Axis settings for this cell...", menu=menu, func=lambda: _open_cell_axis_controls(qt_viewer, cell)
+        ).setObjectName("napari_plot.canvas.cell_axis")
+        hp.make_menu_item(
+            menu,
+            "Camera settings for this cell...",
+            menu=menu,
+            func=lambda: _open_cell_camera_controls(qt_viewer, cell),
+        ).setObjectName("napari_plot.canvas.cell_camera")
+        menu.addSeparator()
 
     tools = hp.make_menu(menu, "Tool", menu=menu)
     actions = []
@@ -79,3 +95,17 @@ def build_canvas_menu(qt_viewer: QtViewer) -> QMenu:
         menu, _label("Save screenshot...", "Alt+S"), menu=menu, func=lambda: qt_viewer._screenshot_dialog()
     ).setObjectName("napari_plot.canvas.screenshot")
     return menu
+
+
+def _open_cell_axis_controls(qt_viewer: QtViewer, cell: tuple[int, int]) -> None:
+    """Open the axis controls with the grid cell selected, next to the mouse."""
+    from napari_plot._qt.component_controls.qt_axis_controls import QtAxisControls
+
+    QtAxisControls(qt_viewer.viewer, qt_viewer, target=cell).show_right_of_mouse()
+
+
+def _open_cell_camera_controls(qt_viewer: QtViewer, cell: tuple[int, int]) -> None:
+    """Open the camera controls with the grid cell selected, next to the mouse."""
+    from napari_plot._qt.component_controls.qt_camera_controls import QtCameraControls
+
+    QtCameraControls(qt_viewer.viewer, qt_viewer, target=cell).show_right_of_mouse()

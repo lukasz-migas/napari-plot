@@ -116,8 +116,17 @@ class VispyPlotCell:
         self.x_axis = x_axis
         self.y_axis = y_axis
         self.layout = layout
-        self.position: tuple[int, int] = (0, 0)
+        self.position = (0, 0)
         self._axis_transform_key: tuple | None = None
+
+    @property
+    def position(self) -> tuple[int, int]:
+        """Grid position (row, column) of this cell."""
+        return self.camera.position or (0, 0)
+
+    @position.setter
+    def position(self, position: tuple[int, int]) -> None:
+        self.camera.position = position
 
     @classmethod
     def create(cls, viewer: ViewerModel) -> VispyPlotCell:

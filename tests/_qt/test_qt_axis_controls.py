@@ -34,6 +34,23 @@ def test_axis_controls_update_scale_and_categories(qtbot) -> None:
     assert controls.x_categories_edit.text() == ""
 
 
+def test_axis_label_applies_when_editing_finished(qtbot) -> None:
+    """Labels update the axis once editing finishes, not on every keystroke, and only when they changed."""
+    viewer = ViewerModel()
+    parent = QWidget()
+    qtbot.addWidget(parent)
+    controls = QtAxisWidget(viewer, parent)
+    events = []
+    viewer.axis.events.x_label.connect(events.append)
+
+    controls.x_axis_edit.setText("Time")
+    assert viewer.axis.x_label != "Time"
+    controls.x_axis_edit.editingFinished.emit()
+    assert viewer.axis.x_label == "Time"
+    controls.x_axis_edit.editingFinished.emit()
+    assert len(events) == 1
+
+
 def test_axis_controls_follow_model_changes(qtbot) -> None:
     """Programmatic scale and category changes update the controls."""
     viewer = ViewerModel()

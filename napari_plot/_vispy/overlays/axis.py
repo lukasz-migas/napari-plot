@@ -85,7 +85,15 @@ class VispyAxisVisual:
         self._on_scale_change()
         self._on_label_change()
         self.on_tick_formatter_change()
+        self._on_visible_change()
+        self._on_color_change()
+        self._on_size_change()
         self.node.axis._axis_label_vis.visible = label_visible
+
+    def _setting(self, name: str) -> Any:
+        """Return a setting of the viewer's axis, unless the grid cell overrides it."""
+        value = getattr(self._cell_model, name, None)
+        return getattr(self._viewer.axis, name) if value is None else value
 
     def _axis_setting(self, field: str) -> Any:
         if field == "scale" and self._cell_model is not None:
@@ -105,8 +113,9 @@ class VispyAxisVisual:
         self._refresh_tick_layout()
 
     def _on_visible_change(self, _evt=None):
-        """Change grid lines visibility"""
-        self.node.visible = self._viewer.axis.visible and not self._suppressed
+        """Show the axis unless it is hidden for all cells, this cell or suppressed (the space is kept for a cell)."""
+        cell_visible = getattr(self._cell_model, f"{self.dimension}_visible", None) is not False
+        self.node.visible = self._viewer.axis.visible and cell_visible and not self._suppressed
 
     def suppress(self, suppressed: bool) -> None:
         """Hide this axis and collapse its gutter while preserving global settings."""
@@ -117,6 +126,10 @@ class VispyAxisVisual:
     def _on_color_change(self, _evt=None) -> None:
         """Update axis colors from explicit settings and the viewer theme."""
         tick_color, label_color = self._viewer.axis.colors_for_theme(self._viewer.theme)
+        cell = self._cell_model
+        if cell is not None:
+            tick_color = tick_color if cell.tick_color is None else cell.tick_color
+            label_color = label_color if cell.label_color is None else cell.label_color
         self.node.axis.axis_color = tick_color
         self.node.axis.tick_color = tick_color
         self.node.axis.text_color = label_color
@@ -124,8 +137,8 @@ class VispyAxisVisual:
 
     def _on_size_change(self, _evt=None):
         """Change node size"""
-        self.node.axis.tick_font_size = self._viewer.axis.tick_size
-        self.node.axis.axis_font_size = self._viewer.axis.label_size
+        self.node.axis.tick_font_size = self._setting("tick_size")
+        self.node.axis.axis_font_size = self._setting("label_size")
         self._update_label_space()
         self._refresh_tick_layout()
 
@@ -201,9 +214,16 @@ class VispyXAxisVisual(VispyAxisVisual):
         self._on_thin_change()
         self._on_scale_change()
 
+    def configure_cell(
+        self, cell: PlotGridCell | None, *, label_visible: bool = True, own_formatter: bool = False
+    ) -> None:
+        """Apply the grid cell's axis settings, including its tick label rotation."""
+        super().configure_cell(cell, label_visible=label_visible, own_formatter=own_formatter)
+        self._on_rotation_change()
+
     def _on_rotation_change(self, _evt=None) -> None:
         """Rotate the tick labels so that each one ends at its tick."""
-        rotation = float(self._viewer.axis.x_tick_rotation)
+        rotation = float(self._setting("x_tick_rotation"))
         self.node.axis.ticker.label_rotation = rotation
         self.node.axis.ticker._anchors = _rotated_anchors(rotation)
         self.node.axis._text.rotation = -rotation  # vispy rotates clockwise
@@ -218,7 +238,7 @@ class VispyXAxisVisual(VispyAxisVisual):
     def _label_growth(self) -> float:
         """Return the extra height that rotated category labels need."""
         ticker = getattr(self.node.axis, "ticker", None)
-        rotation = float(self._viewer.axis.x_tick_rotation)
+        rotation = float(self._setting("x_tick_rotation"))
         if ticker is None or rotation == 0 or self._axis_setting("scale") is not AxisScale.CATEGORICAL:
             return 0.0
         try:
@@ -290,7 +310,7 @@ class VispyYAxisVisual(VispyAxisVisual):
             return 0.0
         # the axis title sits `y_label_margin` from the axis line: keep the tick labels and the title apart
         axis = self._viewer.axis
-        needed = float(np.max(widths)) + axis.y_tick_margin + 2 * axis.label_size
+        needed = float(np.max(widths)) + axis.y_tick_margin + 2 * self._setting("label_size")
         return max(0.0, needed - axis.y_label_margin)
 
     def _update_label_space(self) -> None:

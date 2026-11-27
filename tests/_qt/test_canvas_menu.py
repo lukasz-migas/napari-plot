@@ -115,3 +115,29 @@ def test_host_can_extend_menu(
     viewer.window._qt_viewer.evt_canvas_menu.connect(lambda menu: menu.addAction("Extra").setObjectName("extra"))
     _right_click(qtbot, viewer)
     assert "extra" in opened_menus[0]
+
+
+def test_right_click_in_grid_cell_opens_its_settings(
+    make_napari_plot_viewer: ty.Callable,
+    qtbot: QtBot,
+    opened_menus: list[dict[str, QAction]],
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """In a regular grid, the menu opens the axis and camera settings of the clicked cell."""
+    from napari_plot._qt import qt_canvas_menu
+
+    viewer = make_napari_plot_viewer(show=True)
+    viewer.add_line([[0, 0], [1, 1]])
+    _right_click(qtbot, viewer)
+    assert "napari_plot.canvas.cell_axis" not in opened_menus[0]
+
+    viewer.add_line([[0, 1], [1, 2]])
+    viewer.canvas.grid.update({"enabled": True, "shape": (1, 1), "stride": 1})
+    _right_click(qtbot, viewer)
+    actions = opened_menus[1]
+    assert {"napari_plot.canvas.cell_axis", "napari_plot.canvas.cell_camera"} <= set(actions)
+
+    opened = []
+    monkeypatch.setattr(qt_canvas_menu, "_open_cell_axis_controls", lambda _qt_viewer, cell: opened.append(cell))
+    actions["napari_plot.canvas.cell_axis"].trigger()
+    assert opened == [(0, 0)]

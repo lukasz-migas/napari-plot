@@ -290,6 +290,8 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
     _legend_source_layers: list[n_layers.Layer] = PrivateAttr(default_factory=list)
     _colorbar_sources: dict[tuple[int, int] | None, n_layers.Layer] = PrivateAttr(default_factory=dict)
     _cell_colorbars: dict[tuple[int, int], ColorBar] = PrivateAttr(default_factory=dict)
+    # own (xmin, xmax, ymin, ymax) limits of grid cells with an independent axis, published by the cell views
+    _cell_rects: dict[tuple[int, int], tuple[float, float, float, float]] = PrivateAttr(default_factory=dict)
     _text_overlay_names: list[str] = PrivateAttr(default_factory=list)
     # joint-grid panel under the cursor ("joint", "top" or "right"; None outside joint mode)
     _cursor_panel: str | None = PrivateAttr(None)
@@ -314,6 +316,7 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             selection=Event,
             clear_canvas=Event,
             colorbars_change=Event,
+            cell_rect=Event,
         )
         self.events.theme.connect(self.canvas._update_bgcolor_from_viewer)
         self.canvas._update_bgcolor_from_viewer(Event("theme", value=self.theme))
@@ -823,6 +826,82 @@ class ViewerModel(KeymapProvider, MousemapProviderPydantic, EventedModel):
             limits = (lower, upper)
         rect = self.camera.rect
         self.camera.rect = (*rect[:index], *limits, *rect[index + 2 :])
+
+    def _grid_cells(self) -> dict[tuple[int, int], list[n_layers.Layer]]:
+        """Return the layers drawn in each plot cell of a regular grid (empty when the grid is off or joint)."""
+        grid = self.canvas.grid
+        if not grid.enabled or grid.joint or not self.layers:
+            return {}
+        assigned = (
+            {(cell.row, cell.column) for cell in grid.cells if cell.group is not None}
+            if grid.group_by_metadata
+            else set()
+        )
+        return {
+            position: [self.layers[index] for index in indices]
+            for position, indices in grid.iter_viewboxes(self.layers)
+            if indices or position in assigned
+        }
+
+    def _check_grid_cell(self, row: int, col: int) -> list[n_layers.Layer]:
+        """Return the layers of a plot cell of a regular grid, or raise if no such cell is shown."""
+        layers = self._grid_cells().get((row, col))
+        if layers is None:
+            raise ValueError(f"There is no plot cell at row {row}, column {col} of a regular grid.")
+        return layers
+
+    def cell_rect(self, row: int, col: int) -> tuple[float, float, float, float]:
+        """Return the (xmin, xmax, ymin, ymax) limits shown in a plot cell of a regular grid.
+
+        Shared axes show the limits of the viewer's camera; an independent axis shows the cell's own limits.
+        """
+        self._check_grid_cell(row, col)
+        rect = self.camera.rect
+        local = self._cell_rects.get((row, col))
+        if local is None:
+            return rect
+        grid = self.canvas.grid
+        return (*(rect[:2] if grid.sharex else local[:2]), *(rect[2:] if grid.sharey else local[2:]))
+
+    def set_cell_rect(self, row: int, col: int, xmin: float, xmax: float, ymin: float, ymax: float) -> None:
+        """Set the limits shown in a plot cell of a regular grid.
+
+        The limits of a shared axis go to the viewer's camera, so every cell sharing that axis follows.
+        """
+        self._check_grid_cell(row, col)
+        rect = tuple(map(float, (xmin, xmax, ymin, ymax)))
+        if not np.isfinite(rect).all() or rect[0] >= rect[1] or rect[2] >= rect[3]:
+            raise ValueError("Cell limits must be finite and increasing (xmin < xmax, ymin < ymax).")
+        grid = self.canvas.grid
+        if grid.sharex or grid.sharey:
+            current = self.camera.rect
+            self.camera.rect = (
+                *(rect[:2] if grid.sharex else current[:2]),
+                *(rect[2:] if grid.sharey else current[2:]),
+            )
+        if not (grid.sharex and grid.sharey):
+            self._publish_cell_rect((row, col), rect)
+
+    def _publish_cell_rect(self, cell: tuple[int, int], rect: tuple[float, float, float, float] | None) -> None:
+        """Store the own limits of a grid cell (None when it has none) and emit ``cell_rect`` when they changed."""
+        if rect is None:
+            self._cell_rects.pop(cell, None)
+            return
+        rect = tuple(map(float, rect))
+        if self._cell_rects.get(cell) == rect:
+            return
+        self._cell_rects[cell] = rect
+        self.events.cell_rect(cell=cell, rect=rect)
+
+    def _cell_extent(self, row: int, col: int) -> tuple[float, float, float, float]:
+        """Return the data bounds of a plot cell of a regular grid, from the camera's extent for shared axes."""
+        layers = self._check_grid_cell(row, col)
+        extent = self.camera.extent
+        grid = self.canvas.grid
+        if (grid.sharex and grid.sharey) or not layers:
+            return extent
+        local = self._get_rect_extent(layers=layers, cell=grid._find_cell(row, col), use_camera_range=False)
+        return (*(extent[:2] if grid.sharex else local[:2]), *(extent[2:] if grid.sharey else local[2:]))
 
     def clear_canvas(self):
         """Remove all layers from the canvas"""

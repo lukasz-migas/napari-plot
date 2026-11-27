@@ -347,7 +347,9 @@ class QtViewer(QSplitter):
         """Open the canvas context menu where the canvas was right-clicked."""
         from napari_plot._qt.qt_canvas_menu import build_canvas_menu
 
-        menu = build_canvas_menu(self)
+        position = self.canvas._cell_at(event.pos).position
+        cell = position if position in self.viewer._grid_cells() else None
+        menu = build_canvas_menu(self, cell)
         try:
             self.evt_canvas_menu.emit(menu)
             x, y = event.pos

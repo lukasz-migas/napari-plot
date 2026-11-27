@@ -45,6 +45,8 @@ class VispyCamera:
     # undo zooming a single axis.
     _publishing_zoom: ty.ClassVar[set[int]] = set()
     _cell: PlotGridCell | None = None
+    # grid position of the plot cell drawn by this camera; its own limits are published to the viewer under it
+    position: tuple[int, int] | None = None
 
     def __init__(self, view, camera: Camera, viewer: ViewerModel, follow_model: bool = False):
         self._view = view
@@ -58,7 +60,7 @@ class VispyCamera:
         self._layers: Sequence[Layer] | None = None
         self._shared = (True, True)
         self._local_extent: RectLimits | None = None
-        self._local_rect: RectLimits | None = None
+        self._local_rect_value: RectLimits | None = None
         self._autoscaling = False
 
         # Create camera
@@ -86,6 +88,17 @@ class VispyCamera:
         self._on_extent_mode_change(None)
         self._initializing = False
         self._on_rect_change(None)
+
+    @property
+    def _local_rect(self) -> RectLimits | None:
+        """Own limits of a grid cell with an independent axis (None when both axes follow the camera model)."""
+        return self._local_rect_value
+
+    @_local_rect.setter
+    def _local_rect(self, rect: RectLimits | None) -> None:
+        self._local_rect_value = rect
+        if self.position is not None:
+            self._viewer._publish_cell_rect(self.position, rect)
 
     @property
     def camera(self):
@@ -248,6 +261,9 @@ class VispyCamera:
         if self._viewer.canvas.grid.enabled and self._viewer.canvas.grid.joint:
             flips = [flip if shared else False for flip, shared in zip(flips, self._shared, strict=True)]
         for index, name in enumerate(("x", "y")):
+            inverted = getattr(self._cell, f"{name}_inverted", None)
+            if inverted is not None:
+                flips[index] = inverted
             limits = getattr(self._cell, f"{name}lim", None)
             if not self._shared[index] and limits is not None:
                 flips[index] = limits[0] > limits[1]

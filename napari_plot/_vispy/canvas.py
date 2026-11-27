@@ -400,6 +400,7 @@ class VispyCanvas:
         self.viewer.events.layers_change.connect(self._refresh_cell_views)
         self.viewer.events.reset_view.connect(self._reset_cell_views)
         self.viewer.events.margins.connect(self._refresh_cell_views)
+        self.viewer.events.cell_rect.connect(self._on_cell_rect)
 
         self.viewer.canvas.events.background_color.connect(self._update_background_color)
         self.viewer.canvas.events._overlay_positions_changed.connect(self._request_overlay_positions)
@@ -514,6 +515,17 @@ class VispyCanvas:
         if not cell.camera.reset_cell_axis(name):
             reset = self.viewer.reset_x_view if name == "x" else self.viewer.reset_y_view
             reset()
+
+    def _on_cell_rect(self, event: Event) -> None:
+        """Show the own limits set for a grid cell (e.g. by ``viewer.set_cell_rect``)."""
+        if self._cells_grid is None:
+            return
+        for cell in self._cells:
+            if cell.position == event.cell:
+                # cells publish their own limits while they are panned; only apply limits set elsewhere
+                if cell.camera._local_rect is not None and tuple(cell.camera._local_rect) != event.rect:
+                    cell.camera.restore_cell_rect(event.rect)
+                return
 
     def _reset_cell_views(self, _event: Event | None = None) -> None:
         for cell in self._cells:

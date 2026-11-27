@@ -120,6 +120,72 @@ def test_cell_axis_overrides_apply_to_ticks_interactions_and_reset(plot, qtbot) 
     assert not canvas.camera.camera.flip[0]
 
 
+def test_cell_axis_appearance_overrides(plot, qtbot) -> None:
+    """A cell can hide, resize, color, invert and rotate its own axes; the other cells keep the viewer settings."""
+    viewer, canvas = plot
+    grid = viewer.canvas.grid
+    grid.enabled = True
+    first, second, *_ = canvas._cells
+    _settle(qtbot, canvas)
+    height = second.x_axis.node.height_max
+    settings = grid.cell(*second.position)
+    settings.update(
+        {
+            "x_visible": False,
+            "label_size": 14,
+            "tick_size": 11,
+            "tick_color": "red",
+            "y_inverted": True,
+            "x_tick_rotation": 45,
+        }
+    )
+    _settle(qtbot, canvas)
+
+    assert not second.x_axis.node.visible
+    assert second.x_axis.node.height_max == height  # the space of a hidden cell axis is kept
+    assert second.y_axis.node.visible
+    assert second.y_axis.node.axis.axis_font_size == 14
+    assert second.y_axis.node.axis.tick_font_size == 11
+    np.testing.assert_allclose(second.y_axis.node.axis.tick_color, [1, 0, 0, 1])
+    assert second.camera.camera.flip[1]
+    assert second.x_axis.node.axis.ticker.label_rotation == 45
+    assert first.x_axis.node.visible
+    assert first.y_axis.node.axis.axis_font_size == viewer.axis.label_size
+    assert not first.camera.camera.flip[1]
+    assert first.x_axis.node.axis.ticker.label_rotation == 0
+
+    viewer.axis.label_size = 9
+    assert second.y_axis.node.axis.axis_font_size == 14
+    assert first.y_axis.node.axis.axis_font_size == 9
+    viewer.axis.visible = False
+    assert not first.x_axis.node.visible
+    viewer.axis.visible = True
+
+    settings.clear_overrides()
+    assert second.x_axis.node.visible
+    assert second.y_axis.node.axis.axis_font_size == 9
+    assert not second.camera.camera.flip[1]
+
+
+def test_cell_rect_follows_and_drives_independent_cells(plot, qtbot) -> None:
+    """Panning a cell publishes its own limits, and ``set_cell_rect`` moves only that cell."""
+    viewer, canvas = plot
+    grid = viewer.canvas.grid
+    grid.sharex = False
+    grid.enabled = True
+    first, second, *_ = canvas._cells
+    _settle(qtbot, canvas)
+
+    second.camera.rect = (2, 6, 0, 2)
+    assert viewer.cell_rect(*second.position) == pytest.approx((2, 6, 0, 2))
+    assert viewer.cell_rect(*first.position)[:2] != pytest.approx((2, 6))
+
+    viewer.set_cell_rect(*second.position, 3, 7, 0.5, 1.5)
+    assert second.camera.rect == pytest.approx((3, 7, 0.5, 1.5))
+    assert first.camera.rect[2:] == pytest.approx((0.5, 1.5))
+    assert first.camera.rect[:2] != pytest.approx((3, 7))
+
+
 def test_grid_mouse_maps_through_the_cell_under_cursor(plot, qtbot) -> None:
     """Canvas positions map to world coordinates through the cell they fall in."""
     viewer, canvas = plot

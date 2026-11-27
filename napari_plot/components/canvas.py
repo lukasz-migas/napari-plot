@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from itertools import product
 from math import ceil, isfinite, sqrt
 from typing import TYPE_CHECKING, Literal
 
+import numpy as np
 from napari.components.canvas import Canvas
 from napari.components.grid import GridCanvas
+from napari.utils.colormaps.standardize_color import transform_color
 from napari.utils.events import Event, EventedModel
+from napari.utils.events.custom_types import Array
 from pydantic import Field, field_validator
 
 from napari_plot.components.axis import Axis, AxisScale
@@ -22,12 +25,37 @@ if TYPE_CHECKING:
     from napari.layers import Layer
 
 
+# settings of a grid cell that override the viewer's axis when they are not None
+CELL_AXIS_FIELDS: tuple[str, ...] = (
+    "x_label",
+    "y_label",
+    "x_scale",
+    "y_scale",
+    "x_categories",
+    "y_categories",
+    "xlim",
+    "ylim",
+    "x_tick_formatter",
+    "y_tick_formatter",
+    "x_visible",
+    "y_visible",
+    "label_size",
+    "tick_size",
+    "label_color",
+    "tick_color",
+    "x_inverted",
+    "y_inverted",
+    "x_tick_rotation",
+)
+
+
 class PlotGridCell(EventedModel):
     """Optional axis settings for one (row, column) in the plot grid.
 
     ``None`` inherits the viewer setting. Limits apply when the corresponding axis is independent. A ``group``
     reserves this position for layers with that metadata group. ``x_tick_formatter``/``y_tick_formatter`` format the
-    tick labels of this cell's axes.
+    tick labels of this cell's axes. ``x_visible``/``y_visible`` hide one axis of this cell while keeping its space,
+    so the plot areas of the grid stay aligned; the viewer's ``axis.visible`` still hides every axis.
     """
 
     row: int = Field(ge=0, frozen=True)
@@ -43,6 +71,29 @@ class PlotGridCell(EventedModel):
     ylim: tuple[float, float] | None = None
     x_tick_formatter: Callable[..., str] | None = None
     y_tick_formatter: Callable[..., str] | None = None
+    x_visible: bool | None = None
+    y_visible: bool | None = None
+    label_size: float | None = Field(default=None, gt=0)
+    tick_size: float | None = Field(default=None, gt=0)
+    label_color: Array[float, (4,)] | None = None
+    tick_color: Array[float, (4,)] | None = None
+    x_inverted: bool | None = None
+    y_inverted: bool | None = None
+    x_tick_rotation: float | None = None
+
+    @field_validator("label_color", "tick_color", mode="before")
+    @classmethod
+    def _coerce_color(cls, value: object) -> np.ndarray | None:
+        return None if value is None else transform_color(value)[0]
+
+    def overrides(self, names: Iterable[str] = CELL_AXIS_FIELDS) -> tuple[str, ...]:
+        """Return which of the axis settings ``names`` this cell overrides (all of them by default)."""
+        return tuple(name for name in names if getattr(self, name) is not None)
+
+    def clear_overrides(self, names: Iterable[str] = CELL_AXIS_FIELDS) -> None:
+        """Make the axis settings ``names`` (all of them by default) inherit the viewer setting again."""
+        for name in self.overrides(names):
+            setattr(self, name, None)
 
     @field_validator("xlim", "ylim")
     @classmethod
